@@ -6,20 +6,26 @@ function RoleManagement() {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [formData, setFormData] = useState({ name: '', description: '', permissions: [] });
   const [error, setError] = useState('');
+  const [errors, setErrors] = useState({});
 
   function loadRoles() {
     setRoles([...PREDEFINED_ROLES, ...getCustomRoles()]);
   }
 
+  function validate() {
+    const e = {};
+    if (!formData.name?.trim()) e.name = "Role name is required";
+    if (formData.permissions.length === 0) e.permissions = "Select at least one permission";
+    return e;
+  }
+
   function handleCreateRole() {
-    if (!formData.name.trim()) {
-      setError('Role name is required');
+    const validationErrors = validate();
+    if (Object.keys(validationErrors).length > 0) {
+      setErrors(validationErrors);
       return;
     }
-    if (formData.permissions.length === 0) {
-      setError('Select at least one permission');
-      return;
-    }
+    setErrors({});
     
     try {
       createCustomRole({
@@ -31,6 +37,7 @@ function RoleManagement() {
       setFormData({ name: '', description: '', permissions: [] });
       setShowCreateForm(false);
       setError('');
+      setErrors({});
     } catch (err) {
       setError(err.message);
     }
@@ -50,26 +57,27 @@ function RoleManagement() {
         ? formData.permissions.filter((p) => p !== permId)
         : [...formData.permissions, permId],
     });
+    if (errors.permissions) setErrors((prev) => ({ ...prev, permissions: undefined }));
   }
 
   return (
     <div className="space-y-8 animate-fade-in">
       <header>
-        <p className="font-mono text-[11px] tracking-[0.2em] text-[#0075A2] uppercase">
+        <p className="font-mono text-[11px] tracking-[0.2em] text-[#0057B8] uppercase">
           SYSTEM ADMINISTRATION
         </p>
-        <h1 className="mt-1 font-sans text-2xl md:text-3xl font-bold tracking-tight text-white">
+        <h1 className="mt-1 font-sans text-2xl md:text-3xl font-bold tracking-tight text-gray-900">
           Role Management
         </h1>
-        <p className="mt-2 text-sm text-white/55">
+        <p className="mt-2 text-sm text-gray-500">
           Create custom roles and manage system permissions
         </p>
       </header>
 
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-lg font-semibold text-white">All Roles</h2>
-          <p className="text-xs text-white/45 mt-0.5">
+          <h2 className="text-lg font-semibold text-gray-900">All Roles</h2>
+          <p className="text-xs text-gray-400 mt-0.5">
             {roles.length} total ({PREDEFINED_ROLES.length} predefined, {getCustomRoles().length} custom)
           </p>
         </div>
@@ -88,34 +96,38 @@ function RoleManagement() {
       )}
 
       {showCreateForm && (
-        <div className="bg-white/[0.02] border border-white/[0.08] rounded-lg p-6 space-y-4">
+        <div className="bg-gray-50 border border-gray-200 rounded-lg p-6 space-y-4">
           <div>
-            <label className="block text-xs text-white/60 mb-2">Role Name *</label>
+            <label className="block text-xs text-gray-500 mb-2">Role Name *</label>
             <input
               type="text"
               value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              onChange={(e) => {
+                setFormData({ ...formData, name: e.target.value });
+                if (errors.name) setErrors((prev) => ({ ...prev, name: undefined }));
+              }}
               placeholder="e.g., Content Moderator"
-              className="w-full px-4 py-2.5 text-sm bg-[#272727] border border-white/[0.08] text-white placeholder:text-white/30 rounded-lg focus:outline-none focus:border-primary/50"
+              className="w-full px-4 py-2.5 text-sm bg-gray-50 border border-gray-200 text-gray-900 placeholder:text-gray-400 rounded-lg focus:outline-none focus:border-primary/50"
             />
+            {errors.name && <p className="text-danger text-xs mt-1">{errors.name}</p>}
           </div>
 
           <div>
-            <label className="block text-xs text-white/60 mb-2">Description</label>
+            <label className="block text-xs text-gray-500 mb-2">Description</label>
             <textarea
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               placeholder="Describe the purpose of this role"
               rows={2}
-              className="w-full px-4 py-2.5 text-sm bg-[#272727] border border-white/[0.08] text-white placeholder:text-white/30 rounded-lg focus:outline-none focus:border-primary/50 resize-none"
+              className="w-full px-4 py-2.5 text-sm bg-gray-50 border border-gray-200 text-gray-900 placeholder:text-gray-400 rounded-lg focus:outline-none focus:border-primary/50 resize-none"
             />
           </div>
 
           <div>
-            <label className="block text-xs text-white/60 mb-3">Permissions *</label>
+            <label className="block text-xs text-gray-500 mb-3">Permissions *</label>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               {AVAILABLE_PERMISSIONS.map((perm) => (
-                <label key={perm.id} className="flex items-start gap-3 p-3 bg-[#272727] border border-white/[0.08] rounded-lg cursor-pointer hover:border-white/[0.12] transition-colors">
+                <label key={perm.id} className="flex items-start gap-3 p-3 bg-gray-50 border border-gray-200 rounded-lg cursor-pointer hover:border-gray-300 transition-colors">
                   <input
                     type="checkbox"
                     checked={formData.permissions.includes(perm.id)}
@@ -123,12 +135,13 @@ function RoleManagement() {
                     className="mt-0.5 accent-primary"
                   />
                   <div className="flex-1">
-                    <p className="text-xs font-medium text-white">{perm.label}</p>
-                    <p className="text-[11px] text-white/50">{perm.description}</p>
+                    <p className="text-xs font-medium text-gray-900">{perm.label}</p>
+                    <p className="text-[11px] text-gray-500">{perm.description}</p>
                   </div>
                 </label>
               ))}
             </div>
+            {errors.permissions && <p className="text-danger text-xs mt-1">{errors.permissions}</p>}
           </div>
 
           <div className="flex gap-2 pt-4">
@@ -143,8 +156,9 @@ function RoleManagement() {
                 setShowCreateForm(false);
                 setFormData({ name: '', description: '', permissions: [] });
                 setError('');
+                setErrors({});
               }}
-              className="flex-1 px-4 py-2.5 text-sm font-medium text-white/60 hover:text-white bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] rounded-lg transition-colors"
+              className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-500 hover:text-gray-900 bg-gray-100 hover:bg-gray-200 border border-gray-200 rounded-lg transition-colors"
             >
               Cancel
             </button>
@@ -156,26 +170,26 @@ function RoleManagement() {
         {roles.map((role) => (
           <div
             key={role.id}
-            className="bg-white/[0.02] border border-white/[0.08] rounded-lg p-5 hover:border-white/[0.12] transition-colors group"
+            className="bg-white border border-gray-200 rounded-lg p-5 hover:border-gray-300 transition-colors group"
           >
             <div className="flex items-start justify-between mb-3">
               <div className="flex-1">
                 <div className="flex items-center gap-2">
-                  <h3 className="text-sm font-semibold text-white">{role.name}</h3>
+                  <h3 className="text-sm font-semibold text-gray-900">{role.name}</h3>
                   <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${
                     role.type === 'predefined'
                       ? 'bg-primary/20 text-primary'
-                      : 'bg-white/[0.1] text-white/60'
+                      : 'bg-gray-100 text-gray-500'
                   }`}>
                     {role.type === 'predefined' ? 'Predefined' : 'Custom'}
                   </span>
                 </div>
-                <p className="text-xs text-white/50 mt-1">{role.description}</p>
+                <p className="text-xs text-gray-500 mt-1">{role.description}</p>
               </div>
               {role.type === 'custom' && (
                 <button
                   onClick={() => handleDeleteRole(role.id)}
-                  className="text-white/40 hover:text-primary transition-colors opacity-0 group-hover:opacity-100"
+                  className="text-gray-400 hover:text-primary transition-colors opacity-0 group-hover:opacity-100"
                   title="Delete role"
                 >
                   ✕
@@ -183,8 +197,8 @@ function RoleManagement() {
               )}
             </div>
 
-            <div className="mt-4 pt-4 border-t border-white/[0.06]">
-              <p className="text-xs text-white/60 mb-2">Permissions ({role.permissions.length})</p>
+            <div className="mt-4 pt-4 border-t border-gray-200">
+              <p className="text-xs text-gray-500 mb-2">Permissions ({role.permissions.length})</p>
               <div className="flex flex-wrap gap-1">
                 {role.permissions.map((permId) => {
                   const perm = AVAILABLE_PERMISSIONS.find((p) => p.id === permId);

@@ -4,7 +4,6 @@ import { getAllRoles } from '../../data/roles';
 import CustomSelect from '../../components/CustomSelect';
 
 function UserManagement() {
-  const [mounted, setMounted] = useState(false);
   const [users, setUsers] = useState([]);
   const [roles, setRoles] = useState([]);
   const [showCreateForm, setShowCreateForm] = useState(false);
@@ -19,10 +18,10 @@ function UserManagement() {
     roleId: '' 
   });
   const [error, setError] = useState('');
+  const [errors, setErrors] = useState({});
   const [success, setSuccess] = useState('');
 
   useEffect(() => {
-    setMounted(true);
     loadData();
   }, []);
 
@@ -33,16 +32,23 @@ function UserManagement() {
     setRoles(fetchedRoles);
   }
 
-  function handleCreateUser() {
-    if (!formData.firstName.trim() || !formData.lastName.trim() || !formData.email.trim() || !formData.roleId) {
-      setError('First name, last name, email, and role are required');
-      return;
-    }
+  function validate() {
+    const e = {};
+    if (!formData.firstName?.trim()) e.firstName = "First name is required";
+    if (!formData.lastName?.trim()) e.lastName = "Last name is required";
+    if (!formData.email?.trim()) e.email = "Email is required";
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) e.email = "Invalid email address";
+    if (!formData.roleId) e.roleId = "Role is required";
+    return e;
+  }
 
-    if (!formData.email.includes('@')) {
-      setError('Invalid email address');
+  function handleCreateUser() {
+    const validationErrors = validate();
+    if (Object.keys(validationErrors).length > 0) {
+      setErrors(validationErrors);
       return;
     }
+    setErrors({});
 
     if (users.some((u) => u.email === formData.email)) {
       setError('Email already exists');
@@ -70,6 +76,7 @@ function UserManagement() {
       setFormData({ firstName: '', middleInitial: '', lastName: '', suffix: '', email: '', roleId: '' });
       setShowCreateForm(false);
       setError('');
+      setErrors({});
       setSuccess('User created successfully');
       setTimeout(() => setSuccess(''), 3000);
     } catch (err) {
@@ -102,23 +109,23 @@ function UserManagement() {
   });
 
   return (
-    <div className={`space-y-8 ${mounted ? 'animate-fade-in' : 'opacity-0'}`}>
+    <div className="space-y-8 animate-fade-in">
       <header>
-        <p className="font-mono text-[11px] tracking-[0.2em] text-[#0075A2] uppercase">
+        <p className="font-mono text-[11px] tracking-[0.2em] text-[#0057B8] uppercase">
           SYSTEM ADMINISTRATION
         </p>
-        <h1 className="mt-1 font-sans text-2xl md:text-3xl font-bold tracking-tight text-white">
+        <h1 className="mt-1 font-sans text-2xl md:text-3xl font-bold tracking-tight text-gray-900">
           User Management
         </h1>
-        <p className="mt-2 text-sm text-white/55">
+        <p className="mt-2 text-sm text-gray-500">
           Manage system users and assign them to roles
         </p>
       </header>
 
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div>
-          <h2 className="text-lg font-semibold text-white">All Users</h2>
-          <p className="text-xs text-white/45 mt-0.5">
+          <h2 className="text-lg font-semibold text-gray-900">All Users</h2>
+          <p className="text-xs text-gray-400 mt-0.5">
             {filteredUsers.length} {filterRole === 'all' ? 'total' : 'in selected role'}
           </p>
         </div>
@@ -143,70 +150,85 @@ function UserManagement() {
       )}
 
       {showCreateForm && (
-        <div className="bg-white/[0.02] border border-white/[0.08] rounded-lg p-6 space-y-4">
+        <div className="bg-gray-50 border border-gray-200 rounded-lg p-6 space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs text-white/60 mb-2">First Name *</label>
+              <label className="block text-xs text-gray-500 mb-2">First Name *</label>
               <input
                 type="text"
                 value={formData.firstName}
-                onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+                onChange={(e) => {
+                  setFormData({ ...formData, firstName: e.target.value });
+                  if (errors.firstName) setErrors((prev) => ({ ...prev, firstName: undefined }));
+                }}
                 placeholder="e.g., John"
-                className="w-full px-4 py-2.5 text-sm bg-[#272727] border border-white/[0.08] text-white placeholder:text-white/30 rounded-lg focus:outline-none focus:border-primary/50"
+                className="w-full px-4 py-2.5 text-sm bg-gray-50 border border-gray-200 text-gray-900 placeholder:text-gray-400 rounded-lg focus:outline-none focus:border-primary/50"
               />
+              {errors.firstName && <p className="text-danger text-xs mt-1">{errors.firstName}</p>}
             </div>
 
             <div>
-              <label className="block text-xs text-white/60 mb-2">Middle Initial</label>
+              <label className="block text-xs text-gray-500 mb-2">Middle Initial</label>
               <input
                 type="text"
                 value={formData.middleInitial}
                 onChange={(e) => setFormData({ ...formData, middleInitial: e.target.value.slice(0, 1).toUpperCase() })}
                 placeholder="e.g., M"
                 maxLength="1"
-                className="w-full px-4 py-2.5 text-sm bg-[#272727] border border-white/[0.08] text-white placeholder:text-white/30 rounded-lg focus:outline-none focus:border-primary/50 uppercase"
+                className="w-full px-4 py-2.5 text-sm bg-gray-50 border border-gray-200 text-gray-900 placeholder:text-gray-400 rounded-lg focus:outline-none focus:border-primary/50 uppercase"
               />
             </div>
 
             <div>
-              <label className="block text-xs text-white/60 mb-2">Last Name *</label>
+              <label className="block text-xs text-gray-500 mb-2">Last Name *</label>
               <input
                 type="text"
                 value={formData.lastName}
-                onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+                onChange={(e) => {
+                  setFormData({ ...formData, lastName: e.target.value });
+                  if (errors.lastName) setErrors((prev) => ({ ...prev, lastName: undefined }));
+                }}
                 placeholder="e.g., Doe"
-                className="w-full px-4 py-2.5 text-sm bg-[#272727] border border-white/[0.08] text-white placeholder:text-white/30 rounded-lg focus:outline-none focus:border-primary/50"
+                className="w-full px-4 py-2.5 text-sm bg-gray-50 border border-gray-200 text-gray-900 placeholder:text-gray-400 rounded-lg focus:outline-none focus:border-primary/50"
               />
+              {errors.lastName && <p className="text-danger text-xs mt-1">{errors.lastName}</p>}
             </div>
 
             <div>
-              <label className="block text-xs text-white/60 mb-2">Suffix</label>
+              <label className="block text-xs text-gray-500 mb-2">Suffix</label>
               <input
                 type="text"
                 value={formData.suffix}
                 onChange={(e) => setFormData({ ...formData, suffix: e.target.value })}
                 placeholder="e.g., Jr., Sr., III"
-                className="w-full px-4 py-2.5 text-sm bg-[#272727] border border-white/[0.08] text-white placeholder:text-white/30 rounded-lg focus:outline-none focus:border-primary/50"
+                className="w-full px-4 py-2.5 text-sm bg-gray-50 border border-gray-200 text-gray-900 placeholder:text-gray-400 rounded-lg focus:outline-none focus:border-primary/50"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-xs text-white/60 mb-2">Email Address *</label>
+            <label className="block text-xs text-gray-500 mb-2">Email Address *</label>
             <input
               type="email"
               value={formData.email}
-              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+              onChange={(e) => {
+                setFormData({ ...formData, email: e.target.value });
+                if (errors.email) setErrors((prev) => ({ ...prev, email: undefined }));
+              }}
               placeholder="e.g., john@example.com"
-              className="w-full px-4 py-2.5 text-sm bg-[#272727] border border-white/[0.08] text-white placeholder:text-white/30 rounded-lg focus:outline-none focus:border-primary/50"
+              className="w-full px-4 py-2.5 text-sm bg-gray-50 border border-gray-200 text-gray-900 placeholder:text-gray-400 rounded-lg focus:outline-none focus:border-primary/50"
             />
+            {errors.email && <p className="text-danger text-xs mt-1">{errors.email}</p>}
           </div>
 
           <div>
-            <label className="block text-xs text-white/60 mb-2">Role *</label>
+            <label className="block text-xs text-gray-500 mb-2">Role *</label>
             <CustomSelect
               value={formData.roleId}
-              onChange={(val) => setFormData({ ...formData, roleId: val })}
+              onChange={(val) => {
+                setFormData({ ...formData, roleId: val });
+                if (errors.roleId) setErrors((prev) => ({ ...prev, roleId: undefined }));
+              }}
               options={[
                 { value: '', label: 'Select a role...', disabled: true },
                 ...roles.map((role) => ({
@@ -215,6 +237,7 @@ function UserManagement() {
                 })),
               ]}
             />
+            {errors.roleId && <p className="text-danger text-xs mt-1">{errors.roleId}</p>}
           </div>
 
           <div className="flex gap-2 pt-4">
@@ -229,8 +252,9 @@ function UserManagement() {
                 setShowCreateForm(false);
                 setFormData({ firstName: '', middleInitial: '', lastName: '', suffix: '', email: '', roleId: '' });
                 setError('');
+                setErrors({});
               }}
-              className="flex-1 px-4 py-2.5 text-sm font-medium text-white/60 hover:text-white bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] rounded-lg transition-colors"
+              className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-500 hover:text-gray-900 bg-gray-100 hover:bg-gray-200 border border-gray-200 rounded-lg transition-colors"
             >
               Cancel
             </button>
@@ -240,7 +264,7 @@ function UserManagement() {
 
       <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
         <div className="flex items-center gap-2 flex-1">
-          <span className="text-xs text-white/60 shrink-0">Filter by role:</span>
+          <span className="text-xs text-gray-500 shrink-0">Filter by role:</span>
           <div className="min-w-[180px]">
             <CustomSelect
               value={filterRole}
@@ -261,36 +285,35 @@ function UserManagement() {
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder="Search by name or email..."
-            className="w-full px-4 py-1.5 text-xs bg-[#272727] border border-white/[0.08] text-white placeholder:text-white/30 rounded-lg focus:outline-none focus:border-primary/50"
+            className="w-full px-4 py-1.5 text-xs bg-gray-50 border border-gray-200 text-gray-900 placeholder:text-gray-400 rounded-lg focus:outline-none focus:border-primary/50"
           />
         </div>
       </div>
 
       {filteredUsers.length === 0 ? (
-        <div className="text-center py-12 bg-white/[0.02] border border-white/[0.08] rounded-lg">
-          <p className="text-white/40">No users found</p>
+        <div className="text-center py-12 bg-gray-50 border border-gray-200 rounded-lg">
+          <p className="text-gray-400">No users found</p>
         </div>
       ) : (
-        <div className="bg-white/[0.02] border border-white/[0.08] rounded-lg overflow-hidden">
+        <div className="bg-gray-50 border border-gray-200 rounded-lg overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-xs">
               <thead>
-                <tr className="border-b border-white/[0.06] bg-white/[0.02]">
-                  <th className="text-left px-4 py-4 text-white/60 font-medium">Name</th>
-                  <th className="text-left px-4 py-4 text-white/60 font-medium">Email</th>
-                  <th className="text-left px-4 py-4 text-white/60 font-medium">Role</th>
-                  <th className="text-left px-4 py-4 text-white/60 font-medium">Status</th>
-                  <th className="text-left px-4 py-4 text-white/60 font-medium">Created</th>
-                  <th className="text-right px-4 py-4 text-white/60 font-medium">Actions</th>
+                <tr className="border-b border-gray-200 bg-gray-50">
+                  <th className="text-left px-4 py-4 text-gray-500 font-medium">Name</th>
+                  <th className="text-left px-4 py-4 text-gray-500 font-medium">Email</th>
+                  <th className="text-left px-4 py-4 text-gray-500 font-medium">Role</th>
+                  <th className="text-left px-4 py-4 text-gray-500 font-medium">Status</th>
+                  <th className="text-left px-4 py-4 text-gray-500 font-medium">Created</th>
+                  <th className="text-right px-4 py-4 text-gray-500 font-medium">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredUsers.map((user) => {
-                  const userRole = roles.find((r) => r.id === user.roleId);
                   return (
-                    <tr key={user.id} className="border-b border-white/[0.06] hover:bg-white/[0.02] transition-colors">
-                      <td className="px-4 py-4 text-white font-medium">{user.fullName || user.name}</td>
-                      <td className="px-4 py-4 text-white/60">{user.email}</td>
+                    <tr key={user.id} className="border-b border-gray-200 hover:bg-gray-50 transition-colors">
+                      <td className="px-4 py-4 text-gray-900 font-medium">{user.fullName || user.name}</td>
+                      <td className="px-4 py-4 text-gray-500">{user.email}</td>
                       <td className="px-4 py-4">
                         <CustomSelect
                           value={user.roleId}
@@ -307,7 +330,7 @@ function UserManagement() {
                           {user.status}
                         </span>
                       </td>
-                      <td className="px-4 py-4 text-white/60">
+                      <td className="px-4 py-4 text-gray-500">
                         {new Date(user.createdAt).toLocaleDateString('en-US', {
                           year: 'numeric',
                           month: 'short',
@@ -317,7 +340,7 @@ function UserManagement() {
                       <td className="px-4 py-4 text-right">
                         <button
                           onClick={() => handleDeleteUser(user.id)}
-                          className="text-white/40 hover:text-primary transition-colors font-bold"
+                          className="text-gray-400 hover:text-primary transition-colors font-bold"
                           title="Delete user"
                         >
                           ✕

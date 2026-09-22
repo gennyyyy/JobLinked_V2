@@ -27,6 +27,7 @@ function JobPosts() {
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState(emptyForm);
+  const [errors, setErrors] = useState({});
 
   function refresh() {
     setJobs(getJobsByEmployer(companyEmail));
@@ -35,6 +36,7 @@ function JobPosts() {
   function handleAdd() {
     setForm(emptyForm);
     setEditingId(null);
+    setErrors({});
     setShowForm(true);
   }
 
@@ -49,11 +51,28 @@ function JobPosts() {
       status: job.status,
     });
     setEditingId(job.id);
+    setErrors({});
     setShowForm(true);
+  }
+
+  function validate() {
+    const e = {};
+    if (!form.title?.trim()) e.title = "Job title is required";
+    if (!form.description?.trim()) e.description = "Description is required";
+    if (!form.type) e.type = "Employment type is required";
+    if (!form.location) e.location = "Location is required";
+    if (!form.status) e.status = "Status is required";
+    return e;
   }
 
   function handleSubmit(event) {
     event.preventDefault();
+    const validationErrors = validate();
+    if (Object.keys(validationErrors).length > 0) {
+      setErrors(validationErrors);
+      return;
+    }
+    setErrors({});
     const payload = {
       title: form.title,
       description: form.description,
@@ -90,19 +109,19 @@ function JobPosts() {
     <div className="space-y-8 animate-fade-in">
       <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <p className="font-mono text-[11px] tracking-[0.2em] text-[#0075A2] uppercase">
+          <p className="font-mono text-[11px] tracking-[0.2em] text-[#0057B8] uppercase">
             RECRUITMENT BULLETINS
           </p>
-          <h1 className="mt-1 font-sans text-2xl md:text-3xl font-bold tracking-tight text-white">
+          <h1 className="mt-1 font-sans text-2xl md:text-3xl font-bold tracking-tight text-gray-900">
             Job Posts
           </h1>
-          <p className="mt-2 text-sm text-white/55">
+          <p className="mt-2 text-sm text-gray-500">
             Manage your company's listings on the Santa Maria municipal job board
           </p>
         </div>
         <button
           onClick={handleAdd}
-          className="min-h-[44px] px-6 rounded-xl bg-[#0075A2] text-white text-sm font-medium hover:bg-[#005a7d] active:scale-[0.98] transition-all shadow-[0_4px_16px_rgba(0,117,162,0.25)] self-start sm:self-auto"
+          className="min-h-[44px] px-6 rounded-xl bg-[#0057B8] text-white text-sm font-medium hover:bg-[#004a9e] active:scale-[0.98] transition-all shadow-[0_4px_16px_rgba(0,117,162,0.25)] self-start sm:self-auto"
         >
           + Add New Job Post
         </button>
@@ -112,21 +131,22 @@ function JobPosts() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-xs animate-fade-in">
           <form
             onSubmit={handleSubmit}
-            className="w-full max-w-lg bg-[#272727] border border-white/[0.1] rounded-2xl p-6 md:p-8 shadow-[0_24px_64px_rgba(0,0,0,0.6)] max-h-[90vh] overflow-y-auto"
+            noValidate
+            className="w-full max-w-lg bg-white border border-gray-200 rounded-2xl p-6 md:p-8 shadow-xl max-h-[90vh] overflow-y-auto"
           >
-            <div className="flex items-center justify-between pb-4 border-b border-white/[0.06]">
+            <div className="flex items-center justify-between pb-4 border-b border-gray-200">
               <div>
-                <span className="font-mono text-[10px] tracking-widest text-[#0075A2] uppercase">
+                <span className="font-mono text-[10px] tracking-widest text-primary uppercase">
                   {editingId ? "UPDATE LISTING" : "NEW VACANCY"}
                 </span>
-                <h2 className="text-xl font-bold text-white mt-1">
+                <h2 className="text-xl font-bold text-gray-900 mt-1">
                   {editingId ? "Edit Job Post" : "Post a Vacancy"}
                 </h2>
               </div>
               <button
                 type="button"
                 onClick={() => setShowForm(false)}
-                className="p-1 rounded-lg text-white/40 hover:text-white"
+                className="p-1 rounded-lg text-gray-400 hover:text-gray-900"
               >
                 ✕
               </button>
@@ -134,119 +154,138 @@ function JobPosts() {
 
             <div className="mt-6 space-y-4">
               <div>
-                <label className="block font-mono text-[11px] tracking-wider text-white/50 uppercase mb-1.5">
+                <label className="block font-mono text-[11px] tracking-wider text-gray-500 uppercase mb-1.5">
                   Job Title
                 </label>
                 <input
                   value={form.title}
-                  onChange={(e) => setForm({ ...form, title: e.target.value })}
-                  required
+                  onChange={(e) => {
+                    setForm({ ...form, title: e.target.value });
+                    if (errors.title) setErrors((prev) => ({ ...prev, title: undefined }));
+                  }}
                   placeholder="e.g. Administrative Officer"
-                  className="w-full min-h-[44px] px-4 rounded-xl text-sm bg-[#272727] border border-white/[0.08] text-white placeholder:text-white/25 focus:outline-none focus:border-[#0075A2]/60 focus:ring-1 focus:ring-[#0075A2]/30 transition-all"
+                  className="w-full min-h-[44px] px-4 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all"
                 />
+                {errors.title && <p className="text-danger text-xs mt-1">{errors.title}</p>}
               </div>
 
               <div>
-                <label className="block font-mono text-[11px] tracking-wider text-white/50 uppercase mb-1.5">
+                <label className="block font-mono text-[11px] tracking-wider text-gray-500 uppercase mb-1.5">
                   Description
                 </label>
                 <textarea
                   value={form.description}
-                  onChange={(e) => setForm({ ...form, description: e.target.value })}
+                  onChange={(e) => {
+                    setForm({ ...form, description: e.target.value });
+                    if (errors.description) setErrors((prev) => ({ ...prev, description: undefined }));
+                  }}
                   rows={3}
                   placeholder="Responsibilities, role overview, and duties..."
-                  className="w-full p-4 rounded-xl text-sm bg-[#272727] border border-white/[0.08] text-white placeholder:text-white/25 focus:outline-none focus:border-[#0075A2]/60 focus:ring-1 focus:ring-[#0075A2]/30 transition-all"
+                  className="w-full p-4 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all"
                 />
+                {errors.description && <p className="text-danger text-xs mt-1">{errors.description}</p>}
               </div>
 
               <div>
-                <label className="block font-mono text-[11px] tracking-wider text-white/50 uppercase mb-1.5">
-                  Requirements <span className="text-white/35 font-normal">(comma-separated)</span>
+                <label className="block font-mono text-[11px] tracking-wider text-gray-500 uppercase mb-1.5">
+                  Requirements <span className="text-gray-300 font-normal">(comma-separated)</span>
                 </label>
                 <textarea
                   value={form.requirements}
                   onChange={(e) => setForm({ ...form, requirements: e.target.value })}
                   rows={2}
                   placeholder="Bachelor's degree, 1 year experience, MS Office..."
-                  className="w-full p-4 rounded-xl text-sm bg-[#272727] border border-white/[0.08] text-white placeholder:text-white/25 focus:outline-none focus:border-[#0075A2]/60 focus:ring-1 focus:ring-[#0075A2]/30 transition-all"
+                  className="w-full p-4 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all"
                 />
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block font-mono text-[11px] tracking-wider text-white/50 uppercase mb-1.5">
+                  <label className="block font-mono text-[11px] tracking-wider text-gray-500 uppercase mb-1.5">
                     Monthly Salary
                   </label>
                   <input
                     value={form.salary}
                     onChange={(e) => setForm({ ...form, salary: e.target.value })}
                     placeholder="₱20,000 - ₱25,000"
-                    className="w-full min-h-[44px] px-4 rounded-xl text-sm bg-[#272727] border border-white/[0.08] text-white placeholder:text-white/25 focus:outline-none focus:border-[#0075A2]/60 focus:ring-1 focus:ring-[#0075A2]/30 transition-all"
+                    className="w-full min-h-[44px] px-4 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all"
                   />
                 </div>
 
                 <div>
-                  <label className="block font-mono text-[11px] tracking-wider text-white/50 uppercase mb-1.5">
+                  <label className="block font-mono text-[11px] tracking-wider text-gray-500 uppercase mb-1.5">
                     Employment Type
                   </label>
                   <select
                     value={form.type}
-                    onChange={(e) => setForm({ ...form, type: e.target.value })}
-                    className="w-full min-h-[44px] px-4 rounded-xl text-sm bg-[#272727] border border-white/[0.08] text-white focus:outline-none focus:border-[#0075A2]/60 focus:ring-1 focus:ring-[#0075A2]/30 transition-all"
+                    onChange={(e) => {
+                      setForm({ ...form, type: e.target.value });
+                      if (errors.type) setErrors((prev) => ({ ...prev, type: undefined }));
+                    }}
+                    className="w-full min-h-[44px] px-4 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all"
                   >
-                    <option className="bg-[#272727]">Full-time</option>
-                    <option className="bg-[#272727]">Part-time</option>
-                    <option className="bg-[#272727]">Contractual</option>
-                    <option className="bg-[#272727]">Job Order</option>
+                    <option>Full-time</option>
+                    <option>Part-time</option>
+                    <option>Contractual</option>
+                    <option>Job Order</option>
                   </select>
+                  {errors.type && <p className="text-danger text-xs mt-1">{errors.type}</p>}
                 </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block font-mono text-[11px] tracking-wider text-white/50 uppercase mb-1.5">
+                  <label className="block font-mono text-[11px] tracking-wider text-gray-500 uppercase mb-1.5">
                     Barangay Location
                   </label>
                   <select
                     value={form.location}
-                    onChange={(e) => setForm({ ...form, location: e.target.value })}
-                    className="w-full min-h-[44px] px-4 rounded-xl text-sm bg-[#272727] border border-white/[0.08] text-white focus:outline-none focus:border-[#0075A2]/60 focus:ring-1 focus:ring-[#0075A2]/30 transition-all"
+                    onChange={(e) => {
+                      setForm({ ...form, location: e.target.value });
+                      if (errors.location) setErrors((prev) => ({ ...prev, location: undefined }));
+                    }}
+                    className="w-full min-h-[44px] px-4 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all"
                   >
                     {barangays.map((b) => (
-                      <option key={b} value={b} className="bg-[#272727] text-white">
+                      <option key={b} value={b}>
                         {b}
                       </option>
                     ))}
                   </select>
+                  {errors.location && <p className="text-danger text-xs mt-1">{errors.location}</p>}
                 </div>
 
                 <div>
-                  <label className="block font-mono text-[11px] tracking-wider text-white/50 uppercase mb-1.5">
+                  <label className="block font-mono text-[11px] tracking-wider text-gray-500 uppercase mb-1.5">
                     Posting Status
                   </label>
                   <select
                     value={form.status}
-                    onChange={(e) => setForm({ ...form, status: e.target.value })}
-                    className="w-full min-h-[44px] px-4 rounded-xl text-sm bg-[#272727] border border-white/[0.08] text-white focus:outline-none focus:border-[#0075A2]/60 focus:ring-1 focus:ring-[#0075A2]/30 transition-all"
+                    onChange={(e) => {
+                      setForm({ ...form, status: e.target.value });
+                      if (errors.status) setErrors((prev) => ({ ...prev, status: undefined }));
+                    }}
+                    className="w-full min-h-[44px] px-4 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all"
                   >
-                    <option className="bg-[#272727]">Open</option>
-                    <option className="bg-[#272727]">Closed</option>
+                    <option>Open</option>
+                    <option>Closed</option>
                   </select>
+                  {errors.status && <p className="text-danger text-xs mt-1">{errors.status}</p>}
                 </div>
               </div>
             </div>
 
-            <div className="mt-8 pt-5 border-t border-white/[0.06] flex items-center justify-end gap-3">
+            <div className="mt-8 pt-5 border-t border-gray-200 flex items-center justify-end gap-3">
               <button
                 type="button"
                 onClick={() => setShowForm(false)}
-                className="px-5 py-2.5 text-xs font-medium rounded-xl border border-white/[0.1] text-white/60 hover:text-white transition-colors"
+                className="px-5 py-2.5 text-xs font-medium rounded-xl border border-gray-200 text-gray-600 hover:text-gray-900 transition-colors"
               >
                 Cancel
               </button>
               <button
                 type="submit"
-                className="px-6 py-2.5 text-xs font-medium text-white bg-[#0075A2] hover:bg-[#005a7d] rounded-xl transition-colors shadow-[0_2px_8px_rgba(0,117,162,0.25)]"
+                className="px-6 py-2.5 text-xs font-medium text-white bg-primary hover:bg-[#004a9e] rounded-xl transition-colors"
               >
                 {editingId ? "Save Changes" : "Publish Job Post"}
               </button>
@@ -256,11 +295,11 @@ function JobPosts() {
       )}
 
       {/* Posts Table */}
-      <div className="bg-[#272727] border border-white/[0.06] rounded-2xl p-6 shadow-[0_12px_32px_rgba(0,0,0,0.2)]">
+      <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-white/[0.06] font-mono text-[10px] tracking-widest text-white/40 uppercase">
+              <tr className="border-b border-gray-200 font-mono text-[10px] tracking-widest text-gray-500 uppercase">
                 <th className="text-left py-3 px-4 font-medium">Job Title</th>
                 <th className="text-left py-3 px-4 font-medium">Salary</th>
                 <th className="text-left py-3 px-4 font-medium">Location</th>
@@ -269,16 +308,16 @@ function JobPosts() {
                 <th className="text-right py-3 px-4 font-medium">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-white/[0.04]">
+            <tbody className="divide-y divide-gray-100">
               {jobs.map((post) => {
                 const count = getApplicationsByJob(post.id).length;
                 return (
-                  <tr key={post.id} className="hover:bg-white/[0.02] transition-colors">
-                    <td className="py-3.5 px-4 text-white font-medium">{post.title}</td>
-                    <td className="py-3.5 px-4 font-mono text-xs text-[#0075A2]">{post.salary || "—"}</td>
-                    <td className="py-3.5 px-4 text-xs text-white/50">{post.location}</td>
+                  <tr key={post.id} className="hover:bg-gray-50 transition-colors">
+                    <td className="py-3.5 px-4 text-gray-900 font-medium">{post.title}</td>
+                    <td className="py-3.5 px-4 font-mono text-xs text-primary">{post.salary || "—"}</td>
+                    <td className="py-3.5 px-4 text-xs text-gray-500">{post.location}</td>
                     <td className="py-3.5 px-4">
-                      <span className="font-mono text-xs px-2.5 py-0.5 rounded-full bg-white/[0.04] border border-white/[0.08] text-white/70">
+                      <span className="font-mono text-xs px-2.5 py-0.5 rounded-full bg-gray-100 border border-gray-200 text-gray-600">
                         {count} applied
                       </span>
                     </td>
@@ -286,8 +325,8 @@ function JobPosts() {
                       <span
                         className={`font-mono text-[10px] tracking-wider px-2.5 py-0.5 rounded-full uppercase border ${
                           post.status === "Open"
-                            ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400"
-                            : "bg-white/[0.05] border-white/[0.1] text-white/40"
+                            ? "bg-emerald-50 border-emerald-200 text-emerald-700"
+                            : "bg-gray-100 border-gray-200 text-gray-500"
                         }`}
                       >
                         {post.status}
@@ -296,19 +335,19 @@ function JobPosts() {
                     <td className="py-3.5 px-4 text-right space-x-3">
                       <button
                         onClick={() => handleEdit(post)}
-                        className="text-xs text-white/60 hover:text-white transition-colors"
+                        className="text-xs text-gray-600 hover:text-gray-900 transition-colors"
                       >
                         Edit
                       </button>
                       <button
                         onClick={() => handleClose(post)}
-                        className="text-xs text-amber-400/80 hover:text-amber-300 transition-colors"
+                        className="text-xs text-amber-700 hover:text-amber-700 transition-colors"
                       >
                         {post.status === "Open" ? "Close" : "Reopen"}
                       </button>
                       <button
                         onClick={() => handleDelete(post)}
-                        className="text-xs font-mono text-rose-400/80 hover:text-rose-300 transition-colors"
+                        className="text-xs font-mono text-danger hover:text-danger transition-colors"
                       >
                         Delete
                       </button>
@@ -319,7 +358,7 @@ function JobPosts() {
             </tbody>
           </table>
           {jobs.length === 0 && (
-            <div className="py-12 text-center text-sm text-white/40">
+            <div className="py-12 text-center text-sm text-gray-400">
               No job postings created yet. Click "+ Add New Job Post" to post a vacancy.
             </div>
           )}

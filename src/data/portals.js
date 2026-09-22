@@ -8,7 +8,7 @@ export const portals = [
     buttonColor: 'bg-primary hover:bg-primary/90',
     focusRingClass: 'focus:ring-primary',
     checkboxAccentClass: 'accent-primary',
-    accentColor: '#0075A2',
+    accentColor: '#0057B8',
     homePath: '/super-admin',
     path: '/super-admin/login',
     fields: [
@@ -25,7 +25,7 @@ export const portals = [
     buttonColor: 'bg-primary hover:bg-primary/90',
     focusRingClass: 'focus:ring-primary',
     checkboxAccentClass: 'accent-primary',
-    accentColor: '#0075A2',
+    accentColor: '#0057B8',
     homePath: '/employer',
     path: '/employer/login',
     fields: [
@@ -42,7 +42,7 @@ export const portals = [
     buttonColor: 'bg-primary hover:bg-primary/90',
     focusRingClass: 'focus:ring-primary',
     checkboxAccentClass: 'accent-primary',
-    accentColor: '#0075A2',
+    accentColor: '#0057B8',
     homePath: '/job-seeker',
     path: '/job-seeker/login',
     fields: [

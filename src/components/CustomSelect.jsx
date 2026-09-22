@@ -5,20 +5,20 @@ function CustomSelect({ value, onChange, options, className = '', disabled = fal
         value={value}
         onChange={(event) => onChange(event.target.value)}
         disabled={disabled}
-        style={{ colorScheme: 'dark' }}
-        className={`w-full appearance-none pl-2.5 pr-7 py-1 text-xs bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] hover:border-white/[0.16] text-white rounded-md focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/30 cursor-pointer transition-colors ${className} ${
+        style={{ colorScheme: 'light' }}
+        className={`w-full appearance-none pl-2.5 pr-7 py-1 text-xs bg-gray-50 hover:bg-gray-100 border border-gray-200 hover:border-gray-300 text-gray-900 rounded-md focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 cursor-pointer transition-colors ${className} ${
           disabled ? 'opacity-50 cursor-not-allowed' : ''
         }`}
       >
         {options.map((option) => (
-          <option key={option.value} value={option.value} disabled={option.disabled} className="bg-[#272727] text-white">
+          <option key={option.value} value={option.value} disabled={option.disabled} className="bg-white text-gray-900">
             {option.label}
           </option>
         ))}
       </select>
       <svg
         aria-hidden="true"
-        className="pointer-events-none absolute right-2 top-1/2 h-3 w-3 -translate-y-1/2 text-white/40"
+        className="pointer-events-none absolute right-2 top-1/2 h-3 w-3 -translate-y-1/2 text-gray-400"
         viewBox="0 0 20 20"
         fill="currentColor"
       >

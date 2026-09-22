@@ -1,17 +1,26 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom'
 import useAuth from '../hooks/useAuth'
+import useAFKTimer from '../hooks/useAFKTimer'
 
 const navItems = [
   { to: '/employer', label: 'Dashboard', end: true },
   { to: '/employer/job-posts', label: 'Job Posts' },
   { to: '/employer/applicants', label: 'Applicants' },
+  { to: '/employer/company', label: 'Company Profile' },
+  { to: '/employer/accreditation', label: 'Accreditation' },
 ]
 
 function EmployerLayout() {
   const navigate = useNavigate()
   const { logout, user } = useAuth()
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [showWarning, setShowWarning] = useState(false)
+  const { setWarningCallback } = useAFKTimer()
+
+  useEffect(() => {
+    setWarningCallback(() => setShowWarning(true))
+  }, [setWarningCallback])
 
   function handleLogout() {
     logout()
@@ -21,20 +30,20 @@ function EmployerLayout() {
   const companyName = user?.name || 'My Company'
 
   return (
-    <div className="min-h-screen bg-[#272727] text-slate-100 flex flex-col md:flex-row">
+    <div className="min-h-screen bg-gray-50 text-gray-900 flex flex-col md:flex-row">
       {/* Mobile Top Header */}
-      <header className="md:hidden sticky top-0 z-30 bg-[#272727]/90 backdrop-blur border-b border-white/[0.06] px-5 h-14 flex items-center justify-between">
+      <header className="md:hidden sticky top-0 z-30 bg-white/90 backdrop-blur border-b border-gray-200 px-5 h-14 flex items-center justify-between">
         <div className="flex items-center gap-2.5">
-          <Link to="/" className="text-[15px] font-semibold tracking-tight text-white">
-            Job<span className="text-[#0075A2]">Linked</span>
+          <Link to="/" className="text-[15px] font-semibold tracking-tight text-gray-900">
+            Job<span className="text-primary">Linked</span>
           </Link>
-          <span className="font-mono text-[10px] tracking-wider px-2 py-0.5 rounded-full bg-white/[0.04] border border-white/[0.08] text-[#0075A2]">
+          <span className="font-mono text-[10px] tracking-wider px-2 py-0.5 rounded-full bg-primary/10 border border-primary/25 text-primary">
             EMPLOYER
           </span>
         </div>
         <button
           onClick={() => setMobileOpen(!mobileOpen)}
-          className="p-2 rounded-lg text-white/70 hover:text-white hover:bg-white/[0.05] border border-white/[0.08]"
+          className="p-2 rounded-lg text-gray-600 hover:text-gray-900 hover:bg-gray-100 border border-gray-200"
           aria-label="Toggle navigation"
         >
           <svg className="w-4 h-4 fill-none stroke-current" viewBox="0 0 24 24">
@@ -49,23 +58,23 @@ function EmployerLayout() {
 
       {/* Sidebar Navigation */}
       <aside
-        className={`fixed inset-y-0 left-0 z-40 w-64 bg-[#272727] border-r border-white/[0.06] flex flex-col shrink-0 transition-transform duration-200 md:static md:translate-x-0 ${
-          mobileOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full'
+        className={`fixed inset-y-0 left-0 z-40 w-64 bg-gray-50 border-r border-gray-200 flex flex-col shrink-0 transition-transform duration-200 md:static md:translate-x-0 ${
+          mobileOpen ? 'translate-x-0 shadow-xl' : '-translate-x-full'
         }`}
       >
-        <div className="h-14 flex items-center justify-between px-6 border-b border-white/[0.06]">
+        <div className="h-14 flex items-center justify-between px-6 border-b border-gray-200">
           <div className="flex items-center gap-2.5">
-            <Link to="/" className="text-[15px] font-semibold tracking-tight text-white">
-              Job<span className="text-[#0075A2]">Linked</span>
+            <Link to="/" className="text-[15px] font-semibold tracking-tight text-gray-900">
+              Job<span className="text-primary">Linked</span>
             </Link>
-            <span className="font-mono text-[10px] tracking-wider px-2 py-0.5 rounded-full bg-white/[0.04] border border-white/[0.08] text-[#0075A2]">
+            <span className="font-mono text-[10px] tracking-wider px-2 py-0.5 rounded-full bg-primary/10 border border-primary/25 text-primary">
               EMPLOYER
             </span>
           </div>
           {mobileOpen && (
             <button
               onClick={() => setMobileOpen(false)}
-              className="md:hidden text-white/50 hover:text-white"
+              className="md:hidden text-gray-500 hover:text-gray-900"
             >
               ✕
             </button>
@@ -73,8 +82,8 @@ function EmployerLayout() {
         </div>
 
         <div className="px-6 pt-5 pb-3">
-          <p className="font-mono text-[10px] tracking-[0.2em] text-[#0075A2]">SANTA MARIA, BULACAN</p>
-          <p className="mt-0.5 text-xs text-white truncate font-medium">{companyName}</p>
+          <p className="font-mono text-[10px] tracking-[0.2em] text-[#0057B8]">SANTA MARIA, BULACAN</p>
+          <p className="mt-0.5 text-xs text-gray-900 truncate font-medium">{companyName}</p>
         </div>
 
         <nav className="flex-1 py-3 px-4 space-y-1.5">
@@ -87,8 +96,8 @@ function EmployerLayout() {
               className={({ isActive }) =>
                 `flex items-center px-3.5 py-2.5 rounded-xl text-xs font-medium transition-all ${
                   isActive
-                    ? 'bg-[#0075A2]/15 text-[#0075A2] border border-[#0075A2]/30 shadow-[0_2px_12px_rgba(0,117,162,0.15)]'
-                    : 'text-white/60 hover:text-white hover:bg-white/[0.04] border border-transparent'
+                    ? 'bg-primary/10 text-primary border border-primary/25'
+                    : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100 border border-transparent'
                 }`
               }
             >
@@ -97,17 +106,17 @@ function EmployerLayout() {
           ))}
         </nav>
 
-        <div className="p-4 border-t border-white/[0.06] space-y-2">
+        <div className="p-4 border-t border-gray-200 space-y-2">
           <Link
             to="/jobs"
-            className="flex items-center justify-between px-3.5 py-2 rounded-xl text-xs text-white/50 hover:text-white hover:bg-white/[0.04] transition-colors"
+            className="flex items-center justify-between px-3.5 py-2 rounded-xl text-xs text-gray-500 hover:text-gray-900 hover:bg-gray-100 transition-colors"
           >
             <span>View Job Board</span>
-            <span className="text-white/30 text-[10px]">↗</span>
+            <span className="text-gray-300 text-[10px]">↗</span>
           </Link>
           <button
             onClick={handleLogout}
-            className="w-full text-left px-3.5 py-2 rounded-xl text-xs text-rose-400/80 hover:text-rose-300 hover:bg-rose-500/10 transition-colors"
+            className="w-full text-left px-3.5 py-2 rounded-xl text-xs text-danger hover:text-danger hover:bg-danger/10 transition-colors"
           >
             Sign out
           </button>
@@ -128,6 +137,32 @@ function EmployerLayout() {
           <Outlet />
         </div>
       </main>
+
+      {/* AFK Warning Modal */}
+      {showWarning && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="bg-white border border-gray-200 rounded-2xl p-6 max-w-sm mx-4 shadow-xl">
+            <h3 className="text-lg font-bold text-gray-900 mb-2">Session Expiring</h3>
+            <p className="text-sm text-gray-600 mb-6">
+              You will be logged out in 1 minute due to inactivity. Move your mouse or press a key to stay signed in.
+            </p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setShowWarning(false)}
+                className="flex-1 px-4 py-2.5 text-sm font-medium text-white bg-primary hover:bg-primary/90 rounded-lg transition-colors"
+              >
+                Stay Signed In
+              </button>
+              <button
+                onClick={handleLogout}
+                className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-600 hover:text-gray-900 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-lg transition-colors"
+              >
+                Sign Out
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

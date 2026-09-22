@@ -97,3 +97,11 @@ export function saveAccountProfile(role, email, profile) {
   saveAccounts(next);
   return next;
 }
+
+// Auto-seed default accounts on first load so login works immediately
+(function seedDefaults() {
+  const accounts = getAccounts();
+  if (!accounts.some((a) => a.role === "super-admin")) addAccount(ADMIN_SEED);
+  if (!accounts.some((a) => a.role === "employer")) addAccount(EMPLOYER_SEED);
+  if (!accounts.some((a) => a.role === "job-seeker")) addAccount(SEEKER_SEED);
+})();

@@ -22,22 +22,22 @@ function Employees() {
   return (
     <div className="space-y-8 animate-fade-in">
       <header>
-        <p className="font-mono text-[11px] tracking-[0.2em] text-[#0075A2] uppercase">
+        <p className="font-mono text-[11px] tracking-[0.2em] text-[#0057B8] uppercase">
           MUNICIPAL REGISTRY
         </p>
-        <h1 className="mt-1 font-sans text-2xl md:text-3xl font-bold tracking-tight text-white">
+        <h1 className="mt-1 font-sans text-2xl md:text-3xl font-bold tracking-tight text-gray-900">
           Registered Job Seekers
         </h1>
-        <p className="mt-2 text-sm text-white/55">
+        <p className="mt-2 text-sm text-gray-500">
           View registered Santa Maria applicants and manage platform enrollment statuses
         </p>
       </header>
 
-      <div className="bg-[#272727] border border-white/[0.06] rounded-2xl p-6 shadow-[0_12px_32px_rgba(0,0,0,0.2)]">
+      <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-md">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-white/[0.06] font-mono text-[10px] tracking-widest text-white/40 uppercase">
+              <tr className="border-b border-gray-200 font-mono text-[10px] tracking-widest text-gray-500 uppercase">
                 <th className="text-left py-3 px-4 font-medium">Applicant Name</th>
                 <th className="text-left py-3 px-4 font-medium">Email Address</th>
                 <th className="text-left py-3 px-4 font-medium">Date Registered</th>
@@ -45,18 +45,18 @@ function Employees() {
                 <th className="text-right py-3 px-4 font-medium">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-white/[0.04]">
+            <tbody className="divide-y divide-gray-100">
               {employees.map((employee) => (
-                <tr key={employee.email} className="hover:bg-white/[0.02] transition-colors">
-                  <td className="py-3.5 px-4 text-white font-medium">{employee.name}</td>
-                  <td className="py-3.5 px-4 font-mono text-xs text-white/50">{employee.email}</td>
-                  <td className="py-3.5 px-4 text-xs text-white/50">{employee.registered}</td>
+                <tr key={employee.email} className="hover:bg-gray-50 transition-colors">
+                  <td className="py-3.5 px-4 text-gray-900 font-medium">{employee.name}</td>
+                  <td className="py-3.5 px-4 font-mono text-xs text-gray-500">{employee.email}</td>
+                  <td className="py-3.5 px-4 text-xs text-gray-500">{employee.registered}</td>
                   <td className="py-3.5 px-4">
                     <span
                       className={`font-mono text-[10px] tracking-wider px-2.5 py-0.5 rounded-full uppercase border ${
                         employee.status === 'Active'
-                          ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
-                          : 'bg-amber-500/10 border-amber-500/30 text-amber-400'
+                          ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
+                          : 'bg-amber-50 border-amber-200 text-amber-700'
                       }`}
                     >
                       {employee.status}
@@ -67,8 +67,8 @@ function Employees() {
                       onClick={() => toggleStatus(employee.email)}
                       className={`text-xs font-mono transition-colors ${
                         employee.status === 'Active'
-                          ? 'text-rose-400/80 hover:text-rose-300'
-                          : 'text-[#0075A2] hover:text-white'
+                          ? 'text-danger hover:text-danger'
+                          : 'text-[#0057B8] hover:text-gray-900'
                       }`}
                     >
                       {employee.status === 'Active' ? 'Suspend' : 'Activate'}

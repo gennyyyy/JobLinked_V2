@@ -2,7 +2,9 @@ export function getMockUsers() {
   return [
     {
       id: 'user-1',
-      name: 'Maria Santos',
+      firstName: 'Maria',
+      lastName: 'Santos',
+      fullName: 'Maria Santos',
       email: 'maria.santos@peso.gov.ph',
       roleId: 'super-admin',
       status: 'active',
@@ -10,7 +12,9 @@ export function getMockUsers() {
     },
     {
       id: 'user-2',
-      name: 'Juan dela Cruz',
+      firstName: 'Juan',
+      lastName: 'dela Cruz',
+      fullName: 'Juan dela Cruz',
       email: 'juan.delacruz@empresa.com',
       roleId: 'employer',
       status: 'active',
@@ -18,7 +22,9 @@ export function getMockUsers() {
     },
     {
       id: 'user-3',
-      name: 'Anna Garcia',
+      firstName: 'Anna',
+      lastName: 'Garcia',
+      fullName: 'Anna Garcia',
       email: 'anna.garcia@gmail.com',
       roleId: 'job-seeker',
       status: 'active',
@@ -26,7 +32,9 @@ export function getMockUsers() {
     },
     {
       id: 'user-4',
-      name: 'Carlos Reyes',
+      firstName: 'Carlos',
+      lastName: 'Reyes',
+      fullName: 'Carlos Reyes',
       email: 'carlos.reyes@company.com',
       roleId: 'employer',
       status: 'active',
@@ -34,7 +42,9 @@ export function getMockUsers() {
     },
     {
       id: 'user-5',
-      name: 'Rosa Fernandez',
+      firstName: 'Rosa',
+      lastName: 'Fernandez',
+      fullName: 'Rosa Fernandez',
       email: 'rosa.fernandez@email.com',
       roleId: 'job-seeker',
       status: 'active',
@@ -42,7 +52,9 @@ export function getMockUsers() {
     },
     {
       id: 'user-6',
-      name: 'Miguel Torres',
+      firstName: 'Miguel',
+      lastName: 'Torres',
+      fullName: 'Miguel Torres',
       email: 'miguel.torres@organization.com',
       roleId: 'employer',
       status: 'active',
@@ -50,7 +62,9 @@ export function getMockUsers() {
     },
     {
       id: 'user-7',
-      name: 'Sofia Diaz',
+      firstName: 'Sofia',
+      lastName: 'Diaz',
+      fullName: 'Sofia Diaz',
       email: 'sofia.diaz@example.com',
       roleId: 'job-seeker',
       status: 'active',
@@ -58,7 +72,9 @@ export function getMockUsers() {
     },
     {
       id: 'user-8',
-      name: 'Roberto Mendoza',
+      firstName: 'Roberto',
+      lastName: 'Mendoza',
+      fullName: 'Roberto Mendoza',
       email: 'roberto.mendoza@admin.gov.ph',
       roleId: 'super-admin',
       status: 'active',

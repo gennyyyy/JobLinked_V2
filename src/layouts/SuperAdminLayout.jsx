@@ -5,6 +5,7 @@ import useAuth from '../hooks/useAuth'
 const navItems = [
   { to: '/super-admin', label: 'Dashboard', end: true },
   { to: '/super-admin/accreditation', label: 'Accreditation' },
+  { to: '/super-admin/employees', label: 'Employees' },
   { to: '/super-admin/job-posts', label: 'Job Posts' },
   { to: '/super-admin/roles', label: 'Roles' },
   { to: '/super-admin/users', label: 'Users' },
@@ -58,6 +59,7 @@ function SuperAdminLayout() {
     })
 
     // Initialize timer
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     resetAFKTimer()
 
     // Cleanup
@@ -68,28 +70,24 @@ function SuperAdminLayout() {
       if (timeoutRef.current) clearTimeout(timeoutRef.current)
       if (warningTimeoutRef.current) clearTimeout(warningTimeoutRef.current)
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  function handleLogout() {
-    logout()
-    navigate('/')
-  }
-
   return (
-    <div className="min-h-screen bg-[#272727] text-slate-100 flex flex-col md:flex-row">
+    <div className="min-h-screen bg-gray-50 text-gray-900 flex flex-col md:flex-row">
       {/* Mobile Top Header */}
-      <header className="md:hidden sticky top-0 z-30 bg-[#272727]/90 backdrop-blur border-b border-white/[0.06] px-5 h-14 flex items-center justify-between">
+      <header className="md:hidden sticky top-0 z-30 bg-white/90 backdrop-blur border-b border-gray-200 px-5 h-14 flex items-center justify-between">
         <div className="flex items-center gap-2.5">
-          <Link to="/" className="text-[15px] font-semibold tracking-tight text-white">
-            Job<span className="text-[#0075A2]">Linked</span>
+          <Link to="/" className="text-[15px] font-semibold tracking-tight text-gray-900">
+            Job<span className="text-[#0057B8]">Linked</span>
           </Link>
-          <span className="font-mono text-[10px] tracking-wider px-2 py-0.5 rounded-full bg-white/[0.04] border border-white/[0.08] text-[#0075A2]">
+          <span className="font-mono text-[10px] tracking-wider px-2 py-0.5 rounded-full bg-primary/10 border border-primary/25 text-[#0057B8]">
             ADMIN
           </span>
         </div>
         <button
           onClick={() => setMobileOpen(!mobileOpen)}
-          className="p-2 rounded-lg text-white/70 hover:text-white hover:bg-white/[0.05] border border-white/[0.08]"
+          className="p-2 rounded-lg text-gray-600 hover:text-gray-900 hover:bg-gray-100 border border-gray-200"
           aria-label="Toggle navigation"
         >
           <svg className="w-4 h-4 fill-none stroke-current" viewBox="0 0 24 24">
@@ -104,22 +102,22 @@ function SuperAdminLayout() {
 
       {/* Sidebar Navigation */}
       <aside
-        className={`fixed inset-y-0 left-0 z-40 w-64 bg-[#272727] border-r border-white/[0.06] flex flex-col shrink-0 transition-transform duration-200 md:static md:translate-x-0 ${mobileOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full'
+        className={`fixed inset-y-0 left-0 z-40 w-64 bg-gray-50 border-r border-gray-200 flex flex-col shrink-0 transition-transform duration-200 md:static md:translate-x-0 ${mobileOpen ? 'translate-x-0 shadow-xl' : '-translate-x-full'
           }`}
       >
-        <div className="h-14 flex items-center justify-between px-6 border-b border-white/[0.06]">
+        <div className="h-14 flex items-center justify-between px-6 border-b border-gray-200">
           <div className="flex items-center gap-2.5">
-            <Link to="/" className="text-[15px] font-semibold tracking-tight text-white">
-              Job<span className="text-[#0075A2]">Linked</span>
+            <Link to="/" className="text-[15px] font-semibold tracking-tight text-gray-900">
+              Job<span className="text-[#0057B8]">Linked</span>
             </Link>
-            <span className="font-mono text-[10px] tracking-wider px-2 py-0.5 rounded-full bg-white/[0.04] border border-white/[0.08] text-[#0075A2]">
+            <span className="font-mono text-[10px] tracking-wider px-2 py-0.5 rounded-full bg-primary/10 border border-primary/25 text-[#0057B8]">
               ADMIN
             </span>
           </div>
           {mobileOpen && (
             <button
               onClick={() => setMobileOpen(false)}
-              className="md:hidden text-white/50 hover:text-white"
+              className="md:hidden text-gray-500 hover:text-gray-900"
             >
               ✕
             </button>
@@ -127,8 +125,8 @@ function SuperAdminLayout() {
         </div>
 
         <div className="px-6 pt-5 pb-3">
-          <p className="font-mono text-[10px] tracking-[0.2em] text-[#0075A2]">PESO · SANTA MARIA</p>
-          <p className="mt-0.5 text-xs text-white/40">Super Administrator</p>
+          <p className="font-mono text-[10px] tracking-[0.2em] text-[#0057B8]">PESO · SANTA MARIA</p>
+          <p className="mt-0.5 text-xs text-gray-400">Super Administrator</p>
         </div>
 
         <nav className="flex-1 py-3 px-4 space-y-1.5">
@@ -140,8 +138,8 @@ function SuperAdminLayout() {
               onClick={() => setMobileOpen(false)}
               className={({ isActive }) =>
                 `flex items-center px-3.5 py-2.5 rounded-xl text-xs font-medium transition-all ${isActive
-                  ? 'bg-[#0075A2]/15 text-[#0075A2] border border-[#0075A2]/30 shadow-[0_2px_12px_rgba(0,117,162,0.15)]'
-                  : 'text-white/60 hover:text-white hover:bg-white/[0.04] border border-transparent'
+                  ? 'bg-primary/10 text-primary border border-primary/25 shadow-[0_2px_12px_rgba(0,117,162,0.15)]'
+                  : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100 border border-transparent'
                 }`
               }
             >
@@ -150,17 +148,17 @@ function SuperAdminLayout() {
           ))}
         </nav>
 
-        <div className="p-4 border-t border-white/[0.06] space-y-2">
+        <div className="p-4 border-t border-gray-200 space-y-2">
           <Link
             to="/"
-            className="flex items-center justify-between px-3.5 py-2 rounded-xl text-xs text-white/50 hover:text-white hover:bg-white/[0.04] transition-colors"
+            className="flex items-center justify-between px-3.5 py-2 rounded-xl text-xs text-gray-500 hover:text-gray-900 hover:bg-gray-100 transition-colors"
           >
             <span>Public Site</span>
-            <span className="text-white/30 text-[10px]">↗</span>
+            <span className="text-gray-300 text-[10px]">↗</span>
           </Link>
           <button
             onClick={handleLogout}
-            className="w-full text-left px-3.5 py-2 rounded-xl text-xs text-rose-400/80 hover:text-rose-300 hover:bg-rose-500/10 transition-colors"
+            className="w-full text-left px-3.5 py-2 rounded-xl text-xs text-danger hover:bg-danger/10 transition-colors"
           >
             Sign out
           </button>
@@ -185,9 +183,9 @@ function SuperAdminLayout() {
       {/* AFK Warning Modal */}
       {showWarning && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-[#272727] border border-primary/30 rounded-lg p-8 max-w-sm w-full shadow-2xl animate-fade-in-scale">
-            <h2 className="text-lg font-semibold text-white mb-3">Session Timeout Warning</h2>
-            <p className="text-sm text-white/70 mb-6">
+          <div className="bg-white border border-primary/30 rounded-lg p-8 max-w-sm w-full shadow-xl animate-fade-in-scale">
+            <h2 className="text-lg font-semibold text-gray-900 mb-3">Session Timeout Warning</h2>
+            <p className="text-sm text-gray-600 mb-6">
               You have been inactive for 4 minutes. In 1 minute, you will be automatically logged out for security reasons.
             </p>
             <div className="flex gap-3">

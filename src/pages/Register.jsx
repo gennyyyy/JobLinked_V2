@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import Logo from "../assets/Logo.png";
 
 const accountTypes = [
   {
@@ -21,26 +22,30 @@ const accountTypes = [
 
 function Register() {
   return (
-    <div className="min-h-screen bg-[#272727] text-slate-100 flex flex-col font-sans">
-      <header className="sticky top-0 z-20 bg-[#272727]/80 backdrop-blur border-b border-white/[0.06]">
-        <div className="max-w-[1280px] mx-auto px-6 h-[56px] flex items-center justify-between">
-          <Link to="/" className="text-[15px] font-semibold tracking-tight text-white">
-            Job<span className="text-[#0075A2]">Linked</span>
+    <div className="min-h-screen bg-gray-50 text-gray-900 flex flex-col font-sans">
+      <header className="sticky top-0 z-20 bg-white border-b border-gray-200 shadow-sm">
+        <div className="max-w-[1280px] mx-auto px-6 h-[64px] flex items-center justify-between">
+          <Link to="/" className="flex items-center gap-2">
+            <img src={Logo} alt="JobLinked" className="w-9 h-9" />
+            <div className="leading-none">
+              <span className="text-lg font-extrabold tracking-tight text-dark-blue">JOB</span>
+              <span className="text-lg font-extrabold tracking-tight text-primary">LINKED</span>
+            </div>
           </Link>
-          <span className="font-mono text-[11px] text-white/30">PESO · SANTA MARIA</span>
+          <span className="hidden sm:block font-mono text-[11px] text-gray-400">PESO · SANTA MARIA</span>
         </div>
       </header>
 
       <main className="flex-1 flex flex-col items-center justify-center px-6 py-12 md:py-16">
         <div className="w-full max-w-4xl">
           <header className="text-center mb-10 md:mb-12 animate-fade-in">
-            <p className="font-mono text-[11px] tracking-[0.2em] text-[#0075A2] uppercase">
+            <p className="font-mono text-[11px] tracking-[0.2em] text-primary uppercase font-semibold">
               NEW REGISTRATION
             </p>
-            <h1 className="mt-3 font-sans text-3xl md:text-4xl font-bold tracking-tight text-white">
+            <h1 className="mt-3 font-sans text-3xl md:text-4xl font-bold tracking-tight text-dark-blue">
               Create your account
             </h1>
-            <p className="mt-3 text-sm md:text-base text-white/55">
+            <p className="mt-3 text-sm md:text-base text-gray-500">
               Select your role to begin registration with the Public Employment Service Office
             </p>
           </header>
@@ -49,24 +54,24 @@ function Register() {
             {accountTypes.map((type) => (
               <div
                 key={type.title}
-                className="bg-[#272727] border border-white/[0.06] rounded-2xl p-8 flex flex-col justify-between hover:border-[#0075A2]/40 hover:-translate-y-1 transition-all duration-300 shadow-[0_16px_48px_rgba(0,0,0,0.3)]"
+                className="bg-white border border-gray-200 rounded-2xl p-8 flex flex-col justify-between hover:border-primary/40 hover:-translate-y-1 hover:shadow-xl transition-all duration-300"
               >
                 <div>
-                  <span className="font-mono text-[10px] tracking-widest uppercase px-2.5 py-1 rounded-full bg-[#0075A2]/10 border border-[#0075A2]/25 text-[#0075A2]">
+                  <span className="font-mono text-[10px] tracking-widest uppercase px-2.5 py-1 rounded-full bg-primary/10 border border-primary/25 text-primary font-semibold">
                     {type.badge}
                   </span>
-                  <h2 className="mt-4 text-2xl font-bold text-white">
+                  <h2 className="mt-4 text-2xl font-bold text-dark-blue">
                     {type.title}
                   </h2>
-                  <p className="mt-3 text-sm text-white/55 leading-relaxed">
+                  <p className="mt-3 text-sm text-gray-500 leading-relaxed">
                     {type.description}
                   </p>
                 </div>
 
-                <div className="mt-8 pt-6 border-t border-white/[0.06]">
+                <div className="mt-8 pt-6 border-t border-gray-100">
                   <Link
                     to={type.to}
-                    className="w-full min-h-[44px] inline-flex items-center justify-center px-6 rounded-xl bg-[#0075A2] text-white text-sm font-medium hover:bg-[#005a7d] active:scale-[0.98] transition-all shadow-[0_4px_16px_rgba(0,117,162,0.2)]"
+                    className="w-full min-h-[44px] inline-flex items-center justify-center px-6 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-primary-hover active:scale-[0.98] transition-all shadow-md"
                   >
                     {type.cta} →
                   </Link>
@@ -75,22 +80,22 @@ function Register() {
             ))}
           </div>
 
-          <p className="mt-10 text-center text-xs text-white/40 animate-fade-in">
+          <p className="mt-10 text-center text-xs text-gray-400 animate-fade-in">
             Already have an account?{" "}
-            <Link to="/portals" className="text-[#0075A2] hover:underline underline-offset-4 font-medium">
+            <Link to="/portals" className="text-primary hover:underline underline-offset-4 font-medium">
               Log in to your portal
             </Link>
           </p>
         </div>
       </main>
 
-      <footer className="border-t border-white/[0.06] bg-[#060608] text-white/30">
+      <footer className="bg-dark-blue text-white">
         <div className="max-w-[1280px] mx-auto px-6 py-6 flex flex-col sm:flex-row justify-between gap-2 text-xs font-mono">
-          <span className="text-white/60 font-medium">
-            Job<span className="text-[#0075A2]">Linked</span> <span className="text-white/40">PESO</span>
+          <span className="text-white/80 font-medium">
+            Job<span className="text-accent">Linked</span> <span className="text-white/50">PESO</span>
           </span>
-          <span>Santa Maria Municipal Hall · hello@joblinked.ph</span>
-          <span>© 2026</span>
+          <span className="text-white/50">Santa Maria Municipal Hall · hello@joblinked.ph</span>
+          <span className="text-white/50">© 2026</span>
         </div>
       </footer>
     </div>
