@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { getJobs } from "../utils/jobStore";
+import { listBarangays } from "../services/admin";
 import heroImage from "../assets/pic.jpg";
 import TextBasedLogo from "../assets/TextBased Logo.png";
 
@@ -57,41 +57,40 @@ const stats = [
 function Landing() {
   const navigate = useNavigate();
   const [keyword, setKeyword] = useState("");
-  const [location, setLocation] = useState("Santa Maria, Bulacan");
+  const [location, setLocation] = useState("");
   const [activeTab, setActiveTab] = useState("seeker");
+  const [barangays, setBarangays] = useState([]);
+
+  useEffect(() => {
+    listBarangays().then((rows) => setBarangays(rows.map((b) => b.name))).catch(() => {});
+  }, []);
 
   function handleQuickSearch(e) {
     e.preventDefault();
     const p = new URLSearchParams();
     if (keyword.trim()) p.set("keyword", keyword.trim());
-    if (location !== "All Locations") p.set("location", location);
+    if (location) p.set("location", location);
     navigate(`/jobs?${p.toString()}`);
   }
 
-  const locations = ["All Locations", ...new Set(getJobs().map((j) => j.location).filter(Boolean))];
+  const locations = ["", ...barangays];
 
   return (
     <div className="min-h-screen bg-white text-gray-900 font-sans">
-      {/* Navbar */}
       <header className="sticky top-0 z-20 bg-white border-b border-gray-200 shadow-sm">
         <div className="max-w-[1280px] mx-auto px-6 h-[64px] flex items-center justify-between">
           <div className="flex items-center gap-10">
             <Link to="/" className="flex items-center gap-2">
               <img src={TextBasedLogo} alt="JobLinked" className="h-10" />
-              <div className="leading-none">
-                <span className="text-lg font-extrabold tracking-tight text-dark-blue">JOB</span>
-                <span className="text-lg font-extrabold tracking-tight text-primary">LINKED</span>
-              </div>
             </Link>
           </div>
           <div className="flex items-center gap-3">
-            <Link to="/portals" className="min-h-[40px] inline-flex items-center px-5 rounded-lg border-2 border-primary text-primary text-sm font-semibold hover:bg-primary/5 transition-colors">Login</Link>
+            <Link to="/portals" className="min-h-[40px] inline-flex items-center px-5 rounded-lg border-2 border-primary text-primary text-sm font-semibold hover:bg-primary/10 transition-colors">Login</Link>
             <Link to="/register" className="min-h-[40px] inline-flex items-center px-5 rounded-lg bg-primary text-white text-sm font-semibold hover:bg-primary-hover transition-colors shadow-md">Sign Up</Link>
           </div>
         </div>
       </header>
 
-      {/* Hero Section */}
       <section className="relative overflow-hidden bg-gradient-to-br from-gray-50 to-white">
         <div className="max-w-[1280px] mx-auto px-6 pt-12 md:pt-20 pb-16 md:pb-24 grid md:grid-cols-[1.1fr_0.9fr] gap-10 items-center">
           <div className="relative z-10">
@@ -110,13 +109,11 @@ function Landing() {
               JobLinked connects job seekers and employers in Santa Maria. Discover opportunities, build your future, and be part of a stronger community.
             </p>
 
-            {/* Tabs */}
             <div className="mt-8 flex gap-1 border-b border-gray-200">
               <button onClick={() => setActiveTab("seeker")} className={`px-5 py-3 text-sm font-semibold border-b-2 -mb-px transition-colors ${activeTab === "seeker" ? "text-primary border-primary" : "text-gray-400 border-transparent hover:text-gray-600"}`}>Find a Job</button>
               <button onClick={() => setActiveTab("employer")} className={`px-5 py-3 text-sm font-semibold border-b-2 -mb-px transition-colors ${activeTab === "employer" ? "text-primary border-primary" : "text-gray-400 border-transparent hover:text-gray-600"}`}>For Employers</button>
             </div>
 
-            {/* Search Bar */}
             <form onSubmit={handleQuickSearch} className="mt-6 flex flex-col sm:flex-row gap-3 bg-white rounded-2xl p-3 shadow-lg border border-gray-200">
               <div className="flex items-center gap-2 flex-1 px-3">
                 <svg className="w-5 h-5 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
@@ -130,7 +127,8 @@ function Landing() {
                   <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
                 </svg>
                 <select id="loc" value={location} onChange={(e) => setLocation(e.target.value)} className="min-h-[44px] text-sm bg-transparent border-none text-gray-700 focus:outline-none cursor-pointer">
-                  {locations.map((l) => <option key={l}>{l}</option>)}
+                  <option value="">All Barangays</option>
+                  {locations.filter(Boolean).map((l) => <option key={l} value={l}>{l}</option>)}
                 </select>
               </div>
               <button type="submit" className="min-h-[44px] px-8 rounded-xl bg-primary text-white text-sm font-bold hover:bg-primary-hover active:scale-[0.98] transition-all shadow-md flex items-center justify-center gap-2">
@@ -142,11 +140,9 @@ function Landing() {
             </form>
           </div>
 
-          {/* Hero Image */}
           <div className="relative hidden md:block">
             <div className="absolute -top-10 -right-10 w-72 h-72 bg-accent/20 rounded-full blur-3xl" />
             <img src={heroImage} alt="Job seekers in Santa Maria" className="relative w-full aspect-[4/3] object-cover rounded-3xl shadow-2xl" />
-            {/* Floating quote card */}
             <div className="absolute -bottom-6 -left-6 bg-white rounded-2xl p-5 shadow-xl border border-gray-100 max-w-[220px]">
               <svg className="w-6 h-6 text-accent mb-2" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M4.583 17.321C3.553 16.227 3 15 3 13.011c0-3.5 2.457-6.637 6.03-8.188l.893 1.378c-3.335 1.804-3.987 4.145-4.247 5.621.537-.278 1.24-.375 1.929-.311 1.804.167 3.226 1.648 3.226 3.489a3.5 3.5 0 01-3.5 3.5c-1.073 0-2.099-.49-2.748-1.179zm10 0C13.553 16.227 13 15 13 13.011c0-3.5 2.457-6.637 6.03-8.188l.893 1.378c-3.335 1.804-3.987 4.145-4.247 5.621.537-.278 1.24-.375 1.929-.311 1.804.167 3.226 1.648 3.226 3.489a3.5 3.5 0 01-3.5 3.5c-1.073 0-2.099-.49-2.748-1.179z"/>
@@ -156,11 +152,9 @@ function Landing() {
           </div>
         </div>
 
-        {/* Diagonal accent stripe */}
         <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-r from-primary via-accent to-danger opacity-10 -skew-y-2 transform origin-bottom-left" />
       </section>
 
-      {/* Feature Cards */}
       <section className="max-w-[1280px] mx-auto px-6 -mt-6 relative z-10">
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {featureCards.map((card, i) => (
@@ -181,7 +175,6 @@ function Landing() {
         </div>
       </section>
 
-      {/* Stats */}
       <section className="max-w-[1280px] mx-auto px-6 pt-16 pb-12">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-8 md:gap-12">
           {stats.map((stat) => (
@@ -193,7 +186,6 @@ function Landing() {
         </div>
       </section>
 
-      {/* Diagonal Banner */}
       <section className="relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-r from-primary via-primary to-accent" />
         <div className="absolute inset-0 opacity-30">
@@ -205,11 +197,9 @@ function Landing() {
             Building a Brighter Santa Maria<br />for a Better Tomorrow.
           </h2>
         </div>
-        {/* Yellow accent bar at bottom */}
         <div className="h-2 bg-accent" />
       </section>
 
-      {/* Footer */}
       <footer className="bg-dark-blue text-white">
         <div className="max-w-[1280px] mx-auto px-6 py-8">
           <div className="flex flex-col md:flex-row items-center justify-between gap-6">

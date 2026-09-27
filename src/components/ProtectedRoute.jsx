@@ -1,16 +1,13 @@
-import { Navigate } from "react-router-dom";
-import useAuth from "../hooks/useAuth";
+import { Navigate } from 'react-router-dom';
+import useAuth from '../hooks/useAuth';
+import LoadingScreen from './LoadingScreen';
 
 function ProtectedRoute({ role, children }) {
-  const { role: currentRole } = useAuth();
+  const { user, role: currentRole, loading } = useAuth();
 
-  if (!currentRole) {
-    return <Navigate to={`/${role}/login`} replace />;
-  }
-
-  if (currentRole !== role) {
-    return <Navigate to="/" replace />;
-  }
+  if (loading) return <LoadingScreen />;
+  if (!user) return <Navigate to={`/${role}/login`} replace />;
+  if (currentRole !== role) return <Navigate to="/" replace />;
 
   return children;
 }

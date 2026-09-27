@@ -2,9 +2,12 @@ import { useState, useEffect } from 'react'
 import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom'
 import useAuth from '../hooks/useAuth'
 import useAFKTimer from '../hooks/useAFKTimer'
+import TextBasedLogo from '../assets/TextBased Logo.png'
+import SidebarAccount from '../components/SidebarAccount'
+import NotificationBell from '../components/NotificationBell'
 
 const navItems = [
-  { to: '/job-seeker', label: 'Browse Jobs', end: true },
+  { to: '/job-seeker', label: 'Dashboard', end: true },
   { to: '/job-seeker/applications', label: 'My Applications' },
   { to: '/job-seeker/profile', label: 'Profile' },
 ]
@@ -26,117 +29,112 @@ function JobSeekerLayout() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 text-gray-900 flex flex-col font-sans">
-      <header className="sticky top-0 z-30 bg-white/85 backdrop-blur border-b border-gray-200">
-        <div className="max-w-[1280px] mx-auto px-6 h-[56px] flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Link to="/job-seeker" className="text-[15px] font-semibold tracking-tight text-gray-900">
-              Job<span className="text-[#0057B8]">Linked</span>
-            </Link>
-            <span className="font-mono text-[10px] tracking-wider px-2 py-0.5 rounded-full bg-primary/10 border border-primary/25 text-primary">
-              SEEKER
-            </span>
-          </div>
-
-          {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center gap-1.5">
-            {navItems.map((item) => (
-              <NavLink
-                key={item.to}
-                to={item.to}
-                end={item.end}
-                className={({ isActive }) =>
-                  `px-3.5 py-1.5 rounded-xl text-xs font-medium transition-all ${
-                    isActive
-                      ? 'bg-primary/10 text-primary border border-primary/25'
-                      : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100 border border-transparent'
-                  }`
-                }
-              >
-                {item.label}
-              </NavLink>
-            ))}
-          </nav>
-
-          <div className="hidden md:flex items-center gap-4">
-            <span className="text-xs text-gray-400 truncate max-w-[180px]">
-              {user?.name || user?.email || 'Job Seeker'}
-            </span>
-            <button
-              onClick={handleLogout}
-              className="text-xs text-gray-500 hover:text-danger transition-colors"
-            >
-              Sign out
-            </button>
-          </div>
-
-          {/* Mobile hamburger */}
+    <div className="min-h-screen md:h-screen md:overflow-hidden bg-gray-50 text-gray-900 flex flex-col md:flex-row">
+      {/* Mobile Top Header */}
+        <header className="md:hidden sticky top-0 z-30 bg-white border-b border-gray-200 px-4 h-14 flex items-center justify-between shrink-0">
+        <div className="flex items-center gap-2.5">
+          <Link to="/job-seeker">
+            <img src={TextBasedLogo} alt="JobLinked" className="h-6" />
+          </Link>
+          <span className="font-mono text-[10px] tracking-wider px-2 py-0.5 rounded-full bg-primary/10 border border-primary/25 text-primary">
+            SEEKER
+          </span>
+        </div>
+        <div className="flex items-center gap-2">
+          <NotificationBell />
           <button
             onClick={() => setMobileOpen(!mobileOpen)}
-            className="md:hidden p-2 rounded-lg text-gray-600 hover:text-gray-900 hover:bg-gray-100 border border-gray-200"
+            className="p-2 rounded-lg text-gray-600 hover:text-gray-900 hover:bg-gray-100 border border-gray-200 cursor-pointer"
             aria-label="Toggle navigation"
           >
-            <svg className="w-4 h-4 fill-none stroke-current" viewBox="0 0 24 24">
-              {mobileOpen ? (
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-              ) : (
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" />
-              )}
-            </svg>
+          <svg className="w-4 h-4 fill-none stroke-current" viewBox="0 0 24 24">
+            {mobileOpen ? (
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+            ) : (
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" />
+            )}
+          </svg>
           </button>
         </div>
-
-        {/* Mobile dropdown nav */}
-        {mobileOpen && (
-          <div className="md:hidden px-6 py-4 border-t border-gray-200 bg-white space-y-2">
-            <div className="pb-2 border-b border-gray-200">
-              <p className="text-xs font-medium text-gray-900">{user?.name || 'Job Seeker'}</p>
-              <p className="text-[11px] text-gray-400">{user?.email}</p>
-            </div>
-            {navItems.map((item) => (
-              <NavLink
-                key={item.to}
-                to={item.to}
-                end={item.end}
-                onClick={() => setMobileOpen(false)}
-                className={({ isActive }) =>
-                  `block px-3.5 py-2 rounded-xl text-xs font-medium transition-all ${
-                    isActive
-                      ? 'bg-primary/10 text-primary border border-primary/25'
-                      : 'text-gray-600 hover:text-gray-900'
-                  }`
-                }
-              >
-                {item.label}
-              </NavLink>
-            ))}
-            <button
-              onClick={handleLogout}
-              className="w-full text-left px-3.5 py-2 text-xs text-danger hover:text-danger"
-            >
-              Sign out
-            </button>
-          </div>
-        )}
       </header>
 
-      <main className="flex-1 max-w-[1280px] w-full mx-auto px-6 py-8">
-        <Outlet />
-      </main>
-
-      <footer className="border-t border-white/[0.06] bg-dark-blue text-white/30 mt-auto">
-        <div className="max-w-[1280px] mx-auto px-6 py-6 flex flex-col sm:flex-row justify-between gap-2 text-xs font-mono">
-          <span className="text-white/60 font-medium">
-            Job<span className="text-primary">Linked</span> <span className="text-white/40">PESO</span>
-          </span>
-          <span>Municipal Hall, Poblacion · Santa Maria, Bulacan</span>
-          <span>© 2026</span>
+      {/* Sidebar Navigation */}
+        <aside
+          className={`fixed inset-y-0 left-0 z-40 w-64 h-screen md:h-screen md:sticky md:top-0 bg-primary border-r border-primary/20 flex flex-col shrink-0 transition-transform duration-200 md:translate-x-0 ${
+            mobileOpen ? 'translate-x-0 shadow-xl' : '-translate-x-full'
+          }`}
+        >
+        <div className="h-16 shrink-0 flex items-center justify-between px-4 border-b border-white/10 bg-dark-blue">
+          <div className="bg-white rounded-lg px-3.5 py-1.5 flex items-center shadow-xs">
+            <Link to="/job-seeker">
+              <img src={TextBasedLogo} alt="JobLinked" className="h-5 w-auto object-contain" />
+            </Link>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="font-mono text-[10px] tracking-wider text-accent rounded-full border border-accent/25 px-2 py-0.5 flex items-center h-6">
+              SEEKER
+            </span>
+            {mobileOpen && (
+              <button
+                onClick={() => setMobileOpen(false)}
+                className="md:hidden text-gray-500 hover:text-gray-900"
+              >
+                ✕
+              </button>
+            )}
+          </div>
         </div>
-      </footer>
+        <div className="px-6 pt-5 pb-3">
+          <p className="font-mono text-[10px] tracking-[0.2em] text-white/50">PESO · SANTA MARIA</p>
+          <p className="mt-0.5 text-xs text-white/50 truncate font-medium">{user?.name || 'Job Seeker'}</p>
+        </div>
+
+        <nav className="flex-1 py-3 px-4 space-y-1.5 overflow-y-auto min-h-0">
+          {navItems.map((item) => (
+            <NavLink
+              key={item.to}
+              to={item.to}
+              end={item.end}
+              onClick={() => setMobileOpen(false)}
+              className={({ isActive }) =>
+                `flex items-center px-3.5 py-2.5 rounded-xl text-xs font-medium transition-all ${isActive
+                  ? 'bg-white/20 text-white border border-white/20 shadow-md'
+                  : 'text-white/60 hover:text-white hover:bg-white/10 border border-transparent'
+                }`
+              }
+            >
+              {item.label}
+            </NavLink>
+          ))}
+        </nav>
+
+        <SidebarAccount
+          user={user}
+          profileTo="/job-seeker/profile"
+          roleLabel="Job Seeker"
+          onNavigate={() => setMobileOpen(false)}
+          onLogout={handleLogout}
+        />
+      </aside>
+
+      {/* Backdrop for mobile */}
+      {mobileOpen && (
+        <div
+          onClick={() => setMobileOpen(false)}
+          className="fixed inset-0 z-30 bg-black/60 md:hidden"
+        />
+      )}
+
+      {/* Main Content Area */}
+      <main className="flex-1 p-6 md:p-8 max-w-full overflow-x-hidden md:h-screen md:overflow-y-auto min-h-[calc(100vh-56px)]">
+        <div className="max-w-6xl mx-auto">
+          <Outlet />
+        </div>
+      </main>
 
       {/* AFK Warning Modal */}
       {showWarning && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
           <div className="bg-white border border-gray-200 rounded-2xl p-6 max-w-sm mx-4 shadow-xl">
             <h3 className="text-lg font-bold text-gray-900 mb-2">Session Expiring</h3>
             <p className="text-sm text-gray-500 mb-6">
@@ -145,7 +143,7 @@ function JobSeekerLayout() {
             <div className="flex gap-2">
               <button
                 onClick={() => setShowWarning(false)}
-                className="flex-1 px-4 py-2.5 text-sm font-medium text-white bg-primary hover:bg-[#004a9e] rounded-lg transition-colors"
+                className="flex-1 px-4 py-2.5 text-sm font-medium text-white bg-primary hover:bg-primary-hover rounded-lg active:scale-[0.98] transition-colors"
               >
                 Stay Signed In
               </button>

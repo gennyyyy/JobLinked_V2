@@ -1,221 +1,119 @@
-import { useState } from 'react';
-import { PREDEFINED_ROLES, AVAILABLE_PERMISSIONS, getCustomRoles, createCustomRole, deleteCustomRole } from '../../data/roles';
+import { useState, useEffect } from "react";
+import { listReferenceData, addReferenceData, removeReferenceData } from "../../services/admin";
+import ConfirmationModal from "../../components/ConfirmationModal";
+import LoadingScreen from "../../components/LoadingScreen";
+
+const ROLE_DESCRIPTIONS = {
+  "super-admin": "Full system access: manage employers, accreditations, jobs, users, and settings.",
+  employer: "Post jobs, manage applicants, submit accreditation documents.",
+  "job-seeker": "Browse jobs, manage profile, submit applications.",
+};
 
 function RoleManagement() {
-  const [roles, setRoles] = useState(() => [...PREDEFINED_ROLES, ...getCustomRoles()]);
-  const [showCreateForm, setShowCreateForm] = useState(false);
-  const [formData, setFormData] = useState({ name: '', description: '', permissions: [] });
-  const [error, setError] = useState('');
-  const [errors, setErrors] = useState({});
+  const [roles] = useState(["super-admin", "employer", "job-seeker"]);
+  const [categories, setCategories] = useState({});
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [newValues, setNewValues] = useState({});
+  const [confirmDelete, setConfirmDelete] = useState(null);
 
-  function loadRoles() {
-    setRoles([...PREDEFINED_ROLES, ...getCustomRoles()]);
+  const categoryLabels = {
+    employment_type: "Employment Types",
+    education_level: "Education Levels",
+  };
+
+  useEffect(() => {
+    Promise.all([
+      listReferenceData("employment_type"),
+      listReferenceData("education_level"),
+    ])
+      .then(([empTypes, eduLevels]) => {
+        setCategories({ employment_type: empTypes, education_level: eduLevels });
+      })
+      .catch((err) => setError(err.message || "Failed to load"))
+      .finally(() => setLoading(false));
+  }, []);
+
+  if (loading) return <LoadingScreen />;
+  if (error) return <div className="py-16 text-center text-sm text-danger">{error}</div>;
+
+  async function handleAdd(category) {
+    const value = (newValues[category] || "").trim();
+    if (!value) return;
+    await addReferenceData(category, value);
+    const updated = await listReferenceData(category);
+    setCategories((prev) => ({ ...prev, [category]: updated }));
+    setNewValues((prev) => ({ ...prev, [category]: "" }));
   }
 
-  function validate() {
-    const e = {};
-    if (!formData.name?.trim()) e.name = "Role name is required";
-    if (formData.permissions.length === 0) e.permissions = "Select at least one permission";
-    return e;
-  }
-
-  function handleCreateRole() {
-    const validationErrors = validate();
-    if (Object.keys(validationErrors).length > 0) {
-      setErrors(validationErrors);
-      return;
-    }
-    setErrors({});
-    
-    try {
-      createCustomRole({
-        name: formData.name,
-        description: formData.description,
-        permissions: formData.permissions,
-      });
-      loadRoles();
-      setFormData({ name: '', description: '', permissions: [] });
-      setShowCreateForm(false);
-      setError('');
-      setErrors({});
-    } catch (err) {
-      setError(err.message);
-    }
-  }
-
-  function handleDeleteRole(roleId) {
-    if (window.confirm('Are you sure you want to delete this role?')) {
-      deleteCustomRole(roleId);
-      loadRoles();
-    }
-  }
-
-  function handleTogglePermission(permId) {
-    setFormData({
-      ...formData,
-      permissions: formData.permissions.includes(permId)
-        ? formData.permissions.filter((p) => p !== permId)
-        : [...formData.permissions, permId],
-    });
-    if (errors.permissions) setErrors((prev) => ({ ...prev, permissions: undefined }));
+  async function handleRemove(category, id) {
+    await removeReferenceData(id);
+    const updated = await listReferenceData(category);
+    setCategories((prev) => ({ ...prev, [category]: updated }));
+    setConfirmDelete(null);
   }
 
   return (
-    <div className="space-y-8 animate-fade-in">
+    <div className="space-y-8 animate-fade-in bg-gray-50">
       <header>
-        <p className="font-mono text-[11px] tracking-[0.2em] text-[#0057B8] uppercase">
-          SYSTEM ADMINISTRATION
-        </p>
-        <h1 className="mt-1 font-sans text-2xl md:text-3xl font-bold tracking-tight text-gray-900">
-          Role Management
-        </h1>
-        <p className="mt-2 text-sm text-gray-500">
-          Create custom roles and manage system permissions
-        </p>
+        <div className="flex items-center gap-3">
+          <div className="w-1 h-6 bg-primary rounded-full" />
+          <p className="font-mono text-[11px] tracking-[0.2em] text-primary uppercase">SYSTEM ADMINISTRATION</p>
+        </div>
+        <h1 className="mt-1 font-sans text-2xl md:text-3xl font-bold tracking-tight text-dark-blue">Role & Reference Management</h1>
+        <p className="mt-2 text-sm text-gray-500">View system roles and manage reference data used across portals</p>
       </header>
 
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-lg font-semibold text-gray-900">All Roles</h2>
-          <p className="text-xs text-gray-400 mt-0.5">
-            {roles.length} total ({PREDEFINED_ROLES.length} predefined, {getCustomRoles().length} custom)
-          </p>
+      <section className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm border-t-4 border-primary">
+        <div className="border-l-4 border-primary pl-4 mb-6">
+          <h2 className="text-lg font-semibold text-dark-blue">System Roles</h2>
+          <p className="text-xs text-gray-500 mt-0.5">Roles are enforced by database row-level security</p>
         </div>
-        <button
-          onClick={() => setShowCreateForm(!showCreateForm)}
-          className="px-4 py-2 text-xs font-medium text-white bg-primary hover:bg-primary/90 rounded-lg transition-colors"
-        >
-          {showCreateForm ? 'Cancel' : '+ Create Role'}
-        </button>
-      </div>
-
-      {error && (
-        <div className="text-sm text-primary bg-primary/10 border border-primary/20 px-4 py-3 rounded-lg">
-          {error}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {roles.map((role) => (
+            <div key={role} className="bg-gray-50 border border-gray-200 rounded-xl p-5">
+              <h3 className="text-sm font-semibold text-dark-blue capitalize">{role.replace("-", " ")}</h3>
+              <p className="text-xs text-gray-500 mt-2">{ROLE_DESCRIPTIONS[role]}</p>
+            </div>
+          ))}
         </div>
-      )}
+      </section>
 
-      {showCreateForm && (
-        <div className="bg-gray-50 border border-gray-200 rounded-lg p-6 space-y-4">
-          <div>
-            <label className="block text-xs text-gray-500 mb-2">Role Name *</label>
+      {Object.entries(categoryLabels).map(([category, label]) => (
+        <section key={category} className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm border-t-4 border-primary">
+          <div className="border-l-4 border-primary pl-4 mb-6">
+            <h2 className="text-lg font-semibold text-dark-blue">{label}</h2>
+          </div>
+          <div className="space-y-2">
+            {(categories[category] || []).map((item) => (
+              <div key={item.id} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">
+                <span className="text-sm text-gray-700">{item.value}</span>
+                <button onClick={() => setConfirmDelete({ category, id: item.id, value: item.value })} className="text-xs text-danger hover:underline">Remove</button>
+              </div>
+            ))}
+          </div>
+          <div className="flex gap-2 mt-4">
             <input
               type="text"
-              value={formData.name}
-              onChange={(e) => {
-                setFormData({ ...formData, name: e.target.value });
-                if (errors.name) setErrors((prev) => ({ ...prev, name: undefined }));
-              }}
-              placeholder="e.g., Content Moderator"
-              className="w-full px-4 py-2.5 text-sm bg-gray-50 border border-gray-200 text-gray-900 placeholder:text-gray-400 rounded-lg focus:outline-none focus:border-primary/50"
+              value={newValues[category] || ""}
+              onChange={(e) => setNewValues((prev) => ({ ...prev, [category]: e.target.value }))}
+              placeholder={`Add ${label.toLowerCase().replace(/s$/, "")}...`}
+              className="flex-1 px-4 py-2.5 text-sm bg-gray-50 border border-gray-200 text-gray-900 placeholder:text-gray-400 rounded-lg focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30"
             />
-            {errors.name && <p className="text-danger text-xs mt-1">{errors.name}</p>}
+            <button onClick={() => handleAdd(category)} className="px-4 py-2.5 text-sm font-medium text-white bg-primary hover:bg-primary-hover rounded-lg transition-colors">Add</button>
           </div>
+        </section>
+      ))}
 
-          <div>
-            <label className="block text-xs text-gray-500 mb-2">Description</label>
-            <textarea
-              value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              placeholder="Describe the purpose of this role"
-              rows={2}
-              className="w-full px-4 py-2.5 text-sm bg-gray-50 border border-gray-200 text-gray-900 placeholder:text-gray-400 rounded-lg focus:outline-none focus:border-primary/50 resize-none"
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs text-gray-500 mb-3">Permissions *</label>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {AVAILABLE_PERMISSIONS.map((perm) => (
-                <label key={perm.id} className="flex items-start gap-3 p-3 bg-gray-50 border border-gray-200 rounded-lg cursor-pointer hover:border-gray-300 transition-colors">
-                  <input
-                    type="checkbox"
-                    checked={formData.permissions.includes(perm.id)}
-                    onChange={() => handleTogglePermission(perm.id)}
-                    className="mt-0.5 accent-primary"
-                  />
-                  <div className="flex-1">
-                    <p className="text-xs font-medium text-gray-900">{perm.label}</p>
-                    <p className="text-[11px] text-gray-500">{perm.description}</p>
-                  </div>
-                </label>
-              ))}
-            </div>
-            {errors.permissions && <p className="text-danger text-xs mt-1">{errors.permissions}</p>}
-          </div>
-
-          <div className="flex gap-2 pt-4">
-            <button
-              onClick={handleCreateRole}
-              className="flex-1 px-4 py-2.5 text-sm font-medium text-white bg-primary hover:bg-primary/90 rounded-lg transition-colors"
-            >
-              Create Role
-            </button>
-            <button
-              onClick={() => {
-                setShowCreateForm(false);
-                setFormData({ name: '', description: '', permissions: [] });
-                setError('');
-                setErrors({});
-              }}
-              className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-500 hover:text-gray-900 bg-gray-100 hover:bg-gray-200 border border-gray-200 rounded-lg transition-colors"
-            >
-              Cancel
-            </button>
-          </div>
-        </div>
+      {confirmDelete && (
+        <ConfirmationModal
+          message={`Remove "${confirmDelete.value}"?`}
+          onConfirm={() => handleRemove(confirmDelete.category, confirmDelete.id)}
+          onCancel={() => setConfirmDelete(null)}
+          confirmLabel="Remove"
+          danger
+        />
       )}
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {roles.map((role) => (
-          <div
-            key={role.id}
-            className="bg-white border border-gray-200 rounded-lg p-5 hover:border-gray-300 transition-colors group"
-          >
-            <div className="flex items-start justify-between mb-3">
-              <div className="flex-1">
-                <div className="flex items-center gap-2">
-                  <h3 className="text-sm font-semibold text-gray-900">{role.name}</h3>
-                  <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${
-                    role.type === 'predefined'
-                      ? 'bg-primary/20 text-primary'
-                      : 'bg-gray-100 text-gray-500'
-                  }`}>
-                    {role.type === 'predefined' ? 'Predefined' : 'Custom'}
-                  </span>
-                </div>
-                <p className="text-xs text-gray-500 mt-1">{role.description}</p>
-              </div>
-              {role.type === 'custom' && (
-                <button
-                  onClick={() => handleDeleteRole(role.id)}
-                  className="text-gray-400 hover:text-primary transition-colors opacity-0 group-hover:opacity-100"
-                  title="Delete role"
-                >
-                  ✕
-                </button>
-              )}
-            </div>
-
-            <div className="mt-4 pt-4 border-t border-gray-200">
-              <p className="text-xs text-gray-500 mb-2">Permissions ({role.permissions.length})</p>
-              <div className="flex flex-wrap gap-1">
-                {role.permissions.map((permId) => {
-                  const perm = AVAILABLE_PERMISSIONS.find((p) => p.id === permId);
-                  return (
-                    <span
-                      key={permId}
-                      className="text-[10px] px-2 py-1 bg-primary/10 text-primary rounded-full"
-                    >
-                      {perm?.label || permId}
-                    </span>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
     </div>
   );
 }

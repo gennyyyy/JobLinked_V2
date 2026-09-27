@@ -1,95 +1,56 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom'
 import useAuth from '../hooks/useAuth'
+import useAFKTimer from '../hooks/useAFKTimer'
+import TextBasedLogo from '../assets/TextBased Logo.png'
+import SidebarAccount from '../components/SidebarAccount'
+import NotificationBell from '../components/NotificationBell'
 
 const navItems = [
   { to: '/super-admin', label: 'Dashboard', end: true },
   { to: '/super-admin/accreditation', label: 'Accreditation' },
-  { to: '/super-admin/employees', label: 'Employees' },
   { to: '/super-admin/job-posts', label: 'Job Posts' },
   { to: '/super-admin/roles', label: 'Roles' },
   { to: '/super-admin/users', label: 'Users' },
+  { to: '/super-admin/logs', label: 'Logs' },
+  { to: '/super-admin/settings', label: 'Settings' },
 ]
-
-const AFK_TIMEOUT = 5 * 60 * 1000; // 5 minutes
-const WARNING_TIME = 4 * 60 * 1000; // 4 minutes
 
 function SuperAdminLayout() {
   const navigate = useNavigate()
-  const { logout } = useAuth()
+  const { logout, user } = useAuth()
   const [mobileOpen, setMobileOpen] = useState(false)
   const [showWarning, setShowWarning] = useState(false)
-  const timeoutRef = useRef(null)
-  const warningTimeoutRef = useRef(null)
+  const { setWarningCallback } = useAFKTimer()
+
+  useEffect(() => {
+    setWarningCallback(() => setShowWarning(true))
+  }, [setWarningCallback])
 
   function handleLogout() {
     logout()
     navigate('/')
   }
 
-  function resetAFKTimer() {
-    // Clear existing timeouts
-    if (timeoutRef.current) clearTimeout(timeoutRef.current)
-    if (warningTimeoutRef.current) clearTimeout(warningTimeoutRef.current)
-    setShowWarning(false)
-
-    // Set warning timeout at 4 minutes
-    warningTimeoutRef.current = setTimeout(() => {
-      setShowWarning(true)
-    }, WARNING_TIME)
-
-    // Set logout timeout at 5 minutes
-    timeoutRef.current = setTimeout(() => {
-      logout()
-      navigate('/')
-    }, AFK_TIMEOUT)
-  }
-
-  // Setup AFK timer on mount
-  useEffect(() => {
-    const events = ['mousedown', 'keydown', 'scroll', 'touchstart', 'click']
-
-    const handleActivity = () => {
-      resetAFKTimer()
-    }
-
-    // Add event listeners
-    events.forEach((event) => {
-      document.addEventListener(event, handleActivity)
-    })
-
-    // Initialize timer
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    resetAFKTimer()
-
-    // Cleanup
-    return () => {
-      events.forEach((event) => {
-        document.removeEventListener(event, handleActivity)
-      })
-      if (timeoutRef.current) clearTimeout(timeoutRef.current)
-      if (warningTimeoutRef.current) clearTimeout(warningTimeoutRef.current)
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
-
   return (
-    <div className="min-h-screen bg-gray-50 text-gray-900 flex flex-col md:flex-row">
+    <div className="min-h-screen md:h-screen md:overflow-hidden bg-gray-50 text-gray-900 flex flex-col md:flex-row">
       {/* Mobile Top Header */}
-      <header className="md:hidden sticky top-0 z-30 bg-white/90 backdrop-blur border-b border-gray-200 px-5 h-14 flex items-center justify-between">
+      <header className="md:hidden sticky top-0 z-30 bg-white border-b border-gray-200 px-4 h-14 flex items-center justify-between shrink-0">
         <div className="flex items-center gap-2.5">
-          <Link to="/" className="text-[15px] font-semibold tracking-tight text-gray-900">
-            Job<span className="text-[#0057B8]">Linked</span>
+          <Link to="/" className="flex items-center">
+            <img src={TextBasedLogo} alt="JobLinked" className="h-6 w-auto object-contain" />
           </Link>
           <span className="font-mono text-[10px] tracking-wider px-2 py-0.5 rounded-full bg-primary/10 border border-primary/25 text-[#0057B8]">
             ADMIN
           </span>
         </div>
-        <button
-          onClick={() => setMobileOpen(!mobileOpen)}
-          className="p-2 rounded-lg text-gray-600 hover:text-gray-900 hover:bg-gray-100 border border-gray-200"
-          aria-label="Toggle navigation"
-        >
+        <div className="flex items-center gap-2">
+          <NotificationBell />
+          <button
+            onClick={() => setMobileOpen(!mobileOpen)}
+            className="p-2 rounded-lg text-gray-600 hover:text-gray-900 hover:bg-gray-100 border border-gray-200 cursor-pointer"
+            aria-label="Toggle navigation"
+          >
           <svg className="w-4 h-4 fill-none stroke-current" viewBox="0 0 24 24">
             {mobileOpen ? (
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
@@ -97,39 +58,46 @@ function SuperAdminLayout() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" />
             )}
           </svg>
-        </button>
+          </button>
+        </div>
       </header>
 
       {/* Sidebar Navigation */}
       <aside
-        className={`fixed inset-y-0 left-0 z-40 w-64 bg-gray-50 border-r border-gray-200 flex flex-col shrink-0 transition-transform duration-200 md:static md:translate-x-0 ${mobileOpen ? 'translate-x-0 shadow-xl' : '-translate-x-full'
-          }`}
+        className={`fixed inset-y-0 left-0 z-40 w-64 h-screen md:h-screen md:sticky md:top-0 bg-primary border-r border-primary/20 flex flex-col shrink-0 transition-transform duration-200 md:translate-x-0 ${
+          mobileOpen ? 'translate-x-0 shadow-xl' : '-translate-x-full'
+        }`}
       >
-        <div className="h-14 flex items-center justify-between px-6 border-b border-gray-200">
+        <div className="h-16 shrink-0 flex items-center justify-between px-4 border-b border-white/10 bg-dark-blue">
           <div className="flex items-center gap-2.5">
-            <Link to="/" className="text-[15px] font-semibold tracking-tight text-gray-900">
-              Job<span className="text-[#0057B8]">Linked</span>
+            <Link to="/" className="flex items-center">
+              <div className="bg-white rounded-lg px-3.5 py-1.5 flex items-center shadow-xs">
+                <img src={TextBasedLogo} alt="JobLinked" className="h-5 w-auto object-contain" />
+              </div>
             </Link>
-            <span className="font-mono text-[10px] tracking-wider px-2 py-0.5 rounded-full bg-primary/10 border border-primary/25 text-[#0057B8]">
+            <span className="font-mono text-[10px] tracking-wider text-accent rounded-full border border-accent/25 px-2 py-0.5 flex items-center">
               ADMIN
             </span>
           </div>
           {mobileOpen && (
             <button
               onClick={() => setMobileOpen(false)}
-              className="md:hidden text-gray-500 hover:text-gray-900"
+              className="md:hidden text-white/60 hover:text-white p-1 text-sm cursor-pointer"
+              aria-label="Close navigation"
             >
               ✕
             </button>
           )}
         </div>
 
-        <div className="px-6 pt-5 pb-3">
-          <p className="font-mono text-[10px] tracking-[0.2em] text-[#0057B8]">PESO · SANTA MARIA</p>
-          <p className="mt-0.5 text-xs text-gray-400">Super Administrator</p>
+        <div className="px-4 pt-5 pb-3 shrink-0">
+          <div className="px-3.5">
+            <p className="font-mono text-[10px] tracking-[0.2em] text-white/50">PESO · SANTA MARIA</p>
+            <p className="mt-0.5 text-xs text-white/70 font-medium">Super Administrator</p>
+          </div>
         </div>
 
-        <nav className="flex-1 py-3 px-4 space-y-1.5">
+        <nav className="flex-1 py-3 px-4 space-y-1.5 overflow-y-auto min-h-0">
           {navItems.map((item) => (
             <NavLink
               key={item.to}
@@ -138,8 +106,8 @@ function SuperAdminLayout() {
               onClick={() => setMobileOpen(false)}
               className={({ isActive }) =>
                 `flex items-center px-3.5 py-2.5 rounded-xl text-xs font-medium transition-all ${isActive
-                  ? 'bg-primary/10 text-primary border border-primary/25 shadow-[0_2px_12px_rgba(0,117,162,0.15)]'
-                  : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100 border border-transparent'
+                  ? 'bg-white/20 text-white border border-white/20 shadow-md'
+                  : 'text-white/60 hover:text-white hover:bg-white/10 border border-transparent'
                 }`
               }
             >
@@ -148,55 +116,49 @@ function SuperAdminLayout() {
           ))}
         </nav>
 
-        <div className="p-4 border-t border-gray-200 space-y-2">
-          <Link
-            to="/"
-            className="flex items-center justify-between px-3.5 py-2 rounded-xl text-xs text-gray-500 hover:text-gray-900 hover:bg-gray-100 transition-colors"
-          >
-            <span>Public Site</span>
-            <span className="text-gray-300 text-[10px]">↗</span>
-          </Link>
-          <button
-            onClick={handleLogout}
-            className="w-full text-left px-3.5 py-2 rounded-xl text-xs text-danger hover:bg-danger/10 transition-colors"
-          >
-            Sign out
-          </button>
-        </div>
+        <SidebarAccount
+          user={user}
+          profileTo="/super-admin/profile"
+          roleLabel="Super Admin"
+          onNavigate={() => setMobileOpen(false)}
+          onLogout={handleLogout}
+        />
       </aside>
 
       {/* Backdrop for mobile */}
       {mobileOpen && (
         <div
           onClick={() => setMobileOpen(false)}
-          className="fixed inset-0 z-30 bg-black/60 md:hidden backdrop-blur-xs"
+          className="fixed inset-0 z-30 bg-black/60 md:hidden"
         />
       )}
 
       {/* Main Content Area */}
-      <main className="flex-1 p-6 md:p-8 max-w-full overflow-x-hidden min-h-[calc(100vh-56px)] md:min-h-screen">
+      <main className="flex-1 p-6 md:p-8 max-w-full overflow-x-hidden md:h-screen md:overflow-y-auto min-h-[calc(100vh-56px)]">
         <div className="max-w-6xl mx-auto">
           <Outlet />
         </div>
       </main>
 
-      {/* AFK Warning Modal */}
       {showWarning && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white border border-primary/30 rounded-lg p-8 max-w-sm w-full shadow-xl animate-fade-in-scale">
-            <h2 className="text-lg font-semibold text-gray-900 mb-3">Session Timeout Warning</h2>
+        <div           className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+          <div className="bg-white border border-gray-200 rounded-2xl p-6 max-w-sm mx-4 shadow-xl">
+            <h3 className="text-lg font-bold text-gray-900 mb-2">Session Expiring</h3>
             <p className="text-sm text-gray-600 mb-6">
-              You have been inactive for 4 minutes. In 1 minute, you will be automatically logged out for security reasons.
+              You will be logged out in 1 minute due to inactivity. Move your mouse or press a key to stay signed in.
             </p>
-            <div className="flex gap-3">
+            <div className="flex gap-2">
               <button
-                onClick={() => {
-                  setShowWarning(false)
-                  resetAFKTimer()
-                }}
-                className="flex-1 px-4 py-2.5 text-sm font-medium text-white bg-primary hover:bg-primary/90 rounded-lg transition-colors"
+                onClick={() => setShowWarning(false)}
+                className="flex-1 px-4 py-2.5 text-sm font-medium text-white bg-primary hover:bg-primary-hover rounded-lg active:scale-[0.98] transition-colors"
               >
-                Stay Logged In
+                Stay Signed In
+              </button>
+              <button
+                onClick={handleLogout}
+                className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-600 hover:text-gray-900 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-lg transition-colors"
+              >
+                Sign Out
               </button>
             </div>
           </div>

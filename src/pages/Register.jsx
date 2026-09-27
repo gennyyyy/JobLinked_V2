@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import Logo from "../assets/Logo.png";
+import Logo from "../assets/TextBased Logo.png";
 
 const accountTypes = [
   {
@@ -26,11 +26,7 @@ function Register() {
       <header className="sticky top-0 z-20 bg-white border-b border-gray-200 shadow-sm">
         <div className="max-w-[1280px] mx-auto px-6 h-[64px] flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2">
-            <img src={Logo} alt="JobLinked" className="w-9 h-9" />
-            <div className="leading-none">
-              <span className="text-lg font-extrabold tracking-tight text-dark-blue">JOB</span>
-              <span className="text-lg font-extrabold tracking-tight text-primary">LINKED</span>
-            </div>
+            <img src={Logo} alt="JobLinked" className="h-10" />
           </Link>
           <span className="hidden sm:block font-mono text-[11px] text-gray-400">PESO · SANTA MARIA</span>
         </div>

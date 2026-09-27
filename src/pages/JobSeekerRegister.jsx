@@ -1,13 +1,19 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { addAccount, findAccountByEmail } from "../utils/userStore";
-import Logo from "../assets/Logo.png";
-import { barangays } from "../data/barangays";
+import { signUp } from "../services/auth";
+import { listBarangays } from "../services/admin";
+import Logo from "../assets/TextBased Logo.png";
 
 function JobSeekerRegister() {
   const [error, setError] = useState("");
   const [errors, setErrors] = useState({});
   const [submitted, setSubmitted] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [barangays, setBarangays] = useState([]);
+
+  useEffect(() => {
+    listBarangays().then((rows) => setBarangays(rows.map((b) => b.name))).catch(() => {});
+  }, []);
 
   function validate(values) {
     const e = {};
@@ -25,7 +31,7 @@ function JobSeekerRegister() {
     return e;
   }
 
-  function handleSubmit(event) {
+  async function handleSubmit(event) {
     event.preventDefault();
     const formData = new FormData(event.target);
     const values = Object.fromEntries(formData.entries());
@@ -36,21 +42,25 @@ function JobSeekerRegister() {
       return;
     }
     setErrors({});
-
-    if (findAccountByEmail(values.email)) {
-      setError("An account with this email already exists. Please log in instead.");
-      return;
-    }
-
+    setBusy(true);
     setError("");
-    addAccount({
-      role: "job-seeker",
-      email: values.email,
-      password: values.password,
-      firstName: values.firstName,
-      lastName: values.lastName,
-    });
-    setSubmitted(true);
+    try {
+      await signUp({
+        email: values.email.trim(),
+        password: values.password,
+        role: "job-seeker",
+        firstName: values.firstName.trim(),
+        middleName: values.middleName?.trim() || "",
+        lastName: values.lastName.trim(),
+        suffix: values.suffix?.trim() || "",
+        extra: { phone: values.mobileNumber.trim(), barangay: values.barangay },
+      });
+      setSubmitted(true);
+    } catch (err) {
+      setError(err.message || "Registration failed. Please try again.");
+    } finally {
+      setBusy(false);
+    }
   }
 
   const inputClass = "w-full min-h-[44px] px-4 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all";
@@ -62,11 +72,7 @@ function JobSeekerRegister() {
         <header className="sticky top-0 z-20 bg-white border-b border-gray-200 shadow-sm">
           <div className="max-w-[1280px] mx-auto px-6 h-[64px] flex items-center justify-between">
             <Link to="/" className="flex items-center gap-2">
-              <img src={Logo} alt="JobLinked" className="w-9 h-9" />
-              <div className="leading-none">
-                <span className="text-lg font-extrabold tracking-tight text-dark-blue">JOB</span>
-                <span className="text-lg font-extrabold tracking-tight text-primary">LINKED</span>
-              </div>
+              <img src={Logo} alt="JobLinked" className="h-10" />
             </Link>
             <span className="hidden sm:block font-mono text-[11px] text-gray-400">PESO · SANTA MARIA</span>
           </div>
@@ -77,9 +83,7 @@ function JobSeekerRegister() {
             <span className="font-mono text-[10px] tracking-widest uppercase px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-600 font-semibold">
               ACCOUNT READY
             </span>
-            <h1 className="mt-4 text-2xl font-bold text-dark-blue">
-              Registration Complete!
-            </h1>
+            <h1 className="mt-4 text-2xl font-bold text-dark-blue">Registration Complete!</h1>
             <p className="mt-3 text-sm text-gray-500 leading-relaxed">
               Your JobLinked applicant account has been created. You can now log in and apply to verified Santa Maria postings.
             </p>
@@ -100,17 +104,7 @@ function JobSeekerRegister() {
       <header className="sticky top-0 z-20 bg-white border-b border-gray-200 shadow-sm">
         <div className="max-w-[1280px] mx-auto px-6 h-[64px] flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2">
-            <svg className="w-8 h-8" viewBox="0 0 48 48" fill="none">
-              <circle cx="16" cy="14" r="7" fill="#0057B8"/>
-              <circle cx="30" cy="18" r="5" fill="#0057B8"/>
-              <path d="M8 38c0-8 6-14 14-14h4c6 0 10 4 10 10v4H8v-4z" fill="#0057B8"/>
-              <path d="M22 24c4-6 10-8 16-6l-2 4c-4-2-8 0-10 4" fill="#FFC72C"/>
-              <circle cx="42" cy="38" r="4" fill="#E31B23"/>
-            </svg>
-            <div className="leading-none">
-              <span className="text-lg font-extrabold tracking-tight text-dark-blue">JOB</span>
-              <span className="text-lg font-extrabold tracking-tight text-primary">LINKED</span>
-            </div>
+            <img src={Logo} alt="JobLinked" className="h-10" />
           </Link>
           <span className="hidden sm:block font-mono text-[11px] text-gray-400">PESO · SANTA MARIA</span>
         </div>
@@ -128,25 +122,31 @@ function JobSeekerRegister() {
           </div>
 
           <header className="mb-8">
-            <h1 className="text-2xl font-bold tracking-tight text-dark-blue">
-              Job Seeker Registration
-            </h1>
-            <p className="mt-2 text-sm text-gray-500">
-              Fill in your details to create your verified municipal applicant account
-            </p>
+            <h1 className="text-2xl font-bold tracking-tight text-dark-blue">Job Seeker Registration</h1>
+            <p className="mt-2 text-sm text-gray-500">Fill in your details to create your verified municipal applicant account</p>
           </header>
 
           <form onSubmit={handleSubmit} noValidate className="space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
                 <label htmlFor="firstName" className={labelClass}>First Name</label>
                 <input id="firstName" name="firstName" type="text" placeholder="Juan" className={inputClass} onChange={() => { if (errors.firstName) setErrors((prev) => ({ ...prev, firstName: undefined })); }} />
                 {errors.firstName && <p className="text-danger text-xs mt-1">{errors.firstName}</p>}
               </div>
               <div>
+                <label htmlFor="middleName" className={labelClass}>Middle Name</label>
+                <input id="middleName" name="middleName" type="text" placeholder="Santos" className={inputClass} />
+              </div>
+              <div>
                 <label htmlFor="lastName" className={labelClass}>Last Name</label>
                 <input id="lastName" name="lastName" type="text" placeholder="Dela Cruz" className={inputClass} onChange={() => { if (errors.lastName) setErrors((prev) => ({ ...prev, lastName: undefined })); }} />
                 {errors.lastName && <p className="text-danger text-xs mt-1">{errors.lastName}</p>}
+              </div>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label htmlFor="suffix" className={labelClass}>Suffix <span className="text-gray-400 font-normal">(optional)</span></label>
+                <input id="suffix" name="suffix" type="text" placeholder="Jr., Sr., III" className={inputClass} />
               </div>
             </div>
 
@@ -194,16 +194,15 @@ function JobSeekerRegister() {
             {errors.agree && <p className="text-danger text-xs mt-1">{errors.agree}</p>}
 
             {error && (
-              <div className="p-3.5 rounded-xl bg-danger/10 border border-danger/20 text-danger text-xs font-medium">
-                {error}
-              </div>
+              <div className="p-3.5 rounded-xl bg-danger/10 border border-danger/20 text-danger text-xs font-medium">{error}</div>
             )}
 
             <button
               type="submit"
-              className="w-full mt-6 min-h-[44px] px-6 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-primary-hover active:scale-[0.98] transition-all shadow-md"
+              disabled={busy}
+              className="w-full mt-6 min-h-[44px] px-6 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-primary-hover active:scale-[0.98] transition-all shadow-md disabled:opacity-60"
             >
-              Create Account
+              {busy ? "Creating account…" : "Create Account"}
             </button>
           </form>
 

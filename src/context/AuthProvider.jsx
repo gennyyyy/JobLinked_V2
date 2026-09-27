@@ -1,36 +1,45 @@
-import { useState } from "react";
-import AuthContext from "./AuthContext";
-
-const VALID_ROLES = ["super-admin", "employer", "job-seeker"];
+import { useState, useEffect, useCallback } from 'react';
+import AuthContext from './AuthContext';
+import { supabase } from '../lib/supabase';
+import { getProfile, signOut as apiSignOut } from '../services/auth';
 
 function AuthProvider({ children }) {
-  const [session, setSession] = useState(() => {
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  const loadProfile = useCallback(async (sessionUser) => {
+    if (!sessionUser) { setUser(null); return; }
     try {
-      const stored = localStorage.getItem("joblinked_session");
-      const parsed = stored ? JSON.parse(stored) : null;
-      return parsed && parsed.role && VALID_ROLES.includes(parsed.role) ? parsed : null;
+      const profile = await getProfile(sessionUser.id);
+      setUser(profile ? { ...sessionUser, ...profile } : null);
     } catch {
-      return null;
+      setUser(null);
     }
-  });
+  }, []);
 
-  function login(newRole, user) {
-    const next = { role: newRole, email: user?.email || null, name: user?.name || null };
-    setSession(next);
-    localStorage.setItem("joblinked_session", JSON.stringify(next));
-  }
+  useEffect(() => {
+    let active = true;
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!active) return;
+      if (session?.user) {
+        loadProfile(session.user).finally(() => active && setLoading(false));
+      } else {
+        setLoading(false);
+      }
+    });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_OUT') { setUser(null); return; }
+      if (session?.user) loadProfile(session.user);
+    });
+    return () => { active = false; subscription.unsubscribe(); };
+  }, [loadProfile]);
 
-  function logout() {
-    setSession(null);
-    localStorage.removeItem("joblinked_session");
-  }
+  const logout = useCallback(async () => {
+    await apiSignOut();
+    setUser(null);
+  }, []);
 
-  const value = {
-    role: session?.role || null,
-    user: session,
-    login,
-    logout,
-  };
+  const value = { user, role: user?.role || null, loading, logout, refreshUser: loadProfile };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

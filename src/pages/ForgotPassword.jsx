@@ -1,31 +1,28 @@
 import { useState } from "react";
 import Logo from "../assets/TextBased Logo.png";
-import { Link, Navigate, useNavigate } from "react-router-dom";
-import { signIn } from "../services/auth";
-import { PORTALS } from "../constants";
-import useAuth from "../hooks/useAuth";
+import { Link } from "react-router-dom";
+import { resetPassword } from "../services/auth";
 
-function Login({ portalKey }) {
-  const portal = PORTALS.find((p) => p.key === portalKey);
-  const navigate = useNavigate();
-  const { user } = useAuth();
-  const [error, setError] = useState("");
+function ForgotPassword() {
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState(false);
   const [busy, setBusy] = useState(false);
-
-  if (!portal) return <Navigate to="/" replace />;
-  if (user) return <Navigate to={portal.homePath} replace />;
 
   async function handleSubmit(event) {
     event.preventDefault();
     setError("");
+    setSuccess(false);
+    if (!email.trim()) {
+      setError("Please enter your email address");
+      return;
+    }
     setBusy(true);
     try {
-      const loggedIn = await signIn(email.trim(), password);
-      navigate(PORTALS.find((p) => p.key === loggedIn.role)?.homePath || "/");
+      await resetPassword(email.trim());
+      setSuccess(true);
     } catch (err) {
-      setError(err.message || "Invalid email or password");
+      setError(err.message || "Could not send reset link. Please try again.");
     } finally {
       setBusy(false);
     }
@@ -46,16 +43,16 @@ function Login({ portalKey }) {
         <div className="w-full max-w-md bg-white border border-gray-200 rounded-2xl p-7 md:p-9 shadow-xl animate-fade-in">
           <div className="flex items-center justify-between mb-6">
             <Link to="/portals" className="text-xs text-gray-400 hover:text-primary transition-colors">
-              ← Portals
+              ← Back to Portals
             </Link>
             <span className="font-mono text-[10px] tracking-widest uppercase px-2.5 py-1 rounded-full bg-primary/10 border border-primary/25 text-primary">
-              {portal.key.replace("-", " ")}
+              Forgot Password
             </span>
           </div>
 
           <div>
-            <h1 className="text-2xl font-bold tracking-tight text-dark-blue">{portal.name}</h1>
-            <p className="mt-2 text-sm text-gray-500">Sign in with your credentials to access your portal</p>
+            <h1 className="text-2xl font-bold tracking-tight text-dark-blue">Reset Your Password</h1>
+            <p className="mt-2 text-sm text-gray-500">Enter your email and we'll send you a reset link</p>
           </div>
 
           <form onSubmit={handleSubmit} className="mt-7 space-y-4">
@@ -63,12 +60,18 @@ function Login({ portalKey }) {
               <div className="text-sm text-danger bg-danger/10 border border-danger/20 px-4 py-3 rounded-lg">{error}</div>
             )}
 
+            {success && (
+              <div className="text-sm text-emerald-700 bg-emerald-50 border border-emerald-200 px-4 py-3 rounded-lg">
+                Check your email for reset instructions
+              </div>
+            )}
+
             <div>
-              <label htmlFor="login-email" className="block font-mono text-[11px] tracking-wider text-gray-500 uppercase mb-1.5">
+              <label htmlFor="forgot-email" className="block font-mono text-[11px] tracking-wider text-gray-500 uppercase mb-1.5">
                 Email
               </label>
               <input
-                id="login-email"
+                id="forgot-email"
                 name="email"
                 type="email"
                 placeholder="you@example.com"
@@ -79,45 +82,14 @@ function Login({ portalKey }) {
               />
             </div>
 
-            <div>
-              <label htmlFor="login-password" className="block font-mono text-[11px] tracking-wider text-gray-500 uppercase mb-1.5">
-                Password
-              </label>
-              <input
-                id="login-password"
-                name="password"
-                type="password"
-                placeholder="Your password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full min-h-[44px] px-4 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all"
-              />
-            </div>
-
             <button
               type="submit"
               disabled={busy}
               className="w-full mt-6 min-h-[44px] px-6 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-primary-hover active:scale-[0.98] transition-all shadow-md disabled:opacity-60"
             >
-              {busy ? "Signing in…" : "Sign In"}
+              {busy ? "Sending…" : "Send Reset Link"}
             </button>
           </form>
-
-          {portal.key !== "super-admin" && (
-            <div className="mt-8 pt-6 border-t border-gray-100 flex items-center justify-between text-xs text-gray-400">
-              <span>Don't have an account?</span>
-              <Link to="/register" className="text-primary hover:underline underline-offset-4 font-medium">
-                Register here
-              </Link>
-            </div>
-          )}
-
-          <div className="mt-4 text-center">
-            <Link to="/forgot-password" className="text-xs text-primary hover:underline underline-offset-4 font-medium">
-              Forgot password?
-            </Link>
-          </div>
         </div>
       </main>
 
@@ -134,4 +106,4 @@ function Login({ portalKey }) {
   );
 }
 
-export default Login;
+export default ForgotPassword;

@@ -1,57 +1,22 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { barangays } from "../data/barangays";
-import { addApplication } from "../utils/employerStore";
-import { addAccount, findAccountByEmail } from "../utils/userStore";
-import Logo from "../assets/Logo.png";
-
-function FileField({ id, name, label, required, onClear }) {
-  const [fileName, setFileName] = useState("");
-
-  return (
-    <div className="bg-gray-50 border border-gray-200 rounded-xl p-4">
-      <div className="flex items-center justify-between gap-4">
-        <div>
-          <label htmlFor={id} className="block text-xs font-medium text-gray-700">
-            {label}
-            {required ? (
-              <span className="text-danger ml-1">*</span>
-            ) : (
-              <span className="text-gray-400 font-normal ml-1">(optional)</span>
-            )}
-          </label>
-          <p className="text-[11px] text-gray-400 mt-0.5 truncate max-w-[240px] md:max-w-xs">
-            {fileName || "PDF or image (max 5MB)"}
-          </p>
-        </div>
-
-        <label
-          htmlFor={id}
-          className="cursor-pointer shrink-0 px-4 py-2 text-xs font-medium rounded-lg bg-white border border-gray-200 text-gray-600 hover:text-primary hover:border-primary/50 transition-all"
-        >
-          {fileName ? "Change" : "Browse"}
-        </label>
-      </div>
-
-      <input
-        id={id}
-        name={name}
-        type="file"
-        accept=".pdf,.jpg,.jpeg,.png"
-        onChange={(event) => {
-          setFileName(event.target.files[0]?.name || "");
-          if (onClear) onClear();
-        }}
-        className="sr-only"
-      />
-    </div>
-  );
-}
+import { signUp } from "../services/auth";
+import { listBarangays } from "../services/admin";
+import { createAccreditation } from "../services/documents";
+import { supabase } from "../lib/supabase";
+import Logo from "../assets/TextBased Logo.png";
 
 function EmployerRegister() {
   const [error, setError] = useState("");
   const [errors, setErrors] = useState({});
   const [submitted, setSubmitted] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [barangays, setBarangays] = useState([]);
+  const [warning, setWarning] = useState("");
+
+  useEffect(() => {
+    listBarangays().then((rows) => setBarangays(rows.map((b) => b.name))).catch(() => {});
+  }, []);
 
   function validate(values) {
     const e = {};
@@ -61,7 +26,8 @@ function EmployerRegister() {
     if (!values.contactNumber?.trim()) e.contactNumber = "Contact number is required";
     if (!values.companyEmail?.trim()) e.companyEmail = "Company email is required";
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.companyEmail)) e.companyEmail = "Invalid email address";
-    if (!values.repFullName?.trim()) e.repFullName = "Representative name is required";
+    if (!values.repFirstName?.trim()) e.repFirstName = "First name is required";
+    if (!values.repLastName?.trim()) e.repLastName = "Last name is required";
     if (!values.repPosition?.trim()) e.repPosition = "Position is required";
     if (!values.repEmail?.trim()) e.repEmail = "Representative email is required";
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.repEmail)) e.repEmail = "Invalid email address";
@@ -70,13 +36,10 @@ function EmployerRegister() {
     else if (values.password.length < 8) e.password = "Password must be at least 8 characters";
     if (!values.confirmPassword) e.confirmPassword = "Please confirm your password";
     else if (values.password !== values.confirmPassword) e.confirmPassword = "Passwords do not match";
-    if (!values.businessPermit) e.businessPermit = "Business permit is required";
-    if (!values.doleRegistration) e.doleRegistration = "DOLE registration is required";
-    if (!values.fireSafetyCertificate) e.fireSafetyCertificate = "Fire safety certificate is required";
     return e;
   }
 
-  function handleSubmit(event) {
+  async function handleSubmit(event) {
     event.preventDefault();
     const formData = new FormData(event.target);
     const values = Object.fromEntries(formData.entries());
@@ -87,39 +50,48 @@ function EmployerRegister() {
       return;
     }
     setErrors({});
-
-    if (findAccountByEmail(values.companyEmail)) {
-      setError("An account with this email already exists. Please log in instead.");
-      return;
-    }
-
+    setBusy(true);
     setError("");
-    addAccount({
-      role: "employer",
-      email: values.companyEmail,
-      password: values.password,
-      firstName: values.repFullName?.split(" ")[0] || "",
-      lastName: values.repFullName?.split(" ").slice(1).join(" ") || "",
-    });
-    addApplication({
-      company: values.companyName,
-      businessAddress: values.businessAddress,
-      barangay: values.barangay,
-      contactNumber: values.contactNumber,
-      companyEmail: values.companyEmail,
-      repFullName: values.repFullName,
-      repPosition: values.repPosition,
-      repEmail: values.repEmail,
-      repMobile: values.repMobile,
-      password: values.password,
-      documents: {
-        businessPermit: values.businessPermit?.name || "",
-        doleRegistration: values.doleRegistration?.name || "",
-        fireSafetyCertificate: values.fireSafetyCertificate?.name || "",
-        otherDocuments: values.otherDocuments?.name || "",
-      },
-    });
-    setSubmitted(true);
+    try {
+      const newUser = await signUp({
+        email: values.companyEmail.trim(),
+        password: values.password,
+        role: "employer",
+        firstName: values.repFirstName.trim(),
+        middleName: values.repMiddleName?.trim() || "",
+        lastName: values.repLastName.trim(),
+        suffix: values.repSuffix?.trim() || "",
+        extra: { phone: values.repMobile.trim() },
+      });
+
+      const { data: company, error: companyError } = await supabase
+        .from("companies")
+        .insert({
+          owner_id: newUser.id,
+          name: values.companyName.trim(),
+          address: values.businessAddress.trim(),
+          barangay: values.barangay,
+          phone: values.contactNumber.trim(),
+        })
+        .select()
+        .maybeSingle();
+      if (companyError) {
+        if (companyError.code === "23505") {
+          setWarning("A company profile already exists for this account. You can update it after logging in.");
+          setSubmitted(true);
+          return;
+        }
+        throw companyError;
+      }
+
+      await createAccreditation(company.id);
+
+      setSubmitted(true);
+    } catch (err) {
+      setError(err.message || "Registration failed. Please try again.");
+    } finally {
+      setBusy(false);
+    }
   }
 
   if (submitted) {
@@ -128,11 +100,7 @@ function EmployerRegister() {
         <header className="sticky top-0 z-20 bg-white border-b border-gray-200 shadow-sm">
           <div className="max-w-[1280px] mx-auto px-6 h-[64px] flex items-center justify-between">
             <Link to="/" className="flex items-center gap-2">
-              <img src={Logo} alt="JobLinked" className="w-9 h-9" />
-              <div className="leading-none">
-                <span className="text-lg font-extrabold tracking-tight text-dark-blue">JOB</span>
-                <span className="text-lg font-extrabold tracking-tight text-primary">LINKED</span>
-              </div>
+              <img src={Logo} alt="JobLinked" className="h-10" />
             </Link>
             <span className="hidden sm:block font-mono text-[11px] text-gray-400">PESO · SANTA MARIA</span>
           </div>
@@ -143,23 +111,18 @@ function EmployerRegister() {
             <span className="font-mono text-[10px] tracking-widest uppercase px-2.5 py-1 rounded-full bg-accent/20 border border-accent/40 text-dark-blue font-semibold">
               PENDING VERIFICATION
             </span>
-            <h1 className="mt-4 text-2xl font-bold text-dark-blue">
-              Application Submitted
-            </h1>
+            <h1 className="mt-4 text-2xl font-bold text-dark-blue">Application Submitted</h1>
             <p className="mt-3 text-sm text-gray-500 leading-relaxed">
               Your business accreditation application is now being reviewed by the Santa Maria PESO staff.
             </p>
             <div className="mt-7 flex flex-col gap-3">
               <Link
-                to="/register/employer/status"
+                to="/employer/login"
                 className="min-h-[44px] inline-flex items-center justify-center px-6 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-primary-hover active:scale-[0.98] transition-all shadow-md"
               >
-                Track Status →
+                Go to Login →
               </Link>
-              <Link
-                to="/"
-                className="text-xs text-gray-400 hover:text-primary transition-colors"
-              >
+              <Link to="/" className="text-xs text-gray-400 hover:text-primary transition-colors">
                 Return to home
               </Link>
             </div>
@@ -177,11 +140,7 @@ function EmployerRegister() {
       <header className="sticky top-0 z-20 bg-white border-b border-gray-200 shadow-sm">
         <div className="max-w-[1280px] mx-auto px-6 h-[64px] flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2">
-            <img src={Logo} alt="JobLinked" className="w-9 h-9" />
-            <div className="leading-none">
-              <span className="text-lg font-extrabold tracking-tight text-dark-blue">JOB</span>
-              <span className="text-lg font-extrabold tracking-tight text-primary">LINKED</span>
-            </div>
+            <img src={Logo} alt="JobLinked" className="h-10" />
           </Link>
           <span className="hidden sm:block font-mono text-[11px] text-gray-400">PESO · SANTA MARIA</span>
         </div>
@@ -199,19 +158,13 @@ function EmployerRegister() {
           </div>
 
           <header className="mb-8">
-            <h1 className="text-2xl font-bold tracking-tight text-dark-blue">
-              Business Registration
-            </h1>
-            <p className="mt-2 text-sm text-gray-500">
-              Submit business details and compliance credentials for Santa Maria PESO accreditation
-            </p>
+            <h1 className="text-2xl font-bold tracking-tight text-dark-blue">Business Registration</h1>
+            <p className="mt-2 text-sm text-gray-500">Submit business details and compliance credentials for Santa Maria PESO accreditation</p>
           </header>
 
           <form onSubmit={handleSubmit} noValidate className="space-y-8">
             <section className="bg-gray-50 border border-gray-200 rounded-2xl p-6">
-              <p className="font-mono text-[11px] tracking-[0.2em] text-primary uppercase mb-4 font-semibold">
-                Step 1 — Company Details
-              </p>
+              <p className="font-mono text-[11px] tracking-[0.2em] text-primary uppercase mb-4 font-semibold">Step 1 — Company Details</p>
               <div className="space-y-4">
                 <div>
                   <label htmlFor="companyName" className={labelClass}>Company / Trade Name</label>
@@ -249,15 +202,28 @@ function EmployerRegister() {
             </section>
 
             <section className="bg-gray-50 border border-gray-200 rounded-2xl p-6">
-              <p className="font-mono text-[11px] tracking-[0.2em] text-primary uppercase mb-4 font-semibold">
-                Step 2 — Authorized Representative
-              </p>
+              <p className="font-mono text-[11px] tracking-[0.2em] text-primary uppercase mb-4 font-semibold">Step 2 — Authorized Representative</p>
               <div className="space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div>
+                    <label htmlFor="repFirstName" className={labelClass}>First Name</label>
+                    <input id="repFirstName" name="repFirstName" type="text" placeholder="Maria" className={inputClass} onChange={() => { if (errors.repFirstName) setErrors((prev) => ({ ...prev, repFirstName: undefined })); }} />
+                    {errors.repFirstName && <p className="text-danger text-xs mt-1">{errors.repFirstName}</p>}
+                  </div>
+                  <div>
+                    <label htmlFor="repMiddleName" className={labelClass}>Middle Name</label>
+                    <input id="repMiddleName" name="repMiddleName" type="text" placeholder="Santos" className={inputClass} />
+                  </div>
+                  <div>
+                    <label htmlFor="repLastName" className={labelClass}>Last Name</label>
+                    <input id="repLastName" name="repLastName" type="text" placeholder="Reyes" className={inputClass} onChange={() => { if (errors.repLastName) setErrors((prev) => ({ ...prev, repLastName: undefined })); }} />
+                    {errors.repLastName && <p className="text-danger text-xs mt-1">{errors.repLastName}</p>}
+                  </div>
+                </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label htmlFor="repFullName" className={labelClass}>Full Name</label>
-                    <input id="repFullName" name="repFullName" type="text" placeholder="e.g. Maria Santos" className={inputClass} onChange={() => { if (errors.repFullName) setErrors((prev) => ({ ...prev, repFullName: undefined })); }} />
-                    {errors.repFullName && <p className="text-danger text-xs mt-1">{errors.repFullName}</p>}
+                    <label htmlFor="repSuffix" className={labelClass}>Suffix <span className="text-gray-400 font-normal">(optional)</span></label>
+                    <input id="repSuffix" name="repSuffix" type="text" placeholder="Jr., Sr., III" className={inputClass} />
                   </div>
                   <div>
                     <label htmlFor="repPosition" className={labelClass}>Designation / Position</label>
@@ -281,9 +247,7 @@ function EmployerRegister() {
             </section>
 
             <section className="bg-gray-50 border border-gray-200 rounded-2xl p-6">
-              <p className="font-mono text-[11px] tracking-[0.2em] text-primary uppercase mb-4 font-semibold">
-                Step 3 — Portal Account Password
-              </p>
+              <p className="font-mono text-[11px] tracking-[0.2em] text-primary uppercase mb-4 font-semibold">Step 3 — Portal Account Password</p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label htmlFor="password" className={labelClass}>Password</label>
@@ -298,32 +262,20 @@ function EmployerRegister() {
               </div>
             </section>
 
-            <section className="bg-gray-50 border border-gray-200 rounded-2xl p-6">
-              <p className="font-mono text-[11px] tracking-[0.2em] text-primary uppercase mb-4 font-semibold">
-                Step 4 — Required Accreditations
-              </p>
-              <div className="space-y-3">
-                <FileField id="businessPermit" name="businessPermit" label="Mayor's / Business Permit" required onClear={() => { if (errors.businessPermit) setErrors((prev) => ({ ...prev, businessPermit: undefined })); }} />
-                {errors.businessPermit && <p className="text-danger text-xs mt-1">{errors.businessPermit}</p>}
-                <FileField id="doleRegistration" name="doleRegistration" label="DOLE Registration / Certificate" required onClear={() => { if (errors.doleRegistration) setErrors((prev) => ({ ...prev, doleRegistration: undefined })); }} />
-                {errors.doleRegistration && <p className="text-danger text-xs mt-1">{errors.doleRegistration}</p>}
-                <FileField id="fireSafetyCertificate" name="fireSafetyCertificate" label="Fire Safety Inspection Certificate" required onClear={() => { if (errors.fireSafetyCertificate) setErrors((prev) => ({ ...prev, fireSafetyCertificate: undefined })); }} />
-                {errors.fireSafetyCertificate && <p className="text-danger text-xs mt-1">{errors.fireSafetyCertificate}</p>}
-                <FileField id="otherDocuments" name="otherDocuments" label="Other Supporting Documents" />
-              </div>
-            </section>
-
             {error && (
-              <div className="p-3.5 rounded-xl bg-danger/10 border border-danger/20 text-danger text-xs font-medium">
-                {error}
-              </div>
+              <div className="p-3.5 rounded-xl bg-danger/10 border border-danger/20 text-danger text-xs font-medium">{error}</div>
+            )}
+
+            {warning && (
+              <div className="p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-700 text-xs font-medium">{warning}</div>
             )}
 
             <button
               type="submit"
-              className="w-full min-h-[44px] px-6 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-primary-hover active:scale-[0.98] transition-all shadow-md"
+              disabled={busy}
+              className="w-full min-h-[44px] px-6 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-primary-hover active:scale-[0.98] transition-all shadow-md disabled:opacity-60"
             >
-              Submit Accreditation Application
+              {busy ? "Submitting…" : "Submit Accreditation Application"}
             </button>
           </form>
 

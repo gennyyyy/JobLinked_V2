@@ -1,96 +1,142 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import useAuth from "../../hooks/useAuth";
-import { getAccountProfile, saveAccountProfile } from "../../utils/userStore";
+import { updateProfile } from "../../services/auth";
+import { listResumes, uploadResume, setActiveResume, deleteResume, validateFile } from "../../services/documents";
+import { supabase } from "../../lib/supabase";
+import ConfirmationModal from "../../components/ConfirmationModal";
+import LoadingScreen from "../../components/LoadingScreen";
+import ChangePassword from "../../components/ChangePassword";
 
 function Profile() {
-  const { user, login } = useAuth();
-  const role = "job-seeker";
-  const email = user?.email || "";
-
-  const existing = getAccountProfile(role, email) || {};
-  const [editing, setEditing] = useState(false);
+  const { user, refreshUser } = useAuth();
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
   const [saved, setSaved] = useState(false);
+  const [editing, setEditing] = useState(false);
   const [activeTab, setActiveTab] = useState("info");
-  const [form, setForm] = useState({
-    firstName: user?.name?.split(" ")[0] || "",
-    lastName: user?.name?.split(" ").slice(1).join(" ") || "",
-    phone: existing.phone || "",
-    address: existing.address || "",
-    birthdate: existing.birthdate || "",
-    skills: (existing.skills || []).join(", "),
-  });
-  const [education, setEducation] = useState(existing.education || []);
-  const [experience, setExperience] = useState(existing.experience || []);
-  const [resume, setResume] = useState(existing.resume || null);
+  const [form, setForm] = useState({ firstName: "", lastName: "", phone: "", address: "", birthdate: "", skills: "" });
+  const [education, setEducation] = useState([]);
+  const [experience, setExperience] = useState([]);
+  const [resumes, setResumes] = useState([]);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [uploadError, setUploadError] = useState("");
   const [newEdu, setNewEdu] = useState({ school: "", degree: "", year: "" });
   const [newExp, setNewExp] = useState({ company: "", role: "", startDate: "", endDate: "", description: "" });
 
-  if (!email) {
-    return (
-      <div className="text-center py-16 text-gray-400">
-        You must be logged in to view your profile.
-      </div>
-    );
-  }
+  useEffect(() => {
+    if (!user) return;
+    Promise.all([
+      supabase.from("education").select("*").eq("seeker_id", user.id),
+      supabase.from("work_experience").select("*").eq("seeker_id", user.id),
+      listResumes(user.id),
+    ])
+      .then(([edu, exp, resumeList]) => {
+        setEducation(edu.data || []);
+        setExperience(exp.data || []);
+        setResumes(resumeList);
+        setForm({
+          firstName: user.first_name || "",
+          lastName: user.last_name || "",
+          phone: user.phone || "",
+          address: user.barangay ? `Brgy. ${user.barangay}, Santa Maria, Bulacan` : "",
+          birthdate: user.birthdate || "",
+          skills: (user.skills || []).join(", "),
+        });
+      })
+      .catch((err) => setError(err.message || "Failed to load profile"))
+      .finally(() => setLoading(false));
+  }, [user]);
 
-  const fullName = `${form.firstName} ${form.lastName}`.trim() || user?.name || "Job Seeker";
-  const skills = (form.skills || "")
-    .split(",")
-    .map((skill) => skill.trim())
-    .filter(Boolean);
+  if (loading) return <LoadingScreen />;
+  if (error) return <div className="py-16 text-center text-sm text-danger">{error}</div>;
+
+  const fullName = `${form.firstName} ${form.lastName}`.trim() || user?.full_name || "Job Seeker";
+  const skills = (form.skills || "").split(",").map((s) => s.trim()).filter(Boolean);
 
   function handleChange(field, value) {
     setForm((prev) => ({ ...prev, [field]: value }));
   }
 
-  function handleAddEducation(e) {
+  async function handleAddEducation(e) {
     e.preventDefault();
     if (!newEdu.school || !newEdu.degree) return;
-    setEducation([...education, { ...newEdu, id: Date.now() }]);
+    const { data, error: err } = await supabase.from("education").insert({ seeker_id: user.id, ...newEdu }).select().maybeSingle();
+    if (err) { setError(err.message); return; }
+    setEducation([...education, data]);
     setNewEdu({ school: "", degree: "", year: "" });
   }
 
-  function handleRemoveEducation(id) {
+  async function handleRemoveEducation(id) {
+    await supabase.from("education").delete().eq("id", id);
     setEducation(education.filter((e) => e.id !== id));
   }
 
-  function handleAddExperience(e) {
+  async function handleAddExperience(e) {
     e.preventDefault();
     if (!newExp.company || !newExp.role) return;
-    setExperience([...experience, { ...newExp, id: Date.now() }]);
+    const { data, error: err } = await supabase.from("work_experience").insert({ seeker_id: user.id, ...newExp }).select().maybeSingle();
+    if (err) { setError(err.message); return; }
+    setExperience([...experience, data]);
     setNewExp({ company: "", role: "", startDate: "", endDate: "", description: "" });
   }
 
-  function handleRemoveExperience(id) {
+  async function handleRemoveExperience(id) {
+    await supabase.from("work_experience").delete().eq("id", id);
     setExperience(experience.filter((e) => e.id !== id));
   }
 
-  function handleResumeUpload(e) {
+  async function handleResumeUpload(e) {
     const file = e.target.files[0];
+    e.target.value = "";
     if (!file) return;
-    setResume({ name: file.name, size: (file.size / 1024).toFixed(1) + " KB", date: new Date().toLocaleDateString() });
+    const validationError = validateFile(file);
+    if (validationError) { setUploadError(validationError); return; }
+    setUploadError("");
+    try {
+      await uploadResume(user.id, file);
+      const updated = await listResumes(user.id);
+      setResumes(updated);
+    } catch (err) {
+      setUploadError(err.message || "Upload failed");
+    }
   }
 
-  function handleSubmit(event) {
+  async function handleSetActiveResume(resumeId) {
+    await setActiveResume(user.id, resumeId);
+    setResumes(resumes.map((r) => ({ ...r, is_active: r.id === resumeId })));
+  }
+
+  async function handleDeleteResume(resume) {
+    await deleteResume(resume.id, resume.file_path);
+    setResumes(resumes.filter((r) => r.id !== resume.id));
+    setShowDeleteConfirm(false);
+  }
+
+  async function handleSubmit(event) {
     event.preventDefault();
-    const name = `${form.firstName} ${form.lastName}`.trim();
-    saveAccountProfile(role, email, {
-      firstName: form.firstName,
-      lastName: form.lastName,
-      phone: form.phone,
-      address: form.address,
-      birthdate: form.birthdate,
-      skills,
-      education,
-      experience,
-      resume,
-    });
-    if (name && name !== user?.name) {
-      login(role, { email, name });
+    setSaving(true);
+    setError("");
+    try {
+      const skillsArray = skills;
+      await updateProfile(user.id, {
+        first_name: form.firstName,
+        last_name: form.lastName,
+        full_name: fullName,
+        phone: form.phone,
+        barangay: form.address,
+        birthdate: form.birthdate || null,
+        skills: skillsArray,
+      });
+      await refreshUser(user);
+      setEditing(false);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 3000);
+    } catch (err) {
+      setError(err.message || "Failed to save profile");
+    } finally {
+      setSaving(false);
     }
-    setEditing(false);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 3000);
   }
 
   const tabs = [
@@ -103,19 +149,12 @@ function Profile() {
   return (
     <div className="max-w-3xl animate-fade-in space-y-8">
       <header>
-        <p className="font-mono text-[11px] tracking-[0.2em] text-[#0057B8] uppercase">
-          MUNICIPAL CANDIDATE PROFILE
-        </p>
-        <h1 className="mt-1 font-sans text-2xl md:text-3xl font-bold tracking-tight text-gray-900">
-          My Account & Resume
-        </h1>
-        <p className="mt-2 text-sm text-gray-500">
-          Your credentials, contact information, and skill tags seen by Santa Maria employers
-        </p>
+        <p className="font-mono text-[11px] tracking-[0.2em] text-[#0057B8] uppercase">MUNICIPAL CANDIDATE PROFILE</p>
+        <h1 className="mt-1 font-sans text-2xl md:text-3xl font-bold tracking-tight text-gray-900">My Account & Resume</h1>
+        <p className="mt-2 text-sm text-gray-500">Your credentials, contact information, and skill tags seen by Santa Maria employers</p>
       </header>
 
       <div className="bg-white border border-gray-200 rounded-2xl p-7 md:p-9 shadow-sm">
-        {/* User Card Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-gray-200">
           <div className="flex items-center gap-4">
             <div className="w-16 h-16 rounded-2xl bg-[#0057B8]/15 border border-[#0057B8]/30 flex items-center justify-center font-bold text-xl text-[#0057B8] shadow-[0_4px_16px_rgba(0,117,162,0.15)]">
@@ -123,17 +162,12 @@ function Profile() {
             </div>
             <div>
               <h2 className="text-xl font-bold text-gray-900">{fullName}</h2>
-              <p className="font-mono text-xs text-gray-400 mt-0.5">
-                Accredited Job Seeker · {email}
-              </p>
+              <p className="font-mono text-xs text-gray-400 mt-0.5">Accredited Job Seeker · {user?.email}</p>
             </div>
           </div>
 
           {!editing && (
-            <button
-              onClick={() => setEditing(true)}
-              className="min-h-[40px] px-5 rounded-xl border border-gray-300 text-xs font-medium text-gray-700 hover:bg-gray-100 hover:border-primary/40 transition-colors self-start sm:self-center"
-            >
+            <button onClick={() => setEditing(true)} className="min-h-[40px] px-5 rounded-xl border border-gray-300 text-xs font-medium text-gray-700 hover:bg-gray-100 hover:border-primary/40 transition-colors self-start sm:self-center">
               Edit Profile
             </button>
           )}
@@ -145,16 +179,13 @@ function Profile() {
           </div>
         )}
 
-        {/* Tabs */}
         <div className="mt-6 flex gap-1 border-b border-gray-200">
           {tabs.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
               className={`px-4 py-2.5 text-xs font-medium transition-colors border-b-2 -mb-px ${
-                activeTab === tab.id
-                  ? "text-[#0057B8] border-[#0057B8]"
-                  : "text-gray-400 border-transparent hover:text-gray-600"
+                activeTab === tab.id ? "text-[#0057B8] border-[#0057B8]" : "text-gray-400 border-transparent hover:text-gray-600"
               }`}
             >
               {tab.label}
@@ -201,7 +232,7 @@ function Profile() {
                   <div key={edu.id} className="flex items-start justify-between p-4 rounded-xl bg-gray-50 border border-gray-200">
                     <div>
                       <p className="text-sm font-medium text-gray-900">{edu.school}</p>
-                      <p className="text-xs text-gray-500 mt-0.5">{edu.degree}{edu.year ? ` · ${edu.year}` : ""}</p>
+                      <p className="text-xs text-gray-500 mt-0.5">{edu.degree}{edu.field ? ` · ${edu.field}` : ""}{edu.end_year ? ` · ${edu.end_year}` : ""}</p>
                     </div>
                     <button type="button" onClick={() => handleRemoveEducation(edu.id)} className="text-gray-400 hover:text-primary text-xs">Remove</button>
                   </div>
@@ -211,7 +242,7 @@ function Profile() {
                   <input value={newEdu.degree} onChange={(e) => setNewEdu({ ...newEdu, degree: e.target.value })} placeholder="Degree / Course" className="px-4 py-2.5 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-primary/60 transition-all" />
                   <div className="flex gap-2">
                     <input value={newEdu.year} onChange={(e) => setNewEdu({ ...newEdu, year: e.target.value })} placeholder="Year" className="flex-1 px-4 py-2.5 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-primary/60 transition-all" />
-                    <button type="button" onClick={handleAddEducation} className="px-4 py-2.5 text-sm font-medium text-white bg-primary hover:bg-primary/90 rounded-xl transition-colors">Add</button>
+                    <button type="button" onClick={handleAddEducation} className="px-4 py-2.5 text-sm font-medium text-white bg-primary hover:bg-primary-hover rounded-xl active:scale-[0.98] transition-colors">Add</button>
                   </div>
                 </div>
               </div>
@@ -222,8 +253,8 @@ function Profile() {
                 {experience.map((exp) => (
                   <div key={exp.id} className="flex items-start justify-between p-4 rounded-xl bg-gray-50 border border-gray-200">
                     <div>
-                      <p className="text-sm font-medium text-gray-900">{exp.role}</p>
-                      <p className="text-xs text-gray-500 mt-0.5">{exp.company} · {exp.startDate || "Start"} – {exp.endDate || "Present"}</p>
+                      <p className="text-sm font-medium text-gray-900">{exp.position}</p>
+                      <p className="text-xs text-gray-500 mt-0.5">{exp.company} · {exp.start_date || "Start"} – {exp.end_date || "Present"}</p>
                       {exp.description && <p className="text-xs text-gray-400 mt-1">{exp.description}</p>}
                     </div>
                     <button type="button" onClick={() => handleRemoveExperience(exp.id)} className="text-gray-400 hover:text-primary text-xs">Remove</button>
@@ -232,30 +263,53 @@ function Profile() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <input value={newExp.company} onChange={(e) => setNewExp({ ...newExp, company: e.target.value })} placeholder="Company name" className="px-4 py-2.5 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-primary/60 transition-all" />
                   <input value={newExp.role} onChange={(e) => setNewExp({ ...newExp, role: e.target.value })} placeholder="Job title" className="px-4 py-2.5 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-primary/60 transition-all" />
-                  <input value={newExp.startDate} onChange={(e) => setNewExp({ ...newExp, startDate: e.target.value })} placeholder="Start date" className="px-4 py-2.5 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-primary/60 transition-all" />
-                  <input value={newExp.endDate} onChange={(e) => setNewExp({ ...newExp, endDate: e.target.value })} placeholder="End date (or blank)" className="px-4 py-2.5 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-primary/60 transition-all" />
+                  <input type="date" value={newExp.startDate} onChange={(e) => setNewExp({ ...newExp, startDate: e.target.value })} className="px-4 py-2.5 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 focus:outline-none focus:border-primary/60 transition-all" />
+                  <input type="date" value={newExp.endDate} onChange={(e) => setNewExp({ ...newExp, endDate: e.target.value })} className="px-4 py-2.5 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 focus:outline-none focus:border-primary/60 transition-all" />
                 </div>
                 <input value={newExp.description} onChange={(e) => setNewExp({ ...newExp, description: e.target.value })} placeholder="Brief description of responsibilities" className="w-full px-4 py-2.5 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-primary/60 transition-all" />
-                <button type="button" onClick={handleAddExperience} className="px-4 py-2.5 text-sm font-medium text-white bg-primary hover:bg-primary/90 rounded-xl transition-colors">Add Experience</button>
+                <button type="button" onClick={handleAddExperience} className="px-4 py-2.5 text-sm font-medium text-white bg-primary hover:bg-primary-hover rounded-xl active:scale-[0.98] transition-colors">Add Experience</button>
               </div>
             )}
 
             {activeTab === "resume" && (
               <div className="space-y-4">
-                <div className="p-5 rounded-xl bg-gray-50 border border-dashed border-gray-300 text-center">
+                <div className="p-5 rounded-xl bg-gray-50 border border-dashed border-gray-300">
                   <input type="file" accept=".pdf,.doc,.docx" onChange={handleResumeUpload} className="hidden" id="resume-upload" />
-                  <label htmlFor="resume-upload" className="cursor-pointer text-sm text-gray-500 hover:text-primary transition-colors">
-                    {resume ? `Current: ${resume.name} (${resume.size})` : "Click to upload resume (PDF, DOC, DOCX)"}
-                  </label>
+                  {resumes.length > 0 ? (
+                    <div className="space-y-3">
+                      {resumes.map((resume) => (
+                        <div key={resume.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-xl bg-white border border-gray-200">
+                          <div>
+                            <p className="text-sm text-gray-900">{resume.file_name}</p>
+                            <p className="text-xs text-gray-400 mt-0.5">Uploaded {new Date(resume.uploaded_at).toLocaleDateString()}</p>
+                          </div>
+                          <div className="flex gap-2 flex-wrap">
+                            {resume.is_active ? (
+                              <span className="px-3 py-1.5 text-xs font-medium text-emerald-600 bg-emerald-50 border border-emerald-200 rounded-lg">Active</span>
+                            ) : (
+                              <button type="button" onClick={() => handleSetActiveResume(resume.id)} className="px-3 py-1.5 text-xs font-medium text-primary border border-primary/30 rounded-lg hover:bg-primary/5 transition-colors">Set Active</button>
+                            )}
+                            <label htmlFor="resume-upload" className="cursor-pointer px-3 py-1.5 text-xs font-medium text-primary border border-primary/30 rounded-lg hover:bg-primary/5 transition-colors">Replace</label>
+                            <button type="button" onClick={() => setShowDeleteConfirm(true)} className="px-3 py-1.5 text-xs font-medium text-danger border border-danger/30 rounded-lg hover:bg-danger/5 transition-colors">Delete</button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <label htmlFor="resume-upload" className="cursor-pointer text-sm text-gray-500 hover:text-primary transition-colors">
+                      Click to upload resume (PDF, DOC, DOCX)
+                    </label>
+                  )}
+                  {uploadError && <p className="mt-2 text-xs text-red-500">{uploadError}</p>}
                 </div>
               </div>
             )}
 
             <div className="flex items-center gap-3 pt-3">
-              <button type="submit" className="min-h-[42px] px-6 rounded-xl bg-primary text-white text-xs font-medium hover:bg-[#004a9e] transition-colors shadow-sm">
-                Save Profile
+              <button type="submit" disabled={saving} className="min-h-[42px] px-6 rounded-xl bg-primary text-white text-xs font-medium hover:bg-primary-hover transition-colors shadow-sm disabled:opacity-60">
+                {saving ? "Saving…" : "Save Profile"}
               </button>
-              <button type="button" onClick={() => setEditing(false)} className="min-h-[42px] px-5 rounded-xl border border-gray-300 text-xs font-medium text-gray-500 hover:text-gray-900 transition-colors">
+              <button type="button" onClick={() => setEditing(false)} className="min-h-[42px] px-5 rounded-xl border border-gray-300 text-xs font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 transition-colors">
                 Cancel
               </button>
             </div>
@@ -267,7 +321,7 @@ function Profile() {
                 <dl className="grid grid-cols-1 sm:grid-cols-2 gap-5 text-sm p-5 rounded-xl bg-gray-50 border border-gray-200">
                   <div>
                     <dt className="font-mono text-[10px] tracking-widest uppercase text-gray-400">Email Address</dt>
-                    <dd className="mt-1 font-mono text-xs text-gray-700">{email || "—"}</dd>
+                    <dd className="mt-1 font-mono text-xs text-gray-700">{user?.email || "—"}</dd>
                   </div>
                   <div>
                     <dt className="font-mono text-[10px] tracking-widest uppercase text-gray-400">Mobile Contact</dt>
@@ -302,7 +356,7 @@ function Profile() {
                 {education.length ? education.map((edu) => (
                   <div key={edu.id} className="p-4 rounded-xl bg-gray-50 border border-gray-200">
                     <p className="text-sm font-medium text-gray-900">{edu.school}</p>
-                    <p className="text-xs text-gray-500 mt-0.5">{edu.degree}{edu.year ? ` · ${edu.year}` : ""}</p>
+                    <p className="text-xs text-gray-500 mt-0.5">{edu.degree}{edu.field ? ` · ${edu.field}` : ""}{edu.end_year ? ` · ${edu.end_year}` : ""}</p>
                   </div>
                 )) : <p className="text-xs text-gray-400">No education added yet.</p>}
               </div>
@@ -312,8 +366,8 @@ function Profile() {
               <div className="space-y-3">
                 {experience.length ? experience.map((exp) => (
                   <div key={exp.id} className="p-4 rounded-xl bg-gray-50 border border-gray-200">
-                    <p className="text-sm font-medium text-gray-900">{exp.role}</p>
-                    <p className="text-xs text-gray-500 mt-0.5">{exp.company} · {exp.startDate || "Start"} – {exp.endDate || "Present"}</p>
+                    <p className="text-sm font-medium text-gray-900">{exp.position}</p>
+                    <p className="text-xs text-gray-500 mt-0.5">{exp.company} · {exp.start_date || "Start"} – {exp.end_date || "Present"}</p>
                     {exp.description && <p className="text-xs text-gray-400 mt-1">{exp.description}</p>}
                   </div>
                 )) : <p className="text-xs text-gray-400">No experience added yet.</p>}
@@ -322,10 +376,10 @@ function Profile() {
 
             {activeTab === "resume" && (
               <div className="p-5 rounded-xl bg-gray-50 border border-gray-200 text-center">
-                {resume ? (
+                {resumes.length > 0 ? (
                   <div>
-                    <p className="text-sm text-gray-900">{resume.name}</p>
-                    <p className="text-xs text-gray-400 mt-1">{resume.size} · Uploaded {resume.date}</p>
+                    <p className="text-sm text-gray-900">{resumes.find((r) => r.is_active)?.file_name || resumes[0].file_name}</p>
+                    <p className="text-xs text-gray-400 mt-1">{resumes.length} resume{resumes.length > 1 ? "s" : ""} on file</p>
                   </div>
                 ) : (
                   <p className="text-xs text-gray-400">No resume uploaded yet.</p>
@@ -334,7 +388,17 @@ function Profile() {
             )}
           </div>
         )}
+        {showDeleteConfirm && resumes.length > 0 && (
+          <ConfirmationModal
+            message="Are you sure you want to delete this resume?"
+            onConfirm={() => handleDeleteResume(resumes.find((r) => r.is_active) || resumes[0])}
+            onCancel={() => setShowDeleteConfirm(false)}
+            confirmLabel="Delete"
+            danger
+          />
+        )}
       </div>
+      <ChangePassword />
     </div>
   );
 }
