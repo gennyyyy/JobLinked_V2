@@ -96,7 +96,7 @@ function Facebook() {
             <div className="flex items-center justify-between p-4 rounded-xl bg-gray-50 border border-gray-200">
               <div>
                 <p className="text-sm font-medium text-gray-900">Auto-posting</p>
-                <p className="text-xs text-gray-500">Automatically post approved jobs to Facebook</p>
+                <p className="text-xs text-gray-500">Automatically post published jobs to Facebook</p>
               </div>
               <button
                 onClick={handleToggleAutoPost}

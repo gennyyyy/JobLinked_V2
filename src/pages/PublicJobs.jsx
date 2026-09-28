@@ -15,10 +15,21 @@ function JobBrowser({ initialKeyword, initialLocation }) {
   const pageSize = 10;
 
   useEffect(() => {
-    listJobs({ search, location, page, pageSize })
-      .then((result) => { setJobs(result.jobs); setTotal(result.total); })
-      .catch((err) => setError(err.message || "Failed to load jobs"))
-      .finally(() => setLoading(false));
+    let cancelled = false;
+    async function fetchJobs() {
+      setLoading(true);
+      setError("");
+      try {
+        const result = await listJobs({ search, location, page, pageSize });
+        if (!cancelled) { setJobs(result.jobs); setTotal(result.total); }
+      } catch (err) {
+        if (!cancelled) setError(err.message || "Failed to load jobs");
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+    fetchJobs();
+    return () => { cancelled = true; };
   }, [search, location, page]);
 
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
@@ -59,7 +70,7 @@ function JobBrowser({ initialKeyword, initialLocation }) {
       ) : error ? (
         <div className="py-16 text-center text-sm text-danger">{error}</div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-1 gap-4">
           {jobs.map((job) => (
             <Link
               key={job.id}
@@ -72,7 +83,7 @@ function JobBrowser({ initialKeyword, initialLocation }) {
                   <span className="text-gray-300 group-hover:text-primary transition-colors text-sm">↗</span>
                 </div>
                 <h2 className="mt-2 text-lg font-semibold text-gray-900 group-hover:text-primary transition-colors line-clamp-1">{job.title}</h2>
-                <p className="text-xs text-gray-500 mt-1">{job.companies?.name}</p>
+                <p className="text-xs text-gray-500 mt-1">{job.employers?.company_name}</p>
                 {job.description && <p className="mt-3 text-xs text-gray-500 line-clamp-2 leading-relaxed">{job.description}</p>}
               </div>
               <div className="mt-5 pt-4 border-t border-gray-200 flex items-center justify-between">
@@ -109,9 +120,11 @@ function PublicJobs() {
 
   return (
     <div className="min-h-screen bg-gray-50 text-gray-900 flex flex-col font-sans">
-      <header className="sticky top-0 z-20 bg-white/90 backdrop-blur border-b border-gray-200">
-        <div className="max-w-[1280px] mx-auto px-6 h-[56px] flex items-center justify-between">
-          <Link to="/"><img src={TextBasedLogo} alt="JobLinked" className="h-6" /></Link>
+      <header className="sticky top-0 z-20 bg-dark-blue/90 backdrop-blur border-b border-white/10">
+        <div className="w-full px-4 h-[56px] flex items-center justify-between">
+          <div className="bg-white rounded-lg px-3.5 py-1.5 flex items-center shadow-xs">
+            <Link to="/"><img src={TextBasedLogo} alt="JobLinked" className="h-6" /></Link>
+          </div>
           <div className="flex items-center gap-3">
             <Link to="/register" className="text-xs text-gray-500 hover:text-gray-900 transition-colors">Register</Link>
             <Link to="/portals" className="min-h-[36px] inline-flex items-center px-4 rounded-xl bg-primary text-white text-xs font-medium hover:bg-primary-hover transition-colors">Log In</Link>
@@ -119,7 +132,7 @@ function PublicJobs() {
         </div>
       </header>
 
-      <main className="flex-1 max-w-[1280px] w-full mx-auto px-6 py-10 md:py-14 animate-fade-in">
+      <main className="flex-1 w-full p-[3%] animate-fade-in">
         <div className="mb-8">
           <p className="font-mono text-[11px] tracking-[0.2em] text-[#0057B8] uppercase">PUBLIC EMPLOYMENT BULLETINS</p>
           <h1 className="mt-2 text-3xl md:text-4xl font-bold tracking-tight text-dark-blue">Find Openings in Santa Maria</h1>
@@ -134,7 +147,7 @@ function PublicJobs() {
       </main>
 
       <footer className="border-t border-gray-200 bg-dark-blue text-white/30">
-        <div className="max-w-[1280px] mx-auto px-6 py-6 flex flex-col sm:flex-row justify-between gap-2 text-xs font-mono">
+        <div className="w-full px-4 py-3 flex flex-col sm:flex-row justify-between gap-2 text-xs font-mono">
           <span className="text-white/60 font-medium">Job<span className="text-[#0057B8]">Linked</span> <span className="text-white/40">PESO</span></span>
           <span>Santa Maria Municipal Hall · hello@joblinked.ph</span>
           <span>© 2026</span>

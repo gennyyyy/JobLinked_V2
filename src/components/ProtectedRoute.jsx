@@ -7,7 +7,8 @@ function ProtectedRoute({ role, children }) {
 
   if (loading) return <LoadingScreen />;
   if (!user) return <Navigate to={`/${role}/login`} replace />;
-  if (currentRole !== role) return <Navigate to="/" replace />;
+  // Wrong role — send them to their own portal's home, not the landing page
+  if (currentRole !== role) return <Navigate to={`/${currentRole}`} replace />;
 
   return children;
 }

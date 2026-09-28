@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { listAllJobs, listAllApplications, listUsers, listCompanies } from "../../services/admin";
+import { listAllJobs, listAllApplications, listUsers, listCompanies, listAllAccreditations } from "../../services/admin";
+import { latestAccByCompany as buildLatestAccByCompany } from "../../services/documents";
 import LoadingScreen from "../../components/LoadingScreen";
 
 function Reports() {
@@ -9,15 +10,17 @@ function Reports() {
   const [applications, setApplications] = useState([]);
   const [users, setUsers] = useState([]);
   const [companies, setCompanies] = useState([]);
+  const [accreditations, setAccreditations] = useState([]);
   const [reportType, setReportType] = useState("applications");
 
   useEffect(() => {
-    Promise.all([listAllJobs(), listAllApplications(), listUsers(), listCompanies()])
-      .then(([j, a, u, c]) => {
+    Promise.all([listAllJobs(), listAllApplications(), listUsers(), listCompanies(), listAllAccreditations()])
+      .then(([j, a, u, c, accs]) => {
         setJobs(j);
         setApplications(a);
         setUsers(u);
         setCompanies(c);
+        setAccreditations(accs);
       })
       .catch((err) => setError(err.message || "Failed to load reports"))
       .finally(() => setLoading(false));
@@ -25,6 +28,10 @@ function Reports() {
 
   if (loading) return <LoadingScreen />;
   if (error) return <div className="py-16 text-center text-sm text-danger">{error}</div>;
+
+  // accreditations are ordered submitted_at desc, so first row per company is its latest
+  const latestAccByCompany = buildLatestAccByCompany(accreditations);
+  const accredStatus = (companyId) => latestAccByCompany[companyId]?.status || "not applied";
 
   function exportCSV() {
     let csv = "";
@@ -34,7 +41,7 @@ function Reports() {
         a.seeker?.full_name || "",
         a.seeker?.email || "",
         a.job?.title || "",
-        a.job?.companies?.name || "",
+        a.job?.employers?.company_name || "",
         a.status || "",
         a.applied_at || "",
       ]);
@@ -43,7 +50,7 @@ function Reports() {
       const headers = ["Title", "Company", "Location", "Status", "Type", "Created At"];
       const rows = jobs.map((j) => [
         j.title || "",
-        j.companies?.name || "",
+        j.employers?.company_name || "",
         j.location || "",
         j.status || "",
         j.employment_type || "",
@@ -55,18 +62,19 @@ function Reports() {
       const rows = users.filter((u) => u.role === "job-seeker").map((u) => [
         u.full_name || "",
         u.email || "",
-        u.barangay || "",
+        u.barangay_district || "",
         u.status || "",
         u.created_at || "",
       ]);
       csv = [headers, ...rows].map((r) => r.map((c) => `"${c}"`).join(",")).join("\n");
     } else if (reportType === "employers") {
-      const headers = ["Company", "Owner", "Email", "Status", "Registered"];
+      const headers = ["Company", "Owner", "Email", "Status", "Accreditation", "Registered"];
       const rows = companies.map((c) => [
-        c.name || "",
-        c.owner?.full_name || "",
-        c.owner?.email || "",
-        c.owner?.status || "",
+        c.company_name || "",
+        c.full_name || "",
+        c.email || "",
+        c.status || "",
+        accredStatus(c.id),
         c.created_at || "",
       ]);
       csv = [headers, ...rows].map((r) => r.map((c) => `"${c}"`).join(",")).join("\n");
@@ -88,7 +96,12 @@ function Reports() {
     totalSeekers: users.filter((u) => u.role === "job-seeker").length,
     totalEmployers: users.filter((u) => u.role === "employer").length,
     totalCompanies: companies.length,
+    placed: applications.filter((a) => a.status === "Placed").length,
+    byBarangay: applications
+      .filter((a) => a.status === "Placed" && a.seeker?.barangay_district)
+      .reduce((acc, a) => { acc[a.seeker.barangay_district] = (acc[a.seeker.barangay_district] || 0) + 1; return acc; }, {}),
   };
+  const placementRate = summary.totalApplications ? Math.round((summary.placed / summary.totalApplications) * 100) : 0;
 
   return (
     <div className="space-y-8 animate-fade-in bg-gray-50">
@@ -116,9 +129,12 @@ function Reports() {
         <button onClick={exportCSV} className="ml-auto px-4 py-2 text-xs font-medium text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg transition-colors">
           Export CSV
         </button>
+        <button onClick={() => window.print()} className="px-4 py-2 text-xs font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+          Print
+        </button>
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 gap-4">
         <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm border-t-4 border-primary">
           <p className="font-sans text-3xl font-bold text-primary">{summary.totalApplications}</p>
           <p className="mt-2 font-mono text-[10px] tracking-widest text-gray-500 uppercase">Total Applications</p>
@@ -135,11 +151,15 @@ function Reports() {
           <p className="font-sans text-3xl font-bold text-primary">{summary.totalEmployers}</p>
           <p className="mt-2 font-mono text-[10px] tracking-widest text-gray-500 uppercase">Employers</p>
         </div>
+        <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm border-t-4 border-emerald-500">
+          <p className="font-sans text-3xl font-bold text-emerald-600">{summary.placed}</p>
+          <p className="mt-2 font-mono text-[10px] tracking-widest text-gray-500 uppercase">Placed Applicants · {placementRate}%</p>
+        </div>
       </div>
 
       <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm border-t-4 border-primary">
         <h2 className="text-lg font-semibold text-dark-blue mb-4">Summary by Status</h2>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 gap-4">
           {reportType === "applications" && Object.entries(summary.byStatus).map(([status, count]) => (
             <div key={status} className="p-4 rounded-xl bg-gray-50 border border-gray-200 text-center">
               <p className="text-2xl font-bold text-primary">{count}</p>
@@ -158,6 +178,23 @@ function Reports() {
             </div>
           )}
         </div>
+        {reportType === "applications" && (
+          <div className="mt-6 pt-6 border-t border-gray-100">
+            <h3 className="font-mono text-[11px] tracking-[0.2em] text-gray-500 uppercase mb-3">Placements by Barangay</h3>
+            {Object.keys(summary.byBarangay).length ? (
+              <div className="grid grid-cols-1 gap-4">
+                {Object.entries(summary.byBarangay).sort((a, b) => b[1] - a[1]).map(([brgy, count]) => (
+                  <div key={brgy} className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-center">
+                    <p className="text-2xl font-bold text-emerald-700">{count}</p>
+                    <p className="text-xs text-gray-600 mt-1">{brgy}</p>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-xs text-gray-400">No placements recorded yet. Mark accepted applicants as Placed in the employer portal.</p>
+            )}
+          </div>
+        )}
       </div>
 
       <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm border-t-4 border-primary">
@@ -197,6 +234,7 @@ function Reports() {
                     <th className="text-left py-3 px-4 font-medium">Owner</th>
                     <th className="text-left py-3 px-4 font-medium">Email</th>
                     <th className="text-left py-3 px-4 font-medium">Status</th>
+                    <th className="text-left py-3 px-4 font-medium">Accreditation</th>
                   </>
                 )}
               </tr>
@@ -206,7 +244,7 @@ function Reports() {
                 <tr key={a.id} className="hover:bg-gray-50">
                   <td className="py-3 px-4 text-gray-900 font-medium">{a.seeker?.full_name}</td>
                   <td className="py-3 px-4 text-gray-600">{a.job?.title}</td>
-                  <td className="py-3 px-4 text-gray-500">{a.job?.companies?.name}</td>
+                  <td className="py-3 px-4 text-gray-500">{a.job?.employers?.company_name}</td>
                   <td className="py-3 px-4"><span className="font-mono text-[10px] px-2 py-0.5 rounded-full bg-gray-100 border border-gray-200">{a.status}</span></td>
                   <td className="py-3 px-4 text-xs text-gray-500">{new Date(a.applied_at).toLocaleDateString()}</td>
                 </tr>
@@ -214,7 +252,7 @@ function Reports() {
               {reportType === "jobs" && jobs.slice(0, 50).map((j) => (
                 <tr key={j.id} className="hover:bg-gray-50">
                   <td className="py-3 px-4 text-gray-900 font-medium">{j.title}</td>
-                  <td className="py-3 px-4 text-gray-500">{j.companies?.name}</td>
+                  <td className="py-3 px-4 text-gray-500">{j.employers?.company_name}</td>
                   <td className="py-3 px-4 text-xs text-gray-500">{j.location}</td>
                   <td className="py-3 px-4"><span className="font-mono text-[10px] px-2 py-0.5 rounded-full bg-gray-100 border border-gray-200">{j.status}</span></td>
                 </tr>
@@ -223,16 +261,29 @@ function Reports() {
                 <tr key={u.id} className="hover:bg-gray-50">
                   <td className="py-3 px-4 text-gray-900 font-medium">{u.full_name}</td>
                   <td className="py-3 px-4 text-gray-500">{u.email}</td>
-                  <td className="py-3 px-4 text-xs text-gray-500">{u.barangay}</td>
+                  <td className="py-3 px-4 text-xs text-gray-500">{u.barangay_district}</td>
                   <td className="py-3 px-4"><span className="font-mono text-[10px] px-2 py-0.5 rounded-full bg-gray-100 border border-gray-200">{u.status}</span></td>
                 </tr>
               ))}
               {reportType === "employers" && companies.slice(0, 50).map((c) => (
                 <tr key={c.id} className="hover:bg-gray-50">
-                  <td className="py-3 px-4 text-gray-900 font-medium">{c.name}</td>
-                  <td className="py-3 px-4 text-gray-500">{c.owner?.full_name}</td>
-                  <td className="py-3 px-4 text-gray-500">{c.owner?.email}</td>
-                  <td className="py-3 px-4"><span className="font-mono text-[10px] px-2 py-0.5 rounded-full bg-gray-100 border border-gray-200">{c.owner?.status}</span></td>
+                <td className="py-3 px-4 text-gray-900 font-medium">{c.company_name}</td>
+                  <td className="py-3 px-4 text-gray-500">{c.full_name}</td>
+                  <td className="py-3 px-4 text-gray-500">{c.email}</td>
+                  <td className="py-3 px-4"><span className="font-mono text-[10px] px-2 py-0.5 rounded-full bg-gray-100 border border-gray-200">{c.status}</span></td>
+                  <td className="py-3 px-4">
+                    {(() => {
+                      const status = accredStatus(c.id);
+                      const styles = status === "approved"
+                        ? "bg-emerald-50 border-emerald-200 text-emerald-700"
+                        : status === "pending"
+                          ? "bg-amber-50 border-amber-200 text-amber-700"
+                          : status === "rejected" || status === "revoked"
+                            ? "bg-danger/10 border-danger/20 text-danger"
+                            : "bg-gray-100 border-gray-200 text-gray-500";
+                      return <span className={`font-mono text-[10px] tracking-wider px-2.5 py-0.5 rounded-full uppercase border ${styles}`}>{status}</span>;
+                    })()}
+                  </td>
                 </tr>
               ))}
             </tbody>

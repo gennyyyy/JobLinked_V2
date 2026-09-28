@@ -25,12 +25,14 @@ import EmployerLayout from './layouts/EmployerLayout'
 import EmployerDashboard from './pages/employer/Dashboard'
 import EmployerJobPosts from './pages/employer/JobPosts'
 import Applicants from './pages/employer/Applicants'
+import Employees from './pages/employer/Employees'
 import CompanyProfile from './pages/employer/CompanyProfile'
 import EmployerAccreditation from './pages/employer/EmployerAccreditation'
 import JobSeekerLayout from './layouts/JobSeekerLayout'
 import JobSeekerDashboard from './pages/job-seeker/Dashboard'
 import JobDetail from './pages/job-seeker/JobDetail'
 import Applications from './pages/job-seeker/Applications'
+import Employment from './pages/job-seeker/Employment'
 import Profile from './pages/job-seeker/Profile'
 import Jobs from './pages/job-seeker/Jobs'
 
@@ -82,6 +84,7 @@ function App() {
           <Route index element={<EmployerDashboard />} />
           <Route path="job-posts" element={<EmployerJobPosts />} />
           <Route path="applicants" element={<Applicants />} />
+          <Route path="employees" element={<Employees />} />
           <Route path="company" element={<CompanyProfile />} />
           <Route path="accreditation" element={<EmployerAccreditation />} />
         </Route>
@@ -98,6 +101,7 @@ function App() {
           <Route path="jobs" element={<Jobs />} />
           <Route path="jobs/:jobId" element={<JobDetail />} />
           <Route path="applications" element={<Applications />} />
+          <Route path="employment" element={<Employment />} />
           <Route path="profile" element={<Profile />} />
         </Route>
 

@@ -1,11 +1,13 @@
 import { useState, useEffect } from "react";
-import { listUsers, updateUser } from "../../services/admin";
+import { listUsers, updateUser, listAllAccreditations } from "../../services/admin";
+import { latestAccByCompany as buildLatestAccByCompany } from "../../services/documents";
 import CustomSelect from "../../components/CustomSelect";
 import ConfirmationModal from "../../components/ConfirmationModal";
 import LoadingScreen from "../../components/LoadingScreen";
 
 function UserManagement() {
   const [users, setUsers] = useState([]);
+  const [accreditations, setAccreditations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -14,8 +16,11 @@ function UserManagement() {
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
 
   useEffect(() => {
-    listUsers()
-      .then(setUsers)
+    Promise.all([listUsers(), listAllAccreditations()])
+      .then(([u, accs]) => {
+        setUsers(u);
+        setAccreditations(accs);
+      })
       .catch((err) => setError(err.message || "Failed to load users"))
       .finally(() => setLoading(false));
   }, []);
@@ -23,12 +28,8 @@ function UserManagement() {
   if (loading) return <LoadingScreen />;
   if (error) return <div className="py-16 text-center text-sm text-danger">{error}</div>;
 
-  async function handleChangeRole(userId, newRole) {
-    await updateUser(userId, { role: newRole });
-    setUsers((prev) => prev.map((u) => (u.id === userId ? { ...u, role: newRole } : u)));
-    setSuccess("User role updated");
-    setTimeout(() => setSuccess(""), 3000);
-  }
+  // accreditations ordered submitted_at desc → first row per company is its latest
+  const latestAccByCompany = buildLatestAccByCompany(accreditations);
 
   async function handleToggleStatus(user) {
     const newStatus = user.status === "active" ? "suspended" : "active";
@@ -110,6 +111,7 @@ function UserManagement() {
                     <th className="text-left px-4 py-4 text-gray-500 font-medium">Email</th>
                     <th className="text-left px-4 py-4 text-gray-500 font-medium">Role</th>
                     <th className="text-left px-4 py-4 text-gray-500 font-medium">Status</th>
+                    <th className="text-left px-4 py-4 text-gray-500 font-medium">Accreditation</th>
                     <th className="text-left px-4 py-4 text-gray-500 font-medium">Created</th>
                     <th className="text-right px-4 py-4 text-gray-500 font-medium">Actions</th>
                   </tr>
@@ -120,12 +122,7 @@ function UserManagement() {
                       <td className="px-4 py-4 text-gray-900 font-medium">{user.full_name}</td>
                       <td className="px-4 py-4 text-gray-500">{user.email}</td>
                       <td className="px-4 py-4">
-                        <CustomSelect
-                          value={user.role}
-                          onChange={(newRole) => handleChangeRole(user.id, newRole)}
-                          options={roleOptions.filter((r) => r.value !== "all")}
-                          className="text-xs"
-                        />
+                        <span className="inline-block px-2 py-1 rounded-lg bg-gray-100 text-gray-600 capitalize">{user.role.replace("-", " ")}</span>
                       </td>
                       <td className="px-4 py-4">
                         <span className={`inline-block px-2 py-1 rounded-full font-medium text-[10px] uppercase border ${
@@ -135,6 +132,19 @@ function UserManagement() {
                         }`}>
                           {user.status}
                         </span>
+                      </td>
+                      <td className="px-4 py-4">
+                        {user.role === "employer" ? (() => {
+                          const status = latestAccByCompany[user.id]?.status || "not applied";
+                          const styles = status === "approved"
+                            ? "bg-emerald-50 border-emerald-200 text-emerald-700"
+                            : status === "pending"
+                              ? "bg-amber-50 border-amber-200 text-amber-700"
+                              : status === "rejected" || status === "revoked"
+                                ? "bg-danger/10 border-danger/20 text-danger"
+                                : "bg-gray-100 border-gray-200 text-gray-500";
+                          return <span className={`inline-block px-2 py-1 rounded-full font-medium text-[10px] uppercase border ${styles}`}>{status}</span>;
+                        })() : <span className="text-gray-400">—</span>}
                       </td>
                       <td className="px-4 py-4 text-gray-500">
                         {new Date(user.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}

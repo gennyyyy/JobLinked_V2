@@ -69,7 +69,7 @@ function RoleManagement() {
           <h2 className="text-lg font-semibold text-dark-blue">System Roles</h2>
           <p className="text-xs text-gray-500 mt-0.5">Roles are enforced by database row-level security</p>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-1 gap-4">
           {roles.map((role) => (
             <div key={role} className="bg-gray-50 border border-gray-200 rounded-xl p-5">
               <h3 className="text-sm font-semibold text-dark-blue capitalize">{role.replace("-", " ")}</h3>

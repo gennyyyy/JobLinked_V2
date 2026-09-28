@@ -16,6 +16,9 @@ const ACTIVITY_TYPES = [
   "job.create",
   "job.update",
   "job.status.draft",
+  "job.status.pending",
+  "job.status.approved",
+  "job.status.rejected",
   "job.status.published",
   "job.status.closed",
   "job.status.archived",
@@ -36,6 +39,7 @@ const ACTIVITY_TYPES = [
   "accreditation.submit",
   "accreditation.approved",
   "accreditation.rejected",
+  "accreditation.revoked",
   "settings.reference.add",
   "settings.reference.remove",
   "settings.barangay.add",
@@ -100,7 +104,7 @@ function Logs() {
       </header>
 
       <section className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm border-t-4 border-primary">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-1 gap-4">
           <select value={filters.userId} onChange={(e) => updateFilter("userId", e.target.value)} className="min-h-[44px] px-3 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-700 focus:outline-none focus:border-primary">
             <option value="">All users</option>
             {users.map((user) => <option key={user.id} value={user.id}>{user.full_name || user.email}</option>)}
@@ -114,6 +118,13 @@ function Logs() {
         </div>
         <div className="flex items-center gap-3 mt-4">
           <button type="button" onClick={loadLogs} className="px-5 py-2.5 rounded-xl bg-primary text-white text-xs font-semibold hover:bg-primary-hover">Apply Filters</button>
+          <button
+            type="button"
+            onClick={() => { const nextFilters = { ...filters, action: "auth." }; setFilters(nextFilters); loadLogs(nextFilters); }}
+            className="px-5 py-2.5 rounded-xl bg-emerald-600 text-white text-xs font-semibold hover:bg-emerald-700"
+          >
+            Login History
+          </button>
           <button type="button" onClick={() => { const nextFilters = { userId: "", action: "", from: "", to: "" }; setFilters(nextFilters); loadLogs(nextFilters); }} className="px-5 py-2.5 rounded-xl border border-gray-300 text-xs font-semibold text-gray-700 hover:bg-gray-50">Clear</button>
           <span className="ml-auto text-xs text-gray-400">{logs.length} records</span>
         </div>

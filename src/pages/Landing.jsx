@@ -1,6 +1,5 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { listBarangays } from "../services/admin";
 import heroImage from "../assets/pic.jpg";
 import TextBasedLogo from "../assets/TextBased Logo.png";
 
@@ -47,23 +46,11 @@ const featureCards = [
   },
 ];
 
-const stats = [
-  { value: "1,000+", label: "Job Opportunities" },
-  { value: "500+", label: "Employers" },
-  { value: "10,000+", label: "Job Seekers" },
-  { value: "1", label: "Stronger Santa Maria" },
-];
-
 function Landing() {
   const navigate = useNavigate();
   const [keyword, setKeyword] = useState("");
   const [location, setLocation] = useState("");
   const [activeTab, setActiveTab] = useState("seeker");
-  const [barangays, setBarangays] = useState([]);
-
-  useEffect(() => {
-    listBarangays().then((rows) => setBarangays(rows.map((b) => b.name))).catch(() => {});
-  }, []);
 
   function handleQuickSearch(e) {
     e.preventDefault();
@@ -73,26 +60,24 @@ function Landing() {
     navigate(`/jobs?${p.toString()}`);
   }
 
-  const locations = ["", ...barangays];
-
   return (
     <div className="min-h-screen bg-white text-gray-900 font-sans">
-      <header className="sticky top-0 z-20 bg-white border-b border-gray-200 shadow-sm">
-        <div className="max-w-[1280px] mx-auto px-6 h-[64px] flex items-center justify-between">
+      <header className="sticky top-0 z-20 bg-dark-blue border-b border-white/10 shadow-sm">
+        <div className="w-full px-4 h-[64px] flex items-center justify-between">
           <div className="flex items-center gap-10">
-            <Link to="/" className="flex items-center gap-2">
-              <img src={TextBasedLogo} alt="JobLinked" className="h-10" />
-            </Link>
+            <div className="bg-white rounded-lg px-3.5 py-1.5 flex items-center shadow-xs">
+              <Link to="/"><img src={TextBasedLogo} alt="JobLinked" className="h-10" /></Link>
+            </div>
           </div>
           <div className="flex items-center gap-3">
-            <Link to="/portals" className="min-h-[40px] inline-flex items-center px-5 rounded-lg border-2 border-primary text-primary text-sm font-semibold hover:bg-primary/10 transition-colors">Login</Link>
+            <Link to="/portals" className="min-h-[40px] inline-flex items-center px-5 rounded-lg border-2 border-yellow-500 text-yellow-600 text-sm font-semibold hover:bg-yellow-50 transition-colors">Login</Link>
             <Link to="/register" className="min-h-[40px] inline-flex items-center px-5 rounded-lg bg-primary text-white text-sm font-semibold hover:bg-primary-hover transition-colors shadow-md">Sign Up</Link>
           </div>
         </div>
       </header>
 
       <section className="relative overflow-hidden bg-gradient-to-br from-gray-50 to-white">
-        <div className="max-w-[1280px] mx-auto px-6 pt-12 md:pt-20 pb-16 md:pb-24 grid md:grid-cols-[1.1fr_0.9fr] gap-10 items-center">
+        <div className="w-full px-[3%] pt-12 md:pt-20 pb-16 md:pb-24 grid md:grid-cols-[1.1fr_0.9fr] gap-10 items-center">
           <div className="relative z-10">
             <p className="font-mono text-[11px] tracking-[0.25em] text-primary font-semibold uppercase">Santa Maria, Bulacan</p>
             <h1 className="mt-4 font-sans text-[44px] md:text-[68px] font-black leading-[0.92] tracking-[-0.03em] text-dark-blue">
@@ -126,10 +111,7 @@ function Landing() {
                   <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
                   <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
                 </svg>
-                <select id="loc" value={location} onChange={(e) => setLocation(e.target.value)} className="min-h-[44px] text-sm bg-transparent border-none text-gray-700 focus:outline-none cursor-pointer">
-                  <option value="">All Barangays</option>
-                  {locations.filter(Boolean).map((l) => <option key={l} value={l}>{l}</option>)}
-                </select>
+                <input id="loc" value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Barangay or municipality" className="min-h-[44px] w-44 text-sm bg-transparent border-none text-gray-700 placeholder:text-gray-400 focus:outline-none" />
               </div>
               <button type="submit" className="min-h-[44px] px-8 rounded-xl bg-primary text-white text-sm font-bold hover:bg-primary-hover active:scale-[0.98] transition-all shadow-md flex items-center justify-center gap-2">
                 Search Jobs
@@ -155,8 +137,8 @@ function Landing() {
         <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-r from-primary via-accent to-danger opacity-10 -skew-y-2 transform origin-bottom-left" />
       </section>
 
-      <section className="max-w-[1280px] mx-auto px-6 -mt-6 relative z-10">
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <section className="w-full p-[3%] relative z-10">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           {featureCards.map((card, i) => (
             <div key={card.title} style={{ animationDelay: `${i * 80}ms` }} className="animate-fade-in bg-white rounded-2xl p-6 shadow-lg border border-gray-100 hover:shadow-xl hover:-translate-y-1 transition-all cursor-pointer group">
               <div className={`w-12 h-12 ${card.color} rounded-xl flex items-center justify-center text-white mb-4 group-hover:scale-110 transition-transform`}>
@@ -175,23 +157,13 @@ function Landing() {
         </div>
       </section>
 
-      <section className="max-w-[1280px] mx-auto px-6 pt-16 pb-12">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-8 md:gap-12">
-          {stats.map((stat) => (
-            <div key={stat.label} className="text-center md:text-left">
-              <p className="font-sans text-4xl md:text-5xl font-black text-dark-blue leading-none">{stat.value}</p>
-              <p className="mt-2 font-mono text-[11px] tracking-widest text-gray-400 uppercase">{stat.label}</p>
-            </div>
-          ))}
-        </div>
-      </section>
 
       <section className="relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-r from-primary via-primary to-accent" />
         <div className="absolute inset-0 opacity-30">
           <div className="absolute top-0 left-0 w-full h-full bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4xIj48cGF0aCBkPSJNMCAyMDBoMjAwVjBIMHYyMDB6Ii8+PC9nPjwvZz48L3N2Zz4=')] opacity-20" />
         </div>
-        <div className="relative max-w-[1280px] mx-auto px-6 py-16 md:py-20 text-center">
+        <div className="relative w-full px-[3%] py-16 md:py-20 text-center">
           <p className="text-white/80 text-sm font-medium mb-2">Connecting People.</p>
           <h2 className="font-sans text-3xl md:text-4xl font-black text-white leading-tight">
             Building a Brighter Santa Maria<br />for a Better Tomorrow.
@@ -201,7 +173,7 @@ function Landing() {
       </section>
 
       <footer className="bg-dark-blue text-white">
-        <div className="max-w-[1280px] mx-auto px-6 py-8">
+        <div className="w-full px-4 py-3">
           <div className="flex flex-col md:flex-row items-center justify-between gap-6">
             <div className="flex items-center gap-6 text-sm text-white/70">
               <span className="flex items-center gap-2">

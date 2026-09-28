@@ -26,7 +26,7 @@ function Profile() {
   }
 
   return (
-    <div className="max-w-2xl space-y-8 animate-fade-in">
+    <div className="w-full space-y-8 animate-fade-in">
       <header>
         <p className="font-mono text-[11px] tracking-[0.2em] text-primary uppercase">ACCOUNT PROFILE</p>
         <h1 className="mt-1 text-2xl md:text-3xl font-bold tracking-tight text-dark-blue">My Profile</h1>
@@ -44,7 +44,7 @@ function Profile() {
           </div>
         </div>
 
-        <dl className="mt-7 grid grid-cols-1 sm:grid-cols-2 gap-5 p-5 rounded-xl bg-gray-50 border border-gray-200">
+        <dl className="mt-7 grid grid-cols-1 gap-5 p-5 rounded-xl bg-gray-50 border border-gray-200">
           <div>
             <dt className="font-mono text-[10px] tracking-widest uppercase text-gray-400">Role</dt>
             <dd className="mt-1 text-sm text-gray-700">Super Administrator</dd>

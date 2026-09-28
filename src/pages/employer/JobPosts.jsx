@@ -6,7 +6,6 @@ import {
   Plus,
   Search,
   Filter,
-  Eye,
   Edit3,
   Copy,
   Send,
@@ -26,9 +25,8 @@ import {
   Lock,
 } from "lucide-react";
 import useAuth from "../../hooks/useAuth";
+import { JOB_TAGS } from "../../constants";
 import { listEmployerJobs, createJob, updateJob, changeJobStatus } from "../../services/jobs";
-import { listAccreditations } from "../../services/documents";
-import { listBarangays } from "../../services/admin";
 import { supabase } from "../../lib/supabase";
 import ConfirmationModal from "../../components/ConfirmationModal";
 import LoadingScreen from "../../components/LoadingScreen";
@@ -46,6 +44,7 @@ const initialForm = {
   deadline: "",
   instructions: "",
   benefits: "",
+  tags: [],
 };
 
 export default function JobPosts() {
@@ -54,7 +53,6 @@ export default function JobPosts() {
   const [company, setCompany] = useState(null);
   const [accreditationStatus, setAccreditationStatus] = useState("none");
   const [accreditationRemarks, setAccreditationRemarks] = useState("");
-  const [barangays, setBarangays] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
 
@@ -85,22 +83,18 @@ export default function JobPosts() {
     setLoading(true);
     setLoadError("");
     try {
-      const [companyResult, barangayRows] = await Promise.all([
-        supabase.from("companies").select("*").eq("owner_id", user.id).maybeSingle(),
-        listBarangays(),
-      ]);
+      const companyResult = await supabase.from("employers").select("*").eq("id", user.id).maybeSingle();
 
       if (companyResult.error) throw companyResult.error;
 
       setCompany(companyResult.data);
-      setBarangays(barangayRows.map((b) => b.name));
-
       if (companyResult.data) {
-        const accreditations = await listAccreditations(companyResult.data.id);
-        const latest = accreditations[0];
-        setAccreditationStatus(latest?.status || "none");
-        setAccreditationRemarks(latest?.remarks || "");
-        if (latest?.status !== "approved") {
+        // Read accreditation_status directly from the employers row — kept in sync
+        // by documents.js so we don't need a separate query to employer_accreditations
+        const status = companyResult.data.accreditation_status || "none";
+        setAccreditationStatus(status);
+        setAccreditationRemarks("");
+        if (status !== "approved") {
           setJobs([]);
           return;
         }
@@ -165,6 +159,7 @@ export default function JobPosts() {
       deadline: job.deadline ? job.deadline.split("T")[0] : "",
       instructions: job.instructions || "",
       benefits: job.benefits || "",
+      tags: job.tags || [],
     });
     setEditingId(job.id);
     setErrors({});
@@ -186,6 +181,7 @@ export default function JobPosts() {
       deadline: "",
       instructions: job.instructions || "",
       benefits: job.benefits || "",
+      tags: job.tags || [],
     });
     setEditingId(null);
     setErrors({});
@@ -238,17 +234,21 @@ export default function JobPosts() {
         deadline: form.deadline || null,
         instructions: form.instructions.trim() || null,
         benefits: form.benefits.trim() || null,
+        tags: form.tags,
       };
 
+      // accredited employers publish directly; no PESO approval step
+      if (targetStatus === "published") {
+        payload.status = "published";
+        payload.remarks = null;
+        payload.published_at = new Date().toISOString();
+      }
+
       if (editingId) {
-        if (targetStatus === "published") {
-          payload.status = "published";
-          payload.remarks = null;
-        }
         await updateJob(editingId, payload);
         setActionSuccess(
           targetStatus === "published"
-            ? "Job post published successfully."
+            ? "Job is now live on the job board."
             : "Job post updated successfully."
         );
       } else {
@@ -258,7 +258,7 @@ export default function JobPosts() {
         });
         setActionSuccess(
           targetStatus === "published"
-            ? "Job vacancy published successfully."
+            ? "Job is now live on the job board."
             : "Job vacancy saved as draft."
         );
       }
@@ -277,7 +277,7 @@ export default function JobPosts() {
     setActionError("");
     try {
       await changeJobStatus(job.id, "published", null);
-      setActionSuccess(`"${job.title}" is now published and visible to job seekers.`);
+      setActionSuccess(`"${job.title}" is now live on the job board.`);
       await refreshJobs();
       if (viewingJob?.id === job.id) {
         setViewingJob((prev) => ({ ...prev, status: "published", remarks: null }));
@@ -330,7 +330,8 @@ export default function JobPosts() {
     const draft = jobs.filter((j) => j.status === "draft").length;
     const rejected = jobs.filter((j) => j.status === "rejected").length;
     const closed = jobs.filter((j) => j.status === "closed").length;
-    return { total, published, draft, rejected, closed };
+    const archived = jobs.filter((j) => j.status === "archived").length;
+    return { total, published, draft, rejected, closed, archived };
   }, [jobs]);
 
   // Filtered & Sorted jobs
@@ -456,11 +457,11 @@ export default function JobPosts() {
   if (accreditationStatus !== "approved") {
     const statusText = accreditationStatus === "pending"
       ? "Your accreditation application is under review by PESO."
-      : accreditationStatus === "rejected" || accreditationStatus === "resubmission"
+      : accreditationStatus === "rejected" || accreditationStatus === "resubmission" || accreditationStatus === "revoked"
         ? `Your accreditation is not active. ${accreditationRemarks || "Please review the accreditation requirements."}`
         : "Complete your employer accreditation before posting job vacancies.";
     return (
-      <div className="max-w-2xl mx-auto py-16 text-center animate-fade-in">
+      <div className="w-full py-16 text-center animate-fade-in">
         <div className="w-16 h-16 mx-auto rounded-2xl bg-amber-50 border border-amber-200 flex items-center justify-center text-amber-600">
           <Lock className="w-7 h-7" />
         </div>
@@ -490,7 +491,7 @@ export default function JobPosts() {
             Job Vacancy Postings
           </h1>
           <p className="mt-1 text-sm text-gray-500">
-            Publish municipal job openings, manage vacancies, and track PESO verification
+            Publish municipal job openings and manage your vacancies
           </p>
         </div>
 
@@ -558,7 +559,7 @@ export default function JobPosts() {
       )}
 
       {/* Metric Counters Bar */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3">
         <button
           type="button"
           onClick={() => setStatusFilter("all")}
@@ -603,18 +604,18 @@ export default function JobPosts() {
 
         <button
           type="button"
-          onClick={() => setStatusFilter("rejected")}
+          onClick={() => setStatusFilter("archived")}
           className={`p-4 rounded-2xl border text-left transition-all cursor-pointer ${
-            statusFilter === "rejected"
-              ? "bg-rose-50/50 border-rose-500 shadow-sm ring-1 ring-rose-500/20"
+            statusFilter === "archived"
+              ? "bg-zinc-50/50 border-zinc-500 shadow-sm ring-1 ring-zinc-500/20"
               : "bg-white border-gray-200 hover:border-gray-300"
           }`}
         >
           <div className="flex items-center justify-between">
-            <p className="text-2xl font-bold text-rose-700">{stats.rejected}</p>
-            {stats.rejected > 0 && <AlertTriangle className="w-4 h-4 text-rose-600" />}
+            <p className="text-2xl font-bold text-zinc-700">{stats.archived}</p>
+            {stats.archived > 0 && <Archive className="w-4 h-4 text-zinc-600" />}
           </div>
-          <p className="text-xs font-mono uppercase tracking-wider text-gray-500 mt-1">Needs Revision</p>
+          <p className="text-xs font-mono uppercase tracking-wider text-gray-500 mt-1">Archived</p>
         </button>
 
         <button
@@ -712,18 +713,17 @@ export default function JobPosts() {
                 const expired = isDeadlinePassed(post.deadline);
 
                 return (
-                  <tr key={post.id} className="hover:bg-gray-50/80 transition-colors group">
+                  <tr key={post.id} className="hover:bg-gray-50/80 transition-colors group cursor-pointer" onClick={() => setViewingJob(post)}>
                     {/* Job Title & Office */}
                     <td className="py-4 px-4">
                       <div>
                         <div className="flex items-center gap-2">
-                          <button
-                            type="button"
-                            onClick={() => setViewingJob(post)}
-                            className="text-left font-semibold text-gray-900 hover:text-primary transition-colors text-sm line-clamp-1 cursor-pointer"
-                          >
-                            {post.title}
-                          </button>
+<button
+                             type="button"
+                             className="text-left font-semibold text-gray-900 hover:text-primary transition-colors text-sm line-clamp-1"
+                           >
+                             {post.title}
+                           </button>
                         </div>
 
                         <div className="flex flex-wrap items-center gap-2 mt-1">
@@ -795,6 +795,7 @@ export default function JobPosts() {
                     <td className="py-4 px-4">
                       <Link
                         to="/employer/applicants"
+                        onClick={(e) => e.stopPropagation()}
                         className="inline-flex items-center gap-1.5 font-mono text-xs px-2.5 py-1 rounded-full bg-blue-50/70 border border-blue-200/80 text-primary hover:bg-blue-100 transition-colors"
                         title="Click to view applicants"
                       >
@@ -817,20 +818,10 @@ export default function JobPosts() {
                     {/* Actions */}
                     <td className="py-4 px-4 text-right">
                       <div className="flex items-center justify-end gap-1.5">
-                        {/* View Job Preview */}
-                        <button
-                          type="button"
-                          onClick={() => setViewingJob(post)}
-                          className="p-1.5 rounded-lg text-gray-500 hover:text-gray-900 hover:bg-gray-100 transition-colors cursor-pointer"
-                          title="View Job Details"
-                        >
-                          <Eye className="w-4 h-4" />
-                        </button>
-
                         {/* Edit Job */}
                         <button
                           type="button"
-                          onClick={() => handleOpenEdit(post)}
+                          onClick={(e) => { e.stopPropagation(); handleOpenEdit(post); }}
                           className="p-1.5 rounded-lg text-gray-500 hover:text-primary hover:bg-blue-50 transition-colors cursor-pointer"
                           title="Edit Job"
                         >
@@ -840,31 +831,41 @@ export default function JobPosts() {
                         {/* Duplicate Job */}
                         <button
                           type="button"
-                          onClick={() => handleOpenDuplicate(post)}
+                          onClick={(e) => { e.stopPropagation(); handleOpenDuplicate(post); }}
                           className="p-1.5 rounded-lg text-gray-500 hover:text-gray-900 hover:bg-gray-100 transition-colors cursor-pointer"
                           title="Duplicate as new draft"
                         >
                           <Copy className="w-4 h-4" />
                         </button>
 
-                        {/* Publish a draft directly; accreditation is the only approval gate. */}
-                        {(post.status === "draft" || post.status === "rejected") && (
+                        {/* Publish (accredited employers publish directly) */}
+                        {(post.status === "draft" || post.status === "rejected" || post.status === "pending" || post.status === "approved") && (
                           <button
                             type="button"
-                            onClick={() => handlePublishJob(post)}
+                            onClick={(e) => { e.stopPropagation(); handlePublishJob(post); }}
                             className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold text-emerald-700 hover:bg-emerald-50 border border-emerald-200 transition-all cursor-pointer"
-                            title="Publish vacancy live"
+                            title="Publish listing"
                           >
                             <Globe className="w-3 h-3" />
-                            <span>{post.status === "rejected" ? "Republish" : "Publish"}</span>
+                            <span>Publish</span>
                           </button>
                         )}
+
+                        {/* Archive */}
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); setConfirmArchiveId(post.id); }}
+                          className="p-1.5 rounded-lg text-gray-400 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
+                          title="Archive Listing"
+                        >
+                          <Archive className="w-4 h-4" />
+                        </button>
 
                         {/* Close / Reopen */}
                         {(post.status === "published" || post.status === "closed") && (
                           <button
                             type="button"
-                            onClick={() => handleToggleClose(post)}
+                            onClick={(e) => { e.stopPropagation(); handleToggleClose(post); }}
                             className={`px-2.5 py-1 rounded-lg text-xs font-medium border transition-colors cursor-pointer ${
                               post.status === "published"
                                 ? "text-amber-800 bg-amber-50 hover:bg-amber-100 border-amber-200"
@@ -875,16 +876,6 @@ export default function JobPosts() {
                             {post.status === "published" ? "Close" : "Reopen"}
                           </button>
                         )}
-
-                        {/* Archive */}
-                        <button
-                          type="button"
-                          onClick={() => setConfirmArchiveId(post.id)}
-                          className="p-1.5 rounded-lg text-gray-400 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
-                          title="Archive Listing"
-                        >
-                          <Archive className="w-4 h-4" />
-                        </button>
                       </div>
                     </td>
                   </tr>
@@ -975,7 +966,7 @@ export default function JobPosts() {
               </div>
 
               {/* Department / Office & Employment Type */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4">
                 <div>
                   <label className="block font-mono text-[11px] tracking-wider text-gray-600 uppercase font-semibold mb-1.5">
                     Department / Office <span className="text-gray-400 font-normal lowercase">(optional)</span>
@@ -1009,13 +1000,14 @@ export default function JobPosts() {
               </div>
 
               {/* Barangay Location & Vacancies */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4">
                 <div>
                   <label className="block font-mono text-[11px] tracking-wider text-gray-600 uppercase font-semibold mb-1.5">
                     Barangay Location <span className="text-rose-500">*</span>
                   </label>
-                  <select
+                  <input
                     value={form.location}
+                    placeholder="e.g. Pulong Buhangin"
                     onChange={(e) => {
                       setForm({ ...form, location: e.target.value });
                       if (errors.location) setErrors((prev) => ({ ...prev, location: undefined }));
@@ -1025,14 +1017,7 @@ export default function JobPosts() {
                         ? "border-rose-300 ring-1 ring-rose-200"
                         : "border-gray-200 focus:border-primary"
                     }`}
-                  >
-                    <option value="">Select Barangay in Santa Maria</option>
-                    {barangays.map((b) => (
-                      <option key={b} value={b}>
-                        {b}
-                      </option>
-                    ))}
-                  </select>
+                  />
                   {errors.location && (
                     <p className="text-rose-600 text-xs mt-1 font-medium">{errors.location}</p>
                   )}
@@ -1063,7 +1048,7 @@ export default function JobPosts() {
               </div>
 
               {/* Salary Range */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4">
                 <div>
                   <label className="block font-mono text-[11px] tracking-wider text-gray-600 uppercase font-semibold mb-1.5">
                     Minimum Salary (₱) <span className="text-gray-400 font-normal lowercase">(optional)</span>
@@ -1185,6 +1170,37 @@ export default function JobPosts() {
                 />
               </div>
 
+              {/* Job Tags */}
+              <div>
+                <label className="block font-mono text-[11px] tracking-wider text-gray-600 uppercase font-semibold mb-1.5">
+                  Tags <span className="text-gray-400 font-normal lowercase">(optional, click to toggle)</span>
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  {JOB_TAGS.map((tag) => {
+                    const selected = form.tags.includes(tag);
+                    return (
+                      <button
+                        key={tag}
+                        type="button"
+                        onClick={() =>
+                          setForm((f) => ({
+                            ...f,
+                            tags: selected ? f.tags.filter((t) => t !== tag) : [...f.tags, tag],
+                          }))
+                        }
+                        className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors cursor-pointer ${
+                          selected
+                            ? "bg-primary text-white border-primary"
+                            : "bg-gray-50 text-gray-600 border-gray-200 hover:border-primary/40"
+                        }`}
+                      >
+                        {tag}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
               {/* Application Instructions */}
               <div>
                 <label className="block font-mono text-[11px] tracking-wider text-gray-600 uppercase font-semibold mb-1.5">
@@ -1253,7 +1269,7 @@ export default function JobPosts() {
                 </span>
                 <h2 className="text-2xl font-bold text-gray-900 mt-2">{viewingJob.title}</h2>
                 <div className="flex items-center gap-3 text-xs text-gray-500 mt-1">
-                  <span>{company?.name || "My Company"}</span>
+                  <span>{company?.company_name || "My Company"}</span>
                   {viewingJob.office && <span>· Dept: {viewingJob.office}</span>}
                   <span>· Posted on {new Date(viewingJob.created_at).toLocaleDateString()}</span>
                 </div>
@@ -1285,7 +1301,7 @@ export default function JobPosts() {
             )}
 
             {/* Quick Fact Grid */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-4 rounded-2xl bg-gray-50 border border-gray-200/70">
+            <div className="grid grid-cols-1 gap-3 p-4 rounded-2xl bg-gray-50 border border-gray-200/70">
               <div>
                 <p className="font-mono text-[10px] text-gray-500 uppercase tracking-wider">Employment</p>
                 <p className="text-xs font-semibold text-gray-900 mt-1">{viewingJob.employment_type}</p>
@@ -1305,6 +1321,17 @@ export default function JobPosts() {
                 </p>
               </div>
             </div>
+
+            {/* Tags */}
+            {viewingJob.tags?.length > 0 && (
+              <div className="flex flex-wrap gap-1.5">
+                {viewingJob.tags.map((tag) => (
+                  <span key={tag} className="font-mono text-[10px] px-2 py-0.5 rounded-full bg-primary/10 border border-primary/25 text-primary">
+                    {tag}
+                  </span>
+                ))}
+              </div>
+            )}
 
             {/* Candidate Applications Summary */}
             <div className="flex items-center justify-between p-4 rounded-2xl bg-blue-50/50 border border-blue-100">
@@ -1385,13 +1412,13 @@ export default function JobPosts() {
                 Edit Listing
               </button>
 
-              {(viewingJob.status === "draft" || viewingJob.status === "rejected") && (
+              {(viewingJob.status === "draft" || viewingJob.status === "rejected" || viewingJob.status === "pending" || viewingJob.status === "approved") && (
                 <button
                   type="button"
                   onClick={() => handlePublishJob(viewingJob)}
                   className="px-4 py-2 rounded-xl text-xs font-semibold text-white bg-primary hover:bg-primary-hover transition-colors cursor-pointer"
                 >
-                  {viewingJob.status === "rejected" ? "Republish" : "Publish Now"}
+                  Publish Job
                 </button>
               )}
 

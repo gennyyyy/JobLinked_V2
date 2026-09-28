@@ -19,17 +19,17 @@ function AuthProvider({ children }) {
 
   useEffect(() => {
     let active = true;
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!active) return;
-      if (session?.user) {
-        loadProfile(session.user).finally(() => active && setLoading(false));
-      } else {
-        setLoading(false);
-      }
-    });
+    // Session is not persisted — no localStorage restore needed.
+    // onAuthStateChange fires INITIAL_SESSION on mount with null when there
+    // is no active session, so loading is driven entirely from there.
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === 'SIGNED_OUT') { setUser(null); return; }
-      if (session?.user) loadProfile(session.user);
+      if (!active) return;
+      if (event === 'SIGNED_OUT' || !session?.user) {
+        setUser(null);
+        setLoading(false);
+        return;
+      }
+      loadProfile(session.user).finally(() => active && setLoading(false));
     });
     return () => { active = false; subscription.unsubscribe(); };
   }, [loadProfile]);

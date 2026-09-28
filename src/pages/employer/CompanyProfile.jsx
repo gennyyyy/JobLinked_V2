@@ -1,41 +1,50 @@
 import { useState, useEffect } from "react";
 import useAuth from "../../hooks/useAuth";
 import { supabase } from "../../lib/supabase";
-import { listAccreditations } from "../../services/documents";
+import { updateProfile } from "../../services/auth";
+import { createAccreditation } from "../../services/documents";
 import LoadingScreen from "../../components/LoadingScreen";
 import ChangePassword from "../../components/ChangePassword";
+import { formatFullAddress } from "../../utils/address";
 
 function CompanyProfile() {
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [saved, setSaved] = useState(false);
   const [editing, setEditing] = useState(false);
   const [company, setCompany] = useState(null);
-  const [accreditation, setAccreditation] = useState(null);
   const [form, setForm] = useState({});
 
   useEffect(() => {
     if (!user) return;
-    supabase.from("companies").select("*").eq("owner_id", user.id).maybeSingle()
+    // user.id IS the employers row id — no separate lookup needed
+    supabase.from("employers").select("*").eq("id", user.id).maybeSingle()
       .then(({ data, error: err }) => {
         if (err) throw err;
         setCompany(data);
         if (data) {
           setForm({
-            name: data.name || "",
+            name: data.company_name || "",
             industry: data.industry || "",
-            address: data.address || "",
+            house_number_unit: data.house_number_unit || "",
+            street_address: data.street_address || "",
+            subdivision_building: data.subdivision_building || "",
+            barangay_district: data.barangay_district || "",
+            city_municipality: data.city_municipality || "",
+            province_state: data.province_state || "",
+            postal_code: data.postal_code || "",
+            country: data.country || "Philippines",
             phone: data.phone || "",
+            email: data.email || "",
             website: data.website || "",
             description: data.description || "",
+            representative_email: data.representative_email || "",
+            representative_position: data.representative_position || "",
           });
-          return listAccreditations(data.id);
         }
-        return [];
       })
-      .then((accs) => setAccreditation(accs[0] || null))
       .catch((err) => setError(err.message || "Failed to load profile"))
       .finally(() => setLoading(false));
   }, [user]);
@@ -48,9 +57,31 @@ function CompanyProfile() {
     setSaving(true);
     setError("");
     try {
-      const { error: err } = await supabase.from("companies").update({ ...form, updated_at: new Date().toISOString() }).eq("id", company.id);
-      if (err) throw err;
-      setCompany({ ...company, ...form });
+      const { name, ...rest } = form;
+      const patch = { ...rest, company_name: name };
+
+      if (company) {
+        // Route through updateProfile so the audit log is written and the
+        // update is always pinned to the authenticated user's own row (user.id).
+        const updated = await updateProfile(user.id, patch);
+        setCompany(updated);
+        // Refresh auth context so user.company_name etc. stay current everywhere
+        if (refreshUser) await refreshUser(user);
+      } else {
+        // First login after email-confirmation: employers row was never created
+        // at registration. Insert it now pinned to the auth user's own id.
+        const { data: created, error: err } = await supabase
+          .from("employers")
+          .insert({ ...patch, id: user.id })
+          .select()
+          .maybeSingle();
+        if (err) throw err;
+        setCompany(created);
+        // Kick off accreditation — this also syncs accreditation_status='pending'
+        await createAccreditation(created.id);
+        if (refreshUser) await refreshUser(user);
+      }
+
       setEditing(false);
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
@@ -61,10 +92,11 @@ function CompanyProfile() {
     }
   }
 
-  const accreditationStatus = accreditation?.status || "Not Applied";
+  // Read directly from the employers row — kept in sync by documents.js
+  const accreditationStatus = company?.accreditation_status || "Not Applied";
 
   return (
-    <div className="max-w-3xl animate-fade-in space-y-8">
+    <div className="w-full animate-fade-in space-y-8">
       <header>
         <p className="font-mono text-[11px] tracking-[0.2em] text-[#0057B8] uppercase">COMPANY PROFILE</p>
         <h1 className="mt-1 font-sans text-2xl md:text-3xl font-bold tracking-tight text-gray-900">Business Information</h1>
@@ -81,7 +113,7 @@ function CompanyProfile() {
               <h2 className="text-xl font-bold text-gray-900">{form.name || "My Company"}</h2>
               <p className="font-mono text-xs text-gray-400 mt-0.5">
                 Accreditation:{" "}
-                <span className={accreditationStatus === "approved" ? "text-emerald-600" : accreditationStatus === "rejected" ? "text-danger" : "text-amber-700"}>
+                <span className={accreditationStatus === "approved" ? "text-emerald-600" : accreditationStatus === "rejected" || accreditationStatus === "revoked" ? "text-danger" : "text-amber-700"}>
                   {accreditationStatus}
                 </span>
               </p>
@@ -102,7 +134,7 @@ function CompanyProfile() {
 
         {editing ? (
           <form onSubmit={handleSubmit} className="mt-6 space-y-5 animate-fade-in">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4">
               <div>
                 <label className="block font-mono text-[11px] tracking-wider text-gray-500 uppercase mb-1.5">Company Name</label>
                 <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="w-full min-h-[44px] px-4 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all" />
@@ -121,13 +153,37 @@ function CompanyProfile() {
               </div>
             </div>
             <div>
-              <label className="block font-mono text-[11px] tracking-wider text-gray-500 uppercase mb-1.5">Business Address</label>
-              <input value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} placeholder="Complete business address" className="w-full min-h-[44px] px-4 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all" />
+              <p className="block font-mono text-[11px] tracking-wider text-gray-500 uppercase mb-1.5">Business Address</p>
+              <div className="grid grid-cols-1 gap-4">
+                {[["house_number_unit", "House / Building / Unit No.", "e.g. Unit 402 or Bldg 3"], ["street_address", "Street Address & Lot / Block", "Street address"], ["subdivision_building", "Subdivision / Village / Building Name", "Subdivision name"], ["barangay_district", "Barangay / District", "Barangay"], ["city_municipality", "City / Municipality", "e.g. Santa Maria"], ["province_state", "Province / State", "e.g. Bulacan"], ["postal_code", "Postal / ZIP Code", "e.g. 3022"], ["country", "Country", "Philippines"]].map(([field, label, placeholder]) => (
+                  <div key={field}>
+                    <label htmlFor={field} className="block font-mono text-[11px] tracking-wider text-gray-500 uppercase mb-1.5">{label}</label>
+                    <input id={field} value={form[field] || ""} onChange={(e) => setForm({ ...form, [field]: e.target.value })} placeholder={placeholder} className="w-full min-h-[44px] px-4 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all" />
+                  </div>
+                ))}
+              </div>
             </div>
             <div>
               <label className="block font-mono text-[11px] tracking-wider text-gray-500 uppercase mb-1.5">Company Description</label>
               <textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={4} placeholder="Brief description of your company..." className="w-full px-4 py-3 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all resize-none" />
             </div>
+            <section className="bg-gray-50 border border-gray-200 rounded-xl p-5 space-y-4">
+              <p className="font-mono text-[11px] tracking-[0.2em] text-primary uppercase font-semibold">Authorized Representative</p>
+              <div className="grid grid-cols-1 gap-4">
+                <div>
+                  <label className="block font-mono text-[11px] tracking-wider text-gray-500 uppercase mb-1.5">Company Email</label>
+                  <input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="hr@company.com" className="w-full min-h-[44px] px-4 rounded-xl text-sm bg-white border border-gray-200 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all" />
+                </div>
+                <div>
+                  <label className="block font-mono text-[11px] tracking-wider text-gray-500 uppercase mb-1.5">Representative Email</label>
+                  <input type="email" value={form.representative_email} onChange={(e) => setForm({ ...form, representative_email: e.target.value })} placeholder="maria@company.com" className="w-full min-h-[44px] px-4 rounded-xl text-sm bg-white border border-gray-200 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all" />
+                </div>
+                <div>
+                  <label className="block font-mono text-[11px] tracking-wider text-gray-500 uppercase mb-1.5">Position</label>
+                  <input value={form.representative_position} onChange={(e) => setForm({ ...form, representative_position: e.target.value })} placeholder="e.g. HR Manager" className="w-full min-h-[44px] px-4 rounded-xl text-sm bg-white border border-gray-200 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all" />
+                </div>
+              </div>
+            </section>
             <div className="flex items-center gap-3 pt-3">
               <button type="submit" disabled={saving} className="min-h-[42px] px-6 rounded-xl bg-primary text-white text-xs font-medium hover:bg-primary-hover active:scale-[0.98] transition-colors disabled:opacity-60">
                 {saving ? "Saving…" : "Save Profile"}
@@ -138,7 +194,7 @@ function CompanyProfile() {
             </div>
           </form>
         ) : (
-          <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-5 text-sm p-5 rounded-xl bg-gray-50 border border-gray-200">
+          <div className="mt-6 grid grid-cols-1 gap-5 text-sm p-5 rounded-xl bg-gray-50 border border-gray-200">
             <div>
               <dt className="font-mono text-[10px] tracking-widest uppercase text-gray-400">Industry</dt>
               <dd className="mt-1 text-xs text-gray-700">{form.industry || "Not set"}</dd>
@@ -149,11 +205,23 @@ function CompanyProfile() {
             </div>
             <div>
               <dt className="font-mono text-[10px] tracking-widest uppercase text-gray-400">Website</dt>
-              <dd className="mt-1 text-xs text-gray-700">{form.website || "Not set"}</dd>
+              <dd className="mt-1 font-mono text-xs text-gray-700">{form.website || "Not set"}</dd>
+            </div>
+            <div>
+              <dt className="font-mono text-[10px] tracking-widest uppercase text-gray-400">Company Email</dt>
+              <dd className="mt-1 font-mono text-xs text-gray-700">{form.email || "Not set"}</dd>
+            </div>
+            <div>
+              <dt className="font-mono text-[10px] tracking-widest uppercase text-gray-400">Representative</dt>
+              <dd className="mt-1 text-xs text-gray-700">
+                {form.representative_email || form.representative_position
+                  ? [form.representative_position, form.representative_email].filter(Boolean).join(" · ")
+                  : "Not set"}
+              </dd>
             </div>
             <div>
               <dt className="font-mono text-[10px] tracking-widest uppercase text-gray-400">Address</dt>
-              <dd className="mt-1 text-xs text-gray-700">{form.address || "Not set"}</dd>
+              <dd className="mt-1 text-xs text-gray-700">{formatFullAddress(form) || "Not set"}</dd>
             </div>
             {form.description && (
               <div className="sm:col-span-2">

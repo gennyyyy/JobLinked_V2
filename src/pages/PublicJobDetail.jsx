@@ -25,9 +25,11 @@ function PublicJobDetail() {
 
   return (
     <div className="min-h-screen bg-gray-50 text-gray-900 flex flex-col font-sans">
-      <header className="sticky top-0 z-20 bg-white/90 backdrop-blur border-b border-gray-200">
-        <div className="max-w-[1280px] mx-auto px-6 h-[56px] flex items-center justify-between">
-          <Link to="/"><img src={TextBasedLogo} alt="JobLinked" className="h-6" /></Link>
+      <header className="sticky top-0 z-20 bg-dark-blue/90 backdrop-blur border-b border-white/10">
+        <div className="w-full px-4 h-[56px] flex items-center justify-between">
+          <div className="bg-white rounded-lg px-3.5 py-1.5 flex items-center shadow-xs">
+            <Link to="/"><img src={TextBasedLogo} alt="JobLinked" className="h-6" /></Link>
+          </div>
           <div className="flex items-center gap-3">
             <Link to="/register" className="text-xs text-gray-500 hover:text-gray-900 transition-colors">Register</Link>
             <Link to="/portals" className="min-h-[36px] inline-flex items-center px-4 rounded-xl bg-primary text-white text-xs font-medium hover:bg-primary-hover transition-colors">Log In</Link>
@@ -35,7 +37,7 @@ function PublicJobDetail() {
         </div>
       </header>
 
-      <main className="flex-1 max-w-[1000px] w-full mx-auto px-6 py-10 md:py-14 animate-fade-in">
+      <main className="flex-1 w-full p-[3%] animate-fade-in">
         <Link to="/jobs" className="inline-flex items-center text-xs text-gray-500 hover:text-gray-900 transition-colors mb-6">← Back to all postings</Link>
 
         <article className="bg-white border border-gray-200 rounded-2xl p-7 md:p-10 shadow-lg">
@@ -43,14 +45,14 @@ function PublicJobDetail() {
             <div>
               <span className="font-mono text-[10px] tracking-widest uppercase px-2.5 py-1 rounded-full bg-primary/10 border border-primary/25 text-primary">{job.location} · {job.employment_type}</span>
               <h1 className="mt-3 text-2xl md:text-3xl font-bold tracking-tight text-dark-blue">{job.title}</h1>
-              <p className="mt-1 text-sm text-gray-500 font-medium">{job.companies?.name}</p>
+              <p className="mt-1 text-sm text-gray-500 font-medium">{job.employers?.company_name}</p>
             </div>
             <span className="inline-flex px-3.5 py-1.5 rounded-full bg-primary/10 border border-primary/25 font-mono text-sm text-primary font-semibold self-start">
               {job.salary_min ? `₱${job.salary_min}${job.salary_max ? `–₱${job.salary_max}` : ""}` : "Negotiable"}
             </span>
           </div>
 
-          <div className="mt-8 grid grid-cols-2 sm:grid-cols-4 gap-4 p-5 rounded-xl bg-gray-50 border border-gray-200">
+          <div className="mt-8 grid grid-cols-1 gap-4 p-5 rounded-xl bg-gray-50 border border-gray-200">
             <div>
               <p className="font-mono text-[10px] tracking-widest uppercase text-gray-400">Compensation</p>
               <p className="mt-1 font-mono text-sm text-gray-900 font-medium">{job.salary_min ? `₱${job.salary_min}${job.salary_max ? `–₱${job.salary_max}` : ""}` : "—"}</p>
@@ -117,7 +119,7 @@ function PublicJobDetail() {
       </main>
 
       <footer className="border-t border-gray-200 bg-dark-blue text-white/30">
-        <div className="max-w-[1280px] mx-auto px-6 py-6 flex flex-col sm:flex-row justify-between gap-2 text-xs font-mono">
+        <div className="w-full px-4 py-3 flex flex-col sm:flex-row justify-between gap-2 text-xs font-mono">
           <span className="text-white/60 font-medium">Job<span className="text-[#0057B8]">Linked</span> <span className="text-white/40">PESO</span></span>
           <span>Santa Maria Municipal Hall · hello@joblinked.ph</span>
           <span>© 2026</span>

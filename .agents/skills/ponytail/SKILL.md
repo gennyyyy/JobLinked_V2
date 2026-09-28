@@ -1,4 +1,10 @@
-# Skill: ponytail
+---
+name: ponytail
+description: >
+  Forces the laziest solution that actually works, simplest, shortest, most
+  minimal. Use on coding tasks and when the user asks for a minimal solution.
+argument-hint: "[lite|full|ultra]"
+---
 
 # Ponytail
 

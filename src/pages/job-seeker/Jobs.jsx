@@ -7,6 +7,9 @@ function Jobs() {
   const [search, setSearch] = useState("");
   const [location, setLocation] = useState("");
   const [employmentType, setEmploymentType] = useState("");
+  const [employer, setEmployer] = useState("");
+  const [salaryMin, setSalaryMin] = useState("");
+  const [order, setOrder] = useState("created_at.desc");
   const [jobs, setJobs] = useState([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -15,14 +18,29 @@ function Jobs() {
   const pageSize = 10;
 
   useEffect(() => {
-    listJobs({ search, location, employmentType, page, pageSize })
-      .then((result) => { setJobs(result.jobs); setTotal(result.total); })
-      .catch((err) => setError(err.message || "Failed to load jobs"))
-      .finally(() => setLoading(false));
-  }, [search, location, employmentType, page]);
+    let cancelled = false;
+    async function fetchJobs() {
+      setLoading(true);
+      setError("");
+      try {
+        const result = await listJobs({ search, location, employmentType, employer, salaryMin: salaryMin ? Number(salaryMin) : null, order, page, pageSize });
+        if (!cancelled) { setJobs(result.jobs); setTotal(result.total); }
+      } catch (err) {
+        if (!cancelled) setError(err.message || "Failed to load jobs");
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+    fetchJobs();
+    return () => { cancelled = true; };
+  }, [search, location, employmentType, employer, salaryMin, order, page]);
 
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
   const locations = [...new Set(jobs.map((j) => j.location).filter(Boolean))];
+
+  function resetFilters() {
+    setSearch(""); setLocation(""); setEmploymentType(""); setEmployer(""); setSalaryMin(""); setPage(1);
+  }
 
   return (
     <div className="space-y-8 animate-fade-in">
@@ -39,6 +57,13 @@ function Jobs() {
           onChange={(e) => { setSearch(e.target.value); setPage(1); }}
           placeholder="Search by job title..."
           className="flex-1 min-h-[44px] px-4 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all"
+        />
+        <input
+          type="text"
+          value={employer}
+          onChange={(e) => { setEmployer(e.target.value); setPage(1); }}
+          placeholder="Employer..."
+          className="sm:w-44 min-h-[44px] px-4 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all"
         />
         <select
           value={location}
@@ -60,6 +85,26 @@ function Jobs() {
           <option value="Seasonal">Seasonal</option>
           <option value="Job Order">Job Order</option>
         </select>
+        <input
+          type="number"
+          min="0"
+          value={salaryMin}
+          onChange={(e) => { setSalaryMin(e.target.value); setPage(1); }}
+          placeholder="Min ₱ salary"
+          className="sm:w-36 min-h-[44px] px-4 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all"
+        />
+        <select
+          value={order}
+          onChange={(e) => { setOrder(e.target.value); setPage(1); }}
+          aria-label="Sort jobs"
+          className="min-h-[44px] px-4 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all"
+        >
+          <option value="created_at.desc">Newest</option>
+          <option value="salary_max.desc">Salary: High to Low</option>
+          <option value="salary_min.asc">Salary: Low to High</option>
+          <option value="title.asc">Title A–Z</option>
+          <option value="deadline.asc">Deadline</option>
+        </select>
       </form>
 
       {loading ? (
@@ -67,7 +112,7 @@ function Jobs() {
       ) : error ? (
         <div className="py-16 text-center text-sm text-danger">{error}</div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-1 gap-4">
           {jobs.map((job) => (
             <Link
               key={job.id}
@@ -80,7 +125,7 @@ function Jobs() {
                   <span className="text-gray-300 group-hover:text-primary transition-colors text-sm">↗</span>
                 </div>
                 <h2 className="mt-2 text-lg font-semibold text-gray-900 group-hover:text-primary transition-colors line-clamp-1">{job.title}</h2>
-                <p className="text-xs text-gray-500 mt-1">{job.companies?.name}</p>
+                <p className="text-xs text-gray-500 mt-1">{job.employers?.company_name}</p>
                 {job.description && <p className="mt-3 text-xs text-gray-500 line-clamp-2 leading-relaxed">{job.description}</p>}
               </div>
               <div className="mt-5 pt-4 border-t border-gray-200 flex items-center justify-between">
@@ -97,7 +142,7 @@ function Jobs() {
       {!loading && !error && jobs.length === 0 && (
         <div className="py-16 text-center bg-gray-50 border border-gray-200 rounded-2xl">
           <p className="text-sm text-gray-500">No openings match your search filters.</p>
-          <button onClick={() => { setSearch(""); setLocation(""); setEmploymentType(""); }} className="mt-4 text-xs font-mono text-[#0057B8] hover:underline">
+          <button onClick={resetFilters} className="mt-4 text-xs font-mono text-[#0057B8] hover:underline">
             Reset filters
           </button>
         </div>

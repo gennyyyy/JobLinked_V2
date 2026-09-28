@@ -2,20 +2,55 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import useAuth from "../../hooks/useAuth";
 import { listBySeeker } from "../../services/applications";
+import { listJobs } from "../../services/jobs";
 import LoadingScreen from "../../components/LoadingScreen";
+
+function scoreJob(job, user) {
+  const skills = user?.skills || [];
+  const jobText = `${job.title || ""} ${job.description || ""} ${job.requirements || ""}`.toLowerCase();
+  const skillHits = skills.filter((s) => jobText.includes(String(s).toLowerCase())).length;
+  let score = skillHits;
+  if (user?.preferred_position && job.title?.toLowerCase().includes(user.preferred_position.toLowerCase())) score += 2;
+  if (user?.preferred_location && job.location?.toLowerCase().includes(user.preferred_location.toLowerCase())) score += 1;
+  if (user?.barangay_district && job.location?.toLowerCase().includes(user.barangay_district.toLowerCase())) score += 1;
+  return score;
+}
+
+function profileCompletion(user) {
+  const checks = [
+    user?.first_name, user?.last_name, user?.phone, user?.barangay_district, user?.birthdate,
+    user?.employment_status, user?.preferred_position, user?.preferred_location,
+    user?.skills?.length, user?.street_address || user?.subdivision_building,
+  ];
+  return Math.round((checks.filter(Boolean).length / checks.length) * 100);
+}
 
 function Dashboard() {
   const { user } = useAuth();
   const [applications, setApplications] = useState([]);
+  const [recommended, setRecommended] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [today] = useState(() => Date.now());
 
   useEffect(() => {
     if (!user) return;
-    listBySeeker(user.id)
-      .then(setApplications)
-      .catch((err) => setError(err.message || "Failed to load applications"))
+    Promise.all([
+      listBySeeker(user.id),
+      listJobs({ page: 1, pageSize: 50 }),
+    ])
+      .then(([apps, { jobs }]) => {
+        setApplications(apps);
+        const appliedJobIds = new Set(apps.map((a) => a.job_id));
+        setRecommended(
+          jobs
+            .filter((job) => !appliedJobIds.has(job.id))
+            .map((job) => ({ ...job, score: scoreJob(job, user) }))
+            .sort((a, b) => b.score - a.score)
+            .slice(0, 3)
+        );
+      })
+      .catch((err) => setError(err.message || "Failed to load dashboard"))
       .finally(() => setLoading(false));
   }, [user]);
 
@@ -41,6 +76,8 @@ function Dashboard() {
     .sort((a, b) => new Date(b.applied_at) - new Date(a.applied_at))
     .slice(0, 5);
 
+  const completion = profileCompletion(user);
+
   return (
     <div className="space-y-8 animate-fade-in bg-gray-50">
       <header>
@@ -52,7 +89,7 @@ function Dashboard() {
         <p className="mt-2 text-sm text-gray-500">Track your applications and recruitment activity</p>
       </header>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         {stats.map((stat) => (
           <div
             key={stat.label}
@@ -66,6 +103,57 @@ function Dashboard() {
       </div>
 
       <section className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm border-t-4 border-primary">
+        <div className="flex items-center justify-between gap-4 mb-4 border-l-4 border-primary pl-4">
+          <div>
+            <h2 className="text-lg font-semibold text-dark-blue">Profile Completion</h2>
+            <p className="text-xs text-gray-500 mt-0.5">Complete profiles get seen by more employers</p>
+          </div>
+          <span className="font-mono text-2xl font-bold text-primary">{completion}%</span>
+        </div>
+        <div className="h-2 rounded-full bg-gray-100 overflow-hidden">
+          <div className="h-full bg-primary transition-all" style={{ width: `${completion}%` }} />
+        </div>
+        {completion < 100 && (
+          <Link to="/job-seeker/profile" className="inline-block mt-3 text-xs font-medium text-primary hover:underline">
+            Complete my profile →
+          </Link>
+        )}
+      </section>
+
+      <section className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm border-t-4 border-primary">
+        <div className="flex items-center justify-between gap-4 mb-6 border-l-4 border-primary pl-4">
+          <div>
+            <h2 className="text-lg font-semibold text-dark-blue">Recommended For You</h2>
+            <p className="text-xs text-gray-500 mt-0.5">Matched against your skills, preferred position, and location</p>
+          </div>
+          <Link to="/job-seeker/jobs" className="text-xs font-medium text-primary hover:underline shrink-0">View all →</Link>
+        </div>
+        {recommended.length === 0 ? (
+          <div className="py-8 text-center text-sm text-gray-400">
+            No recommendations yet.{" "}
+            <Link to="/job-seeker/profile" className="text-primary hover:underline">Add skills and preferences →</Link>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-1 gap-4">
+            {recommended.map((job) => (
+              <Link
+                key={job.id}
+                to={`/job-seeker/jobs/${job.id}`}
+                className="group border border-gray-200 rounded-xl p-4 hover:border-primary/40 transition-all"
+              >
+                <span className="font-mono text-[10px] tracking-widest text-gray-400 uppercase">{job.location} · {job.employment_type}</span>
+                <h3 className="mt-1.5 text-sm font-semibold text-gray-900 group-hover:text-primary transition-colors line-clamp-2">{job.title}</h3>
+                <p className="mt-1 text-xs text-gray-500">{job.employers?.company_name}</p>
+                <span className="inline-block mt-3 px-2.5 py-1 rounded-full bg-primary/10 border border-primary/25 font-mono text-xs text-primary">
+                  {job.salary_min ? `₱${job.salary_min}${job.salary_max ? `–₱${job.salary_max}` : ""}` : "Negotiable"}
+                </span>
+              </Link>
+            ))}
+          </div>
+        )}
+      </section>
+
+      <section className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm border-t-4 border-primary">
         <div className="flex items-center gap-3 mb-6 border-l-4 border-primary pl-4">
           <div>
             <h2 className="text-lg font-semibold text-dark-blue">Recent Applications</h2>
@@ -76,7 +164,7 @@ function Dashboard() {
         {recentApps.length === 0 ? (
           <div className="py-12 text-center text-sm text-gray-400">
             You haven't applied to any jobs yet.{" "}
-            <Link to="/jobs" className="text-primary hover:underline">Browse openings →</Link>
+            <Link to="/job-seeker/jobs" className="text-primary hover:underline">Browse openings →</Link>
           </div>
         ) : (
           <div className="divide-y divide-gray-100">
@@ -84,7 +172,7 @@ function Dashboard() {
               <div key={item.id} className="py-4 first:pt-0 last:pb-0 flex items-center justify-between gap-4">
                 <div className="min-w-0">
                   <p className="text-sm font-medium text-gray-900 truncate">{item.job?.title}</p>
-                  <p className="mt-1 text-xs text-gray-500 truncate">{item.job?.companies?.name}</p>
+                  <p className="mt-1 text-xs text-gray-500 truncate">{item.job?.employers?.company_name}</p>
                   <p className="mt-1 font-mono text-[11px] text-gray-500">
                     Applied on {new Date(item.applied_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                   </p>
@@ -94,7 +182,7 @@ function Dashboard() {
                     className={`font-mono text-[10px] tracking-wider px-3 py-1 rounded-full uppercase border ${
                       item.status === "Shortlisted"
                         ? "bg-emerald-50 border-emerald-200 text-emerald-700"
-                        : item.status === "Rejected"
+                        : item.status === "Rejected" || item.status === "Terminated"
                           ? "bg-danger/10 border-danger/20 text-danger"
                           : "bg-amber-50 border-amber-200 text-amber-700"
                     }`}

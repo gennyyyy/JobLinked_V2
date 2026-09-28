@@ -43,7 +43,7 @@ function Dashboard() {
         <p className="mt-2 text-sm text-gray-500">Real-time municipal statistics, accreditations, and system activities</p>
       </header>
 
-      <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         {statCards.map((stat) => (
           <div
             key={stat.label}
@@ -72,9 +72,9 @@ function Dashboard() {
             {recentAccreditations.map((acc) => (
               <div key={acc.id} className="py-4 first:pt-0 last:pb-0 flex items-center justify-between gap-4">
                 <div className="min-w-0">
-                  <p className="text-sm font-medium text-gray-900 truncate">{acc.companies?.name}</p>
+                  <p className="text-sm font-medium text-gray-900 truncate">{acc.employers?.company_name}</p>
                   <p className="mt-1 text-xs text-gray-500 truncate">
-                    Barangay {acc.companies?.barangay} · {new Date(acc.submitted_at).toLocaleDateString("en-PH", { dateStyle: "medium" })}
+                    Barangay {acc.employers?.barangay_district} · {new Date(acc.submitted_at).toLocaleDateString("en-PH", { dateStyle: "medium" })}
                   </p>
                 </div>
                 <span

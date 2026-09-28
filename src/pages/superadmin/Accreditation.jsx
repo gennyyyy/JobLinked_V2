@@ -1,7 +1,10 @@
 import { useState, useEffect } from "react";
-import { listAllAccreditations, listCompanies, listDocumentsForAccreditation, updateUser } from "../../services/admin";
-import { signedUrl, updateAccreditation, updateDocumentStatus } from "../../services/documents";
+import { createPortal } from "react-dom";
+import { listAllAccreditations, listCompanies, updateUser } from "../../services/admin";
+import { signedUrl, updateAccreditation, updateDocumentStatus, listCompanyDocuments, latestAccByCompany } from "../../services/documents";
 import LoadingScreen from "../../components/LoadingScreen";
+import ConfirmationModal from "../../components/ConfirmationModal";
+import { formatFullAddress } from "../../utils/address";
 
 function InfoRow({ label, value }) {
   return (
@@ -18,7 +21,7 @@ function DetailModal({ accreditation, onClose }) {
 
   useEffect(() => {
     if (!accreditation) return;
-    listDocumentsForAccreditation(accreditation.id)
+    listCompanyDocuments(accreditation.company_id)
       .then(setDocs)
       .catch(() => setDocs([]))
       .finally(() => setLoading(false));
@@ -35,20 +38,20 @@ function DetailModal({ accreditation, onClose }) {
 
   async function handleDocStatus(docId, status) {
     await updateDocumentStatus(docId, status);
-    const updated = await listDocumentsForAccreditation(accreditation.id);
+    const updated = await listCompanyDocuments(accreditation.company_id);
     setDocs(updated);
   }
 
   if (!accreditation) return null;
-  const company = accreditation.companies;
+  const company = accreditation.employers;
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 animate-fade-in">
+  return createPortal(
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 animate-fade-in p-4">
       <div className="bg-white w-full max-w-2xl max-h-[90vh] overflow-y-auto border border-gray-200 rounded-2xl shadow-xl p-6 md:p-8">
         <div className="flex items-start justify-between gap-4 pb-4 border-b border-gray-200">
           <div>
-            <span className="font-mono text-[10px] tracking-widest text-[#0057B8] uppercase">APPLICATION DOSSIER</span>
-            <h2 className="mt-1 text-xl font-bold text-gray-900">{company?.name}</h2>
+            <span className="font-mono text-[10px] tracking-widest text-[#0057B8] uppercase">APPLICATION DOCUMENTS</span>
+            <h2 className="mt-1 text-xl font-bold text-gray-900">{company?.company_name}</h2>
             <p className="mt-1 text-xs text-gray-500">
               Submitted {new Date(accreditation.submitted_at).toLocaleString("en-PH", { dateStyle: "medium", timeStyle: "short" })}
             </p>
@@ -58,10 +61,10 @@ function DetailModal({ accreditation, onClose }) {
 
         <section className="mt-6">
           <h3 className="font-mono text-[11px] tracking-[0.2em] text-[#0057B8] uppercase mb-4">Company Information</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 rounded-xl bg-gray-50 border border-gray-200">
-            <InfoRow label="Company Name" value={company?.name} />
-            <InfoRow label="Barangay" value={company?.barangay} />
-            <InfoRow label="Business Address" value={company?.address} />
+          <div className="grid grid-cols-1 gap-4 p-4 rounded-xl bg-gray-50 border border-gray-200">
+            <InfoRow label="Company Name" value={company?.company_name} />
+            <InfoRow label="Barangay" value={company?.barangay_district} />
+            <InfoRow label="Business Address" value={formatFullAddress(company)} />
             <InfoRow label="Contact Number" value={company?.phone} />
             <InfoRow label="Industry" value={company?.industry} />
           </div>
@@ -83,11 +86,10 @@ function DetailModal({ accreditation, onClose }) {
                       <p className="text-gray-400">{doc.file_name}</p>
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className={`font-mono text-[10px] px-2 py-0.5 rounded-full uppercase border ${
-                        doc.status === "verified" ? "bg-emerald-50 border-emerald-200 text-emerald-700"
+                      <span className={`font-mono text-[10px] px-2 py-0.5 rounded-full uppercase border ${doc.status === "verified" ? "bg-emerald-50 border-emerald-200 text-emerald-700"
                         : doc.status === "rejected" ? "bg-danger/10 border-danger/20 text-danger"
-                        : "bg-amber-50 border-amber-200 text-amber-700"
-                      }`}>
+                          : "bg-amber-50 border-amber-200 text-amber-700"
+                        }`}>
                         {doc.status}
                       </span>
                       <button onClick={() => handleViewDoc(doc)} className="text-primary hover:underline">View</button>
@@ -103,16 +105,17 @@ function DetailModal({ accreditation, onClose }) {
 
         <div className="mt-8 pt-5 border-t border-gray-200 flex justify-end">
           <button onClick={onClose} className="px-5 py-2 text-xs font-medium rounded-xl border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors">
-            Close Dossier
+            Close Documents
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
 function Accreditation() {
-  const [pending, setPending] = useState([]);
+  const [accs, setAccs] = useState([]);
   const [companies, setCompanies] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -120,11 +123,12 @@ function Accreditation() {
   const [rejectNote, setRejectNote] = useState("");
   const [rejectError, setRejectError] = useState(false);
   const [viewingId, setViewingId] = useState(null);
+  const [revoking, setRevoking] = useState(null);
 
   useEffect(() => {
     Promise.all([listAllAccreditations(), listCompanies()])
-      .then(([accs, comps]) => {
-        setPending(accs.filter((a) => a.status === "pending"));
+      .then(([allAccs, comps]) => {
+        setAccs(allAccs);
         setCompanies(comps);
       })
       .catch((err) => setError(err.message || "Failed to load"))
@@ -134,9 +138,14 @@ function Accreditation() {
   if (loading) return <LoadingScreen />;
   if (error) return <div className="py-16 text-center text-sm text-danger">{error}</div>;
 
+  // accs is ordered by submitted_at desc, so the first row per company is its latest
+  const pending = accs.filter((a) => a.status === "pending");
+  const latestByCompany = latestAccByCompany(accs);
+
   async function handleApprove(acc) {
     await updateAccreditation(acc.id, { status: "approved", remarks: "Account verified and accredited." });
-    setPending((prev) => prev.filter((a) => a.id !== acc.id));
+    setAccs((prev) => prev.map((a) => (a.id === acc.id ? { ...a, status: "approved" } : a)));
+    setCompanies((prev) => prev.map((c) => (c.id === acc.company_id ? { ...c, accreditation_status: "approved" } : c)));
   }
 
   async function startReject(acc) {
@@ -149,17 +158,34 @@ function Accreditation() {
     const note = rejectNote.trim();
     if (!note) { setRejectError(true); return; }
     await updateAccreditation(acc.id, { status: "rejected", remarks: note });
-    setPending((prev) => prev.filter((a) => a.id !== acc.id));
+    setAccs((prev) => prev.map((a) => (a.id === acc.id ? { ...a, status: "rejected", remarks: note } : a)));
+    setCompanies((prev) => prev.map((c) => (c.id === acc.company_id ? { ...c, accreditation_status: "rejected" } : c)));
     setRejectingId(null);
     setRejectNote("");
     setRejectError(false);
   }
 
   async function toggleCompanyStatus(company) {
-    const newStatus = company.owner?.status === "suspended" ? "active" : "suspended";
-    await updateUser(company.owner.id, { status: newStatus });
+    const newStatus = company.status === "suspended" ? "active" : "suspended";
+    await updateUser(company.id, { status: newStatus });
     const updated = await listCompanies();
     setCompanies(updated);
+  }
+
+  async function confirmRevoke() {
+    const acc = latestByCompany[revoking.id];
+    const remarks = "Accreditation revoked by PESO.";
+    await updateAccreditation(acc.id, { status: "revoked", remarks });
+    setAccs((prev) => prev.map((a) => (a.id === acc.id ? { ...a, status: "revoked", remarks } : a)));
+    setCompanies((prev) => prev.map((c) => (c.id === revoking.id ? { ...c, accreditation_status: "revoked" } : c)));
+    setRevoking(null);
+  }
+
+  async function reinstate(acc) {
+    const remarks = "Accreditation reinstated by PESO.";
+    await updateAccreditation(acc.id, { status: "approved", remarks });
+    setAccs((prev) => prev.map((a) => (a.id === acc.id ? { ...a, status: "approved", remarks } : a)));
+    setCompanies((prev) => prev.map((c) => (c.id === acc.company_id ? { ...c, accreditation_status: "approved" } : c)));
   }
 
   const viewingAcc = viewingId ? pending.find((a) => a.id === viewingId) : null;
@@ -192,9 +218,9 @@ function Accreditation() {
             {pending.map((acc) => (
               <div key={acc.id} className="py-5 first:pt-0 last:pb-0 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                 <div className="min-w-0">
-                  <p className="text-base font-semibold text-gray-900">{acc.companies?.name}</p>
+                  <p className="text-base font-semibold text-gray-900">{acc.employers?.company_name}</p>
                   <p className="mt-1 text-xs text-gray-500">
-                    {acc.companies?.address} · Barangay {acc.companies?.barangay}
+                    {formatFullAddress(acc.employers) || "Address not provided"}
                   </p>
                   <p className="mt-1 text-xs text-gray-500">
                     Submitted {new Date(acc.submitted_at).toLocaleDateString("en-PH", { dateStyle: "medium" })}
@@ -244,33 +270,68 @@ function Accreditation() {
                 <th className="text-left py-3 px-4 font-medium">Owner</th>
                 <th className="text-left py-3 px-4 font-medium">Email</th>
                 <th className="text-left py-3 px-4 font-medium">Status</th>
+                <th className="text-left py-3 px-4 font-medium">Accreditation</th>
                 <th className="text-right py-3 px-4 font-medium">Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
               {companies.map((company) => (
                 <tr key={company.id} className="hover:bg-primary/5 transition-colors">
-                  <td className="py-3.5 px-4 text-gray-900 font-medium">{company.name}</td>
-                  <td className="py-3.5 px-4 font-mono text-xs text-gray-500">{company.owner?.full_name}</td>
-                  <td className="py-3.5 px-4 font-mono text-xs text-gray-500">{company.owner?.email}</td>
+                  <td className="py-3.5 px-4 text-gray-900 font-medium">{company.company_name}</td>
+                  <td className="py-3.5 px-4 font-mono text-xs text-gray-500">{company.full_name}</td>
+                  <td className="py-3.5 px-4 font-mono text-xs text-gray-500">{company.email}</td>
                   <td className="py-3.5 px-4">
-                    <span className={`font-mono text-[10px] tracking-wider px-2.5 py-0.5 rounded-full uppercase border ${
-                      company.owner?.status === "active" ? "bg-emerald-50 border-emerald-200 text-emerald-700"
-                      : company.owner?.status === "suspended" ? "bg-amber-50 border-amber-200 text-amber-700"
-                      : "bg-gray-100 border-gray-200 text-gray-500"
-                    }`}>
-                      {company.owner?.status}
+                    <span className={`font-mono text-[10px] tracking-wider px-2.5 py-0.5 rounded-full uppercase border ${company.status === "active" ? "bg-emerald-50 border-emerald-200 text-emerald-700"
+                      : company.status === "suspended" ? "bg-amber-50 border-amber-200 text-amber-700"
+                        : "bg-gray-100 border-gray-200 text-gray-500"
+                      }`}>
+                      {company.status}
                     </span>
                   </td>
+                  <td className="py-3.5 px-4">
+                    {(() => {
+                      // Read directly from the employers row — kept in sync by documents.js
+                      const status = company.accreditation_status || "not applied";
+                      const styles = status === "approved"
+                        ? "bg-emerald-50 border-emerald-200 text-emerald-700"
+                        : status === "pending"
+                          ? "bg-amber-50 border-amber-200 text-amber-700"
+                          : status === "rejected" || status === "revoked"
+                            ? "bg-danger/10 border-danger/20 text-danger"
+                            : "bg-gray-100 border-gray-200 text-gray-500";
+                      return (
+                        <span className={`font-mono text-[10px] tracking-wider px-2.5 py-0.5 rounded-full uppercase border ${styles}`}>
+                          {status}
+                        </span>
+                      );
+                    })()}
+                  </td>
                   <td className="py-3.5 px-4 text-right">
-                    <button
-                      onClick={() => toggleCompanyStatus(company)}
-                      className={`text-xs font-mono transition-colors ${
-                        company.owner?.status === "suspended" ? "text-[#0057B8] hover:text-gray-900" : "text-danger hover:text-danger"
-                      }`}
-                    >
-                      {company.owner?.status === "suspended" ? "Activate" : "Suspend"}
-                    </button>
+                    <div className="flex items-center justify-end gap-3">
+                      {latestByCompany[company.id]?.status === "approved" && (
+                        <button
+                          onClick={() => setRevoking(company)}
+                          className="text-xs font-mono text-danger hover:text-danger/80 transition-colors"
+                        >
+                          Revoke
+                        </button>
+                      )}
+                      {latestByCompany[company.id]?.status === "revoked" && (
+                        <button
+                          onClick={() => reinstate(latestByCompany[company.id])}
+                          className="text-xs font-mono text-[#0057B8] hover:text-gray-900 transition-colors"
+                        >
+                          Reinstate
+                        </button>
+                      )}
+                      <button
+                        onClick={() => toggleCompanyStatus(company)}
+                        className={`text-xs font-mono transition-colors ${company.status === "suspended" ? "text-[#0057B8] hover:text-gray-900" : "text-danger hover:text-danger"
+                          }`}
+                      >
+                        {company.status === "suspended" ? "Activate" : "Suspend"}
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -283,6 +344,16 @@ function Accreditation() {
         <DetailModal
           accreditation={viewingAcc}
           onClose={() => setViewingId(null)}
+        />
+      )}
+
+      {revoking && (
+        <ConfirmationModal
+          message={`Revoke accreditation for ${revoking.company_name}? They will no longer be able to post job vacancies until reinstated.`}
+          confirmLabel="Revoke Accreditation"
+          danger
+          onConfirm={confirmRevoke}
+          onCancel={() => setRevoking(null)}
         />
       )}
     </div>

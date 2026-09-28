@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { listNotifications, markRead, markAllRead } from "../services/notifications";
 import useAuth from "../hooks/useAuth";
 
-function NotificationBell() {
+function NotificationBell({ dark = false }) {
   const { user } = useAuth();
   const [notifications, setNotifications] = useState([]);
   const [open, setOpen] = useState(false);
@@ -31,7 +31,11 @@ function NotificationBell() {
     <div className="relative">
       <button
         onClick={() => setOpen(!open)}
-        className="relative p-2 rounded-lg text-gray-600 hover:text-gray-900 hover:bg-gray-100 border border-gray-200 cursor-pointer"
+        className={`relative p-2 rounded-lg cursor-pointer border ${
+          dark
+            ? "text-white/70 hover:text-white hover:bg-white/10 border-white/20"
+            : "text-gray-600 hover:text-gray-900 hover:bg-gray-100 border-gray-200"
+        }`}
         aria-label="Notifications"
       >
         <svg className="w-4 h-4 fill-none stroke-current" viewBox="0 0 24 24">
@@ -47,7 +51,7 @@ function NotificationBell() {
       {open && (
         <>
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
-          <div className="absolute right-0 top-full mt-2 w-80 bg-white border border-gray-200 rounded-xl shadow-xl z-50 animate-fade-in">
+          <div className={`absolute top-full mt-2 w-80 bg-white border border-gray-200 rounded-xl shadow-xl z-50 animate-fade-in ${dark ? "left-0" : "right-0"}`}>
             <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
               <span className="text-xs font-semibold text-gray-900">Notifications</span>
               {unread > 0 && (

@@ -14,6 +14,20 @@ export async function createNotification({ userId, type, title, message, link = 
   if (error) throw error;
 }
 
+// ponytail: best-effort — a lost notification must never fail the user's action;
+// upgrade path is a DB trigger writing notifications inside the same transaction
+export function notify(payload) {
+  return createNotification(payload).catch(() => {});
+}
+
+// admins' profile ids are not readable under RLS, so insertion is delegated to SQL
+export function notifyAdmins({ type, title, message, link = null }) {
+  return supabase
+    .rpc('notify_admins', { p_type: type, p_title: title, p_message: message, p_link: link })
+    .then(({ error }) => { if (error) throw error; })
+    .catch(() => {});
+}
+
 export async function markRead(id) {
   const { error } = await supabase.from('notifications').update({ is_read: true }).eq('id', id);
   if (error) throw error;

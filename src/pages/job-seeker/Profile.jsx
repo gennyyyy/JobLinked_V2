@@ -3,7 +3,9 @@ import useAuth from "../../hooks/useAuth";
 import { updateProfile } from "../../services/auth";
 import { listResumes, uploadResume, setActiveResume, deleteResume, validateFile } from "../../services/documents";
 import { supabase } from "../../lib/supabase";
+import { EMPLOYMENT_STATUSES } from "../../constants";
 import ConfirmationModal from "../../components/ConfirmationModal";
+import { formatFullAddress } from "../../utils/address";
 import LoadingScreen from "../../components/LoadingScreen";
 import ChangePassword from "../../components/ChangePassword";
 
@@ -15,14 +17,14 @@ function Profile() {
   const [saved, setSaved] = useState(false);
   const [editing, setEditing] = useState(false);
   const [activeTab, setActiveTab] = useState("info");
-  const [form, setForm] = useState({ firstName: "", lastName: "", phone: "", address: "", birthdate: "", skills: "" });
+  const [form, setForm] = useState({ firstName: "", middleName: "", lastName: "", suffix: "", phone: "", houseNumberUnit: "", streetAddress: "", subdivisionBuilding: "", barangayDistrict: "", cityMunicipality: "", provinceState: "", postalCode: "", country: "Philippines", birthdate: "", skills: "", employmentStatus: "", preferredPosition: "", preferredLocation: "" });
   const [education, setEducation] = useState([]);
   const [experience, setExperience] = useState([]);
   const [resumes, setResumes] = useState([]);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [uploadError, setUploadError] = useState("");
-  const [newEdu, setNewEdu] = useState({ school: "", degree: "", year: "" });
-  const [newExp, setNewExp] = useState({ company: "", role: "", startDate: "", endDate: "", description: "" });
+  const [newEdu, setNewEdu] = useState({ level: "", school: "", field: "", end_year: "" });
+  const [newExp, setNewExp] = useState({ company: "", position: "", start_date: "", end_date: "", description: "" });
 
   useEffect(() => {
     if (!user) return;
@@ -37,11 +39,23 @@ function Profile() {
         setResumes(resumeList);
         setForm({
           firstName: user.first_name || "",
+          middleName: user.middle_name || "",
           lastName: user.last_name || "",
+          suffix: user.suffix || "",
           phone: user.phone || "",
-          address: user.barangay ? `Brgy. ${user.barangay}, Santa Maria, Bulacan` : "",
+          houseNumberUnit: user.house_number_unit || "",
+          streetAddress: user.street_address || "",
+          subdivisionBuilding: user.subdivision_building || "",
+          barangayDistrict: user.barangay_district || "",
+          cityMunicipality: user.city_municipality || "",
+          provinceState: user.province_state || "",
+          postalCode: user.postal_code || "",
+          country: user.country || "Philippines",
           birthdate: user.birthdate || "",
           skills: (user.skills || []).join(", "),
+          employmentStatus: user.employment_status || "",
+          preferredPosition: user.preferred_position || "",
+          preferredLocation: user.preferred_location || "",
         });
       })
       .catch((err) => setError(err.message || "Failed to load profile"))
@@ -51,7 +65,7 @@ function Profile() {
   if (loading) return <LoadingScreen />;
   if (error) return <div className="py-16 text-center text-sm text-danger">{error}</div>;
 
-  const fullName = `${form.firstName} ${form.lastName}`.trim() || user?.full_name || "Job Seeker";
+  const fullName = [form.firstName, form.middleName, form.lastName, form.suffix].filter(Boolean).join(" ").trim() || user?.full_name || "Job Seeker";
   const skills = (form.skills || "").split(",").map((s) => s.trim()).filter(Boolean);
 
   function handleChange(field, value) {
@@ -60,11 +74,11 @@ function Profile() {
 
   async function handleAddEducation(e) {
     e.preventDefault();
-    if (!newEdu.school || !newEdu.degree) return;
-    const { data, error: err } = await supabase.from("education").insert({ seeker_id: user.id, ...newEdu }).select().maybeSingle();
+    if (!newEdu.school || !newEdu.level) return;
+    const { data, error: err } = await supabase.from("education").insert({ seeker_id: user.id, ...newEdu, end_year: newEdu.end_year ? Number(newEdu.end_year) : null }).select().maybeSingle();
     if (err) { setError(err.message); return; }
     setEducation([...education, data]);
-    setNewEdu({ school: "", degree: "", year: "" });
+    setNewEdu({ level: "", school: "", field: "", end_year: "" });
   }
 
   async function handleRemoveEducation(id) {
@@ -74,11 +88,11 @@ function Profile() {
 
   async function handleAddExperience(e) {
     e.preventDefault();
-    if (!newExp.company || !newExp.role) return;
+    if (!newExp.company || !newExp.position) return;
     const { data, error: err } = await supabase.from("work_experience").insert({ seeker_id: user.id, ...newExp }).select().maybeSingle();
     if (err) { setError(err.message); return; }
     setExperience([...experience, data]);
-    setNewExp({ company: "", role: "", startDate: "", endDate: "", description: "" });
+    setNewExp({ company: "", position: "", start_date: "", end_date: "", description: "" });
   }
 
   async function handleRemoveExperience(id) {
@@ -119,15 +133,28 @@ function Profile() {
     setError("");
     try {
       const skillsArray = skills;
-      await updateProfile(user.id, {
+      const updatedProfile = await updateProfile(user.id, {
         first_name: form.firstName,
+        middle_name: form.middleName,
         last_name: form.lastName,
+        suffix: form.suffix,
         full_name: fullName,
         phone: form.phone,
-        barangay: form.address,
+        house_number_unit: form.houseNumberUnit,
+        street_address: form.streetAddress,
+        subdivision_building: form.subdivisionBuilding,
+        barangay_district: form.barangayDistrict,
+        city_municipality: form.cityMunicipality,
+        province_state: form.provinceState,
+        postal_code: form.postalCode,
+        country: form.country,
         birthdate: form.birthdate || null,
         skills: skillsArray,
+        employment_status: form.employmentStatus || null,
+        preferred_position: form.preferredPosition || null,
+        preferred_location: form.preferredLocation || null,
       });
+      setForm((current) => ({ ...current, birthdate: updatedProfile.birthdate || "" }));
       await refreshUser(user);
       setEditing(false);
       setSaved(true);
@@ -147,7 +174,7 @@ function Profile() {
   ];
 
   return (
-    <div className="max-w-3xl animate-fade-in space-y-8">
+    <div className="w-full animate-fade-in space-y-8">
       <header>
         <p className="font-mono text-[11px] tracking-[0.2em] text-[#0057B8] uppercase">MUNICIPAL CANDIDATE PROFILE</p>
         <h1 className="mt-1 font-sans text-2xl md:text-3xl font-bold tracking-tight text-gray-900">My Account & Resume</h1>
@@ -197,14 +224,22 @@ function Profile() {
           <form onSubmit={handleSubmit} className="mt-6 space-y-5 animate-fade-in">
             {activeTab === "info" && (
               <>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 lg:grid-cols-1 gap-4">
                   <div>
                     <label className="block font-mono text-[11px] tracking-wider text-gray-500 uppercase mb-1.5">First Name</label>
                     <input value={form.firstName} onChange={(e) => handleChange("firstName", e.target.value)} className="w-full min-h-[44px] px-4 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all" />
                   </div>
                   <div>
+                    <label className="block font-mono text-[11px] tracking-wider text-gray-500 uppercase mb-1.5">Middle Name <span className="text-gray-400 font-normal">(optional)</span></label>
+                    <input value={form.middleName} onChange={(e) => handleChange("middleName", e.target.value)} className="w-full min-h-[44px] px-4 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all" />
+                  </div>
+                  <div>
                     <label className="block font-mono text-[11px] tracking-wider text-gray-500 uppercase mb-1.5">Last Name</label>
                     <input value={form.lastName} onChange={(e) => handleChange("lastName", e.target.value)} className="w-full min-h-[44px] px-4 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all" />
+                  </div>
+                  <div>
+                    <label className="block font-mono text-[11px] tracking-wider text-gray-500 uppercase mb-1.5">Suffix <span className="text-gray-400 font-normal">(optional)</span></label>
+                    <input value={form.suffix} onChange={(e) => handleChange("suffix", e.target.value)} placeholder="Jr., Sr., III" className="w-full min-h-[44px] px-4 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all" />
                   </div>
                   <div>
                     <label className="block font-mono text-[11px] tracking-wider text-gray-500 uppercase mb-1.5">Contact Mobile</label>
@@ -215,9 +250,30 @@ function Profile() {
                     <input type="date" value={form.birthdate} onChange={(e) => handleChange("birthdate", e.target.value)} className="w-full min-h-[44px] px-4 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all" />
                   </div>
                 </div>
-                <div>
-                  <label className="block font-mono text-[11px] tracking-wider text-gray-500 uppercase mb-1.5">Barangay & Residential Address</label>
-                  <input value={form.address} onChange={(e) => handleChange("address", e.target.value)} placeholder="Poblacion, Santa Maria, Bulacan" className="w-full min-h-[44px] px-4 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all" />
+                <div className="grid grid-cols-1 gap-4">
+                  {[["houseNumberUnit", "House / Building / Unit No.", "e.g. Unit 402"], ["streetAddress", "Street Address & Lot / Block", "Street address"], ["subdivisionBuilding", "Subdivision / Village / Building Name", "Subdivision name"], ["barangayDistrict", "Barangay / District", "Barangay"], ["cityMunicipality", "City / Municipality", "e.g. Santa Maria"], ["provinceState", "Province / State", "e.g. Bulacan"], ["postalCode", "Postal / ZIP Code", "e.g. 3022"], ["country", "Country", "Philippines"]].map(([field, label, placeholder]) => (
+                    <div key={field}>
+                      <label className="block font-mono text-[11px] tracking-wider text-gray-500 uppercase mb-1.5">{label}</label>
+                      <input value={form[field]} onChange={(e) => handleChange(field, e.target.value)} placeholder={placeholder} className="w-full min-h-[44px] px-4 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all" />
+                    </div>
+                  ))}
+                </div>
+                <div className="grid grid-cols-1 gap-4">
+                  <div>
+                    <label className="block font-mono text-[11px] tracking-wider text-gray-500 uppercase mb-1.5">Employment Status</label>
+                    <select value={form.employmentStatus} onChange={(e) => handleChange("employmentStatus", e.target.value)} className="w-full min-h-[44px] px-4 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all">
+                      <option value="">Select status</option>
+                      {EMPLOYMENT_STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block font-mono text-[11px] tracking-wider text-gray-500 uppercase mb-1.5">Preferred Position</label>
+                    <input value={form.preferredPosition} onChange={(e) => handleChange("preferredPosition", e.target.value)} placeholder="e.g. Call Center Agent" className="w-full min-h-[44px] px-4 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all" />
+                  </div>
+                  <div>
+                    <label className="block font-mono text-[11px] tracking-wider text-gray-500 uppercase mb-1.5">Preferred Location</label>
+                    <input value={form.preferredLocation} onChange={(e) => handleChange("preferredLocation", e.target.value)} placeholder="e.g. Santa Maria" className="w-full min-h-[44px] px-4 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all" />
+                  </div>
                 </div>
                 <div>
                   <label className="block font-mono text-[11px] tracking-wider text-gray-500 uppercase mb-1.5">Skills & Competencies <span className="text-gray-400 font-normal">(comma-separated)</span></label>
@@ -232,19 +288,23 @@ function Profile() {
                   <div key={edu.id} className="flex items-start justify-between p-4 rounded-xl bg-gray-50 border border-gray-200">
                     <div>
                       <p className="text-sm font-medium text-gray-900">{edu.school}</p>
-                      <p className="text-xs text-gray-500 mt-0.5">{edu.degree}{edu.field ? ` · ${edu.field}` : ""}{edu.end_year ? ` · ${edu.end_year}` : ""}</p>
+                      <p className="text-xs text-gray-500 mt-0.5">{edu.level}{edu.field ? ` · ${edu.field}` : ""}{edu.end_year ? ` · ${edu.end_year}` : ""}</p>
                     </div>
                     <button type="button" onClick={() => handleRemoveEducation(edu.id)} className="text-gray-400 hover:text-primary text-xs">Remove</button>
                   </div>
                 ))}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 gap-3">
+                  <select value={newEdu.level} onChange={(e) => setNewEdu({ ...newEdu, level: e.target.value })} className="px-4 py-2.5 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 focus:outline-none focus:border-primary/60 transition-all">
+                    <option value="">Education level</option>
+                    {["Elementary", "High School", "Senior High School", "Vocational", "College", "Post-Graduate"].map((l) => <option key={l} value={l}>{l}</option>)}
+                  </select>
                   <input value={newEdu.school} onChange={(e) => setNewEdu({ ...newEdu, school: e.target.value })} placeholder="School name" className="px-4 py-2.5 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-primary/60 transition-all" />
-                  <input value={newEdu.degree} onChange={(e) => setNewEdu({ ...newEdu, degree: e.target.value })} placeholder="Degree / Course" className="px-4 py-2.5 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-primary/60 transition-all" />
                   <div className="flex gap-2">
-                    <input value={newEdu.year} onChange={(e) => setNewEdu({ ...newEdu, year: e.target.value })} placeholder="Year" className="flex-1 px-4 py-2.5 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-primary/60 transition-all" />
-                    <button type="button" onClick={handleAddEducation} className="px-4 py-2.5 text-sm font-medium text-white bg-primary hover:bg-primary-hover rounded-xl active:scale-[0.98] transition-colors">Add</button>
+                    <input value={newEdu.field} onChange={(e) => setNewEdu({ ...newEdu, field: e.target.value })} placeholder="Course / field" className="flex-1 px-4 py-2.5 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-primary/60 transition-all" />
+                    <input value={newEdu.end_year} onChange={(e) => setNewEdu({ ...newEdu, end_year: e.target.value })} placeholder="Year" inputMode="numeric" className="w-20 px-3 py-2.5 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-primary/60 transition-all" />
                   </div>
                 </div>
+                <button type="button" onClick={handleAddEducation} className="px-4 py-2.5 text-sm font-medium text-white bg-primary hover:bg-primary-hover rounded-xl active:scale-[0.98] transition-colors">Add Education</button>
               </div>
             )}
 
@@ -260,11 +320,11 @@ function Profile() {
                     <button type="button" onClick={() => handleRemoveExperience(exp.id)} className="text-gray-400 hover:text-primary text-xs">Remove</button>
                   </div>
                 ))}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 gap-3">
                   <input value={newExp.company} onChange={(e) => setNewExp({ ...newExp, company: e.target.value })} placeholder="Company name" className="px-4 py-2.5 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-primary/60 transition-all" />
-                  <input value={newExp.role} onChange={(e) => setNewExp({ ...newExp, role: e.target.value })} placeholder="Job title" className="px-4 py-2.5 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-primary/60 transition-all" />
-                  <input type="date" value={newExp.startDate} onChange={(e) => setNewExp({ ...newExp, startDate: e.target.value })} className="px-4 py-2.5 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 focus:outline-none focus:border-primary/60 transition-all" />
-                  <input type="date" value={newExp.endDate} onChange={(e) => setNewExp({ ...newExp, endDate: e.target.value })} className="px-4 py-2.5 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 focus:outline-none focus:border-primary/60 transition-all" />
+                  <input value={newExp.position} onChange={(e) => setNewExp({ ...newExp, position: e.target.value })} placeholder="Job title" className="px-4 py-2.5 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-primary/60 transition-all" />
+                  <input type="date" value={newExp.start_date} onChange={(e) => setNewExp({ ...newExp, start_date: e.target.value })} className="px-4 py-2.5 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 focus:outline-none focus:border-primary/60 transition-all" />
+                  <input type="date" value={newExp.end_date} onChange={(e) => setNewExp({ ...newExp, end_date: e.target.value })} className="px-4 py-2.5 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 focus:outline-none focus:border-primary/60 transition-all" />
                 </div>
                 <input value={newExp.description} onChange={(e) => setNewExp({ ...newExp, description: e.target.value })} placeholder="Brief description of responsibilities" className="w-full px-4 py-2.5 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-primary/60 transition-all" />
                 <button type="button" onClick={handleAddExperience} className="px-4 py-2.5 text-sm font-medium text-white bg-primary hover:bg-primary-hover rounded-xl active:scale-[0.98] transition-colors">Add Experience</button>
@@ -318,7 +378,7 @@ function Profile() {
           <div className="mt-6 space-y-6">
             {activeTab === "info" && (
               <>
-                <dl className="grid grid-cols-1 sm:grid-cols-2 gap-5 text-sm p-5 rounded-xl bg-gray-50 border border-gray-200">
+                <dl className="grid grid-cols-1 gap-5 text-sm p-5 rounded-xl bg-gray-50 border border-gray-200">
                   <div>
                     <dt className="font-mono text-[10px] tracking-widest uppercase text-gray-400">Email Address</dt>
                     <dd className="mt-1 font-mono text-xs text-gray-700">{user?.email || "—"}</dd>
@@ -329,11 +389,19 @@ function Profile() {
                   </div>
                   <div>
                     <dt className="font-mono text-[10px] tracking-widest uppercase text-gray-400">Barangay Address</dt>
-                    <dd className="mt-1 text-xs text-gray-700">{form.address || "Not set"}</dd>
+                    <dd className="mt-1 text-xs text-gray-700">{formatFullAddress(form) || "Not set"}</dd>
                   </div>
                   <div>
                     <dt className="font-mono text-[10px] tracking-widest uppercase text-gray-400">Date of Birth</dt>
-                    <dd className="mt-1 font-mono text-xs text-gray-700">{form.birthdate || "Not set"}</dd>
+                    <dd className="mt-1 text-xs text-gray-700">{form.birthdate || "Not set"}</dd>
+                  </div>
+                  <div>
+                    <dt className="font-mono text-[10px] tracking-widest uppercase text-gray-400">Employment Status</dt>
+                    <dd className="mt-1 text-xs text-gray-700">{form.employmentStatus || "Not set"}</dd>
+                  </div>
+                  <div>
+                    <dt className="font-mono text-[10px] tracking-widest uppercase text-gray-400">Job Preferences</dt>
+                    <dd className="mt-1 text-xs text-gray-700">{[form.preferredPosition, form.preferredLocation && `in ${form.preferredLocation}`].filter(Boolean).join(" ") || "Not set"}</dd>
                   </div>
                 </dl>
                 <section>
@@ -356,7 +424,7 @@ function Profile() {
                 {education.length ? education.map((edu) => (
                   <div key={edu.id} className="p-4 rounded-xl bg-gray-50 border border-gray-200">
                     <p className="text-sm font-medium text-gray-900">{edu.school}</p>
-                    <p className="text-xs text-gray-500 mt-0.5">{edu.degree}{edu.field ? ` · ${edu.field}` : ""}{edu.end_year ? ` · ${edu.end_year}` : ""}</p>
+                    <p className="text-xs text-gray-500 mt-0.5">{edu.level}{edu.field ? ` · ${edu.field}` : ""}{edu.end_year ? ` · ${edu.end_year}` : ""}</p>
                   </div>
                 )) : <p className="text-xs text-gray-400">No education added yet.</p>}
               </div>

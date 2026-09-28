@@ -56,8 +56,8 @@ function JobDetail() {
   const requirements = job.requirements ? job.requirements.split("\n").filter(Boolean) : [];
 
   return (
-    <div className="max-w-4xl animate-fade-in space-y-6">
-      <Link to="/job-seeker" className="inline-flex items-center text-xs text-gray-500 hover:text-gray-900 transition-colors">
+    <div className="w-full animate-fade-in space-y-6">
+      <Link to="/job-seeker/jobs" className="inline-flex items-center text-xs text-gray-500 hover:text-gray-900 transition-colors">
         ← Back to all jobs
       </Link>
 
@@ -68,14 +68,14 @@ function JobDetail() {
               {job.location} · {job.employment_type}
             </span>
             <h1 className="mt-3 text-2xl md:text-3xl font-bold tracking-tight text-gray-900">{job.title}</h1>
-            <p className="mt-1 text-sm text-gray-500 font-medium">{job.companies?.name}</p>
+            <p className="mt-1 text-sm text-gray-500 font-medium">{job.employers?.company_name}</p>
           </div>
           <span className="inline-flex px-3.5 py-1.5 rounded-full bg-primary/10 border border-primary/25 font-mono text-sm text-primary font-semibold self-start">
             {job.salary_min ? `₱${job.salary_min}${job.salary_max ? `–₱${job.salary_max}` : ""}` : "Negotiable"}
           </span>
         </div>
 
-        <div className="mt-8 grid grid-cols-2 sm:grid-cols-4 gap-4 p-5 rounded-xl bg-gray-50 border border-gray-200">
+        <div className="mt-8 grid grid-cols-1 gap-4 p-5 rounded-xl bg-gray-50 border border-gray-200">
           <div>
             <p className="font-mono text-[10px] tracking-widest uppercase text-gray-400">Compensation</p>
             <p className="mt-1 font-mono text-sm text-gray-900 font-medium">{job.salary_min ? `₱${job.salary_min}${job.salary_max ? `–₱${job.salary_max}` : ""}` : "—"}</p>

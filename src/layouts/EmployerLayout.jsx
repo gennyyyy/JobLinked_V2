@@ -10,9 +10,12 @@ const navItems = [
   { to: '/employer', label: 'Dashboard', end: true },
   { to: '/employer/job-posts', label: 'Job Posts' },
   { to: '/employer/applicants', label: 'Applicants' },
-  { to: '/employer/company', label: 'Company Profile' },
+  { to: '/employer/employees', label: 'Employees' },
   { to: '/employer/accreditation', label: 'Accreditation' },
 ]
+
+// Statuses that are allowed full portal access
+const ACCREDITED_STATUS = 'approved'
 
 function EmployerLayout() {
   const navigate = useNavigate()
@@ -25,21 +28,35 @@ function EmployerLayout() {
     setWarningCallback(() => setShowWarning(true))
   }, [setWarningCallback])
 
+  // Gate: redirect employers who haven't been approved to the status page.
+  // Allow through if accreditation_status is absent (null/undefined) so that
+  // employers on old records without the column don't get locked out until the
+  // column is backfilled. Once the column exists, only 'approved' passes.
+  useEffect(() => {
+    if (!user) return
+    const accStatus = user.accreditation_status
+    // null / undefined → column not yet present or row not backfilled; let them through
+    if (accStatus == null) return
+    if (accStatus !== ACCREDITED_STATUS) {
+      navigate('/register/employer/status', { replace: true })
+    }
+  }, [user, navigate])
+
   function handleLogout() {
     logout()
     navigate('/')
   }
 
-  const companyName = user?.name || 'My Company'
+  const companyName = user?.company_name || 'My Company'
 
   return (
     <div className="min-h-screen md:h-screen md:overflow-hidden bg-gray-50 text-gray-900 flex flex-col md:flex-row">
       {/* Mobile Top Header */}
-      <header className="md:hidden sticky top-0 z-30 bg-white border-b border-gray-200 px-4 h-14 flex items-center justify-between shrink-0">
+      <header className="md:hidden sticky top-0 z-30 bg-dark-blue border-b border-white/10 px-4 h-14 flex items-center justify-between shrink-0">
         <div className="flex items-center gap-2.5">
-          <Link to="/" className="flex items-center">
-            <img src={TextBasedLogo} alt="JobLinked" className="h-6 w-auto object-contain" />
-          </Link>
+<div className="bg-white rounded-lg px-3.5 py-1.5 flex items-center shadow-xs">
+              <Link to="/"><img src={TextBasedLogo} alt="JobLinked" className="h-6 w-auto object-contain" /></Link>
+            </div>
           <span className="font-mono text-[10px] tracking-wider px-2 py-0.5 rounded-full bg-primary/10 border border-primary/25 text-primary">
             EMPLOYER
           </span>
@@ -68,29 +85,32 @@ function EmployerLayout() {
           mobileOpen ? 'translate-x-0 shadow-xl' : '-translate-x-full'
         }`}
       >
-        <div className="h-16 shrink-0 flex items-center justify-between px-4 border-b border-white/10 bg-dark-blue">
-          <div className="flex items-center gap-2.5">
-            <Link to="/" className="flex items-center">
-              <div className="bg-white rounded-lg px-3.5 py-1.5 flex items-center shadow-xs">
-                <img src={TextBasedLogo} alt="JobLinked" className="h-5 w-auto object-contain" />
-              </div>
-            </Link>
-            <span className="font-mono text-[10px] tracking-wider text-accent rounded-full border border-accent/25 px-2 py-0.5 flex items-center">
-              EMPLOYER
-            </span>
-          </div>
-          {mobileOpen && (
-            <button
-              onClick={() => setMobileOpen(false)}
-              className="md:hidden text-white/60 hover:text-white p-1 text-sm cursor-pointer"
-              aria-label="Close navigation"
-            >
-              ✕
-            </button>
-          )}
-        </div>
+<div className="h-16 shrink-0 sticky top-0 flex items-center justify-between px-4 border-b border-white/10 bg-dark-blue">
+         <div className="flex items-center gap-2.5">
+           <Link to="/" className="flex items-center">
+             <div className="bg-white rounded-lg px-3.5 py-1.5 flex items-center shadow-xs">
+               <img src={TextBasedLogo} alt="JobLinked" className="h-5 w-auto object-contain" />
+             </div>
+           </Link>
+           <span className="font-mono text-[10px] tracking-wider text-accent rounded-full border border-accent/25 px-2 py-0.5 flex items-center">
+             EMPLOYER
+           </span>
+         </div>
+         <div className="flex items-center gap-3">
+           <NotificationBell dark />
+           {mobileOpen && (
+             <button
+               onClick={() => setMobileOpen(false)}
+               className="md:hidden text-white/60 hover:text-white p-1 text-sm cursor-pointer"
+               aria-label="Close navigation"
+             >
+               ✕
+             </button>
+           )}
+</div>
+         </div>
 
-        <div className="px-4 pt-5 pb-3 shrink-0">
+         <div className="px-4 pt-5 pb-3 shrink-0">
           <div className="px-3.5">
             <p className="font-mono text-[10px] tracking-[0.2em] text-white/50">SANTA MARIA, BULACAN</p>
             <p className="mt-0.5 text-xs text-white truncate font-medium">{companyName}</p>
@@ -135,8 +155,8 @@ function EmployerLayout() {
       )}
 
       {/* Main Content Area */}
-      <main className="flex-1 p-6 md:p-8 max-w-full overflow-x-hidden md:h-screen md:overflow-y-auto min-h-[calc(100vh-56px)]">
-        <div className="max-w-6xl mx-auto">
+      <main className="flex-1 p-[3%] max-w-full overflow-x-hidden md:h-screen md:overflow-y-auto min-h-[calc(100vh-56px)]">
+        <div className="w-full">
           <Outlet />
         </div>
       </main>

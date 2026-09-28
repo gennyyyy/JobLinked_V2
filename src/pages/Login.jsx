@@ -33,16 +33,16 @@ function Login({ portalKey }) {
 
   return (
     <div className="min-h-screen bg-gray-50 text-gray-900 flex flex-col font-sans">
-      <header className="sticky top-0 z-20 bg-white border-b border-gray-200 shadow-sm">
-        <div className="max-w-[1280px] mx-auto px-6 h-[64px] flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-2">
-            <img src={Logo} alt="JobLinked" className="h-10" />
-          </Link>
+      <header className="sticky top-0 z-20 bg-dark-blue border-b border-white/10 shadow-sm">
+        <div className="w-full px-4 h-[64px] flex items-center justify-between">
+<div className="bg-white rounded-lg px-3.5 py-1.5 flex items-center shadow-xs">
+              <Link to="/"><img src={Logo} alt="JobLinked" className="h-10" /></Link>
+            </div>
           <span className="hidden sm:block font-mono text-[11px] text-gray-400">PESO · SANTA MARIA</span>
         </div>
       </header>
 
-      <main className="flex-1 flex items-center justify-center px-6 py-12">
+      <main className="flex-1 flex items-center justify-center p-[3%]">
         <div className="w-full max-w-md bg-white border border-gray-200 rounded-2xl p-7 md:p-9 shadow-xl animate-fade-in">
           <div className="flex items-center justify-between mb-6">
             <Link to="/portals" className="text-xs text-gray-400 hover:text-primary transition-colors">
@@ -107,7 +107,7 @@ function Login({ portalKey }) {
           {portal.key !== "super-admin" && (
             <div className="mt-8 pt-6 border-t border-gray-100 flex items-center justify-between text-xs text-gray-400">
               <span>Don't have an account?</span>
-              <Link to="/register" className="text-primary hover:underline underline-offset-4 font-medium">
+              <Link to={`/register/${portal.key}`} className="text-primary hover:underline underline-offset-4 font-medium">
                 Register here
               </Link>
             </div>
@@ -122,7 +122,7 @@ function Login({ portalKey }) {
       </main>
 
       <footer className="bg-dark-blue text-white">
-        <div className="max-w-[1280px] mx-auto px-6 py-6 flex flex-col sm:flex-row justify-between gap-2 text-xs font-mono">
+        <div className="w-full px-4 py-3 flex flex-col sm:flex-row justify-between gap-2 text-xs font-mono">
           <span className="text-white/80 font-medium">
             Job<span className="text-accent">Linked</span> <span className="text-white/50">PESO</span>
           </span>

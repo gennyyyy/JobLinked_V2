@@ -24,7 +24,7 @@ function JobPosts() {
   async function handleAction(job, action) {
     try {
       await changeJobStatus(job.id, action);
-      setJobs((prev) => prev.map((j) => (j.id === job.id ? { ...j, status: action } : j)));
+      setJobs((prev) => prev.map((j) => (j.id === job.id ? { ...j, status: action, remarks: null } : j)));
     } catch (err) {
       setError(err.message);
     }
@@ -35,7 +35,15 @@ function JobPosts() {
     setConfirmArchiveId(null);
   }
 
-  const filtered = jobs.filter((j) => statusFilter === "all" || j.status === statusFilter);
+  // expired = past its deadline but not archived (status enum has no 'expired')
+  const isExpired = (j) => Boolean(j.deadline) && new Date(j.deadline) < new Date() && j.status !== "archived";
+  const filtered = jobs.filter((j) =>
+    statusFilter === "all"
+      ? true
+      : statusFilter === "expired"
+        ? isExpired(j)
+        : j.status === statusFilter
+  );
 
   const statusLabel = (status) => {
     const map = { draft: "Draft", pending: "Pending", approved: "Approved", rejected: "Rejected", published: "Published", closed: "Closed", archived: "Archived" };
@@ -61,11 +69,11 @@ function JobPosts() {
         >
           <option value="all">All Statuses</option>
           <option value="draft">Draft</option>
-          <option value="pending">Pending</option>
-          <option value="approved">Approved</option>
           <option value="rejected">Rejected</option>
           <option value="published">Published</option>
           <option value="closed">Closed</option>
+          <option value="expired">Expired (past deadline)</option>
+          <option value="archived">Archived</option>
         </select>
       </div>
 
@@ -88,12 +96,13 @@ function JobPosts() {
               {filtered.map((post) => (
                 <tr key={post.id} className="hover:bg-primary/5 transition-colors">
                   <td className="py-3.5 px-4 text-gray-900 font-medium">{post.title}</td>
-                  <td className="py-3.5 px-4 text-gray-500">{post.companies?.name}</td>
+                  <td className="py-3.5 px-4 text-gray-500">{post.employers?.company_name}</td>
                   <td className="py-3.5 px-4 text-xs text-gray-500">{post.location}</td>
                   <td className="py-3.5 px-4">
                     <span className={`font-mono text-[10px] tracking-wider px-2.5 py-0.5 rounded-full uppercase border ${
                       post.status === "published" ? "bg-emerald-50 border-emerald-200 text-emerald-700"
                       : post.status === "pending" ? "bg-amber-50 border-amber-200 text-amber-700"
+                      : post.status === "approved" ? "bg-blue-50 border-blue-200 text-blue-700"
                       : post.status === "rejected" ? "bg-danger/10 border-danger/20 text-danger"
                       : "bg-gray-50 border-gray-200 text-gray-500"
                     }`}>

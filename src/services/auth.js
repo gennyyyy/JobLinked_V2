@@ -2,24 +2,28 @@ import { supabase } from '../lib/supabase';
 import { logAudit } from './audit';
 
 export async function getProfile(userId) {
-  const { data, error } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('id', userId)
-    .maybeSingle();
-  if (error) throw error;
-  return data;
+  const tables = ['job_seekers', 'employers', 'super_admins'];
+  for (const table of tables) {
+    const { data, error } = await supabase.from(table).select('*').eq('id', userId).maybeSingle();
+    if (error) throw error;
+    if (data) return { ...data, role: table === 'job_seekers' ? 'job-seeker' : table === 'super_admins' ? 'super-admin' : 'employer' };
+  }
+  return null;
 }
 
 export async function updateProfile(userId, patch) {
+  const profile = await getProfile(userId);
+  if (!profile?.role) throw new Error('Profile not found for this account');
+  const table = profile.role === 'job-seeker' ? 'job_seekers' : profile.role === 'super-admin' ? 'super_admins' : 'employers';
   const { data, error } = await supabase
-    .from('profiles')
+    .from(table)
     .update({ ...patch, updated_at: new Date().toISOString() })
     .eq('id', userId)
     .select()
     .maybeSingle();
   if (error) throw error;
-  await logAudit('profile.update', 'profiles', userId, { fields: Object.keys(patch) });
+  if (!data) throw new Error(`Could not update ${table}. Check the account row and permissions.`);
+  await logAudit('profile.update', table, userId, { fields: Object.keys(patch) });
   return data;
 }
 
@@ -37,20 +41,50 @@ export async function signIn(email, password) {
 }
 
 export async function signUp({ email, password, role, firstName, middleName = '', lastName, suffix = '', extra = {} }) {
+  const fullName = [firstName, middleName, lastName, suffix].filter(Boolean).join(' ');
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
     options: {
-      data: { role, first_name: firstName, middle_name: middleName, last_name: lastName, suffix },
+      data: {
+        role,
+        first_name: firstName,
+        middle_name: middleName,
+        last_name: lastName,
+        suffix,
+        full_name: fullName,
+        phone: extra.phone || null,
+        house_number_unit: extra.houseNumberUnit || null,
+        street_address: extra.streetAddress || null,
+        subdivision_building: extra.subdivisionBuilding || null,
+        barangay_district: extra.barangayDistrict || null,
+        city_municipality: extra.cityMunicipality || null,
+        province_state: extra.provinceState || null,
+        postal_code: extra.postalCode || null,
+        country: extra.country || 'Philippines',
+        birthdate: extra.birthdate || null,
+        company_name: extra.companyName || null,
+        industry: extra.industry || null,
+        company_phone: extra.companyPhone || null,
+        company_email: extra.companyEmail || null,
+        representative_email: extra.representativeEmail || null,
+        representative_position: extra.representativePosition || null,
+      },
       emailRedirectTo: `${window.location.origin}/`,
     },
   });
   if (error) throw error;
   if (!data.user) throw new Error('Registration failed — please try again');
 
-  const fullName = [firstName, middleName, lastName, suffix].filter(Boolean).join(' ');
   await logAudit('auth.register', 'auth.users', data.user.id, { role });
-  return { ...data.user, role, first_name: firstName, middle_name: middleName, last_name: lastName, suffix, full_name: fullName, email, ...extra };
+  // session is null when Supabase requires email confirmation — caller must not
+  // run authenticated writes until the user clicks the link
+  return {
+    ...data.user,
+    role, first_name: firstName, middle_name: middleName, last_name: lastName,
+    suffix, full_name: fullName, email, ...extra,
+    emailConfirmationRequired: !data.session,
+  };
 }
 
 export async function signOut() {

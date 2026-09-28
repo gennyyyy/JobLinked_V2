@@ -17,14 +17,12 @@ function Dashboard() {
 
   useEffect(() => {
     if (!user) return;
-    supabase.from("companies").select("*").eq("owner_id", user.id).maybeSingle()
+    // user.id IS the employers row id — no separate lookup needed
+    supabase.from("employers").select("*").eq("id", user.id).maybeSingle()
       .then(({ data, error: err }) => {
         if (err) throw err;
         setCompany(data);
-        if (data) {
-          return Promise.all([listEmployerJobs(data.id), listByCompany(data.id)]);
-        }
-        return [[], []];
+        return Promise.all([listEmployerJobs(user.id), listByCompany(user.id)]);
       })
       .then(([jobList, applicantList]) => {
         setJobs(jobList);
@@ -62,12 +60,12 @@ function Dashboard() {
           <p className="font-mono text-[11px] tracking-[0.2em] text-primary uppercase">EMPLOYER DASHBOARD</p>
         </div>
         <h1 className="mt-1 font-sans text-2xl md:text-3xl font-bold tracking-tight text-dark-blue">
-          Overview for {company?.name || "My Company"}
+          Overview for {company?.company_name || "My Company"}
         </h1>
         <p className="mt-2 text-sm text-gray-500">Real-time recruitment metrics and applicant tracking</p>
       </header>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         {stats.map((stat) => (
           <div
             key={stat.label}
