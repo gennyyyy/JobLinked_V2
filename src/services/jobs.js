@@ -6,7 +6,7 @@ import { notifyAdmins } from './notifications';
 // join resolution issue. company_id has a NOT NULL constraint so no orphan rows exist.
 const companySelect = '*, employers (id, company_name, logo_path)';
 
-export async function listJobs({ search = '', location = '', employmentType = '', employer = '', salaryMin = null, status = null, page = 1, pageSize = 10, order = 'created_at.desc' } = {}) {
+export async function listJobs({ search = '', location = '', employmentType = '', employer = '', salaryMin = null, skills = '', status = null, page = 1, pageSize = 10, order = 'created_at.desc' } = {}) {
   let query = supabase.from('job_vacancies').select(companySelect, { count: 'exact' });
   if (status) query = query.eq('status', status);
   else query = query.eq('status', 'published');
@@ -22,9 +22,14 @@ export async function listJobs({ search = '', location = '', employmentType = ''
 
   // Filter by employer name client-side after fetch — PostgREST embedded table
   // filters don't work reliably as WHERE clauses on the parent row with a left join.
-  const jobs = employer
+  const jobs = (employer
     ? (data || []).filter((j) => j.employers?.company_name?.toLowerCase().includes(employer.toLowerCase()))
-    : (data || []);
+    : (data || [])).filter((j) => {
+    if (!skills?.trim()) return true;
+    const terms = skills.split(',').map((s) => s.trim().toLowerCase()).filter(Boolean);
+    const haystack = `${j.title || ''} ${j.description || ''} ${j.requirements || ''} ${(j.tags || []).join(' ')}`.toLowerCase();
+    return terms.some((t) => haystack.includes(t));
+  });
 
   void logAudit('job.search', 'job_vacancies', null, { search, location, employmentType, status, page });
   return { jobs, total: count || 0, page, pageSize };
@@ -127,6 +132,15 @@ async function notifyJobStatusChange(jobId, status) {
     message: `"${job.title}" (${job.employers?.company_name}) is now live on the job board.`,
     link: '/super-admin/job-posts',
   });
+}
+
+export async function duplicateJob(id) {
+  const { data: job, error: fetchError } = await supabase.from('job_vacancies').select('*').eq('id', id).maybeSingle();
+  if (fetchError) throw fetchError;
+  if (!job) throw new Error('Job not found');
+  const strip = ['id', 'created_at', 'updated_at', 'published_at', 'closed_at', 'archived_at', 'status', 'remarks'];
+  const rest = Object.fromEntries(Object.entries(job).filter(([k]) => !strip.includes(k)));
+  return createJob(job.company_id, { ...rest, title: `${job.title} (Copy)`, status: 'draft', deadline: null });
 }
 
 export async function listJobHistory(jobId) {

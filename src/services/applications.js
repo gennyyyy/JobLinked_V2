@@ -2,7 +2,22 @@ import { supabase } from '../lib/supabase';
 import { logAudit } from './audit';
 import { notify } from './notifications';
 
-const employerSelect = '*, job:job_vacancies (id, title, location, employment_type, employers (company_name, id)), seeker:job_seekers (id, full_name, email, phone, barangay_district, skills, employment_status, preferred_position, preferred_location)';
+const employerSelect = '*, job:job_vacancies (id, title, location, employment_type, employers (company_name, id))';
+
+// ponytail: seeker is fetched separately (not embedded) because job_applications
+// has two FKs to job_seekers (seeker_id, referred_by) and PostgREST can't
+// disambiguate the embed — same reason attachResumes exists below.
+export async function attachSeekers(rows) {
+  const ids = [...new Set(rows.map((r) => r.seeker_id).filter(Boolean))];
+  if (!ids.length) return rows;
+  const { data, error } = await supabase
+    .from('job_seekers')
+    .select('id, full_name, email, phone, barangay_district, skills, employment_status, preferred_position, preferred_location')
+    .in('id', ids);
+  if (error) throw error;
+  const byId = Object.fromEntries((data || []).map((s) => [s.id, s]));
+  return rows.map((r) => ({ ...r, seeker: byId[r.seeker_id] || null }));
+}
 
 // ponytail: job_applications.resume_id has no FK to resumes, so PostgREST cannot
 // embed it (PGRST200). Fetch separately until `alter table job_applications add
@@ -66,7 +81,7 @@ export async function listByJob(jobId) {
     .order('applied_at', { ascending: false });
   if (error) throw error;
   void logAudit('application.list.view', 'job_applications', null, { jobId });
-  return attachResumes(data || []);
+  return attachSeekers(await attachResumes(data || []));
 }
 
 export async function listByCompany(companyId) {
@@ -84,7 +99,7 @@ export async function listByCompany(companyId) {
     .order('applied_at', { ascending: false });
   if (error) throw error;
   void logAudit('application.list.view', 'job_applications', null, { companyId });
-  return attachResumes(data || []);
+  return attachSeekers(await attachResumes(data || []));
 }
 
 export async function updateApplicationStatus(id, status, { remarks = null, employerNotes = null, interviewAt = null, interviewInstructions = null } = {}) {
@@ -101,21 +116,22 @@ export async function updateApplicationStatus(id, status, { remarks = null, empl
     .maybeSingle();
   if (error) throw error;
   const [withResume] = data ? await attachResumes([data]) : [null];
+  const [withSeeker] = withResume ? await attachSeekers([withResume]) : [null];
   // ponytail: two client writes, not atomic — fold into one RPC if history drift matters
   const { data: { user } } = await supabase.auth.getUser();
   const { error: histError } = await supabase.from('application_status_history').insert({ application_id: id, status, remarks, changed_by: user?.id || null });
   if (histError) throw new Error(`Application updated but status history was not recorded: ${histError.message}`);
   await logAudit(`application.status.${status}`, 'job_applications', id);
-  if (withResume?.seeker?.id) {
+  if (withSeeker?.seeker?.id) {
     await notify({
-      userId: withResume.seeker.id,
+      userId: withSeeker.seeker.id,
       type: 'application',
       title: `Application ${status}`,
-      message: `Your application for "${withResume.job?.title}" is now ${status}.`,
+      message: `Your application for "${withSeeker.job?.title}" is now ${status}.`,
       link: '/job-seeker/applications',
     });
   }
-  return withResume;
+  return withSeeker;
 }
 
 export async function listApplicationHistory(applicationId) {
@@ -144,5 +160,5 @@ export async function listByCompanyIds(companyIds, { status = null } = {}) {
   if (status) query = query.eq('status', status);
   const { data, error } = await query.order('applied_at', { ascending: false });
   if (error) throw error;
-  return attachResumes(data || []);
+  return attachSeekers(await attachResumes(data || []));
 }

@@ -119,3 +119,19 @@
     animation: none !important;
   }
 }
+
+@media print {
+  nav, aside, header button, .no-print {
+    display: none !important;
+  }
+  body {
+    background: #fff !important;
+  }
+  table {
+    font-size: 11px;
+  }
+  .rounded-2xl {
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+}

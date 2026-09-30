@@ -8,6 +8,7 @@ function Jobs() {
   const [location, setLocation] = useState("");
   const [employmentType, setEmploymentType] = useState("");
   const [employer, setEmployer] = useState("");
+  const [skills, setSkills] = useState("");
   const [salaryMin, setSalaryMin] = useState("");
   const [order, setOrder] = useState("created_at.desc");
   const [jobs, setJobs] = useState([]);
@@ -23,7 +24,7 @@ function Jobs() {
       setLoading(true);
       setError("");
       try {
-        const result = await listJobs({ search, location, employmentType, employer, salaryMin: salaryMin ? Number(salaryMin) : null, order, page, pageSize });
+        const result = await listJobs({ search, location, employmentType, employer, skills, salaryMin: salaryMin ? Number(salaryMin) : null, order, page, pageSize });
         if (!cancelled) { setJobs(result.jobs); setTotal(result.total); }
       } catch (err) {
         if (!cancelled) setError(err.message || "Failed to load jobs");
@@ -33,13 +34,13 @@ function Jobs() {
     }
     fetchJobs();
     return () => { cancelled = true; };
-  }, [search, location, employmentType, employer, salaryMin, order, page]);
+  }, [search, location, employmentType, employer, skills, salaryMin, order, page]);
 
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
   const locations = [...new Set(jobs.map((j) => j.location).filter(Boolean))];
 
   function resetFilters() {
-    setSearch(""); setLocation(""); setEmploymentType(""); setEmployer(""); setSalaryMin(""); setPage(1);
+    setSearch(""); setLocation(""); setEmploymentType(""); setEmployer(""); setSkills(""); setSalaryMin(""); setPage(1);
   }
 
   return (
@@ -63,6 +64,13 @@ function Jobs() {
           value={employer}
           onChange={(e) => { setEmployer(e.target.value); setPage(1); }}
           placeholder="Employer..."
+          className="sm:w-44 min-h-[44px] px-4 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all"
+        />
+        <input
+          type="text"
+          value={skills}
+          onChange={(e) => { setSkills(e.target.value); setPage(1); }}
+          placeholder="Skills (comma-separated)..."
           className="sm:w-44 min-h-[44px] px-4 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all"
         />
         <select

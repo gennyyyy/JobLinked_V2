@@ -488,6 +488,12 @@ create table if not exists public.job_applications (
   unique (job_id, seeker_id)
 );
 
+-- Referral tracking (Phase 3): who referred this applicant, if anyone.
+-- NOTE: once this column exists, job_applications has two FKs to job_seekers,
+-- so PostgREST can no longer disambiguate a bare `seeker:job_seekers` embed —
+-- the app fetches seekers separately (see attachSeekers in services/applications.js).
+alter table public.job_applications add column if not exists referred_by uuid references public.job_seekers(id) on delete set null;
+
 alter table public.job_applications enable row level security;
 drop policy if exists apps_select on public.job_applications;
 drop policy if exists apps_insert on public.job_applications;

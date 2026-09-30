@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { listUsers, updateUser, listAllEmployees } from "../../services/admin";
+import { listUsers, updateUser, listAllEmployees, listReferrals } from "../../services/admin";
 import LoadingScreen from "../../components/LoadingScreen";
 
 // ─── Job Seekers Registry ────────────────────────────────────────────────────
@@ -120,6 +120,7 @@ function CompanyEmployeeTable({ companyName, employees, search }) {
   if (filtered.length === 0) return null;
 
   const active = filtered.filter((e) => e.status === "Accepted").length;
+  const placementRate = filtered.length ? Math.round((active / filtered.length) * 100) : 0;
 
   return (
     <div className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
@@ -132,7 +133,7 @@ function CompanyEmployeeTable({ companyName, employees, search }) {
           <div>
             <h3 className="text-sm font-semibold text-gray-900">{companyName}</h3>
             <p className="font-mono text-[10px] tracking-wider text-gray-400 uppercase mt-0.5">
-              {filtered.length} employee{filtered.length !== 1 ? "s" : ""} · {active} active
+              {filtered.length} employee{filtered.length !== 1 ? "s" : ""} · {active} active · {placementRate}% placement
             </p>
           </div>
         </div>
@@ -293,6 +294,64 @@ function EmployeesByCompanySection() {
   );
 }
 
+// ─── Referral History ────────────────────────────────────────────────────────
+
+function ReferralsSection() {
+  const [referrals, setReferrals] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    listReferrals()
+      .then(setReferrals)
+      .catch((err) => setError(err.message || "Failed to load referrals"))
+      .finally(() => setLoading(false));
+  }, []);
+
+  if (loading) return <LoadingScreen />;
+  if (error) return (
+    <div className="py-8 text-center text-sm text-gray-500">
+      Referral history is unavailable — run migration:{" "}
+      <code className="font-mono text-xs bg-gray-100 px-1 rounded">alter table job_applications add column referred_by uuid references job_seekers(id);</code>
+      <p className="mt-1 font-mono text-[11px] text-gray-400">{error}</p>
+    </div>
+  );
+
+  return (
+    <section className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm border-t-4 border-primary">
+      <div className="border-l-4 border-primary pl-4 mb-6">
+        <h2 className="text-lg font-semibold text-dark-blue">Referral History ({referrals.length})</h2>
+      </div>
+      {referrals.length === 0 ? (
+        <div className="py-12 text-center text-sm text-gray-400">No referred applications yet.</div>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-gray-200 font-mono text-[10px] tracking-widest text-gray-500 uppercase">
+                <th className="text-left py-3 px-4 font-medium">Seeker</th>
+                <th className="text-left py-3 px-4 font-medium">Job</th>
+                <th className="text-left py-3 px-4 font-medium">Company</th>
+                <th className="text-left py-3 px-4 font-medium">Status</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {referrals.map((r) => (
+                <tr key={r.id} className="hover:bg-primary/5 transition-colors">
+                  <td className="py-3.5 px-4 text-gray-900 font-medium">{r.seeker?.full_name}</td>
+                  <td className="py-3.5 px-4 text-gray-600">{r.job?.title}</td>
+                  <td className="py-3.5 px-4 text-gray-500">{r.job?.employers?.company_name}</td>
+                  <td className="py-3.5 px-4"><span className="font-mono text-[10px] px-2 py-0.5 rounded-full bg-gray-100 border border-gray-200">{r.status}</span></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </section>
+  );
+}
+
 // ─── Page ────────────────────────────────────────────────────────────────────
 
 function Employees() {
@@ -314,6 +373,7 @@ function Employees() {
         {[
           { key: "employees", label: "Employees by Company" },
           { key: "seekers", label: "Registered Job Seekers" },
+          { key: "referrals", label: "Referral History" },
         ].map((t) => (
           <button
             key={t.key}
@@ -329,7 +389,7 @@ function Employees() {
         ))}
       </div>
 
-      {tab === "employees" ? <EmployeesByCompanySection /> : <JobSeekersSection />}
+      {tab === "employees" ? <EmployeesByCompanySection /> : tab === "seekers" ? <JobSeekersSection /> : <ReferralsSection />}
     </div>
   );
 }

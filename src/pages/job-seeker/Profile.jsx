@@ -68,6 +68,11 @@ function Profile() {
   const fullName = [form.firstName, form.middleName, form.lastName, form.suffix].filter(Boolean).join(" ").trim() || user?.full_name || "Job Seeker";
   const skills = (form.skills || "").split(",").map((s) => s.trim()).filter(Boolean);
 
+  const completion = Math.round(([
+    form.firstName && form.lastName, form.phone, form.barangayDistrict,
+    form.cityMunicipality, education.length, skills.length, resumes.length,
+  ].filter(Boolean).length / 7) * 100);
+
   function handleChange(field, value) {
     setForm((prev) => ({ ...prev, [field]: value }));
   }
@@ -205,6 +210,16 @@ function Profile() {
             Profile information has been successfully updated.
           </div>
         )}
+
+        <div className="mt-6">
+          <div className="flex items-center justify-between gap-4 mb-2">
+            <p className="font-mono text-[11px] tracking-widest text-gray-500 uppercase">Profile Completion</p>
+            <span className="font-mono text-sm font-bold text-primary">{completion}%</span>
+          </div>
+          <div className="h-2 rounded-full bg-gray-100 overflow-hidden">
+            <div className="h-full bg-primary transition-all" style={{ width: `${completion}%` }} />
+          </div>
+        </div>
 
         <div className="mt-6 flex gap-1 border-b border-gray-200">
           {tabs.map((tab) => (

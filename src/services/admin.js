@@ -1,6 +1,7 @@
 import { supabase } from '../lib/supabase';
 import { logAudit } from './audit';
 import { getProfile } from './auth';
+import { attachSeekers } from './applications';
 
 export async function getStats() {
   const [seekers, employers, companies, jobs, applications, accreditations, unreadNotifs] = await Promise.all([
@@ -92,12 +93,16 @@ export async function removeReferenceData(id) {
 export async function listAllApplications({ status = null, search = '' } = {}) {
   let query = supabase
     .from('job_applications')
-    .select('*, job:job_vacancies (id, title, location, employers (company_name)), seeker:job_seekers (id, full_name, email, phone, barangay_district)');
+    .select('*, job:job_vacancies (id, title, location, employers (company_name))');
   if (status) query = query.eq('status', status);
-  if (search) query = query.ilike('seeker.full_name', `%${search}%`);
   const { data, error } = await query.order('applied_at', { ascending: false });
   if (error) throw error;
-  return data || [];
+  const rows = await attachSeekers(data || []);
+  // ponytail: seeker search is client-side — the seeker embed was dropped
+  // (ambiguous FK) so PostgREST can't filter on it server-side
+  return search
+    ? rows.filter((r) => r.seeker?.full_name?.toLowerCase().includes(search.toLowerCase()))
+    : rows;
 }
 
 export async function listAllJobs({ status = null } = {}) {
@@ -115,13 +120,36 @@ export async function listAllEmployees() {
     .from('job_applications')
     .select(
       '*, ' +
-      'seeker:job_seekers (id, full_name, email, phone, barangay_district), ' +
       'job:job_vacancies (id, title, company_id, employers (id, company_name))'
     )
     .in('status', ['Accepted', 'Terminated'])
     .order('updated_at', { ascending: false });
   if (error) throw error;
-  return data || [];
+  return attachSeekers(data || []);
+}
+
+export async function listReferrals() {
+  // Requires migration: alter table job_applications add column referred_by uuid references job_seekers(id);
+  const { data, error } = await supabase
+    .from('job_applications')
+    .select('*, job:job_vacancies (id, title, employers (company_name))')
+    .not('referred_by', 'is', null)
+    .order('applied_at', { ascending: false });
+  if (error) throw error;
+  return attachSeekers(data || []);
+}
+
+export async function purgeOldApplications(monthsOld = 12) {
+  const cutoff = new Date();
+  cutoff.setMonth(cutoff.getMonth() - monthsOld);
+  const { error, count } = await supabase
+    .from('job_applications')
+    .delete({ count: 'exact' })
+    .lt('applied_at', cutoff.toISOString())
+    .not('status', 'in', '(Accepted,Placed)');
+  if (error) throw error;
+  await logAudit('data.purge', 'job_applications', null, { monthsOld, deleted: count });
+  return count || 0;
 }
 
 export async function listAllAccreditations() {

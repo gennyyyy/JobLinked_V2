@@ -26,7 +26,7 @@ import {
 } from "lucide-react";
 import useAuth from "../../hooks/useAuth";
 import { JOB_TAGS } from "../../constants";
-import { listEmployerJobs, createJob, updateJob, changeJobStatus } from "../../services/jobs";
+import { listEmployerJobs, createJob, updateJob, changeJobStatus, duplicateJob } from "../../services/jobs";
 import { supabase } from "../../lib/supabase";
 import ConfirmationModal from "../../components/ConfirmationModal";
 import LoadingScreen from "../../components/LoadingScreen";
@@ -166,26 +166,15 @@ export default function JobPosts() {
     setShowForm(true);
   }
 
-  function handleOpenDuplicate(job) {
-    if (!company) return;
-    setForm({
-      title: `${job.title} (Copy)`,
-      office: job.office || "",
-      description: job.description || "",
-      requirements: job.requirements || "",
-      salary_min: job.salary_min !== null && job.salary_min !== undefined ? job.salary_min : "",
-      salary_max: job.salary_max !== null && job.salary_max !== undefined ? job.salary_max : "",
-      employment_type: job.employment_type || "Full-time",
-      location: job.location || "",
-      vacancies: job.vacancies || 1,
-      deadline: "",
-      instructions: job.instructions || "",
-      benefits: job.benefits || "",
-      tags: job.tags || [],
-    });
-    setEditingId(null);
-    setErrors({});
-    setShowForm(true);
+  async function handleOpenDuplicate(job) {
+    setActionError("");
+    try {
+      await duplicateJob(job.id);
+      setActionSuccess(`"${job.title}" duplicated as draft.`);
+      await refreshJobs();
+    } catch (err) {
+      setActionError(err.message || "Failed to duplicate job");
+    }
   }
 
   function validate() {
