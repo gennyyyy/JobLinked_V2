@@ -9,6 +9,78 @@ import { formatFullAddress } from "../../utils/address";
 import LoadingScreen from "../../components/LoadingScreen";
 import ChangePassword from "../../components/ChangePassword";
 
+function splitTags(value) {
+  const list = Array.isArray(value) ? value : String(value || "").split(",");
+  return list.map((t) => String(t).trim()).filter(Boolean);
+}
+
+// Minimal tag input — type + Enter/comma to add, Backspace or × to remove.
+// Reused for preferred jobs + preferred locations; values stay comma-separated
+// strings so the existing text columns need no migration.
+function TagInput({ value, onChange, placeholder }) {
+  const [draft, setDraft] = useState("");
+  const tags = splitTags(value);
+
+  function commit(raw) {
+    const parts = splitTags(raw);
+    if (!parts.length) return;
+    const next = [...tags];
+    for (const part of parts) {
+      if (!next.some((t) => t.toLowerCase() === part.toLowerCase())) next.push(part);
+    }
+    onChange(next.join(", "));
+    setDraft("");
+  }
+
+  function removeTag(tag) {
+    onChange(tags.filter((t) => t !== tag).join(", "));
+  }
+
+  return (
+    <div className="w-full min-h-[44px] px-3 py-2 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 focus-within:border-primary/60 focus-within:ring-1 focus-within:ring-primary/30 transition-all">
+      <div className="flex flex-wrap items-center gap-1.5">
+        {tags.map((tag) => (
+          <span key={tag} className="inline-flex items-center gap-1 font-mono text-xs px-2.5 py-1 rounded-full bg-primary/10 border border-primary/25 text-primary">
+            {tag}
+            <button type="button" onClick={() => removeTag(tag)} aria-label={`Remove ${tag}`} className="hover:text-primary-hover font-bold leading-none">×</button>
+          </span>
+        ))}
+        <input
+          value={draft}
+          onChange={(e) => {
+            const v = e.target.value;
+            if (v.endsWith(",")) commit(v);
+            else setDraft(v);
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === "Tab") { e.preventDefault(); commit(draft); }
+            else if (e.key === "Backspace" && !draft && tags.length) { removeTag(tags[tags.length - 1]); }
+          }}
+          onBlur={() => commit(draft)}
+          placeholder={tags.length ? "" : placeholder}
+          className="flex-1 min-w-[140px] bg-transparent outline-none placeholder:text-gray-400 py-1"
+        />
+      </div>
+    </div>
+  );
+}
+
+// Read-only row for employments synced automatically from hiring activity
+// (employment_history, maintained by DB trigger). Never editable here.
+function SyncedEmployment({ job }) {
+  return (
+    <div className="flex items-start justify-between gap-3 p-4 rounded-xl bg-emerald-50/60 border border-emerald-200">
+      <div>
+        <p className="text-sm font-medium text-gray-900">{job.position}</p>
+        <p className="text-xs text-gray-500 mt-0.5">{job.employer_name} · {job.start_date || "Start"} – {job.is_current ? "Present" : (job.end_date || "Ended")}</p>
+      </div>
+      <span className={`shrink-0 font-mono text-[10px] tracking-wider px-2.5 py-0.5 rounded-full uppercase border ${job.is_current ? "bg-emerald-50 border-emerald-200 text-emerald-700" : "bg-gray-100 border-gray-200 text-gray-500"}`}>
+        {job.is_current ? "Current" : "Past"}
+      </span>
+    </div>
+  );
+}
+
 function Profile() {
   const { user, refreshUser } = useAuth();
   const [loading, setLoading] = useState(true);
@@ -20,22 +92,30 @@ function Profile() {
   const [form, setForm] = useState({ firstName: "", middleName: "", lastName: "", suffix: "", phone: "", houseNumberUnit: "", streetAddress: "", subdivisionBuilding: "", barangayDistrict: "", cityMunicipality: "", provinceState: "", postalCode: "", country: "Philippines", birthdate: "", skills: "", employmentStatus: "", preferredPosition: "", preferredLocation: "" });
   const [education, setEducation] = useState([]);
   const [experience, setExperience] = useState([]);
+  const [employments, setEmployments] = useState([]);
   const [resumes, setResumes] = useState([]);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [uploadError, setUploadError] = useState("");
   const [newEdu, setNewEdu] = useState({ level: "", school: "", field: "", end_year: "" });
   const [newExp, setNewExp] = useState({ company: "", position: "", start_date: "", end_date: "", description: "" });
+  const [eduError, setEduError] = useState("");
+  const [expError, setExpError] = useState("");
+  const [addingEdu, setAddingEdu] = useState(false);
+  const [addingExp, setAddingExp] = useState(false);
 
   useEffect(() => {
     if (!user) return;
     Promise.all([
       supabase.from("education").select("*").eq("seeker_id", user.id),
       supabase.from("work_experience").select("*").eq("seeker_id", user.id),
+      supabase.from("employment_history").select("*").eq("seeker_id", user.id).order("start_date", { ascending: false }),
       listResumes(user.id),
     ])
-      .then(([edu, exp, resumeList]) => {
+      .then(([edu, exp, emp, resumeList]) => {
         setEducation(edu.data || []);
         setExperience(exp.data || []);
+        // Never let a missing/denied employment_history table break the page
+        setEmployments(emp.error ? [] : (emp.data || []));
         setResumes(resumeList);
         setForm({
           firstName: user.first_name || "",
@@ -77,13 +157,31 @@ function Profile() {
     setForm((prev) => ({ ...prev, [field]: value }));
   }
 
-  async function handleAddEducation(e) {
-    e.preventDefault();
-    if (!newEdu.school || !newEdu.level) return;
-    const { data, error: err } = await supabase.from("education").insert({ seeker_id: user.id, ...newEdu, end_year: newEdu.end_year ? Number(newEdu.end_year) : null }).select().maybeSingle();
-    if (err) { setError(err.message); return; }
-    setEducation([...education, data]);
-    setNewEdu({ level: "", school: "", field: "", end_year: "" });
+  async function handleAddEducation() {
+    const level = newEdu.level.trim();
+    const school = newEdu.school.trim();
+    if (!level || !school) { setEduError("Please select a level and enter a school name."); return; }
+    const endYear = newEdu.end_year.trim();
+    if (endYear && !/^\d{4}$/.test(endYear)) { setEduError("Graduation year must be a 4-digit year."); return; }
+    setEduError("");
+    setAddingEdu(true);
+    try {
+      const { data, error: err } = await supabase.from("education").insert({
+        seeker_id: user.id,
+        level,
+        school,
+        field: newEdu.field.trim() || null,
+        end_year: endYear ? Number(endYear) : null,
+      }).select().maybeSingle();
+      if (err) throw err;
+      if (!data) throw new Error("Could not save education. Please try again.");
+      setEducation([...education, data]);
+      setNewEdu({ level: "", school: "", field: "", end_year: "" });
+    } catch (err) {
+      setEduError(err.message || "Failed to add education.");
+    } finally {
+      setAddingEdu(false);
+    }
   }
 
   async function handleRemoveEducation(id) {
@@ -91,13 +189,30 @@ function Profile() {
     setEducation(education.filter((e) => e.id !== id));
   }
 
-  async function handleAddExperience(e) {
-    e.preventDefault();
-    if (!newExp.company || !newExp.position) return;
-    const { data, error: err } = await supabase.from("work_experience").insert({ seeker_id: user.id, ...newExp }).select().maybeSingle();
-    if (err) { setError(err.message); return; }
-    setExperience([...experience, data]);
-    setNewExp({ company: "", position: "", start_date: "", end_date: "", description: "" });
+  async function handleAddExperience() {
+    const company = newExp.company.trim();
+    const position = newExp.position.trim();
+    if (!company || !position) { setExpError("Please enter both a company name and a job title."); return; }
+    setExpError("");
+    setAddingExp(true);
+    try {
+      const { data, error: err } = await supabase.from("work_experience").insert({
+        seeker_id: user.id,
+        company,
+        position,
+        start_date: newExp.start_date || null,
+        end_date: newExp.end_date || null,
+        description: newExp.description.trim() || null,
+      }).select().maybeSingle();
+      if (err) throw err;
+      if (!data) throw new Error("Could not save experience. Please try again.");
+      setExperience([...experience, data]);
+      setNewExp({ company: "", position: "", start_date: "", end_date: "", description: "" });
+    } catch (err) {
+      setExpError(err.message || "Failed to add experience.");
+    } finally {
+      setAddingExp(false);
+    }
   }
 
   async function handleRemoveExperience(id) {
@@ -282,17 +397,17 @@ function Profile() {
                     </select>
                   </div>
                   <div>
-                    <label className="block font-mono text-[11px] tracking-wider text-gray-500 uppercase mb-1.5">Preferred Position</label>
-                    <input value={form.preferredPosition} onChange={(e) => handleChange("preferredPosition", e.target.value)} placeholder="e.g. Call Center Agent" className="w-full min-h-[44px] px-4 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all" />
+                    <label className="block font-mono text-[11px] tracking-wider text-gray-500 uppercase mb-1.5">Preferred Jobs <span className="text-gray-400 font-normal">(tags)</span></label>
+                    <TagInput value={form.preferredPosition} onChange={(v) => handleChange("preferredPosition", v)} placeholder="e.g. Call Center Agent — Enter to add" />
                   </div>
                   <div>
-                    <label className="block font-mono text-[11px] tracking-wider text-gray-500 uppercase mb-1.5">Preferred Location</label>
-                    <input value={form.preferredLocation} onChange={(e) => handleChange("preferredLocation", e.target.value)} placeholder="e.g. Santa Maria" className="w-full min-h-[44px] px-4 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all" />
+                    <label className="block font-mono text-[11px] tracking-wider text-gray-500 uppercase mb-1.5">Preferred Locations <span className="text-gray-400 font-normal">(tags)</span></label>
+                    <TagInput value={form.preferredLocation} onChange={(v) => handleChange("preferredLocation", v)} placeholder="e.g. Santa Maria — Enter to add" />
                   </div>
                 </div>
                 <div>
-                  <label className="block font-mono text-[11px] tracking-wider text-gray-500 uppercase mb-1.5">Skills & Competencies <span className="text-gray-400 font-normal">(comma-separated)</span></label>
-                  <input value={form.skills} onChange={(e) => handleChange("skills", e.target.value)} placeholder="Data Entry, Customer Relations, Bookkeeping" className="w-full min-h-[44px] px-4 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all" />
+                  <label className="block font-mono text-[11px] tracking-wider text-gray-500 uppercase mb-1.5">Skills & Competencies <span className="text-gray-400 font-normal">(tags)</span></label>
+                  <TagInput value={form.skills} onChange={(v) => handleChange("skills", v)} placeholder="e.g. Data Entry — Enter to add" />
                 </div>
               </>
             )}
@@ -319,12 +434,19 @@ function Profile() {
                     <input value={newEdu.end_year} onChange={(e) => setNewEdu({ ...newEdu, end_year: e.target.value })} placeholder="Year" inputMode="numeric" className="w-20 px-3 py-2.5 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-primary/60 transition-all" />
                   </div>
                 </div>
-                <button type="button" onClick={handleAddEducation} className="px-4 py-2.5 text-sm font-medium text-white bg-primary hover:bg-primary-hover rounded-xl active:scale-[0.98] transition-colors">Add Education</button>
+                <button type="button" onClick={handleAddEducation} disabled={addingEdu} className="px-4 py-2.5 text-sm font-medium text-white bg-primary hover:bg-primary-hover rounded-xl active:scale-[0.98] transition-colors disabled:opacity-60">{addingEdu ? "Adding…" : "Add Education"}</button>
+                {eduError && <p className="text-xs text-danger">{eduError}</p>}
               </div>
             )}
 
             {activeTab === "experience" && (
               <div className="space-y-4">
+                {employments.length > 0 && (
+                  <div className="space-y-3">
+                    <p className="font-mono text-[11px] tracking-widest text-gray-500 uppercase">Synced Employment <span className="text-gray-400 font-normal">(from hiring activity)</span></p>
+                    {employments.map((job) => <SyncedEmployment key={job.id} job={job} />)}
+                  </div>
+                )}
                 {experience.map((exp) => (
                   <div key={exp.id} className="flex items-start justify-between p-4 rounded-xl bg-gray-50 border border-gray-200">
                     <div>
@@ -338,11 +460,20 @@ function Profile() {
                 <div className="grid grid-cols-1 gap-3">
                   <input value={newExp.company} onChange={(e) => setNewExp({ ...newExp, company: e.target.value })} placeholder="Company name" className="px-4 py-2.5 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-primary/60 transition-all" />
                   <input value={newExp.position} onChange={(e) => setNewExp({ ...newExp, position: e.target.value })} placeholder="Job title" className="px-4 py-2.5 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-primary/60 transition-all" />
-                  <input type="date" value={newExp.start_date} onChange={(e) => setNewExp({ ...newExp, start_date: e.target.value })} className="px-4 py-2.5 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 focus:outline-none focus:border-primary/60 transition-all" />
-                  <input type="date" value={newExp.end_date} onChange={(e) => setNewExp({ ...newExp, end_date: e.target.value })} className="px-4 py-2.5 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 focus:outline-none focus:border-primary/60 transition-all" />
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block font-mono text-[11px] tracking-wider text-gray-500 uppercase mb-1.5">Start Date</label>
+                      <input type="date" value={newExp.start_date} onChange={(e) => setNewExp({ ...newExp, start_date: e.target.value })} className="w-full px-4 py-2.5 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 focus:outline-none focus:border-primary/60 transition-all" />
+                    </div>
+                    <div>
+                      <label className="block font-mono text-[11px] tracking-wider text-gray-500 uppercase mb-1.5">End Date <span className="text-gray-400 font-normal">(blank = present)</span></label>
+                      <input type="date" value={newExp.end_date} onChange={(e) => setNewExp({ ...newExp, end_date: e.target.value })} className="w-full px-4 py-2.5 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 focus:outline-none focus:border-primary/60 transition-all" />
+                    </div>
+                  </div>
                 </div>
                 <input value={newExp.description} onChange={(e) => setNewExp({ ...newExp, description: e.target.value })} placeholder="Brief description of responsibilities" className="w-full px-4 py-2.5 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-primary/60 transition-all" />
-                <button type="button" onClick={handleAddExperience} className="px-4 py-2.5 text-sm font-medium text-white bg-primary hover:bg-primary-hover rounded-xl active:scale-[0.98] transition-colors">Add Experience</button>
+                <button type="button" onClick={handleAddExperience} disabled={addingExp} className="px-4 py-2.5 text-sm font-medium text-white bg-primary hover:bg-primary-hover rounded-xl active:scale-[0.98] transition-colors disabled:opacity-60">{addingExp ? "Adding…" : "Add Experience"}</button>
+                {expError && <p className="text-xs text-danger">{expError}</p>}
               </div>
             )}
 
@@ -380,7 +511,7 @@ function Profile() {
               </div>
             )}
 
-            <div className="flex items-center gap-3 pt-3">
+            <div className="flex items-center justify-end gap-3 pt-3">
               <button type="submit" disabled={saving} className="min-h-[42px] px-6 rounded-xl bg-primary text-white text-xs font-medium hover:bg-primary-hover transition-colors shadow-sm disabled:opacity-60">
                 {saving ? "Saving…" : "Save Profile"}
               </button>
@@ -415,8 +546,28 @@ function Profile() {
                     <dd className="mt-1 text-xs text-gray-700">{form.employmentStatus || "Not set"}</dd>
                   </div>
                   <div>
-                    <dt className="font-mono text-[10px] tracking-widest uppercase text-gray-400">Job Preferences</dt>
-                    <dd className="mt-1 text-xs text-gray-700">{[form.preferredPosition, form.preferredLocation && `in ${form.preferredLocation}`].filter(Boolean).join(" ") || "Not set"}</dd>
+                    <dt className="font-mono text-[10px] tracking-widest uppercase text-gray-400">Preferred Jobs</dt>
+                    <dd className="mt-1.5">
+                      {splitTags(form.preferredPosition).length ? (
+                        <span className="flex flex-wrap gap-1.5">
+                          {splitTags(form.preferredPosition).map((tag) => (
+                            <span key={tag} className="font-mono text-xs px-2.5 py-1 rounded-full bg-primary/10 border border-primary/25 text-primary">{tag}</span>
+                          ))}
+                        </span>
+                      ) : <span className="text-xs text-gray-700">Not set</span>}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="font-mono text-[10px] tracking-widest uppercase text-gray-400">Preferred Locations</dt>
+                    <dd className="mt-1.5">
+                      {splitTags(form.preferredLocation).length ? (
+                        <span className="flex flex-wrap gap-1.5">
+                          {splitTags(form.preferredLocation).map((tag) => (
+                            <span key={tag} className="font-mono text-xs px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700">{tag}</span>
+                          ))}
+                        </span>
+                      ) : <span className="text-xs text-gray-700">Not set</span>}
+                    </dd>
                   </div>
                 </dl>
                 <section>
@@ -447,13 +598,22 @@ function Profile() {
 
             {activeTab === "experience" && (
               <div className="space-y-3">
+                {employments.length > 0 && (
+                  <div className="space-y-3">
+                    <p className="font-mono text-[11px] tracking-widest text-gray-500 uppercase">Synced Employment</p>
+                    {employments.map((job) => <SyncedEmployment key={job.id} job={job} />)}
+                  </div>
+                )}
+                {employments.length > 0 && experience.length > 0 && (
+                  <p className="font-mono text-[11px] tracking-widest text-gray-500 uppercase pt-2">Added Manually</p>
+                )}
                 {experience.length ? experience.map((exp) => (
                   <div key={exp.id} className="p-4 rounded-xl bg-gray-50 border border-gray-200">
                     <p className="text-sm font-medium text-gray-900">{exp.position}</p>
                     <p className="text-xs text-gray-500 mt-0.5">{exp.company} · {exp.start_date || "Start"} – {exp.end_date || "Present"}</p>
                     {exp.description && <p className="text-xs text-gray-400 mt-1">{exp.description}</p>}
                   </div>
-                )) : <p className="text-xs text-gray-400">No experience added yet.</p>}
+                )) : (employments.length === 0 && <p className="text-xs text-gray-400">No experience added yet.</p>)}
               </div>
             )}
 

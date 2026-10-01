@@ -5,14 +5,21 @@ import { listBySeeker } from "../../services/applications";
 import { listJobs } from "../../services/jobs";
 import LoadingScreen from "../../components/LoadingScreen";
 
+function splitPref(value) {
+  const list = Array.isArray(value) ? value : String(value || "").split(",");
+  return list.map((t) => String(t).trim().toLowerCase()).filter(Boolean);
+}
+
 function scoreJob(job, user) {
   const skills = user?.skills || [];
   const jobText = `${job.title || ""} ${job.description || ""} ${job.requirements || ""}`.toLowerCase();
   const skillHits = skills.filter((s) => jobText.includes(String(s).toLowerCase())).length;
   let score = skillHits;
-  if (user?.preferred_position && job.title?.toLowerCase().includes(user.preferred_position.toLowerCase())) score += 2;
-  if (user?.preferred_location && job.location?.toLowerCase().includes(user.preferred_location.toLowerCase())) score += 1;
-  if (user?.barangay_district && job.location?.toLowerCase().includes(user.barangay_district.toLowerCase())) score += 1;
+  const title = (job.title || "").toLowerCase();
+  const location = (job.location || "").toLowerCase();
+  if (splitPref(user?.preferred_position).some((tag) => title.includes(tag))) score += 2;
+  if (splitPref(user?.preferred_location).some((tag) => location.includes(tag))) score += 1;
+  if (user?.barangay_district && location.includes(user.barangay_district.toLowerCase())) score += 1;
   return score;
 }
 
@@ -124,7 +131,7 @@ function Dashboard() {
         <div className="flex items-center justify-between gap-4 mb-6 border-l-4 border-primary pl-4">
           <div>
             <h2 className="text-lg font-semibold text-dark-blue">Recommended For You</h2>
-            <p className="text-xs text-gray-500 mt-0.5">Matched against your skills, preferred position, and location</p>
+            <p className="text-xs text-gray-500 mt-0.5">Matched against your skills, preferred jobs, and location</p>
           </div>
           <Link to="/job-seeker/jobs" className="text-xs font-medium text-primary hover:underline shrink-0">View all →</Link>
         </div>

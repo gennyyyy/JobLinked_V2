@@ -5,6 +5,12 @@ import { signedUrl } from "../../services/documents";
 import { supabase } from "../../lib/supabase";
 import LoadingScreen from "../../components/LoadingScreen";
 
+// Handles both legacy single-string values and comma-separated tag strings.
+function splitPref(value) {
+  const list = Array.isArray(value) ? value : String(value || "").split(",");
+  return list.map((t) => String(t).trim()).filter(Boolean);
+}
+
 function Applicants() {
   const { user } = useAuth();
   const [applicants, setApplicants] = useState([]);
@@ -200,8 +206,8 @@ function Applicants() {
                             <div><dt className="text-[10px] uppercase text-gray-400">Phone</dt><dd className="text-gray-700">{applicant.seeker?.phone || "—"}</dd></div>
                             <div><dt className="text-[10px] uppercase text-gray-400">Barangay</dt><dd className="text-gray-700">{applicant.seeker?.barangay_district || "—"}</dd></div>
                             <div><dt className="text-[10px] uppercase text-gray-400">Employment Status</dt><dd className="text-gray-700">{applicant.seeker?.employment_status || "—"}</dd></div>
-                            <div><dt className="text-[10px] uppercase text-gray-400">Preferred Position</dt><dd className="text-gray-700">{applicant.seeker?.preferred_position || "—"}</dd></div>
-                            <div><dt className="text-[10px] uppercase text-gray-400">Preferred Location</dt><dd className="text-gray-700">{applicant.seeker?.preferred_location || "—"}</dd></div>
+                            <div><dt className="text-[10px] uppercase text-gray-400">Preferred Jobs</dt><dd className="text-gray-700">{splitPref(applicant.seeker?.preferred_position).join(", ") || "—"}</dd></div>
+                            <div><dt className="text-[10px] uppercase text-gray-400">Preferred Locations</dt><dd className="text-gray-700">{splitPref(applicant.seeker?.preferred_location).join(", ") || "—"}</dd></div>
                           </dl>
                           <div>
                             <p className="text-[10px] uppercase text-gray-400 mb-1.5">Skills</p>
