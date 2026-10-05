@@ -1,4 +1,4 @@
-1. Employee / Job Seeker Module
+﻿1. Employee / Job Seeker Module
 
     Authentication & Account
 
@@ -652,85 +652,7 @@
 
         Accreditation Records
 
-7. Facebook Auto-Posting Integration
-
-    Integration
-
-        Connect PESO Facebook Page
-
-        Facebook Page Settings
-
-        Connection Status
-
-        Test Connection
-
-        Disconnect Facebook Page
-
-    Auto-Posting
-
-        Enable / Disable Auto-Posting
-
-        Automatic Post Generation
-
-        Job Post Preview
-
-        Automatic Facebook Publishing
-
-        Include JobLinked Application Link
-
-    Post Data
-
-        Job Title
-
-        Employer Name
-
-        Salary
-
-        Location
-
-        Number of Vacancies
-
-        Qualifications
-
-        Application Deadline
-
-        JobLinked Application Link
-
-    Post Tracking
-
-        Facebook Post History
-
-        Facebook Post URL
-
-        Facebook Post ID
-
-        Posting Status
-
-        Date Posted
-
-        Error Message
-
-        Retry Failed Post
-
-    Posting Status Types
-
-        Pending
-
-        Posting
-
-        Posted
-
-        Failed
-
-        Retry
-
-    Trigger Rules
-
-        Only auto-post after PESO Admin approves the job posting
-
-        Approved job is published on JobLinked before Facebook posting
-
-8. Security & Audit
+7. Security & Audit
 
     Security
 
@@ -770,7 +692,7 @@
 
         Data Deletion
 
-9. Core Database Entities
+7. Core Database Entities
 
     users
 
@@ -801,7 +723,3 @@
     barangays
 
     audit_logs
-
-    facebook_integrations
-
-    facebook_posts

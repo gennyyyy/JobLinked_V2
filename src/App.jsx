@@ -1,57 +1,61 @@
+import { useEffect, useState } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
-import Landing from './pages/Landing'
-import PublicJobs from './pages/PublicJobs'
-import PublicJobDetail from './pages/PublicJobDetail'
-import PortalSelect from './pages/PortalSelect'
-import ForgotPassword from './pages/ForgotPassword'
-import Login from './pages/Login'
-import Register from './pages/Register'
-import JobSeekerRegister from './pages/JobSeekerRegister'
-import EmployerRegister from './pages/EmployerRegister'
-import EmployerStatus from './pages/EmployerStatus'
-import ProtectedRoute from './components/ProtectedRoute'
-import SuperAdminLayout from './layouts/SuperAdminLayout'
-import Dashboard from './pages/superadmin/Dashboard'
-import Accreditation from './pages/superadmin/Accreditation'
-import JobPosts from './pages/superadmin/JobPosts'
-import RoleManagement from './pages/superadmin/RoleManagement'
-import UserManagement from './pages/superadmin/UserManagement'
-import Settings from './pages/superadmin/Settings'
-import Reports from './pages/superadmin/Reports'
-import Facebook from './pages/superadmin/Facebook'
-import Logs from './pages/superadmin/Logs'
-import SuperAdminProfile from './pages/superadmin/Profile'
-import EmployerLayout from './layouts/EmployerLayout'
-import EmployerDashboard from './pages/employer/Dashboard'
-import EmployerJobPosts from './pages/employer/JobPosts'
-import Applicants from './pages/employer/Applicants'
-import Employees from './pages/employer/Employees'
-import CompanyProfile from './pages/employer/CompanyProfile'
-import EmployerAccreditation from './pages/employer/EmployerAccreditation'
-import JobSeekerLayout from './layouts/JobSeekerLayout'
-import JobSeekerDashboard from './pages/job-seeker/Dashboard'
-import JobDetail from './pages/job-seeker/JobDetail'
-import Applications from './pages/job-seeker/Applications'
-import Employment from './pages/job-seeker/Employment'
-import Profile from './pages/job-seeker/Profile'
-import Jobs from './pages/job-seeker/Jobs'
+import Landing from './features/public-site/Landing'
+import PublicJobs from './features/public-site/PublicJobs'
+import PublicJobDetail from './features/public-site/PublicJobDetail'
+import PortalSelect from './features/public-site/PortalSelect'
+import ForgotPassword from './features/auth/ForgotPassword'
+import ResetPassword from './features/auth/ResetPassword'
+import Login from './features/auth/Login'
+import Register from './features/auth/Register'
+import JobSeekerRegister from './features/auth/JobSeekerRegister'
+import EmployerRegister from './features/auth/EmployerRegister'
+import EmployerStatus from './features/auth/EmployerStatus'
+import ProtectedRoute from './shared/components/ProtectedRoute'
+import LoadingScreen from './shared/components/LoadingScreen'
+import useAuth from './shared/hooks/useAuth'
+import SuperAdminLayout from './features/super-admin/SuperAdminLayout'
+import Dashboard from './features/super-admin/Dashboard'
+import Accreditation from './features/super-admin/Accreditation'
+import JobPosts from './features/super-admin/JobPosts'
+import RoleManagement from './features/super-admin/RoleManagement'
+import UserManagement from './features/super-admin/UserManagement'
+import Settings from './features/super-admin/Settings'
+import Reports from './features/super-admin/Reports'
+import Logs from './features/super-admin/Logs'
+import SuperAdminProfile from './features/super-admin/Profile'
+import EmployerLayout from './features/employer/EmployerLayout'
+import EmployerDashboard from './features/employer/Dashboard'
+import EmployerJobPosts from './features/employer/JobPosts'
+import Applicants from './features/employer/Applicants'
+import Employees from './features/employer/Employees'
+import CompanyProfile from './features/employer/CompanyProfile'
+import EmployerAccreditation from './features/employer/EmployerAccreditation'
+import JobSeekerLayout from './features/job-seeker/JobSeekerLayout'
+import JobSeekerDashboard from './features/job-seeker/Dashboard'
+import JobDetail from './features/job-seeker/JobDetail'
+import Applications from './features/job-seeker/Applications'
+import Employment from './features/job-seeker/Employment'
+import Profile from './features/job-seeker/Profile'
+import Jobs from './features/job-seeker/Jobs'
 
 function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<Landing />} />
-        <Route path="/jobs" element={<PublicJobs />} />
-        <Route path="/jobs/:jobId" element={<PublicJobDetail />} />
-        <Route path="/portals" element={<PortalSelect />} />
+        <Route path="/" element={<PublicRoute><Landing /></PublicRoute>} />
+        <Route path="/jobs" element={<PublicRoute><PublicJobs /></PublicRoute>} />
+        <Route path="/jobs/:jobId" element={<PublicRoute><PublicJobDetail /></PublicRoute>} />
+        <Route path="/portals" element={<PublicRoute><PortalSelect /></PublicRoute>} />
         <Route path="/super-admin/login" element={<Login portalKey="super-admin" />} />
         <Route path="/employer/login" element={<Login portalKey="employer" />} />
         <Route path="/job-seeker/login" element={<Login portalKey="job-seeker" />} />
-        <Route path="/register" element={<Register />} />
-        <Route path="/forgot-password" element={<ForgotPassword />} />
-        <Route path="/register/job-seeker" element={<JobSeekerRegister />} />
-        <Route path="/register/employer" element={<EmployerRegister />} />
-        <Route path="/register/employer/status" element={<EmployerStatus />} />
+        <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
+        <Route path="/forgot-password" element={<PublicRoute><ForgotPassword /></PublicRoute>} />
+        <Route path="/reset-password" element={<PublicRoute><ResetPassword /></PublicRoute>} />
+        <Route path="/register/job-seeker" element={<PublicRoute><JobSeekerRegister /></PublicRoute>} />
+        <Route path="/register/employer" element={<PublicRoute><EmployerRegister /></PublicRoute>} />
+        <Route path="/register/employer/status" element={<PublicRoute><EmployerStatus /></PublicRoute>} />
 
         <Route
           path="/super-admin"
@@ -68,7 +72,6 @@ function App() {
           <Route path="users" element={<UserManagement />} />
           <Route path="settings" element={<Settings />} />
           <Route path="reports" element={<Reports />} />
-          <Route path="facebook" element={<Facebook />} />
           <Route path="logs" element={<Logs />} />
           <Route path="profile" element={<SuperAdminProfile />} />
         </Route>
@@ -112,3 +115,20 @@ function App() {
 }
 
 export default App
+
+// ADR-021 rule 1: a session survives only inside its own portal — destroy it
+// on arrival at a public route, then render the page as guest.
+function PublicRoute({ children }) {
+  const { user, loading, logout } = useAuth()
+  const [done, setDone] = useState(false)
+
+  useEffect(() => {
+    if (!loading && user && !done) {
+      logout().then(() => setDone(true), () => setDone(true))
+    }
+  }, [loading, user, done, logout])
+
+  if (loading) return <LoadingScreen />
+  if (user && !done) return <LoadingScreen />
+  return children
+}

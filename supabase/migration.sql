@@ -26,7 +26,6 @@ do $$ begin create type job_status         as enum ('draft','pending','approved'
 do $$ begin create type application_status as enum ('Applied','Under Review','Shortlisted','Interview','Accepted','Rejected','Placed'); exception when duplicate_object then null; end $$;
 do $$ begin create type accreditation_status as enum ('none','pending','approved','rejected','resubmission'); exception when duplicate_object then null; end $$;
 do $$ begin create type document_status    as enum ('pending','verified','rejected','missing'); exception when duplicate_object then null; end $$;
-do $$ begin create type fb_post_status     as enum ('pending','posting','posted','failed','retry'); exception when duplicate_object then null; end $$;
 
 -- Enum value additions (safe on both fresh and existing databases)
 alter type application_status    add value if not exists 'Placed';
@@ -762,42 +761,9 @@ drop policy if exists audit_insert on public.audit_logs;
 create policy audit_select on public.audit_logs for select using (public.is_admin());
 create policy audit_insert on public.audit_logs for insert with check (user_id = auth.uid());
 
--- ---------------------------------------------------------------------------
--- Facebook integration
--- ---------------------------------------------------------------------------
-create table if not exists public.facebook_integrations (
-  id              uuid        primary key default gen_random_uuid(),
-  page_id         text        not null,
-  page_name       text        not null,
-  access_token    text        not null,
-  status          text        not null default 'connected',
-  auto_post       boolean     not null default true,
-  connected_at    timestamptz not null default now(),
-  disconnected_at timestamptz
-);
-
-create table if not exists public.facebook_posts (
-  id             uuid           primary key default gen_random_uuid(),
-  job_id         uuid           not null references public.job_vacancies(id) on delete cascade,
-  integration_id uuid           references public.facebook_integrations(id) on delete set null,
-  post_id        text,
-  post_url       text,
-  status         fb_post_status not null default 'pending',
-  error          text,
-  retry_count    int            not null default 0,
-  created_at     timestamptz    not null default now(),
-  posted_at      timestamptz
-);
-
-do $$
-declare t text;
-begin
-  foreach t in array array['public.facebook_integrations','public.facebook_posts'] loop
-    execute format('alter table %s enable row level security', t);
-    execute format('drop policy if exists fb_all on %s', t);
-    execute format('create policy fb_all on %s for all using (public.is_admin()) with check (public.is_admin())', t);
-  end loop;
-end $$;
+drop table if exists public.facebook_posts;
+drop table if exists public.facebook_integrations;
+drop type if exists fb_post_status;
 
 -- ---------------------------------------------------------------------------
 -- Auto-create role-table row on user signup
@@ -974,29 +940,6 @@ on conflict (category, value) do nothing;
 
 -- ---------------------------------------------------------------------------
 -- Seed: initial super-admin account
--- IMPORTANT: Change this password immediately after first login.
+-- REMOVED: Hardcoded credentials removed for security.
+-- Create admin accounts via Supabase Dashboard or a secure one-time script.
 -- ---------------------------------------------------------------------------
-do $$
-declare admin_id uuid;
-begin
-  select id into admin_id from auth.users where email = 'admin@joblinked.ph' limit 1;
-  if admin_id is null then
-    insert into auth.users (
-      id, instance_id, aud, role, email, encrypted_password,
-      email_confirmed_at, created_at, updated_at,
-      raw_app_meta_data, raw_user_meta_data
-    ) values (
-      gen_random_uuid(),
-      '00000000-0000-0000-0000-000000000000',
-      'authenticated', 'authenticated',
-      'admin@joblinked.ph',
-      crypt('Admin123!', gen_salt('bf')),
-      now(), now(), now(),
-      '{"provider":"email","providers":["email"]}'::jsonb,
-      '{"role":"super-admin","first_name":"System","last_name":"Administrator","full_name":"System Administrator"}'::jsonb
-    ) returning id into admin_id;
-  end if;
-  insert into public.super_admins (id, first_name, last_name, full_name, email, status)
-  values (admin_id, 'System', 'Administrator', 'System Administrator', 'admin@joblinked.ph', 'active')
-  on conflict (id) do update set status = 'active';
-end $$;

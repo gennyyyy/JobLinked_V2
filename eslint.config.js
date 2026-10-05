@@ -18,4 +18,19 @@ export default defineConfig([
       parserOptions: { ecmaFeatures: { jsx: true } },
     },
   },
+  {
+    // Bare vitest globals live only in untracked test/helper files
+    files: ['src/shared/services/__tests__/*.test.js', 'src/test/*.js'],
+    languageOptions: {
+      globals: { describe: 'readonly', it: 'readonly', expect: 'readonly', vi: 'readonly' },
+    },
+  },
+  {
+    // Express API: node runtime, no React
+    files: ['server/**/*.js'],
+    languageOptions: {
+      globals: globals.node,
+      sourceType: 'module',
+    },
+  },
 ])
