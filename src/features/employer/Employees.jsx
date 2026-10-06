@@ -83,7 +83,7 @@ function Employees() {
         />
       </div>
 
-      <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
+      <div className="bg-white border-2 border-primary rounded-2xl p-6 shadow-sm">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>

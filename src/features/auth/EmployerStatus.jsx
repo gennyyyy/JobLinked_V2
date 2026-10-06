@@ -65,7 +65,7 @@ function EmployerStatus() {
           </div>
         </header>
         <main className="flex-1 flex items-center justify-center p-[3%]">
-          <div className="max-w-md w-full text-center bg-white border border-gray-200 rounded-2xl p-8 shadow-xl animate-fade-in">
+          <div className="max-w-md w-full text-center bg-white border-2 border-primary rounded-2xl p-8 shadow-xl animate-fade-in">
             <h1 className="text-xl font-bold text-dark-blue">No Application Found</h1>
             <p className="mt-3 text-sm text-gray-500">You haven&apos;t submitted an employer accreditation application yet.</p>
             <Link to="/register/employer" className="inline-flex mt-6 min-h-[44px] items-center justify-center px-6 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-primary-hover active:scale-[0.98] transition-all shadow-md">
@@ -95,7 +95,7 @@ function EmployerStatus() {
       </header>
 
       <main className="flex-1 flex items-center justify-center p-[3%]">
-        <div className="w-full max-w-lg bg-white border border-gray-200 rounded-2xl p-7 md:p-9 shadow-xl animate-fade-in">
+        <div className="w-full max-w-lg bg-white border-2 border-primary rounded-2xl p-7 md:p-9 shadow-xl animate-fade-in">
           {(isRejected || isRevoked) && remarks && (
             <div className="mb-6 p-4 rounded-xl border border-danger/20 bg-danger/5">
               <p className="font-mono text-[10px] tracking-widest text-danger uppercase font-semibold">Action Required</p>

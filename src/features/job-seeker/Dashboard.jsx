@@ -4,6 +4,8 @@ import useAuth from "../../shared/hooks/useAuth";
 import { listBySeeker } from "../../shared/services/applications";
 import { listJobs } from "../../shared/services/jobs";
 import LoadingScreen from "../../shared/components/LoadingScreen";
+import { FileText, UserCheck, XCircle, TrendingUp } from "lucide-react";
+import { PageHeader, StatGrid, StatCard, SectionCard } from "../../shared/components/dashboard";
 
 function splitPref(value) {
   const list = Array.isArray(value) ? value : String(value || "").split(",");
@@ -73,10 +75,10 @@ function Dashboard() {
   }).length;
 
   const stats = [
-    { label: "Active Applications", value: activeApplications, highlight: false },
-    { label: "Shortlisted", value: shortlisted, highlight: shortlisted > 0 },
-    { label: "Rejected", value: rejected, highlight: false },
-    { label: "New This Week", value: newThisWeek, highlight: newThisWeek > 0 },
+    { label: "Active Applications", value: activeApplications, highlight: false, icon: <FileText size={18} /> },
+    { label: "Shortlisted", value: shortlisted, highlight: shortlisted > 0, icon: <UserCheck size={18} /> },
+    { label: "Rejected", value: rejected, highlight: false, icon: <XCircle size={18} /> },
+    { label: "New This Week", value: newThisWeek, highlight: newThisWeek > 0, icon: <TrendingUp size={18} /> },
   ];
 
   const recentApps = [...applications]
@@ -87,36 +89,23 @@ function Dashboard() {
 
   return (
     <div className="space-y-8 animate-fade-in bg-gray-50">
-      <header>
-        <div className="flex items-center gap-3">
-          <div className="w-1 h-6 bg-primary rounded-full" />
-          <p className="font-mono text-[11px] tracking-[0.2em] text-primary uppercase">JOB SEEKER DASHBOARD</p>
-        </div>
-        <h1 className="mt-1 font-sans text-2xl md:text-3xl font-bold tracking-tight text-dark-blue">My Dashboard</h1>
-        <p className="mt-2 text-sm text-gray-500">Track your applications and recruitment activity</p>
-      </header>
+      <PageHeader
+        eyebrow="JOB SEEKER DASHBOARD"
+        title="My Dashboard"
+        subtitle="Track your applications and recruitment activity"
+      />
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <StatGrid>
         {stats.map((stat) => (
-          <div
-            key={stat.label}
-            className={`bg-white border border-gray-200 rounded-2xl p-6 shadow-sm hover:border-gray-300 transition-colors ${stat.highlight ? 'border-t-4 border-amber-400' : 'border-t-4 border-primary'}`}
-          >
-            <p className="font-sans text-3xl md:text-4xl font-bold text-primary leading-none">{stat.value}</p>
-            <p className="mt-3 font-mono text-[10px] md:text-[11px] tracking-widest text-gray-500 uppercase">{stat.label}</p>
-            {stat.highlight && <span className="inline-block mt-3 w-2 h-2 rounded-full bg-amber-400 animate-pulse" />}
-          </div>
+          <StatCard key={stat.label} label={stat.label} value={stat.value} highlight={stat.highlight} icon={stat.icon} />
         ))}
-      </div>
+      </StatGrid>
 
-      <section className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm border-t-4 border-primary">
-        <div className="flex items-center justify-between gap-4 mb-4 border-l-4 border-primary pl-4">
-          <div>
-            <h2 className="text-lg font-semibold text-dark-blue">Profile Completion</h2>
-            <p className="text-xs text-gray-500 mt-0.5">Complete profiles get seen by more employers</p>
-          </div>
-          <span className="font-mono text-2xl font-bold text-primary">{completion}%</span>
-        </div>
+      <SectionCard
+        title="Profile Completion"
+        subtitle="Complete profiles get seen by more employers"
+        action={<span className="font-mono text-2xl font-bold text-primary">{completion}%</span>}
+      >
         <div className="h-2 rounded-full bg-gray-100 overflow-hidden">
           <div className="h-full bg-primary transition-all" style={{ width: `${completion}%` }} />
         </div>
@@ -125,23 +114,20 @@ function Dashboard() {
             Complete my profile →
           </Link>
         )}
-      </section>
+      </SectionCard>
 
-      <section className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm border-t-4 border-primary">
-        <div className="flex items-center justify-between gap-4 mb-6 border-l-4 border-primary pl-4">
-          <div>
-            <h2 className="text-lg font-semibold text-dark-blue">Recommended For You</h2>
-            <p className="text-xs text-gray-500 mt-0.5">Matched against your skills, preferred jobs, and location</p>
-          </div>
-          <Link to="/job-seeker/jobs" className="text-xs font-medium text-primary hover:underline shrink-0">View all →</Link>
-        </div>
+      <SectionCard
+        title="Recommended For You"
+        subtitle="Matched against your skills, preferred jobs, and location"
+        action={<Link to="/job-seeker/jobs" className="text-xs font-medium text-primary hover:underline shrink-0">View all →</Link>}
+      >
         {recommended.length === 0 ? (
           <div className="py-8 text-center text-sm text-gray-400">
             No recommendations yet.{" "}
             <Link to="/job-seeker/profile" className="text-primary hover:underline">Add skills and preferences →</Link>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-1 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {recommended.map((job) => (
               <Link
                 key={job.id}
@@ -158,15 +144,9 @@ function Dashboard() {
             ))}
           </div>
         )}
-      </section>
+      </SectionCard>
 
-      <section className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm border-t-4 border-primary">
-        <div className="flex items-center gap-3 mb-6 border-l-4 border-primary pl-4">
-          <div>
-            <h2 className="text-lg font-semibold text-dark-blue">Recent Applications</h2>
-            <p className="text-xs text-gray-500 mt-0.5">Latest jobs you've applied to with Santa Maria employers</p>
-          </div>
-        </div>
+      <SectionCard title="Recent Applications" subtitle="Latest jobs you've applied to with Santa Maria employers">
 
         {recentApps.length === 0 ? (
           <div className="py-12 text-center text-sm text-gray-400">
@@ -201,7 +181,7 @@ function Dashboard() {
             ))}
           </div>
         )}
-      </section>
+      </SectionCard>
     </div>
   );
 }

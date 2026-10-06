@@ -4,7 +4,7 @@ function ConfirmationModal({ message, onConfirm, onCancel, confirmLabel = "Confi
   if (typeof document === "undefined") return null;
   return createPortal(
     <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-xs">
-      <div className="bg-white border border-gray-200 rounded-2xl p-6 w-full shadow-2xl animate-fade-in">
+      <div className="bg-white border-2 border-primary rounded-2xl p-6 w-full shadow-2xl animate-fade-in">
         <p className="text-sm text-gray-700 mb-6">{message}</p>
         <div className="flex gap-3 justify-end">
           <button

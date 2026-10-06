@@ -45,7 +45,7 @@ function ResetPassword() {
       </header>
 
       <main className="flex-1 flex items-center justify-center p-[3%]">
-        <div className="w-full max-w-md bg-white border border-gray-200 rounded-2xl p-7 md:p-9 shadow-xl animate-fade-in">
+        <div className="w-full max-w-md bg-white border-2 border-primary rounded-2xl p-7 md:p-9 shadow-xl animate-fade-in">
           <div className="flex items-center justify-between mb-6">
             <Link to="/portals" className="text-xs text-gray-400 hover:text-primary transition-colors">
               ← Portals

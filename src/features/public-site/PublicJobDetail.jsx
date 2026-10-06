@@ -41,7 +41,7 @@ function PublicJobDetail() {
       <main className="flex-1 w-full p-[3%] animate-fade-in">
         <Link to="/jobs" className="inline-flex items-center text-xs text-gray-500 hover:text-gray-900 transition-colors mb-6">← Back to all postings</Link>
 
-        <article className="bg-white border border-gray-200 rounded-2xl p-7 md:p-10 shadow-lg">
+        <article className="bg-white border-2 border-primary rounded-2xl p-7 md:p-10 shadow-lg">
           <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 pb-6 border-b border-gray-200">
             <div>
               <span className="font-mono text-[10px] tracking-widest uppercase px-2.5 py-1 rounded-full bg-primary/10 border border-primary/25 text-primary">{job.location} · {job.employment_type}</span>

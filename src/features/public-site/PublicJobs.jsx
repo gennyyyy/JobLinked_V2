@@ -37,7 +37,7 @@ function JobBrowser({ initialKeyword, initialLocation }) {
 
   return (
     <>
-      <form onSubmit={(e) => e.preventDefault()} className="bg-white border border-gray-200 rounded-2xl p-3 flex flex-col sm:flex-row gap-3 shadow-sm mb-8">
+      <form onSubmit={(e) => e.preventDefault()} className="bg-white border-2 border-primary rounded-2xl p-3 flex flex-col sm:flex-row gap-3 shadow-sm mb-8">
         <input
           type="text"
           value={search}
@@ -75,7 +75,7 @@ function JobBrowser({ initialKeyword, initialLocation }) {
             <Link
               key={job.id}
               to={`/jobs/${job.id}`}
-              className="group bg-white border border-gray-200 rounded-2xl p-6 hover:border-primary/40 hover:-translate-y-0.5 transition-all flex flex-col justify-between shadow-sm"
+              className="group bg-white border-2 border-primary rounded-2xl p-6 hover:border-primary/40 hover:-translate-y-0.5 transition-all flex flex-col justify-between shadow-sm"
             >
               <div>
                 <div className="flex items-start justify-between gap-3">
@@ -98,7 +98,7 @@ function JobBrowser({ initialKeyword, initialLocation }) {
       )}
 
       {!loading && !error && jobs.length === 0 && (
-        <div className="py-16 text-center bg-gray-50 border border-gray-200 rounded-2xl">
+        <div className="py-16 text-center bg-gray-50 border-2 border-primary rounded-2xl">
           <p className="text-sm text-gray-500">No jobs match your search criteria.</p>
           <button onClick={() => { setSearch(""); setLocation(""); }} className="mt-4 text-xs font-mono text-[#0057B8] hover:underline">Clear all filters</button>
         </div>

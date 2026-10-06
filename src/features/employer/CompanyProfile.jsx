@@ -106,7 +106,7 @@ function CompanyProfile() {
         <p className="mt-2 text-sm text-gray-500">Your company details visible to PESO and job seekers</p>
       </header>
 
-      <div className="bg-white border border-gray-200 rounded-2xl p-7 md:p-9 shadow-sm">
+      <div className="bg-white border-2 border-primary rounded-2xl p-7 md:p-9 shadow-sm">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-gray-200">
           <div className="flex items-center gap-4">
             <div className="w-16 h-16 rounded-2xl bg-primary/10 border border-primary/25 flex items-center justify-center font-bold text-xl text-primary">

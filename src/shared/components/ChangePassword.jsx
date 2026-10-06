@@ -32,7 +32,7 @@ function ChangePassword() {
   }
 
   return (
-    <section className="bg-white border border-gray-200 rounded-2xl p-7 md:p-9 shadow-sm">
+    <section className="bg-white border-2 border-primary rounded-2xl p-7 md:p-9 shadow-sm">
       <div className="border-l-4 border-primary pl-4 mb-6">
         <h2 className="text-lg font-semibold text-gray-900">Change Password</h2>
         <p className="text-xs text-gray-500 mt-1">Use a new password with at least 8 characters.</p>

@@ -27,7 +27,7 @@ function PortalSelect() {
               <Link
                 key={portal.key}
                 to={portal.path}
-                className="group relative bg-white border border-gray-200 rounded-2xl p-7 hover:border-primary/40 hover:-translate-y-1 hover:shadow-xl transition-all duration-300 flex flex-col justify-between"
+                className="group relative bg-white border-2 border-primary rounded-2xl p-7 hover:border-primary/40 hover:-translate-y-1 hover:shadow-xl transition-all duration-300 flex flex-col justify-between"
               >
                 <div>
                   <div className="flex items-center justify-between mb-4">

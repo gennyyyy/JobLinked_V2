@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { getStats, listAllAccreditations } from "../../shared/services/admin";
 import LoadingScreen from "../../shared/components/LoadingScreen";
+import { Users, Clock, Building2, Briefcase, FileText, Globe } from "lucide-react";
+import { PageHeader, StatCard, SectionCard } from "../../shared/components/dashboard";
 
 function Dashboard() {
   const [stats, setStats] = useState(null);
@@ -24,46 +26,33 @@ function Dashboard() {
   if (!stats) return null;
 
   const statCards = [
-    { label: "Job Seekers", value: stats.seekers, highlight: false },
-    { label: "Pending Accreditation", value: stats.pendingAccreditations, highlight: stats.pendingAccreditations > 0 },
-    { label: "Employers", value: stats.employers, highlight: false },
-    { label: "Job Posts", value: stats.jobs, highlight: false },
-    { label: "Applications", value: stats.applications, highlight: false },
-    { label: "Companies", value: stats.companies, highlight: false },
+    { label: "Job Seekers", value: stats.seekers, highlight: false, icon: <Users size={18} /> },
+    { label: "Pending Accreditation", value: stats.pendingAccreditations, highlight: stats.pendingAccreditations > 0, icon: <Clock size={18} /> },
+    { label: "Employers", value: stats.employers, highlight: false, icon: <Building2 size={18} /> },
+    { label: "Job Posts", value: stats.jobs, highlight: false, icon: <Briefcase size={18} /> },
+    { label: "Applications", value: stats.applications, highlight: false, icon: <FileText size={18} /> },
+    { label: "Companies", value: stats.companies, highlight: false, icon: <Globe size={18} /> },
   ];
 
   return (
     <div className="space-y-8 animate-fade-in bg-gray-50">
-      <header>
-        <div className="flex items-center gap-3">
-          <div className="w-1 h-6 bg-primary rounded-full" />
-          <p className="font-mono text-[11px] tracking-[0.2em] text-primary uppercase">ADMINISTRATION OVERVIEW</p>
-        </div>
-        <h1 className="mt-1 font-sans text-2xl md:text-3xl font-bold tracking-tight text-dark-blue">PESO Operations Dashboard</h1>
-        <p className="mt-2 text-sm text-gray-500">Real-time municipal statistics, accreditations, and system activities</p>
-      </header>
+      <PageHeader
+        eyebrow="ADMINISTRATION OVERVIEW"
+        title="PESO Operations Dashboard"
+        subtitle="Real-time municipal statistics, accreditations, and system activities"
+      />
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
         {statCards.map((stat) => (
-          <div
-            key={stat.label}
-            className={`bg-white border border-gray-200 rounded-2xl p-6 shadow-sm hover:border-gray-300 transition-colors ${stat.highlight ? 'border-t-4 border-amber-400' : 'border-t-4 border-primary'}`}
-          >
-            <p className="font-sans text-3xl md:text-4xl font-bold text-primary leading-none">{stat.value}</p>
-            <p className="mt-3 font-mono text-[10px] md:text-[11px] tracking-widest text-gray-500 uppercase">{stat.label}</p>
-            {stat.highlight && <span className="inline-block mt-3 w-2 h-2 rounded-full bg-amber-400 animate-pulse" />}
-          </div>
+          <StatCard key={stat.label} label={stat.label} value={stat.value} highlight={stat.highlight} icon={stat.icon} />
         ))}
       </div>
 
-      <section className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm border-t-4 border-primary">
-        <div className="flex items-center gap-3 mb-6 border-l-4 border-primary pl-4">
-          <div>
-            <h2 className="text-lg font-semibold text-dark-blue">Recent Employer Applications</h2>
-            <p className="text-xs text-gray-500 mt-0.5">Review and act on business accreditation requests</p>
-          </div>
-          <Link to="/super-admin/accreditation" className="text-xs font-mono text-primary hover:underline underline-offset-4">Manage all →</Link>
-        </div>
+      <SectionCard
+        title="Recent Employer Applications"
+        subtitle="Review and act on business accreditation requests"
+        action={<Link to="/super-admin/accreditation" className="text-xs font-mono text-primary hover:underline underline-offset-4">Manage all →</Link>}
+      >
 
         {recentAccreditations.length === 0 ? (
           <div className="py-12 text-center text-sm text-gray-400">No employer applications submitted yet.</div>
@@ -91,7 +80,7 @@ function Dashboard() {
             ))}
           </div>
         )}
-      </section>
+      </SectionCard>
     </div>
   );
 }

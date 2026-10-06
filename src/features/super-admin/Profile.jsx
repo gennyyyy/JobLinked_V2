@@ -33,7 +33,7 @@ function Profile() {
         <p className="mt-2 text-sm text-gray-500">Your super administrator account information</p>
       </header>
 
-      <section className="bg-white border border-gray-200 rounded-2xl p-7 shadow-sm border-t-4 border-primary">
+      <section className="bg-white border-2 border-primary rounded-2xl p-7 shadow-sm">
         <div className="flex items-center gap-4">
           <div className="w-14 h-14 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center text-lg font-bold text-primary">
             {(user?.full_name || "SA").split(/\s+/).map((part) => part[0]).join("").slice(0, 2).toUpperCase()}

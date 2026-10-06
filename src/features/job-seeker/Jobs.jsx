@@ -51,7 +51,7 @@ function Jobs() {
         <p className="mt-2 text-sm text-gray-500">{total} active position{total === 1 ? "" : "s"} available across 24 barangays</p>
       </header>
 
-      <form onSubmit={(e) => e.preventDefault()} className="bg-white border border-gray-200 rounded-2xl p-3 flex flex-col sm:flex-row gap-3 shadow-sm">
+      <form onSubmit={(e) => e.preventDefault()} className="bg-white border-2 border-primary rounded-2xl p-3 flex flex-col sm:flex-row gap-3 shadow-sm">
         <input
           type="text"
           value={search}
@@ -125,7 +125,7 @@ function Jobs() {
             <Link
               key={job.id}
               to={`/job-seeker/jobs/${job.id}`}
-              className="group bg-white border border-gray-200 rounded-2xl p-6 hover:border-primary/40 hover:-translate-y-0.5 transition-all flex flex-col justify-between shadow-sm"
+              className="group bg-white border-2 border-primary rounded-2xl p-6 hover:border-primary/40 hover:-translate-y-0.5 transition-all flex flex-col justify-between shadow-sm"
             >
               <div>
                 <div className="flex items-start justify-between gap-3">
@@ -148,7 +148,7 @@ function Jobs() {
       )}
 
       {!loading && !error && jobs.length === 0 && (
-        <div className="py-16 text-center bg-gray-50 border border-gray-200 rounded-2xl">
+        <div className="py-16 text-center bg-gray-50 border-2 border-primary rounded-2xl">
           <p className="text-sm text-gray-500">No openings match your search filters.</p>
           <button onClick={resetFilters} className="mt-4 text-xs font-mono text-[#0057B8] hover:underline">
             Reset filters

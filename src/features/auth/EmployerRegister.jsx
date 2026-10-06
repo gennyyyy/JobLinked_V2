@@ -112,7 +112,7 @@ function EmployerRegister() {
         </header>
 
         <main className="flex-1 flex items-center justify-center p-[3%]">
-          <div className="max-w-md w-full text-center bg-white border border-gray-200 rounded-2xl p-8 shadow-xl animate-fade-in">
+          <div className="max-w-md w-full text-center bg-white border-2 border-primary rounded-2xl p-8 shadow-xl animate-fade-in">
             <span className="font-mono text-[10px] tracking-widest uppercase px-2.5 py-1 rounded-full bg-accent/20 border border-accent/40 text-dark-blue font-semibold">
               {needsConfirmation ? "VERIFY YOUR EMAIL" : "PENDING VERIFICATION"}
             </span>
@@ -154,7 +154,7 @@ function EmployerRegister() {
       </header>
 
       <main className="flex-1 flex items-center justify-center p-[3%]">
-        <div className="w-full max-w-2xl bg-white border border-gray-200 rounded-2xl p-7 md:p-10 shadow-xl animate-fade-in">
+        <div className="w-full max-w-2xl bg-white border-2 border-primary rounded-2xl p-7 md:p-10 shadow-xl animate-fade-in">
           <div className="flex items-center justify-between mb-4">
             <Link to="/register" className="text-xs text-gray-400 hover:text-primary transition-colors">
               ← Back to roles
@@ -170,7 +170,7 @@ function EmployerRegister() {
           </header>
 
           <form onSubmit={handleSubmit} noValidate className="space-y-8">
-            <section className="bg-gray-50 border border-gray-200 rounded-2xl p-6">
+            <section className="bg-gray-50 border-2 border-primary rounded-2xl p-6">
               <p className="font-mono text-[11px] tracking-[0.2em] text-primary uppercase mb-4 font-semibold">Step 1 — Company Details</p>
               <div className="space-y-4">
                 <div>
@@ -252,7 +252,7 @@ function EmployerRegister() {
               </div>
             </section>
 
-            <section className="bg-gray-50 border border-gray-200 rounded-2xl p-6">
+            <section className="bg-gray-50 border-2 border-primary rounded-2xl p-6">
               <p className="font-mono text-[11px] tracking-[0.2em] text-primary uppercase mb-4 font-semibold">Step 2 — Authorized Representative</p>
               <div className="space-y-4">
                 <div className="grid grid-cols-1 gap-4">

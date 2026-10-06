@@ -47,7 +47,7 @@ function DetailModal({ accreditation, onClose }) {
 
   return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 animate-fade-in p-4">
-      <div className="bg-white w-full max-w-2xl max-h-[90vh] overflow-y-auto border border-gray-200 rounded-2xl shadow-xl p-6 md:p-8">
+      <div className="bg-white w-full max-w-2xl max-h-[90vh] overflow-y-auto border-2 border-primary rounded-2xl shadow-xl p-6 md:p-8">
         <div className="flex items-start justify-between gap-4 pb-4 border-b border-gray-200">
           <div>
             <span className="font-mono text-[10px] tracking-widest text-[#0057B8] uppercase">APPLICATION DOCUMENTS</span>
@@ -201,7 +201,7 @@ function Accreditation() {
         <p className="mt-2 text-sm text-gray-500">Verify municipal employer applications and manage compliance statuses</p>
       </header>
 
-      <section className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm border-t-4 border-primary">
+      <section className="bg-white border-2 border-primary rounded-2xl p-6 shadow-sm">
         <div className="flex items-center gap-3 mb-6 border-l-4 border-primary pl-4">
           <div className="flex items-center gap-2.5">
             <h2 className="text-lg font-semibold text-dark-blue">Pending Accreditation</h2>
@@ -257,7 +257,7 @@ function Accreditation() {
         )}
       </section>
 
-      <section className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm border-t-4 border-primary">
+      <section className="bg-white border-2 border-primary rounded-2xl p-6 shadow-sm">
         <div className="flex items-center gap-3 mb-6 border-l-4 border-primary pl-4">
           <h2 className="text-lg font-semibold text-dark-blue">Registered Employers ({companies.length})</h2>
         </div>

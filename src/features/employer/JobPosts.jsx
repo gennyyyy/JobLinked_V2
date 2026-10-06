@@ -596,7 +596,7 @@ export default function JobPosts() {
       </div>
 
       {/* Main Container: Search, Filter Tabs & Listings Table */}
-      <div className="bg-white border border-gray-200 rounded-2xl p-5 md:p-6 shadow-xs space-y-5">
+      <div className="bg-white border-2 border-primary rounded-2xl p-5 md:p-6 shadow-xs space-y-5">
         {/* Controls: Search, Status Tabs & Sorting */}
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-gray-100">
           {/* Search Box */}

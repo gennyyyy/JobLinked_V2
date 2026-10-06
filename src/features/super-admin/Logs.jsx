@@ -94,7 +94,7 @@ function UserModal({ email, onClose }) {
   if (!email) return null;
   return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 animate-fade-in p-4" onClick={onClose}>
-      <div className="bg-white w-full max-w-md max-h-[90vh] overflow-y-auto border border-gray-200 rounded-2xl shadow-xl p-6" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true">
+      <div className="bg-white w-full max-w-md max-h-[90vh] overflow-y-auto border-2 border-primary rounded-2xl shadow-xl p-6" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true">
         <div className="flex items-start justify-between gap-4 pb-4 border-b border-gray-200">
           <div>
             <span className="font-mono text-[10px] tracking-widest text-primary uppercase">USER PROFILE</span>

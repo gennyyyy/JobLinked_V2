@@ -50,7 +50,7 @@ function Register() {
             {accountTypes.map((type) => (
               <div
                 key={type.title}
-                className="bg-white border border-gray-200 rounded-2xl p-8 flex flex-col justify-between hover:border-primary/40 hover:-translate-y-1 hover:shadow-xl transition-all duration-300"
+                className="bg-white border-2 border-primary rounded-2xl p-8 flex flex-col justify-between hover:border-primary/40 hover:-translate-y-1 hover:shadow-xl transition-all duration-300"
               >
                 <div>
                   <span className="font-mono text-[10px] tracking-widest uppercase px-2.5 py-1 rounded-full bg-primary/10 border border-primary/25 text-primary font-semibold">

@@ -75,7 +75,7 @@ function Facebook() {
         <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 text-sm">{success}</div>
       )}
 
-      <section className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm border-t-4 border-primary">
+      <section className="bg-white border-2 border-primary rounded-2xl p-6 shadow-sm">
         <h2 className="text-lg font-semibold text-dark-blue mb-4">Page Connection</h2>
         {integration ? (
           <div className="space-y-4">
@@ -125,7 +125,7 @@ function Facebook() {
         )}
       </section>
 
-      <section className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm border-t-4 border-primary">
+      <section className="bg-white border-2 border-primary rounded-2xl p-6 shadow-sm">
         <h2 className="text-lg font-semibold text-dark-blue mb-4">Post Preview</h2>
         <div className="mb-4">
           <select
@@ -144,7 +144,7 @@ function Facebook() {
         )}
       </section>
 
-      <section className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm border-t-4 border-primary">
+      <section className="bg-white border-2 border-primary rounded-2xl p-6 shadow-sm">
         <h2 className="text-lg font-semibold text-dark-blue mb-4">Post History ({posts.length})</h2>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">

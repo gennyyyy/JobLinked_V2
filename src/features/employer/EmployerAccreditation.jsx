@@ -117,7 +117,7 @@ function EmployerAccreditation() {
           <p className="mt-2 text-sm text-gray-500">Submit required documents for PESO verification and accreditation</p>
         </header>
 
-        <div className="bg-white border border-gray-200 rounded-2xl p-8 md:p-10 shadow-sm text-center space-y-4">
+        <div className="bg-white border-2 border-primary rounded-2xl p-8 md:p-10 shadow-sm text-center space-y-4">
           <div className="w-14 h-14 mx-auto rounded-full bg-primary/10 flex items-center justify-center">
             <span className="text-primary text-2xl">📋</span>
           </div>
@@ -152,7 +152,7 @@ function EmployerAccreditation() {
         </div>
       )}
 
-      <div className="bg-white border border-gray-200 rounded-2xl p-7 md:p-9 shadow-sm">
+      <div className="bg-white border-2 border-primary rounded-2xl p-7 md:p-9 shadow-sm">
         <div className="flex items-center justify-between pb-6 border-b border-gray-200">
           <div>
             <h2 className="text-lg font-semibold text-gray-900">Required Documents</h2>

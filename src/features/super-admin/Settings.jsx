@@ -58,14 +58,14 @@ function Settings() {
         <p className="mt-2 text-sm text-gray-500">Manage platform reference data: employment types and education levels</p>
       </header>
       {Object.entries(categoryLabels).map(([category, label]) => (
-        <section key={category} className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm border-t-4 border-primary">
+        <section key={category} className="bg-white border-2 border-primary rounded-2xl p-6 shadow-sm">
           <div className="border-l-4 border-primary pl-4 mb-4"><h3 className="text-lg font-semibold text-dark-blue">{label}</h3></div>
           <div className="space-y-2 mb-4">{(categories[category] || []).map((item) => <div key={item.id} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-0"><span className="text-sm text-gray-700">{item.value}</span><button onClick={() => setConfirmDelete({ category, id: item.id, value: item.value })} className="text-xs text-danger hover:underline">Remove</button></div>)}</div>
           <div className="flex gap-2"><input type="text" value={newValues[category] || ""} onChange={(e) => setNewValues((prev) => ({ ...prev, [category]: e.target.value }))} placeholder={`Add ${label.toLowerCase().replace(/s$/, "")}...`} className="flex-1 px-4 py-2.5 text-sm bg-gray-50 border border-gray-200 text-gray-900 placeholder:text-gray-400 rounded-lg focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30" /><button onClick={() => handleAddCategory(category)} className="px-4 py-2.5 text-sm font-medium text-white bg-primary hover:bg-primary-hover rounded-lg transition-colors">Add</button></div>
         </section>
       ))}
       {confirmDelete && <ConfirmationModal message={`Remove "${confirmDelete.value}"?`} onConfirm={() => handleRemoveCategory(confirmDelete.category, confirmDelete.id)} onCancel={() => setConfirmDelete(null)} confirmLabel="Remove" danger />}
-      <section className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm border-t-4 border-danger">
+      <section className="bg-white border-2 border-primary rounded-2xl p-6 shadow-sm">
         <div className="border-l-4 border-danger pl-4 mb-4">
           <h3 className="text-lg font-semibold text-dark-blue">Data Lifecycle</h3>
           <p className="text-xs text-gray-500 mt-1">Delete stale applications (12+ months old, excluding Accepted/Placed).</p>

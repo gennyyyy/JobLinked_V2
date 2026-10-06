@@ -18,7 +18,7 @@ function RoleManagement() {
         <p className="mt-2 text-sm text-gray-500">Roles in the system and what each can do</p>
       </header>
 
-      <section className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm border-t-4 border-primary">
+      <section className="bg-white border-2 border-primary rounded-2xl p-6 shadow-sm">
         <div className="border-l-4 border-primary pl-4 mb-6">
           <h2 className="text-lg font-semibold text-dark-blue">System Roles</h2>
           <p className="text-xs text-gray-500 mt-0.5">Roles are enforced by the API's ownership and role checks</p>

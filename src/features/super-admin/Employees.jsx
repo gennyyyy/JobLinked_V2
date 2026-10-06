@@ -133,7 +133,7 @@ function CompanyEmployeeTable({ companyName, employees, search }) {
   const placementRate = filtered.length ? Math.round((active / filtered.length) * 100) : 0;
 
   return (
-    <div className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
+    <div className="bg-white border-2 border-primary rounded-2xl shadow-sm overflow-hidden">
       {/* Company header */}
       <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 bg-gray-50/60">
         <div className="flex items-center gap-3">
@@ -285,7 +285,7 @@ function EmployeesByCompanySection() {
 
       {/* Per-company tables */}
       {companies.length === 0 ? (
-        <div className="py-16 text-center bg-white border border-gray-200 rounded-2xl shadow-sm text-sm text-gray-400">
+        <div className="py-16 text-center bg-white border-2 border-primary rounded-2xl shadow-sm text-sm text-gray-400">
           No placed employees found.
         </div>
       ) : (

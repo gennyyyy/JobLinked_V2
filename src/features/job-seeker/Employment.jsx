@@ -57,19 +57,19 @@ function Employment() {
       </div>
 
       {employments.length === 0 ? (
-        <div className="py-16 text-center bg-white border border-gray-200 rounded-2xl p-8">
+        <div className="py-16 text-center bg-white border-2 border-primary rounded-2xl p-8">
           <p className="text-base text-gray-600">No employment records yet.</p>
           <p className="mt-1 text-xs text-gray-400">Accepted applications and employment records will appear here.</p>
         </div>
       ) : filtered.length === 0 ? (
-        <div className="py-8 text-center bg-white border border-gray-200 rounded-2xl p-8 text-sm text-gray-400">
+        <div className="py-8 text-center bg-white border-2 border-primary rounded-2xl p-8 text-sm text-gray-400">
           No employment records match this filter.{" "}
           <button onClick={() => setStatusFilter("all")} className="text-primary hover:underline underline-offset-4 font-medium">Clear filter</button>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           {filtered.map((employment) => (
-            <article key={employment.id} className={`bg-white border border-gray-200 rounded-2xl p-6 shadow-sm border-t-4 ${employment.is_current ? "border-emerald-500" : "border-gray-300"}`}>
+            <article key={employment.id} className="bg-white border-2 border-primary rounded-2xl p-6 shadow-sm">
               <p className={`font-mono text-[10px] tracking-widest uppercase ${employment.is_current ? "text-emerald-700" : "text-gray-500"}`}>{employment.is_current ? "Currently employed" : "Past employment"}</p>
               <h2 className="mt-2 text-xl font-bold text-gray-900">{employment.employer_name}</h2>
               <p className="mt-1 text-sm font-medium text-gray-700">{employment.position}</p>

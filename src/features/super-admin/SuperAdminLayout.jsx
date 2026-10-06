@@ -8,6 +8,7 @@ const navItems = [
   { to: '/super-admin/users', label: 'Users' },
   { to: '/super-admin/logs', label: 'Logs' },
   { to: '/super-admin/settings', label: 'Settings' },
+  { to: '/super-admin/reports', label: 'Reports' },
 ]
 
 export default function SuperAdminLayout() {

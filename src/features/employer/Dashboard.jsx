@@ -5,6 +5,8 @@ import { listEmployerJobs } from "../../shared/services/jobs";
 import { listByCompany } from "../../shared/services/applications";
 import { getEmployer } from "../../shared/services/auth";
 import LoadingScreen from "../../shared/components/LoadingScreen";
+import { Briefcase, Layers, Users, TrendingUp } from "lucide-react";
+import { PageHeader, StatGrid, StatCard, SectionCard } from "../../shared/components/dashboard";
 
 function Dashboard() {
   const { user } = useAuth();
@@ -41,10 +43,10 @@ function Dashboard() {
   }).length;
 
   const stats = [
-    { label: "Active Listings", value: openPosts.length, highlight: false },
-    { label: "Total Jobs", value: jobs.length, highlight: false },
-    { label: "Total Candidates", value: applicants.length, highlight: false },
-    { label: "New This Week", value: newThisWeek, highlight: newThisWeek > 0 },
+    { label: "Active Listings", value: openPosts.length, highlight: false, icon: <Briefcase size={18} /> },
+    { label: "Total Jobs", value: jobs.length, highlight: false, icon: <Layers size={18} /> },
+    { label: "Total Candidates", value: applicants.length, highlight: false, icon: <Users size={18} /> },
+    { label: "New This Week", value: newThisWeek, highlight: newThisWeek > 0, icon: <TrendingUp size={18} /> },
   ];
 
   const recentApplicants = [...applicants]
@@ -53,37 +55,19 @@ function Dashboard() {
 
   return (
     <div className="space-y-8 animate-fade-in bg-gray-50">
-      <header>
-        <div className="flex items-center gap-3">
-          <div className="w-1 h-6 bg-primary rounded-full" />
-          <p className="font-mono text-[11px] tracking-[0.2em] text-primary uppercase">EMPLOYER DASHBOARD</p>
-        </div>
-        <h1 className="mt-1 font-sans text-2xl md:text-3xl font-bold tracking-tight text-dark-blue">
-          Overview for {company?.company_name || "My Company"}
-        </h1>
-        <p className="mt-2 text-sm text-gray-500">Real-time recruitment metrics and applicant tracking</p>
-      </header>
+      <PageHeader
+        eyebrow="EMPLOYER DASHBOARD"
+        title={`Overview for ${company?.company_name || "My Company"}`}
+        subtitle="Real-time recruitment metrics and applicant tracking"
+      />
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <StatGrid>
         {stats.map((stat) => (
-          <div
-            key={stat.label}
-            className={`bg-white border border-gray-200 rounded-2xl p-6 shadow-sm hover:border-gray-300 transition-colors ${stat.highlight ? 'border-t-4 border-amber-400' : 'border-t-4 border-primary'}`}
-          >
-            <p className="font-sans text-3xl md:text-4xl font-bold text-primary leading-none">{stat.value}</p>
-            <p className="mt-3 font-mono text-[10px] md:text-[11px] tracking-widest text-gray-500 uppercase">{stat.label}</p>
-            {stat.highlight && <span className="inline-block mt-3 w-2 h-2 rounded-full bg-amber-400 animate-pulse" />}
-          </div>
+          <StatCard key={stat.label} label={stat.label} value={stat.value} highlight={stat.highlight} icon={stat.icon} />
         ))}
-      </div>
+      </StatGrid>
 
-      <section className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm border-t-4 border-primary">
-        <div className="flex items-center gap-3 mb-6 border-l-4 border-primary pl-4">
-          <div>
-            <h2 className="text-lg font-semibold text-dark-blue">Recent Candidate Applications</h2>
-            <p className="text-xs text-gray-500 mt-0.5">Latest job seekers who applied to your verified listings</p>
-          </div>
-        </div>
+      <SectionCard title="Recent Candidate Applications" subtitle="Latest job seekers who applied to your verified listings">
 
         {recentApplicants.length === 0 ? (
           <div className="py-12 text-center text-sm text-gray-500">
@@ -109,7 +93,7 @@ function Dashboard() {
             ))}
           </div>
         )}
-      </section>
+      </SectionCard>
     </div>
   );
 }

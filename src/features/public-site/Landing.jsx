@@ -82,12 +82,7 @@ function Landing() {
             <p className="font-mono text-[11px] tracking-[0.25em] text-primary font-semibold uppercase">Santa Maria, Bulacan</p>
             <h1 className="mt-4 font-sans text-[44px] md:text-[68px] font-black leading-[0.92] tracking-[-0.03em] text-dark-blue">
               LOCAL JOBS.<br />
-              <span className="text-accent relative">
-                BRIGHTER
-                <svg className="absolute -bottom-1 left-0 w-full h-3" viewBox="0 0 200 12" fill="none">
-                  <path d="M2 8c30-6 60-6 90-2s60 4 106-2" stroke="#FFC72C" strokeWidth="4" strokeLinecap="round"/>
-                </svg>
-              </span><br />
+              <span className="text-accent relative">BRIGHTER</span><br />
               TOMORROWS.
             </h1>
             <p className="mt-6 max-w-[42ch] text-[16px] leading-[1.7] text-gray-500">

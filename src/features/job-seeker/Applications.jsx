@@ -68,7 +68,7 @@ function Applications() {
       </div>
 
       {applications.length === 0 ? (
-        <div className="py-16 text-center bg-white border border-gray-200 rounded-2xl p-8">
+        <div className="py-16 text-center bg-white border-2 border-primary rounded-2xl p-8">
           <p className="text-base text-gray-600">You haven't submitted any job applications yet.</p>
           <p className="text-xs text-gray-400 mt-1">Browse verified municipal listings and apply with a single tap.</p>
           <Link to="/job-seeker/jobs" className="inline-flex mt-6 min-h-[44px] items-center px-6 rounded-xl bg-primary text-white text-xs font-medium hover:bg-primary-hover transition-colors shadow-sm">
@@ -76,7 +76,7 @@ function Applications() {
           </Link>
         </div>
       ) : (
-        <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
+        <div className="bg-white border-2 border-primary rounded-2xl p-6 shadow-sm">
           {filtered.length === 0 ? (
             <div className="py-8 text-center text-sm text-gray-400">
               No applications match this filter.{" "}

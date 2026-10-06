@@ -62,7 +62,7 @@ function JobDetail() {
         ← Back to all jobs
       </Link>
 
-      <article className="bg-white border border-gray-200 rounded-2xl p-7 md:p-10 shadow-md">
+      <article className="bg-white border-2 border-primary rounded-2xl p-7 md:p-10 shadow-md">
         <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 pb-6 border-b border-gray-200">
           <div>
             <span className="font-mono text-[10px] tracking-widest uppercase px-2.5 py-1 rounded-full bg-[#0057B8]/10 border border-[#0057B8]/25 text-[#0057B8]">
