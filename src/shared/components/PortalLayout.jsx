@@ -6,7 +6,7 @@ import TextBasedLogo from '../../assets/TextBased Logo.png'
 import SidebarAccount from './SidebarAccount'
 import NotificationBell from './NotificationBell'
 
-export default function PortalLayout({ navItems, badge, eyebrow, subhead, profileTo, roleLabel, homeTo = '/', gate = null }) {
+export default function PortalLayout({ navItems, badge, eyebrow, subhead, profileTo, roleLabel, homeTo = '/' }) {
   const navigate = useNavigate()
   const { logout, user } = useAuth()
   const [mobileOpen, setMobileOpen] = useState(false)
@@ -16,10 +16,6 @@ export default function PortalLayout({ navItems, badge, eyebrow, subhead, profil
   useEffect(() => {
     setWarningCallback(() => setShowWarning(true))
   }, [setWarningCallback])
-
-  useEffect(() => {
-    if (gate) gate(user, navigate)
-  }, [user, navigate, gate])
 
   function handleLogout() {
     logout()
@@ -129,8 +125,8 @@ export default function PortalLayout({ navItems, badge, eyebrow, subhead, profil
         />
       )}
 
-      <main className="flex-1 p-[3%] max-w-full overflow-x-hidden md:h-screen md:overflow-y-auto min-h-[calc(100vh-56px)]">
-        <div className="w-full">
+      <main className="flex-1 min-h-0 w-full max-w-full overflow-hidden p-[3%] flex flex-col md:h-screen md:overflow-hidden min-h-[calc(100vh-56px)]">
+        <div className="w-full flex-1 min-h-0 flex flex-col md:overflow-y-auto md:overflow-x-hidden">
           <Outlet />
         </div>
       </main>

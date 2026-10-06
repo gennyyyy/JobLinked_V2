@@ -69,26 +69,6 @@ function formatDate(dateStr) {
   });
 }
 
-function formatEntity(log) {
-  if (!log.entity && !log.entity_id) return "—";
-  if (log.entity && log.entity_id) return `${log.entity} - ${log.entity_id}`;
-  return log.entity || log.entity_id;
-}
-
-function formatDetails(details) {
-  if (!details) return "—";
-  if (typeof details === "string") {
-    const trimmed = details.trim();
-    if (!trimmed || trimmed === "{}" || trimmed === "[]") return "—";
-    return trimmed;
-  }
-  if (typeof details === "object") {
-    if (Object.keys(details).length === 0) return "—";
-    return JSON.stringify(details);
-  }
-  return String(details);
-}
-
 function InfoRow({ label, value }) {
   if (!value) return null;
   return (
@@ -192,8 +172,8 @@ function Logs() {
   if (error) return <div className="py-16 text-center text-sm text-danger">{error}</div>;
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      <header>
+    <div className="space-y-6 animate-fade-in md:h-[calc(100vh-3rem)] md:flex md:flex-col md:overflow-hidden">
+      <header className="shrink-0">
         <div className="flex items-center gap-2.5">
           <div className="w-1 h-5 bg-primary rounded-full" />
           <p className="font-mono text-[11px] tracking-[0.2em] text-primary uppercase font-medium">SYSTEM AUDIT</p>
@@ -204,9 +184,9 @@ function Logs() {
 
 
 
-      <section className="bg-white border-2 border-primary rounded-2xl shadow-xs">
+      <section className="bg-white border-2 border-primary rounded-2xl shadow-xs min-h-0 flex-1 flex flex-col overflow-hidden">
         {/* Filter bar */}
-        <div className="px-5 py-4 flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-3 border-b border-gray-100">
+        <div className="shrink-0 px-5 py-4 flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-3 border-b border-gray-100">
           <div className="flex-1 min-w-[150px]">
             <select
               value={filters.userId}
@@ -268,22 +248,18 @@ function Logs() {
           <span className="self-center ml-auto text-xs text-gray-400 font-medium whitespace-nowrap">{logs.length} records</span>
         </div>
         {/* Table */}
-        <div className="overflow-x-auto">
+        <div className="overflow-auto min-h-0 flex-1 md:max-h-[calc(100vh-320px)]">
           <table className="w-full text-sm table-fixed">
             <colgroup>
               <col style={{ width: "160px" }} />
               <col style={{ width: "190px" }} />
               <col style={{ width: "190px" }} />
-              <col />
-              <col />
             </colgroup>
             <thead>
-              <tr className="border-b border-gray-200 font-mono text-[10px] tracking-widest text-gray-400 uppercase">
+              <tr className="sticky top-0 bg-white z-10 border-b border-gray-200 font-mono text-[10px] tracking-widest text-gray-400 uppercase">
                 <th className="text-left py-3 pl-5 pr-3 font-medium">Date</th>
                 <th className="text-left py-3 px-3 font-medium">User</th>
-                <th className="text-left py-3 px-3 font-medium">Activity</th>
-                <th className="text-left py-3 px-3 font-medium">Entity</th>
-                <th className="text-left py-3 px-3 pr-5 font-medium">Details</th>
+                <th className="text-left py-3 px-3 pr-5 font-medium">Activity</th>
               </tr>
             </thead>
             <tbody>
@@ -303,11 +279,9 @@ function Logs() {
                       <span className="text-gray-400">{log.actor_name || "—"}</span>
                     )}
                   </td>
-                  <td className="py-3 px-3">
+                  <td className="py-3 px-3 pr-5">
                     <span className="font-mono text-xs font-semibold text-primary break-all">{log.action}</span>
                   </td>
-                  <td className="py-3 px-3 text-xs text-gray-500 font-mono break-all">{formatEntity(log)}</td>
-                  <td className="py-3 px-3 pr-5 text-xs font-mono text-gray-500 break-all">{formatDetails(log.details)}</td>
                 </tr>
               ))}
             </tbody>

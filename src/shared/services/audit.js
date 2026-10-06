@@ -1,4 +1,4 @@
-import api from '../lib/api';
+import { api } from '../lib/api';
 
 export async function logAudit(action, entity = null, entityId = null, details = null) {
   try {

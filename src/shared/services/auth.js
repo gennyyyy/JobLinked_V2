@@ -1,13 +1,11 @@
 import { supabase } from '../lib/supabase';
 import { api } from '../lib/api';
+import { logAudit } from './audit';
 
 // True when the token is valid but no profile row exists yet (contract says
 // GET /api/auth/me 404s; the built middleware answers 403 'Account not
 // provisioned' — accept both).
 const needsProvision = (e) => e?.status === 404 || (e?.status === 403 && /not provisioned/i.test(e?.message || ''));
-
-// Fire-and-forget: auditing must never break the auth flow.
-const audit = (action) => Promise.resolve(api.post?.('audit', { action })).catch(() => {});
 
 export async function getProfile(userId) {
   void userId; // identity comes from the session token, never params
@@ -52,7 +50,7 @@ export async function signIn(email, password) {
     profile = await getProfile(data.user.id);
   }
   if (!profile || profile.status === 'suspended') throw new Error('Invalid email or password');
-  audit('auth.login');
+  logAudit('auth.login');
   return { ...data.user, ...profile };
 }
 
@@ -108,7 +106,7 @@ export async function signUp({ email, password, role, firstName, middleName = ''
 }
 
 export async function signOut() {
-  audit('auth.logout'); // posted before the session token is cleared
+  logAudit('auth.logout'); // posted before the session token is cleared
   // Best-effort: a revoke failure on a dead token (e.g. server 403) must not
   // prevent local session clear — the caller always ends up logged out.
   try {
@@ -125,7 +123,7 @@ export async function changePassword(currentPassword, newPassword) {
 
   const { error } = await supabase.auth.updateUser({ password: newPassword });
   if (error) throw error;
-  audit('auth.password.change');
+  logAudit('auth.password.change');
 }
 
 export async function resetPassword(email) {
@@ -133,5 +131,5 @@ export async function resetPassword(email) {
     redirectTo: `${window.location.origin}/reset-password`,
   });
   if (error) throw error;
-  audit('auth.password.reset.request');
+  logAudit('auth.password.reset.request');
 }

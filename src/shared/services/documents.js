@@ -12,10 +12,6 @@ export function validateFile(file) {
   return null;
 }
 
-export function makeDocPath(userId, fileName) {
-  return `${userId}/${crypto.randomUUID()}-${fileName.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
-}
-
 export async function uploadResume(userId, file) {
   void userId; // path is server-owned now; identity comes from the token
   const form = new FormData();

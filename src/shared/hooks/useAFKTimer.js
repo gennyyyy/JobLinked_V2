@@ -5,14 +5,12 @@ import useAuth from './useAuth';
 const AFK_TIMEOUT = 5 * 60 * 1000; // 5 minutes
 const WARNING_TIME = 4 * 60 * 1000; // 4 minutes
 
-function useAFKTimer(enabled = true, onWarning) {
+function useAFKTimer(enabled = true) {
   const navigate = useNavigate();
   const { logout, user } = useAuth();
   const timeoutRef = useRef(null);
   const warningTimeoutRef = useRef(null);
-  const onWarningRef = useRef(onWarning);
-
-  useEffect(() => { onWarningRef.current = onWarning; }, [onWarning]);
+  const onWarningRef = useRef(null);
 
   const resetTimer = useCallback(() => {
     // Clear existing timeouts

@@ -77,7 +77,7 @@ create table if not exists public.employers (
   logo_path              text,
   -- Denormalised accreditation state, kept in sync by the
   -- trg_sync_accreditation_status trigger below.
-  accreditation_status   text        default null,
+  accreditation_status   accreditation_status default null,
   accreditation_remarks  text        default null,
   status                 account_status not null default 'active',
   created_at             timestamptz not null default now(),
@@ -322,7 +322,7 @@ as $$
 begin
   update public.employers
   set
-    accreditation_status  = new.status::text,
+    accreditation_status  = new.status,
     accreditation_remarks = case
       when new.status in ('rejected', 'revoked', 'resubmission') then new.remarks
       else null
@@ -336,3 +336,27 @@ drop trigger if exists trg_sync_accreditation_status on public.employer_accredit
 create trigger trg_sync_accreditation_status
   after insert or update of status, remarks on public.employer_accreditations
   for each row execute function public.sync_employer_accreditation_status();
+
+-- ---------------------------------------------------------------------------
+-- Efficiency indexes (db/migrations/001_feature_fit_indexes.sql upgrades
+-- existing DBs; keep this block in sync — it matches actual query patterns
+-- in server/src/routes/*.js, no speculative indexes).
+-- ---------------------------------------------------------------------------
+create index if not exists job_vacancies_company_idx on public.job_vacancies(company_id);
+create index if not exists job_vacancies_status_created_idx on public.job_vacancies(status, created_at desc);
+create index if not exists job_applications_job_idx on public.job_applications(job_id);
+create index if not exists job_applications_seeker_idx on public.job_applications(seeker_id);
+create index if not exists job_applications_referred_idx on public.job_applications(referred_by) where referred_by is not null;
+create index if not exists job_status_history_job_idx on public.job_status_history(job_id);
+create index if not exists application_status_history_app_idx on public.application_status_history(application_id);
+create index if not exists resumes_seeker_idx on public.resumes(seeker_id);
+create index if not exists resumes_path_idx on public.resumes(file_path);
+create unique index if not exists resumes_one_active_uidx on public.resumes(seeker_id) where is_active;
+create index if not exists education_seeker_idx on public.education(seeker_id);
+create index if not exists work_experience_seeker_idx on public.work_experience(seeker_id);
+create index if not exists employment_history_seeker_idx on public.employment_history(seeker_id);
+create index if not exists employer_accreditations_company_idx on public.employer_accreditations(company_id);
+create index if not exists employer_accreditations_status_idx on public.employer_accreditations(status) where status = 'pending';
+create index if not exists employer_documents_company_idx on public.employer_documents(company_id);
+create index if not exists employer_documents_path_idx on public.employer_documents(file_path);
+create index if not exists notifications_user_created_idx on public.notifications(user_id, created_at desc);

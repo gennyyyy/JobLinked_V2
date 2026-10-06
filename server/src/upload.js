@@ -3,8 +3,8 @@ import path from 'node:path';
 import fs from 'node:fs';
 import { randomUUID } from 'node:crypto';
 
-export const ALLOWED_EXTS = ['pdf', 'doc', 'docx', 'png', 'jpg', 'jpeg'];
-export const MAX_FILE_SIZE = 5 * 1024 * 1024;
+const ALLOWED_EXTS = ['pdf', 'doc', 'docx', 'png', 'jpg', 'jpeg'];
+const MAX_FILE_SIZE = 5 * 1024 * 1024;
 
 export const uploadDir = process.env.UPLOAD_DIR?.startsWith('/')
   || process.env.UPLOAD_DIR?.match(/^[A-Za-z]:/)
