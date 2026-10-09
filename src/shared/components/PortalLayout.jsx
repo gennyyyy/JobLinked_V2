@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useCallback } from 'react'
 import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom'
 import useAuth from '../hooks/useAuth'
 import useAFKTimer from '../hooks/useAFKTimer'
@@ -11,11 +11,8 @@ export default function PortalLayout({ navItems, badge, eyebrow, subhead, profil
   const { logout, user } = useAuth()
   const [mobileOpen, setMobileOpen] = useState(false)
   const [showWarning, setShowWarning] = useState(false)
-  const { setWarningCallback } = useAFKTimer()
-
-  useEffect(() => {
-    setWarningCallback(() => setShowWarning(true))
-  }, [setWarningCallback])
+  const handleWarning = useCallback(() => setShowWarning(true), [])
+  useAFKTimer(true, handleWarning)
 
   function handleLogout() {
     logout()

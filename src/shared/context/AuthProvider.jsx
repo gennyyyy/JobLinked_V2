@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import AuthContext from './AuthContext';
+import { AuthContext } from '../hooks/useAuth';
 import { supabase } from '../lib/supabase';
 import { getProfile, signOut as apiSignOut } from '../services/auth';
 
