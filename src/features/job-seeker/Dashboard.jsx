@@ -5,7 +5,7 @@ import { listBySeeker } from "../../shared/services/applications";
 import { listJobs } from "../../shared/services/jobs";
 import LoadingScreen from "../../shared/components/LoadingScreen";
 import { FileText, UserCheck, XCircle, TrendingUp } from "lucide-react";
-import { PageHeader, StatGrid, StatCard, SectionCard } from "../../shared/components/dashboard";
+import { PageHeader, StatCard, SectionCard } from "../../shared/components/dashboard";
 
 function splitPref(value) {
   const list = Array.isArray(value) ? value : String(value || "").split(",");
@@ -95,11 +95,11 @@ function Dashboard() {
         subtitle="Track your applications and recruitment activity"
       />
 
-      <StatGrid>
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         {stats.map((stat) => (
           <StatCard key={stat.label} label={stat.label} value={stat.value} highlight={stat.highlight} icon={stat.icon} />
         ))}
-      </StatGrid>
+      </div>
 
       <SectionCard
         title="Profile Completion"

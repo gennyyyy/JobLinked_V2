@@ -6,7 +6,7 @@ import { listByCompany } from "../../shared/services/applications";
 import { getEmployer } from "../../shared/services/auth";
 import LoadingScreen from "../../shared/components/LoadingScreen";
 import { Briefcase, Layers, Users, TrendingUp } from "lucide-react";
-import { PageHeader, StatGrid, StatCard, SectionCard } from "../../shared/components/dashboard";
+import { PageHeader, StatCard, SectionCard } from "../../shared/components/dashboard";
 
 function Dashboard() {
   const { user } = useAuth();
@@ -61,11 +61,11 @@ function Dashboard() {
         subtitle="Real-time recruitment metrics and applicant tracking"
       />
 
-      <StatGrid>
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         {stats.map((stat) => (
           <StatCard key={stat.label} label={stat.label} value={stat.value} highlight={stat.highlight} icon={stat.icon} />
         ))}
-      </StatGrid>
+      </div>
 
       <SectionCard title="Recent Candidate Applications" subtitle="Latest job seekers who applied to your verified listings">
 

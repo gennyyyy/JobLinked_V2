@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { listNotifications, markRead, markAllRead } from "../services/notifications";
+import { NotificationItem } from "./NotificationsPage";
 import useAuth from "../hooks/useAuth";
 
 function NotificationBell({ dark = false }) {
@@ -63,19 +64,7 @@ function NotificationBell({ dark = false }) {
                 <p className="px-4 py-8 text-center text-xs text-gray-400">No notifications</p>
               ) : (
                 notifications.map((n) => (
-                  <div
-                    key={n.id}
-                    className={`px-4 py-3 border-b border-gray-50 last:border-0 ${!n.is_read ? "bg-primary/5" : ""}`}
-                  >
-                    <p className="text-xs font-medium text-gray-900">{n.title}</p>
-                    <p className="text-[11px] text-gray-500 mt-0.5">{n.message}</p>
-                    <div className="flex items-center justify-between mt-1.5">
-                      <span className="text-[10px] text-gray-400">{new Date(n.created_at).toLocaleDateString()}</span>
-                      {!n.is_read && (
-                        <button onClick={() => handleMarkRead(n.id)} className="text-[10px] text-primary hover:underline">Mark read</button>
-                      )}
-                    </div>
-                  </div>
+                  <NotificationItem key={n.id} n={n} onMarkRead={handleMarkRead} />
                 ))
               )}
             </div>

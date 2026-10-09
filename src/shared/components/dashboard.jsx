@@ -26,10 +26,6 @@ export function StatCard({ label, value, highlight, icon }) {
   );
 }
 
-export function StatGrid({ children }) {
-  return <div className="grid grid-cols-1 md:grid-cols-4 gap-4">{children}</div>;
-}
-
 export function SectionCard({ title, subtitle, action, children, className = "" }) {
   return (
     <section className={`bg-white border-2 border-primary rounded-2xl shadow-sm overflow-hidden ${className}`}>
