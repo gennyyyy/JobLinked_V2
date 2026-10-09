@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { listAllJobs, listAllApplications, listUsers, listCompanies, listAllAccreditations } from "../../shared/services/admin";
+import { listAllJobs, listAllApplications, listUsers, listCompanies, listAllAccreditations, exportReport } from "../../shared/services/admin";
 import { latestAccByCompany } from "../../shared/services/documents";
 import LoadingScreen from "../../shared/components/LoadingScreen";
 
@@ -22,6 +22,19 @@ function BarChart({ data, color = "primary" }) {
 
 const PAGE_SIZE = 10;
 
+function toCSV(headers, rows) {
+  return [headers, ...rows].map((r) => r.map((c) => `"${c}"`).join(",")).join("\n");
+}
+
+function downloadBlob(blob, name) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = name;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 function Reports() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -31,6 +44,8 @@ function Reports() {
   const [companies, setCompanies] = useState([]);
   const [accreditations, setAccreditations] = useState([]);
   const [reportType, setReportType] = useState("applications");
+  const [exportFormat, setExportFormat] = useState("csv");
+  const [exportError, setExportError] = useState("");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [page, setPage] = useState(1);
@@ -77,7 +92,7 @@ function Reports() {
         a.status || "",
         a.applied_at || "",
       ]);
-      csv = [headers, ...rows].map((r) => r.map((c) => `"${c}"`).join(",")).join("\n");
+      csv = toCSV(headers, rows);
     } else if (reportType === "jobs") {
       const headers = ["Title", "Company", "Location", "Status", "Type", "Created At"];
       const rows = filteredJobs.map((j) => [
@@ -88,7 +103,7 @@ function Reports() {
         j.employment_type || "",
         j.created_at || "",
       ]);
-      csv = [headers, ...rows].map((r) => r.map((c) => `"${c}"`).join(",")).join("\n");
+      csv = toCSV(headers, rows);
     } else if (reportType === "seekers") {
       const headers = ["Name", "Email", "Barangay", "Status", "Registered"];
       const rows = filteredUsers.filter((u) => u.role === "job-seeker").map((u) => [
@@ -98,7 +113,7 @@ function Reports() {
         u.status || "",
         u.created_at || "",
       ]);
-      csv = [headers, ...rows].map((r) => r.map((c) => `"${c}"`).join(",")).join("\n");
+      csv = toCSV(headers, rows);
     } else if (reportType === "employers") {
       const headers = ["Company", "Owner", "Email", "Status", "Accreditation", "Registered"];
       const rows = companies.map((c) => [
@@ -109,23 +124,33 @@ function Reports() {
         accredStatus(c.id),
         c.created_at || "",
       ]);
-      csv = [headers, ...rows].map((r) => r.map((c) => `"${c}"`).join(",")).join("\n");
+      csv = toCSV(headers, rows);
     } else if (reportType === "barangay") {
       const headers = ["Barangay", "Placements"];
       const rows = Object.entries(summary.byBarangay).map(([brgy, count]) => [brgy, count]);
-      csv = [headers, ...rows].map((r) => r.map((c) => `"${c}"`).join(",")).join("\n");
+      csv = toCSV(headers, rows);
     } else if (reportType === "monthly") {
       const headers = ["Month", "Applications", "Jobs", "Seekers"];
       const rows = Object.entries(monthlyData).sort().map(([m, d]) => [m, d.applications, d.jobs, d.seekers]);
-      csv = [headers, ...rows].map((r) => r.map((c) => `"${c}"`).join(",")).join("\n");
+      csv = toCSV(headers, rows);
     }
-    const blob = new Blob([csv], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${reportType}-report.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
+    downloadBlob(new Blob([csv], { type: "text/csv" }), `${reportType}-report.csv`);
+  }
+
+  // Server-rendered export (GET admin/reports/:type/export?format=). 404 =
+  // backend item missing → fall back to the client-side CSV builder above.
+  async function exportServer() {
+    setExportError("");
+    try {
+      const blob = await exportReport(reportType, exportFormat);
+      downloadBlob(blob, `${reportType}-report.${exportFormat === "excel" ? "xlsx" : exportFormat}`);
+    } catch (err) {
+      if (err.status === 404 || err.status === 400) {
+        exportCSV();
+      } else {
+        setExportError(err.message || "Export failed");
+      }
+    }
   }
 
   const summary = {
@@ -212,6 +237,18 @@ function Reports() {
         <button onClick={exportCSV} className="ml-auto px-4 py-2 text-xs font-medium text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg transition-colors">
           Export CSV
         </button>
+        <div className="flex items-center gap-2">
+          <label htmlFor="export-format" className="text-xs text-gray-500">Format</label>
+          <select id="export-format" value={exportFormat} onChange={(e) => setExportFormat(e.target.value)} className="px-3 py-2 text-xs border border-gray-200 rounded-lg bg-white">
+            <option value="csv">CSV</option>
+            <option value="excel">Excel</option>
+            <option value="pdf">PDF</option>
+          </select>
+          <button onClick={exportServer} className="px-4 py-2 text-xs font-medium text-white bg-primary hover:bg-primary-hover rounded-lg transition-colors">
+            Export {reportType}
+          </button>
+        </div>
+        {exportError && <p className="w-full text-xs text-danger">{exportError}</p>}
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
