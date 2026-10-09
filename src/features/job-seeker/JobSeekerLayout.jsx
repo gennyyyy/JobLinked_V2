@@ -5,6 +5,7 @@ const navItems = [
   { to: '/job-seeker/jobs', label: 'Browse Jobs' },
   { to: '/job-seeker/applications', label: 'My Applications' },
   { to: '/job-seeker/employment', label: 'Employment' },
+  { to: '/job-seeker/notifications', label: 'Notifications' },
 ]
 
 export default function JobSeekerLayout() {

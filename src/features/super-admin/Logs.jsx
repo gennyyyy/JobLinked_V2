@@ -93,9 +93,9 @@ function UserModal({ email, onClose }) {
 
   if (!email) return null;
   return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 animate-fade-in p-4" onClick={onClose}>
-      <div className="bg-white w-full max-w-md max-h-[90vh] overflow-y-auto border-2 border-primary rounded-2xl shadow-xl p-6" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true">
-        <div className="flex items-start justify-between gap-4 pb-4 border-b border-gray-200">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" onClick={onClose}>
+      <div className="bg-white w-full max-w-md max-h-[90vh] overflow-y-auto border border-primary rounded-lg shadow-xl p-5" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true">
+        <div className="flex items-start justify-between gap-3 pb-4 border-b border-gray-200">
           <div>
             <span className="font-mono text-[10px] tracking-widest text-primary uppercase">USER PROFILE</span>
             <h2 className="mt-1 text-xl font-bold text-gray-900">{loading ? email : user?.full_name || email}</h2>
@@ -103,7 +103,7 @@ function UserModal({ email, onClose }) {
           </div>
           <button type="button" onClick={onClose} className="p-1 rounded-lg text-gray-400 hover:text-gray-900 hover:bg-gray-100 transition-colors cursor-pointer" aria-label="Close">✕</button>
         </div>
-        <div className="mt-4 grid grid-cols-1 gap-4 p-4 rounded-xl bg-gray-50 border border-gray-200">
+        <div className="mt-4 grid grid-cols-1 gap-3 p-4 rounded-xl bg-gray-50 border border-gray-200">
           {loading ? (
             <p className="text-xs text-gray-400">Loading profile…</p>
           ) : !user ? (
@@ -169,22 +169,22 @@ function Logs() {
   }
 
   if (loading) return <LoadingScreen />;
-  if (error) return <div className="py-16 text-center text-sm text-danger">{error}</div>;
+  if (error) return <div className="py-8 text-center text-sm text-danger">{error}</div>;
 
   return (
-    <div className="space-y-6 animate-fade-in md:h-[calc(100vh-3rem)] md:flex md:flex-col md:overflow-hidden">
+    <div className="space-y-6 md:h-[calc(100vh-3rem)] md:flex md:flex-col md:overflow-hidden">
       <header className="shrink-0">
         <div className="flex items-center gap-2.5">
           <div className="w-1 h-5 bg-primary rounded-full" />
           <p className="font-mono text-[11px] tracking-[0.2em] text-primary uppercase font-medium">SYSTEM AUDIT</p>
         </div>
-        <h1 className="mt-1 text-2xl md:text-3xl font-bold tracking-tight text-dark-blue">Activity Logs</h1>
+        <h1 className="mt-1 text-xl md:text-2xl font-bold tracking-tight text-dark-blue">Activity Logs</h1>
         <p className="mt-2 text-sm text-gray-500">Review user actions and system activity across the platform</p>
       </header>
 
 
 
-      <section className="bg-white border-2 border-primary rounded-2xl shadow-xs min-h-0 flex-1 flex flex-col overflow-hidden">
+      <section className="bg-white border border-primary rounded-lg shadow-xs min-h-0 flex-1 flex flex-col overflow-hidden">
         {/* Filter bar */}
         <div className="shrink-0 px-5 py-4 flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-3 border-b border-gray-100">
           <div className="flex-1 min-w-[150px]">
@@ -286,7 +286,7 @@ function Logs() {
               ))}
             </tbody>
           </table>
-          {logs.length === 0 && <div className="py-12 text-center text-sm text-gray-400">No activity logs match these filters.</div>}
+          {logs.length === 0 && <div className="py-8 text-center text-sm text-gray-400">No activity logs match these filters.</div>}
         </div>
       </section>
       {selectedEmail && <UserModal email={selectedEmail} onClose={() => setSelectedEmail("")} />}

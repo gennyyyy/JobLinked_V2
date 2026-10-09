@@ -96,7 +96,7 @@ function Applicants() {
   }
 
   if (loading) return <LoadingScreen />;
-  if (error) return <div className="py-16 text-center text-sm text-danger">{error}</div>;
+  if (error) return <div className="py-8 text-center text-sm text-danger">{error}</div>;
 
   // Accepted/Terminated candidates are employees — they live on /employer/employees
   const tracked = applicants.filter((a) => a.status !== "Accepted" && a.status !== "Terminated");
@@ -111,25 +111,25 @@ function Applicants() {
   });
 
   return (
-    <div className="space-y-8 animate-fade-in">
+    <div className="space-y-6">
       <header>
         <p className="font-mono text-[11px] tracking-[0.2em] text-[#0057B8] uppercase">CANDIDATE PIPELINE</p>
-        <h1 className="mt-1 font-sans text-2xl md:text-3xl font-bold tracking-tight text-gray-900">Applicant Tracking</h1>
+        <h1 className="mt-1 font-sans text-xl md:text-2xl font-bold tracking-tight text-gray-900">Applicant Tracking</h1>
         <p className="mt-2 text-sm text-gray-500">Review credentials and update recruitment statuses — accepted candidates move to the Employees page</p>
       </header>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {[
-          { value: "all", label: "Applications", count: tracked.length, num: "text-gray-900", active: "bg-white border-primary shadow-sm ring-1 ring-primary/20" },
-          { value: "Under Review", label: "Under Review", count: counts["Under Review"], num: "text-amber-700", active: "bg-amber-50/50 border-amber-500 shadow-sm ring-1 ring-amber-500/20" },
-          { value: "Interview", label: "Interview", count: counts.Interview, num: "text-primary", active: "bg-primary/5 border-primary shadow-sm ring-1 ring-primary/20" },
-          { value: "Rejected", label: "Rejected", count: counts.Rejected, num: "text-danger", active: "bg-danger/5 border-danger shadow-sm ring-1 ring-danger/20" },
+          { value: "all", label: "Applications", count: tracked.length, num: "text-gray-900", active: "bg-white border-primary ring-1 ring-primary/20" },
+          { value: "Under Review", label: "Under Review", count: counts["Under Review"], num: "text-amber-700", active: "bg-amber-50/50 border-amber-500 ring-1 ring-amber-500/20" },
+          { value: "Interview", label: "Interview", count: counts.Interview, num: "text-primary", active: "bg-primary/5 border-primary ring-1 ring-primary/20" },
+          { value: "Rejected", label: "Rejected", count: counts.Rejected, num: "text-danger", active: "bg-danger/5 border-danger ring-1 ring-danger/20" },
         ].map((c) => (
           <button
             key={c.value}
             type="button"
             onClick={() => setFilter(c.value)}
-            className={`p-4 rounded-2xl border text-left transition-all cursor-pointer ${
+            className={`p-4 rounded-lg border text-left transition-all cursor-pointer ${
               filter === c.value ? c.active : "bg-white border-gray-200 hover:border-gray-300"
             }`}
           >
@@ -149,7 +149,7 @@ function Applicants() {
         />
       </div>
 
-      <div className="bg-white border-2 border-primary rounded-2xl p-6 shadow-sm">
+      <div className="bg-white border border-primary rounded-lg p-5">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
@@ -332,7 +332,7 @@ function Applicants() {
             </tbody>
           </table>
           {filtered.length === 0 && (
-            <div className="py-12 text-center text-sm text-gray-400">
+            <div className="py-8 text-center text-sm text-gray-400">
               No applicant submissions yet. Candidates applying to your listings will appear here.
             </div>
           )}

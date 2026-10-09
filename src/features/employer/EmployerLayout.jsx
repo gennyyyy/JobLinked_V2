@@ -5,6 +5,7 @@ const navItems = [
   { to: '/employer/job-posts', label: 'Job Posts' },
   { to: '/employer/applicants', label: 'Applicants' },
   { to: '/employer/employees', label: 'Employees' },
+  { to: '/employer/notifications', label: 'Notifications' },
   { to: '/employer/accreditation', label: 'Accreditation' },
 ]
 

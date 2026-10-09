@@ -28,7 +28,7 @@ function Facebook() {
   }, []);
 
   if (loading) return <LoadingScreen />;
-  if (error) return <div className="py-16 text-center text-sm text-danger">{error}</div>;
+  if (error) return <div className="py-8 text-center text-sm text-danger">{error}</div>;
 
   async function handleConnect(e) {
     e.preventDefault();
@@ -61,13 +61,13 @@ function Facebook() {
   const previewText = previewJob ? buildPostText(previewJob) : "";
 
   return (
-    <div className="space-y-8 animate-fade-in bg-gray-50">
+    <div className="space-y-6 bg-gray-50">
       <header>
         <div className="flex items-center gap-3">
           <div className="w-1 h-6 bg-primary rounded-full" />
           <p className="font-mono text-[11px] tracking-[0.2em] text-primary uppercase">FACEBOOK INTEGRATION</p>
         </div>
-        <h1 className="mt-1 font-sans text-2xl md:text-3xl font-bold tracking-tight text-dark-blue">Facebook Auto-Posting</h1>
+        <h1 className="mt-1 font-sans text-xl md:text-2xl font-bold tracking-tight text-dark-blue">Facebook Auto-Posting</h1>
         <p className="mt-2 text-sm text-gray-500">Connect PESO Facebook page for automatic job posting</p>
       </header>
 
@@ -75,7 +75,7 @@ function Facebook() {
         <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 text-sm">{success}</div>
       )}
 
-      <section className="bg-white border-2 border-primary rounded-2xl p-6 shadow-sm">
+      <section className="bg-white border border-primary rounded-lg p-5">
         <h2 className="text-lg font-semibold text-dark-blue mb-4">Page Connection</h2>
         {integration ? (
           <div className="space-y-4">
@@ -125,7 +125,7 @@ function Facebook() {
         )}
       </section>
 
-      <section className="bg-white border-2 border-primary rounded-2xl p-6 shadow-sm">
+      <section className="bg-white border border-primary rounded-lg p-5">
         <h2 className="text-lg font-semibold text-dark-blue mb-4">Post Preview</h2>
         <div className="mb-4">
           <select
@@ -144,7 +144,7 @@ function Facebook() {
         )}
       </section>
 
-      <section className="bg-white border-2 border-primary rounded-2xl p-6 shadow-sm">
+      <section className="bg-white border border-primary rounded-lg p-5">
         <h2 className="text-lg font-semibold text-dark-blue mb-4">Post History ({posts.length})</h2>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
@@ -180,7 +180,7 @@ function Facebook() {
             </tbody>
           </table>
           {posts.length === 0 && (
-            <div className="py-12 text-center text-sm text-gray-400">No posts yet.</div>
+            <div className="py-8 text-center text-sm text-gray-400">No posts yet.</div>
           )}
         </div>
       </section>

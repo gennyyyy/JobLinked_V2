@@ -25,7 +25,7 @@ function UserManagement() {
   }, []);
 
   if (loading) return <LoadingScreen />;
-  if (error) return <div className="py-16 text-center text-sm text-danger">{error}</div>;
+  if (error) return <div className="py-8 text-center text-sm text-danger">{error}</div>;
 
   // accreditations ordered submitted_at desc → first row per company is its latest
   const latestByCompany = latestAccByCompany(accreditations);
@@ -58,13 +58,13 @@ function UserManagement() {
   ];
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="space-y-6">
       <header>
         <div className="flex items-center gap-2.5">
           <div className="w-1 h-5 bg-primary rounded-full" />
           <p className="font-mono text-[11px] tracking-[0.2em] text-primary uppercase font-medium">SYSTEM ADMINISTRATION</p>
         </div>
-        <h1 className="mt-1 text-2xl md:text-3xl font-bold tracking-tight text-dark-blue">User Management</h1>
+        <h1 className="mt-1 text-xl md:text-2xl font-bold tracking-tight text-dark-blue">User Management</h1>
         <p className="mt-2 text-sm text-gray-500">Manage system users and assign them to roles</p>
       </header>
 
@@ -72,7 +72,7 @@ function UserManagement() {
         <div className="text-sm text-emerald-700 bg-emerald-50 border border-emerald-200 px-4 py-3 rounded-xl">{success}</div>
       )}
 
-      <section className="bg-white border-2 border-primary rounded-2xl shadow-xs">
+      <section className="bg-white border border-primary rounded-lg shadow-xs">
         {/* Filter bar */}
         <div className="px-5 py-4 flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-3 border-b border-gray-100">
           <div className="flex-1 min-w-[160px]">
@@ -126,7 +126,7 @@ function UserManagement() {
             <tbody>
               {filteredUsers.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="py-12 text-center text-sm text-gray-400">No users found.</td>
+                  <td colSpan={7} className="py-8 text-center text-sm text-gray-400">No users found.</td>
                 </tr>
               ) : filteredUsers.map((user) => (
                 <tr key={user.id} className="border-t border-gray-100 hover:bg-gray-50/60 transition-colors">

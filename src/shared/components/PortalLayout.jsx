@@ -130,7 +130,7 @@ export default function PortalLayout({ navItems, badge, eyebrow, subhead, profil
 
       {showWarning && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
-          <div className="bg-white border-2 border-primary rounded-2xl p-6 max-w-sm mx-4 shadow-xl">
+          <div className="bg-white border border-primary rounded-lg p-5 max-w-sm mx-4 shadow-xl">
             <h3 className="text-lg font-bold text-gray-900 mb-2">Session Expiring</h3>
             <p className="text-sm text-gray-600 mb-6">
               You will be logged out in 1 minute due to inactivity. Move your mouse or press a key to stay signed in.

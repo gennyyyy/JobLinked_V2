@@ -64,7 +64,7 @@ function Reports() {
   }, []);
 
   if (loading) return <LoadingScreen />;
-  if (error) return <div className="py-16 text-center text-sm text-danger">{error}</div>;
+  if (error) return <div className="py-8 text-center text-sm text-danger">{error}</div>;
 
   const latestByCompany = latestAccByCompany(accreditations);
   const accredStatus = (companyId) => latestByCompany[companyId]?.status || "not applied";
@@ -206,13 +206,13 @@ function Reports() {
   const currentTotalPages = totalPages(currentTableData);
 
   return (
-    <div className="space-y-8 animate-fade-in bg-gray-50">
+    <div className="space-y-6 bg-gray-50">
       <header>
         <div className="flex items-center gap-3">
           <div className="w-1 h-6 bg-primary rounded-full" />
           <p className="font-mono text-[11px] tracking-[0.2em] text-primary uppercase">REPORTS & ANALYTICS</p>
         </div>
-        <h1 className="mt-1 font-sans text-2xl md:text-3xl font-bold tracking-tight text-dark-blue">Reports</h1>
+        <h1 className="mt-1 font-sans text-xl md:text-2xl font-bold tracking-tight text-dark-blue">Reports</h1>
         <p className="mt-2 text-sm text-gray-500">Export municipal employment data and analytics</p>
       </header>
 
@@ -251,35 +251,35 @@ function Reports() {
         {exportError && <p className="w-full text-xs text-danger">{exportError}</p>}
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-        <div className="bg-white border-2 border-primary rounded-2xl p-4 shadow-sm">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+        <div className="bg-white border border-primary rounded-lg p-4">
           <p className="font-sans text-2xl font-bold text-primary">{summary.totalApplications}</p>
           <p className="mt-1 font-mono text-[9px] tracking-widest text-gray-500 uppercase">Total Applications</p>
         </div>
-        <div className="bg-white border-2 border-primary rounded-2xl p-4 shadow-sm">
+        <div className="bg-white border border-primary rounded-lg p-4">
           <p className="font-sans text-2xl font-bold text-primary">{summary.totalJobs}</p>
           <p className="mt-1 font-mono text-[9px] tracking-widest text-gray-500 uppercase">Total Jobs</p>
         </div>
-        <div className="bg-white border-2 border-primary rounded-2xl p-4 shadow-sm">
+        <div className="bg-white border border-primary rounded-lg p-4">
           <p className="font-sans text-2xl font-bold text-primary">{summary.totalSeekers}</p>
           <p className="mt-1 font-mono text-[9px] tracking-widest text-gray-500 uppercase">Job Seekers</p>
         </div>
-        <div className="bg-white border-2 border-primary rounded-2xl p-4 shadow-sm">
+        <div className="bg-white border border-primary rounded-lg p-4">
           <p className="font-sans text-2xl font-bold text-primary">{summary.totalEmployers}</p>
           <p className="mt-1 font-mono text-[9px] tracking-widest text-gray-500 uppercase">Employers</p>
         </div>
-        <div className="bg-white border-2 border-primary rounded-2xl p-4 shadow-sm">
+        <div className="bg-white border border-primary rounded-lg p-4">
           <p className="font-sans text-2xl font-bold text-emerald-600">{summary.placed}</p>
           <p className="mt-1 font-mono text-[9px] tracking-widest text-gray-500 uppercase">Placed · {placementRate}%</p>
         </div>
       </div>
 
-      <div className="bg-white border-2 border-primary rounded-2xl p-6 shadow-sm">
+      <div className="bg-white border border-primary rounded-lg p-5">
         <h2 className="text-lg font-semibold text-dark-blue mb-4">
           {reportType === "barangay" ? "Placements by Barangay" : reportType === "monthly" ? "Monthly Trends" : "Summary by Status"}
         </h2>
         {reportType === "applications" && (
-          <div className="grid grid-cols-1 gap-4">
+          <div className="grid grid-cols-1 gap-3">
             {Object.entries(summary.byStatus).map(([status, count]) => (
               <div key={status} className="p-4 rounded-xl bg-gray-50 border border-gray-200 text-center">
                 <p className="text-2xl font-bold text-primary">{count}</p>
@@ -289,7 +289,7 @@ function Reports() {
           </div>
         )}
         {reportType === "jobs" && (
-          <div className="grid grid-cols-1 gap-4">
+          <div className="grid grid-cols-1 gap-3">
             {Object.entries(summary.byJobStatus).map(([status, count]) => (
               <div key={status} className="p-4 rounded-xl bg-gray-50 border border-gray-200 text-center">
                 <p className="text-2xl font-bold text-primary">{count}</p>
@@ -330,7 +330,7 @@ function Reports() {
           <div className="mt-6 pt-6 border-t border-gray-100">
             <h3 className="font-mono text-[11px] tracking-[0.2em] text-gray-500 uppercase mb-3">Placements by Barangay</h3>
             {Object.keys(summary.byBarangay).length ? (
-              <div className="grid grid-cols-1 gap-4">
+              <div className="grid grid-cols-1 gap-3">
                 {Object.entries(summary.byBarangay).sort((a, b) => b[1] - a[1]).map(([brgy, count]) => (
                   <div key={brgy} className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-center">
                     <p className="text-2xl font-bold text-emerald-700">{count}</p>
@@ -345,7 +345,7 @@ function Reports() {
         )}
       </div>
 
-      <div className="bg-white border-2 border-primary rounded-2xl p-6 shadow-sm">
+      <div className="bg-white border border-primary rounded-lg p-5">
         <h2 className="text-lg font-semibold text-dark-blue mb-4">Detailed Data</h2>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">

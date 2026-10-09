@@ -44,14 +44,14 @@ function Jobs() {
   }
 
   return (
-    <div className="space-y-8 animate-fade-in">
+    <div className="space-y-6">
       <header>
         <p className="font-mono text-[11px] tracking-[0.2em] text-[#0057B8] uppercase">OPPORTUNITIES IN SANTA MARIA</p>
-        <h1 className="mt-1 font-sans text-2xl md:text-3xl font-bold tracking-tight text-gray-900">Browse Verified Openings</h1>
+        <h1 className="mt-1 font-sans text-xl md:text-2xl font-bold tracking-tight text-gray-900">Browse Verified Openings</h1>
         <p className="mt-2 text-sm text-gray-500">{total} active position{total === 1 ? "" : "s"} available across 24 barangays</p>
       </header>
 
-      <form onSubmit={(e) => e.preventDefault()} className="bg-white border-2 border-primary rounded-2xl p-3 flex flex-col sm:flex-row gap-3 shadow-sm">
+      <form onSubmit={(e) => e.preventDefault()} className="bg-white border border-primary rounded-lg p-3 flex flex-col sm:flex-row gap-3">
         <input
           type="text"
           value={search}
@@ -118,14 +118,14 @@ function Jobs() {
       {loading ? (
         <LoadingScreen />
       ) : error ? (
-        <div className="py-16 text-center text-sm text-danger">{error}</div>
+        <div className="py-8 text-center text-sm text-danger">{error}</div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-1 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-1 gap-3">
           {jobs.map((job) => (
             <Link
               key={job.id}
               to={`/job-seeker/jobs/${job.id}`}
-              className="group bg-white border-2 border-primary rounded-2xl p-6 hover:border-primary/40 hover:-translate-y-0.5 transition-all flex flex-col justify-between shadow-sm"
+              className="group bg-white border border-primary rounded-lg p-5 hover:border-primary/40 transition-all flex flex-col justify-between"
             >
               <div>
                 <div className="flex items-start justify-between gap-3">
@@ -148,7 +148,7 @@ function Jobs() {
       )}
 
       {!loading && !error && jobs.length === 0 && (
-        <div className="py-16 text-center bg-gray-50 border-2 border-primary rounded-2xl">
+        <div className="py-8 text-center bg-gray-50 border border-primary rounded-lg">
           <p className="text-sm text-gray-500">No openings match your search filters.</p>
           <button onClick={resetFilters} className="mt-4 text-xs font-mono text-[#0057B8] hover:underline">
             Reset filters
@@ -157,7 +157,7 @@ function Jobs() {
       )}
 
       {!loading && !error && totalPages > 1 && (
-        <div className="flex items-center justify-center gap-4">
+        <div className="flex items-center justify-center gap-3">
           <button
             onClick={() => setPage((p) => Math.max(1, p - 1))}
             disabled={page === 1}

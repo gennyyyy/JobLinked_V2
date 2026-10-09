@@ -38,7 +38,7 @@ function Employees() {
   }
 
   if (loading) return <LoadingScreen />;
-  if (error) return <div className="py-16 text-center text-sm text-danger">{error}</div>;
+  if (error) return <div className="py-8 text-center text-sm text-danger">{error}</div>;
 
   const active = employees.filter((e) => e.status === "Accepted").length;
   const toggleFilter = (next) => setStatusFilter((prev) => (prev === next ? "all" : next));
@@ -48,26 +48,26 @@ function Employees() {
   );
 
   return (
-    <div className="space-y-8 animate-fade-in">
+    <div className="space-y-6">
       <header>
         <p className="font-mono text-[11px] tracking-[0.2em] text-[#0057B8] uppercase">HIRING ROSTER</p>
-        <h1 className="mt-1 font-sans text-2xl md:text-3xl font-bold tracking-tight text-gray-900">Employees</h1>
+        <h1 className="mt-1 font-sans text-xl md:text-2xl font-bold tracking-tight text-gray-900">Employees</h1>
         <p className="mt-2 text-sm text-gray-500">Accepted applicants become employees and move out of the application tracker</p>
       </header>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <button type="button" onClick={() => toggleFilter("all")} aria-pressed={statusFilter === "all"} title="Show all employees"
-          className={`p-4 rounded-2xl border text-left cursor-pointer transition-all hover:shadow-sm active:scale-[0.98] ${statusFilter === "all" ? "bg-white border-primary ring-1 ring-primary/30" : "bg-white border-gray-200 hover:border-gray-300"}`}>
+          className={`p-4 rounded-lg border text-left cursor-pointer transition-all hover: active:scale-[0.98] ${statusFilter === "all" ? "bg-white border-primary ring-1 ring-primary/30" : "bg-white border-gray-200 hover:border-gray-300"}`}>
           <p className="text-2xl font-bold text-gray-900">{employees.length}</p>
           <p className="text-xs font-mono uppercase tracking-wider text-gray-500 mt-1">Total</p>
         </button>
         <button type="button" onClick={() => toggleFilter("active")} aria-pressed={statusFilter === "active"} title="Show active employees"
-          className={`p-4 rounded-2xl border text-left cursor-pointer transition-all hover:shadow-sm active:scale-[0.98] ${statusFilter === "active" ? "bg-emerald-50/50 border-emerald-600 ring-1 ring-emerald-600/30" : "bg-emerald-50/50 border-emerald-500 hover:border-emerald-600"}`}>
+          className={`p-4 rounded-lg border text-left cursor-pointer transition-all hover: active:scale-[0.98] ${statusFilter === "active" ? "bg-emerald-50/50 border-emerald-600 ring-1 ring-emerald-600/30" : "bg-emerald-50/50 border-emerald-500 hover:border-emerald-600"}`}>
           <p className="text-2xl font-bold text-emerald-700">{active}</p>
           <p className="text-xs font-mono uppercase tracking-wider text-gray-500 mt-1">Active</p>
         </button>
         <button type="button" onClick={() => toggleFilter("terminated")} aria-pressed={statusFilter === "terminated"} title="Show terminated employees"
-          className={`p-4 rounded-2xl border text-left cursor-pointer transition-all hover:shadow-sm active:scale-[0.98] ${statusFilter === "terminated" ? "bg-white border-primary ring-1 ring-primary/30" : "bg-white border-gray-200 hover:border-gray-300"}`}>
+          className={`p-4 rounded-lg border text-left cursor-pointer transition-all hover: active:scale-[0.98] ${statusFilter === "terminated" ? "bg-white border-primary ring-1 ring-primary/30" : "bg-white border-gray-200 hover:border-gray-300"}`}>
           <p className="text-2xl font-bold text-gray-600">{employees.length - active}</p>
           <p className="text-xs font-mono uppercase tracking-wider text-gray-500 mt-1">Terminated</p>
         </button>
@@ -83,7 +83,7 @@ function Employees() {
         />
       </div>
 
-      <div className="bg-white border-2 border-primary rounded-2xl p-6 shadow-sm">
+      <div className="bg-white border border-primary rounded-lg p-5">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
@@ -131,7 +131,7 @@ function Employees() {
             </tbody>
           </table>
           {filtered.length === 0 && (
-            <div className="py-12 text-center text-sm text-gray-400">
+            <div className="py-8 text-center text-sm text-gray-400">
               {employees.length === 0
                 ? "No employees yet. Candidates you accept in the applicant tracker appear here."
                 : <>No employees match this filter. <button onClick={() => { setStatusFilter("all"); setSearch(""); }} className="text-primary hover:underline underline-offset-4 font-medium">Clear filter</button></>}

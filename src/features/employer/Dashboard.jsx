@@ -34,7 +34,7 @@ function Dashboard() {
   }, [user]);
 
   if (loading) return <LoadingScreen />;
-  if (error) return <div className="py-16 text-center text-sm text-danger">{error}</div>;
+  if (error) return <div className="py-8 text-center text-sm text-danger">{error}</div>;
 
   const openPosts = jobs.filter((job) => job.status === "published");
   const newThisWeek = applicants.filter((app) => {
@@ -54,14 +54,14 @@ function Dashboard() {
     .slice(0, 5);
 
   return (
-    <div className="space-y-8 animate-fade-in bg-gray-50">
+    <div className="space-y-6 bg-gray-50">
       <PageHeader
         eyebrow="EMPLOYER DASHBOARD"
         title={`Overview for ${company?.company_name || "My Company"}`}
         subtitle="Real-time recruitment metrics and applicant tracking"
       />
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
         {stats.map((stat) => (
           <StatCard key={stat.label} label={stat.label} value={stat.value} highlight={stat.highlight} icon={stat.icon} />
         ))}
@@ -70,14 +70,14 @@ function Dashboard() {
       <SectionCard title="Recent Candidate Applications" subtitle="Latest job seekers who applied to your verified listings">
 
         {recentApplicants.length === 0 ? (
-          <div className="py-12 text-center text-sm text-gray-500">
+          <div className="py-8 text-center text-sm text-gray-500">
             No applicant submissions received yet.{" "}
             <Link to="/employer/job-posts" className="text-primary hover:underline">Post a job →</Link>
           </div>
         ) : (
           <div className="divide-y divide-gray-100">
             {recentApplicants.map((item) => (
-              <div key={item.id} className="py-4 first:pt-0 last:pb-0 flex items-center justify-between gap-4">
+              <div key={item.id} className="py-4 first:pt-0 last:pb-0 flex items-center justify-between gap-3">
                 <div className="min-w-0">
                   <p className="text-sm font-medium text-gray-900 truncate">{item.seeker?.full_name}</p>
                   <p className="mt-1 text-xs text-gray-500 truncate">

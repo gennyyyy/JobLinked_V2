@@ -7,6 +7,7 @@ const navItems = [
   { to: '/super-admin/roles', label: 'Roles' },
   { to: '/super-admin/users', label: 'Users' },
   { to: '/super-admin/logs', label: 'Logs' },
+  { to: '/super-admin/notifications', label: 'Notifications' },
   { to: '/super-admin/settings', label: 'Settings' },
   { to: '/super-admin/reports', label: 'Reports' },
 ]

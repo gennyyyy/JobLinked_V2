@@ -56,3 +56,37 @@ export async function purgeOldApplications(monthsOld = 12) {
 export async function listAllAccreditations() {
   return api.get('admin/accreditations');
 }
+
+// Admin job edit (PATCH admin/jobs/:id) + publish/unpublish toggles.
+export async function editJob(id, patch) {
+  return api.patch(`admin/jobs/${id}`, patch);
+}
+
+export async function publishJob(id) {
+  return api.post(`admin/jobs/${id}/publish`);
+}
+
+export async function unpublishJob(id) {
+  return api.post(`admin/jobs/${id}/unpublish`);
+}
+
+// Request-document resubmission: PATCH accreditations/:id
+// { status: 'resubmission', remarks }. Shape matches the admin accreditation
+// contract (PATCH …/accreditations/:id { status, remarks? }).
+export async function requestDocs(id, remarks) {
+  return api.patch(`accreditations/${id}`, { status: 'resubmission', remarks });
+}
+
+export async function assignRole(id, role) {
+  return api.post(`admin/users/${id}/role`, { role });
+}
+
+export async function sendSystemNotification({ title, message, link = null, expires_at = null }) {
+  return api.post('admin/system-notifications', { title, message, link, expires_at });
+}
+
+// Server-rendered export (CSV/Excel/PDF). 404 = backend item missing → the
+// Reports page falls back to its client-side CSV builder.
+export async function exportReport(type, format) {
+  return api.blob(`admin/reports/${type}/export?format=${format}`);
+}

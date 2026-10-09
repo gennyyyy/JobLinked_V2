@@ -423,7 +423,7 @@ export default function JobPosts() {
 
   if (loadError) {
     return (
-      <div className="py-16 text-center space-y-4">
+      <div className="py-8 text-center space-y-4">
         <div className="w-12 h-12 mx-auto rounded-full bg-rose-50 text-rose-600 flex items-center justify-center">
           <AlertTriangle className="w-6 h-6" />
         </div>
@@ -439,9 +439,9 @@ export default function JobPosts() {
   }
 
   return (
-    <div className="space-y-6 animate-fade-in pb-12">
+    <div className="space-y-6 pb-12">
       {/* Header Section */}
-      <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <header className="flex flex-col md:flex-row md:items-center justify-between gap-3">
         <div>
           <div className="flex items-center gap-2">
             <span className="font-mono text-[11px] tracking-[0.2em] text-primary uppercase font-semibold">
@@ -450,7 +450,7 @@ export default function JobPosts() {
             <span className="w-1.5 h-1.5 rounded-full bg-primary" />
             <span className="text-xs text-gray-500 font-medium">Santa Maria PESO</span>
           </div>
-          <h1 className="mt-1 font-sans text-2xl md:text-3xl font-bold tracking-tight text-gray-900">
+          <h1 className="mt-1 font-sans text-xl md:text-2xl font-bold tracking-tight text-gray-900">
             Job Vacancy Postings
           </h1>
           <p className="mt-1 text-sm text-gray-500">
@@ -471,7 +471,7 @@ export default function JobPosts() {
 
       {/* Action feedback notifications */}
       {actionSuccess && (
-        <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm flex items-center justify-between shadow-xs animate-fade-in">
+        <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm flex items-center justify-between shadow-xs">
           <div className="flex items-center gap-3">
             <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
             <span>{actionSuccess}</span>
@@ -486,7 +486,7 @@ export default function JobPosts() {
       )}
 
       {actionError && (
-        <div className="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-sm flex items-center justify-between shadow-xs animate-fade-in">
+        <div className="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-sm flex items-center justify-between shadow-xs">
           <div className="flex items-center gap-3">
             <AlertTriangle className="w-5 h-5 text-rose-600 shrink-0" />
             <span>{actionError}</span>
@@ -502,7 +502,7 @@ export default function JobPosts() {
 
       {/* No Company Warning Banner */}
       {!company && (
-        <div className="p-5 rounded-2xl bg-amber-50 border border-amber-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-xs">
+        <div className="p-5 rounded-lg bg-amber-50 border border-amber-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
           <div className="flex items-start gap-3">
             <Building className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
             <div>
@@ -526,9 +526,9 @@ export default function JobPosts() {
         <button
           type="button"
           onClick={() => setStatusFilter("all")}
-          className={`p-4 rounded-2xl border text-left transition-all cursor-pointer ${
+          className={`p-4 rounded-lg border text-left transition-all cursor-pointer ${
             statusFilter === "all"
-              ? "bg-white border-primary shadow-sm ring-1 ring-primary/20"
+              ? "bg-white border-primary ring-1 ring-primary/20"
               : "bg-white border-gray-200 hover:border-gray-300"
           }`}
         >
@@ -539,9 +539,9 @@ export default function JobPosts() {
         <button
           type="button"
           onClick={() => setStatusFilter("published")}
-          className={`p-4 rounded-2xl border text-left transition-all cursor-pointer ${
+          className={`p-4 rounded-lg border text-left transition-all cursor-pointer ${
             statusFilter === "published"
-              ? "bg-emerald-50/50 border-emerald-500 shadow-sm ring-1 ring-emerald-500/20"
+              ? "bg-emerald-50/50 border-emerald-500 ring-1 ring-emerald-500/20"
               : "bg-white border-gray-200 hover:border-gray-300"
           }`}
         >
@@ -555,9 +555,9 @@ export default function JobPosts() {
         <button
           type="button"
           onClick={() => setStatusFilter("draft")}
-          className={`p-4 rounded-2xl border text-left transition-all cursor-pointer ${
+          className={`p-4 rounded-lg border text-left transition-all cursor-pointer ${
             statusFilter === "draft"
-              ? "bg-slate-50 border-slate-500 shadow-sm ring-1 ring-slate-500/20"
+              ? "bg-slate-50 border-slate-500 ring-1 ring-slate-500/20"
               : "bg-white border-gray-200 hover:border-gray-300"
           }`}
         >
@@ -568,9 +568,9 @@ export default function JobPosts() {
         <button
           type="button"
           onClick={() => setStatusFilter("archived")}
-          className={`p-4 rounded-2xl border text-left transition-all cursor-pointer ${
+          className={`p-4 rounded-lg border text-left transition-all cursor-pointer ${
             statusFilter === "archived"
-              ? "bg-zinc-50/50 border-zinc-500 shadow-sm ring-1 ring-zinc-500/20"
+              ? "bg-zinc-50/50 border-zinc-500 ring-1 ring-zinc-500/20"
               : "bg-white border-gray-200 hover:border-gray-300"
           }`}
         >
@@ -584,9 +584,9 @@ export default function JobPosts() {
         <button
           type="button"
           onClick={() => setStatusFilter("closed")}
-          className={`p-4 rounded-2xl border text-left transition-all cursor-pointer ${
+          className={`p-4 rounded-lg border text-left transition-all cursor-pointer ${
             statusFilter === "closed"
-              ? "bg-gray-100 border-gray-400 shadow-sm ring-1 ring-gray-400/20"
+              ? "bg-gray-100 border-gray-400 ring-1 ring-gray-400/20"
               : "bg-white border-gray-200 hover:border-gray-300"
           }`}
         >
@@ -596,9 +596,9 @@ export default function JobPosts() {
       </div>
 
       {/* Main Container: Search, Filter Tabs & Listings Table */}
-      <div className="bg-white border-2 border-primary rounded-2xl p-5 md:p-6 shadow-xs space-y-5">
+      <div className="bg-white border border-primary rounded-lg p-5 md:p-5 shadow-xs space-y-5">
         {/* Controls: Search, Status Tabs & Sorting */}
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-gray-100">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 pb-4 border-b border-gray-100">
           {/* Search Box */}
           <div className="relative flex-1 max-w-md">
             <Search className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
@@ -848,7 +848,7 @@ export default function JobPosts() {
           </table>
 
           {filteredJobs.length === 0 && (
-            <div className="py-16 text-center space-y-3">
+            <div className="py-8 text-center space-y-3">
               <div className="w-12 h-12 rounded-full bg-gray-100 text-gray-400 flex items-center justify-center mx-auto">
                 <Briefcase className="w-6 h-6" />
               </div>
@@ -880,8 +880,8 @@ export default function JobPosts() {
       {/* Post / Edit Job Modal Form                                                */}
       {/* ========================================================================= */}
       {showForm && createPortal(
-        <div className="fixed inset-0 z-[9999] flex items-start justify-center p-4 bg-black/60 backdrop-blur-xs animate-fade-in overflow-y-auto">
-          <div className="w-full max-w-2xl bg-white border border-gray-200 rounded-3xl p-6 md:p-8 shadow-2xl my-8 max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 z-[9999] flex items-start justify-center p-4 bg-black/60 backdrop-blur-xs overflow-y-auto">
+          <div className="w-full max-w-2xl bg-white border border-gray-200 rounded-3xl p-5 md:p-6 shadow-2xl my-8 max-h-[90vh] overflow-y-auto">
             {/* Modal Header */}
             <div className="flex items-center justify-between pb-4 border-b border-gray-100">
               <div className="flex items-center gap-3">
@@ -929,7 +929,7 @@ export default function JobPosts() {
               </div>
 
               {/* Department / Office & Employment Type */}
-              <div className="grid grid-cols-1 gap-4">
+              <div className="grid grid-cols-1 gap-3">
                 <div>
                   <label className="block font-mono text-[11px] tracking-wider text-gray-600 uppercase font-semibold mb-1.5">
                     Department / Office <span className="text-gray-400 font-normal lowercase">(optional)</span>
@@ -963,7 +963,7 @@ export default function JobPosts() {
               </div>
 
               {/* Barangay Location & Vacancies */}
-              <div className="grid grid-cols-1 gap-4">
+              <div className="grid grid-cols-1 gap-3">
                 <div>
                   <label className="block font-mono text-[11px] tracking-wider text-gray-600 uppercase font-semibold mb-1.5">
                     Barangay Location <span className="text-rose-500">*</span>
@@ -1011,7 +1011,7 @@ export default function JobPosts() {
               </div>
 
               {/* Salary Range */}
-              <div className="grid grid-cols-1 gap-4">
+              <div className="grid grid-cols-1 gap-3">
                 <div>
                   <label className="block font-mono text-[11px] tracking-wider text-gray-600 uppercase font-semibold mb-1.5">
                     Minimum Salary (₱) <span className="text-gray-400 font-normal lowercase">(optional)</span>
@@ -1218,10 +1218,10 @@ export default function JobPosts() {
       {/* View Job Bulletin Details Modal                                           */}
       {/* ========================================================================= */}
       {viewingJob && createPortal(
-        <div className="fixed inset-0 z-[9999] flex items-start justify-center p-4 bg-black/60 backdrop-blur-xs animate-fade-in overflow-y-auto">
-          <div className="w-full max-w-2xl bg-white border border-gray-200 rounded-3xl p-6 md:p-8 shadow-2xl my-8 max-h-[90vh] overflow-y-auto space-y-6">
+        <div className="fixed inset-0 z-[9999] flex items-start justify-center p-4 bg-black/60 backdrop-blur-xs overflow-y-auto">
+          <div className="w-full max-w-2xl bg-white border border-gray-200 rounded-3xl p-5 md:p-6 shadow-2xl my-8 max-h-[90vh] overflow-y-auto space-y-6">
             {/* Modal Top Bar */}
-            <div className="flex items-start justify-between gap-4 pb-4 border-b border-gray-100">
+            <div className="flex items-start justify-between gap-3 pb-4 border-b border-gray-100">
               <div>
                 <span
                   className={`inline-flex items-center gap-1.5 font-mono text-[10px] tracking-wider px-2.5 py-0.5 rounded-full uppercase border font-semibold ${
@@ -1249,7 +1249,7 @@ export default function JobPosts() {
             {/* Rejection / PESO Remarks Alert */}
             {viewingJob.remarks && (
               <div
-                className={`p-4 rounded-2xl border text-sm flex items-start gap-3 ${
+                className={`p-4 rounded-lg border text-sm flex items-start gap-3 ${
                   viewingJob.status === "rejected"
                     ? "bg-rose-50 border-rose-200 text-rose-900"
                     : "bg-blue-50 border-blue-200 text-blue-900"
@@ -1264,7 +1264,7 @@ export default function JobPosts() {
             )}
 
             {/* Quick Fact Grid */}
-            <div className="grid grid-cols-1 gap-3 p-4 rounded-2xl bg-gray-50 border border-gray-200/70">
+            <div className="grid grid-cols-1 gap-3 p-4 rounded-lg bg-gray-50 border border-gray-200/70">
               <div>
                 <p className="font-mono text-[10px] text-gray-500 uppercase tracking-wider">Employment</p>
                 <p className="text-xs font-semibold text-gray-900 mt-1">{viewingJob.employment_type}</p>
@@ -1297,7 +1297,7 @@ export default function JobPosts() {
             )}
 
             {/* Candidate Applications Summary */}
-            <div className="flex items-center justify-between p-4 rounded-2xl bg-blue-50/50 border border-blue-100">
+            <div className="flex items-center justify-between p-4 rounded-lg bg-blue-50/50 border border-blue-100">
               <div className="flex items-center gap-3">
                 <Users className="w-5 h-5 text-primary" />
                 <div>
@@ -1320,7 +1320,7 @@ export default function JobPosts() {
               <h3 className="text-xs font-mono tracking-wider uppercase font-bold text-gray-500">
                 Job Description
               </h3>
-              <p className="text-sm text-gray-700 whitespace-pre-line leading-relaxed bg-gray-50/50 p-4 rounded-2xl border border-gray-100">
+              <p className="text-sm text-gray-700 whitespace-pre-line leading-relaxed bg-gray-50/50 p-4 rounded-lg border border-gray-100">
                 {viewingJob.description}
               </p>
             </div>
@@ -1331,7 +1331,7 @@ export default function JobPosts() {
                 <h3 className="text-xs font-mono tracking-wider uppercase font-bold text-gray-500">
                   Qualifications & Requirements
                 </h3>
-                <p className="text-sm text-gray-700 whitespace-pre-line leading-relaxed bg-gray-50/50 p-4 rounded-2xl border border-gray-100">
+                <p className="text-sm text-gray-700 whitespace-pre-line leading-relaxed bg-gray-50/50 p-4 rounded-lg border border-gray-100">
                   {viewingJob.requirements}
                 </p>
               </div>
@@ -1343,7 +1343,7 @@ export default function JobPosts() {
                 <h3 className="text-xs font-mono tracking-wider uppercase font-bold text-gray-500">
                   Benefits & Perks
                 </h3>
-                <p className="text-sm text-gray-700 whitespace-pre-line leading-relaxed bg-gray-50/50 p-4 rounded-2xl border border-gray-100">
+                <p className="text-sm text-gray-700 whitespace-pre-line leading-relaxed bg-gray-50/50 p-4 rounded-lg border border-gray-100">
                   {viewingJob.benefits}
                 </p>
               </div>
@@ -1355,7 +1355,7 @@ export default function JobPosts() {
                 <h3 className="text-xs font-mono tracking-wider uppercase font-bold text-gray-500">
                   Application Instructions
                 </h3>
-                <p className="text-sm text-gray-700 whitespace-pre-line leading-relaxed bg-gray-50/50 p-4 rounded-2xl border border-gray-100">
+                <p className="text-sm text-gray-700 whitespace-pre-line leading-relaxed bg-gray-50/50 p-4 rounded-lg border border-gray-100">
                   {viewingJob.instructions}
                 </p>
               </div>

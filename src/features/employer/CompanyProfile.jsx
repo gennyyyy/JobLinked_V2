@@ -52,7 +52,7 @@ function CompanyProfile() {
   }, [user]);
 
   if (loading) return <LoadingScreen />;
-  if (error) return <div className="py-16 text-center text-sm text-danger">{error}</div>;
+  if (error) return <div className="py-8 text-center text-sm text-danger">{error}</div>;
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -99,17 +99,17 @@ function CompanyProfile() {
   const accreditationStatus = company?.accreditation_status || "Not Applied";
 
   return (
-    <div className="w-full animate-fade-in space-y-8">
+    <div className="w-full space-y-6">
       <header>
         <p className="font-mono text-[11px] tracking-[0.2em] text-[#0057B8] uppercase">COMPANY PROFILE</p>
-        <h1 className="mt-1 font-sans text-2xl md:text-3xl font-bold tracking-tight text-gray-900">Business Information</h1>
+        <h1 className="mt-1 font-sans text-xl md:text-2xl font-bold tracking-tight text-gray-900">Business Information</h1>
         <p className="mt-2 text-sm text-gray-500">Your company details visible to PESO and job seekers</p>
       </header>
 
-      <div className="bg-white border-2 border-primary rounded-2xl p-7 md:p-9 shadow-sm">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-gray-200">
-          <div className="flex items-center gap-4">
-            <div className="w-16 h-16 rounded-2xl bg-primary/10 border border-primary/25 flex items-center justify-center font-bold text-xl text-primary">
+      <div className="bg-white border border-primary rounded-lg p-6 md:p-9">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-6 border-b border-gray-200">
+          <div className="flex items-center gap-3">
+            <div className="w-16 h-16 rounded-lg bg-primary/10 border border-primary/25 flex items-center justify-center font-bold text-xl text-primary">
               {form.name?.[0] || "C"}
             </div>
             <div>
@@ -130,16 +130,16 @@ function CompanyProfile() {
         </div>
 
         {saved && (
-          <div className="mt-6 p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-medium animate-fade-in">
+          <div className="mt-6 p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-medium">
             Company profile updated successfully.
           </div>
         )}
 
         {editing ? (
-          <form onSubmit={handleSubmit} className="mt-6 space-y-6 animate-fade-in">
+          <form onSubmit={handleSubmit} className="mt-6 space-y-6">
             <section className="bg-gray-50 border border-gray-200 rounded-xl p-5 space-y-4">
               <p className="font-mono text-[11px] tracking-[0.2em] text-primary uppercase font-semibold">Company Details</p>
-              <div className="grid grid-cols-1 gap-4">
+              <div className="grid grid-cols-1 gap-3">
                 <div>
                   <label className="block font-mono text-[11px] tracking-wider text-gray-500 uppercase mb-1.5">Company Name</label>
                   <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="w-full min-h-[44px] px-4 rounded-xl text-sm bg-white border border-gray-200 text-gray-900 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all" />
@@ -168,7 +168,7 @@ function CompanyProfile() {
             </section>
             <section className="bg-gray-50 border border-gray-200 rounded-xl p-5 space-y-4">
               <p className="block font-mono text-[11px] tracking-[0.2em] text-primary uppercase font-semibold">Business Address</p>
-              <div className="grid grid-cols-1 gap-4">
+              <div className="grid grid-cols-1 gap-3">
                 {[["house_number_unit", "House / Building / Unit No.", "e.g. Unit 402 or Bldg 3"], ["street_address", "Street Address & Lot / Block", "Street address"], ["subdivision_building", "Subdivision / Village / Building Name", "Subdivision name"], ["barangay_district", "Barangay / District", "Barangay"], ["city_municipality", "City / Municipality", "e.g. Santa Maria"], ["province_state", "Province / State", "e.g. Bulacan"], ["postal_code", "Postal / ZIP Code", "e.g. 3022"], ["country", "Country", "Philippines"]].map(([field, label, placeholder]) => (
                   <div key={field}>
                     <label htmlFor={field} className="block font-mono text-[11px] tracking-wider text-gray-500 uppercase mb-1.5">{label}</label>
@@ -179,7 +179,7 @@ function CompanyProfile() {
             </section>
             <section className="bg-gray-50 border border-gray-200 rounded-xl p-5 space-y-4">
               <p className="font-mono text-[11px] tracking-[0.2em] text-primary uppercase font-semibold">Authorized Representative</p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block font-mono text-[11px] tracking-wider text-gray-500 uppercase mb-1.5">First Name</label>
                   <input value={form.first_name} onChange={(e) => setForm({ ...form, first_name: e.target.value })} placeholder="Maria" className="w-full min-h-[44px] px-4 rounded-xl text-sm bg-white border border-gray-200 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all" />

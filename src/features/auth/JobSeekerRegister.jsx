@@ -193,7 +193,7 @@ function JobSeekerRegister() {
   if (submitted) {
     return (
       <div className="min-h-screen bg-gray-50 text-gray-900 flex flex-col font-sans">
-        <header className="sticky top-0 z-20 bg-dark-blue border-b border-white/10 shadow-sm">
+        <header className="sticky top-0 z-20 bg-dark-blue border-b border-white/10">
           <div className="w-full px-4 h-[64px] flex items-center justify-between">
             <div className="bg-white rounded-lg px-3.5 py-1.5 flex items-center shadow-xs">
               <Link to="/"><img src={Logo} alt="JobLinked" className="h-10" /></Link>
@@ -203,7 +203,7 @@ function JobSeekerRegister() {
         </header>
 
         <main className="flex-1 flex items-center justify-center p-[3%]">
-          <div className="max-w-md w-full text-center bg-white border-2 border-primary rounded-2xl p-8 shadow-xl animate-fade-in">
+          <div className="max-w-md w-full text-center bg-white border border-primary rounded-lg p-6 shadow-xl">
             <span className={`font-mono text-[10px] tracking-widest uppercase px-2.5 py-1 rounded-full border font-semibold ${needsConfirmation ? "bg-amber-50 border-amber-200 text-amber-700" : "bg-emerald-50 border-emerald-200 text-emerald-600"}`}>
               {needsConfirmation ? "VERIFY YOUR EMAIL" : "ACCOUNT READY"}
             </span>
@@ -227,7 +227,7 @@ function JobSeekerRegister() {
 
   return (
     <div className="min-h-screen bg-gray-50 text-gray-900 flex flex-col font-sans">
-      <header className="sticky top-0 z-20 bg-dark-blue border-b border-white/10 shadow-sm">
+      <header className="sticky top-0 z-20 bg-dark-blue border-b border-white/10">
         <div className="w-full px-4 h-[64px] flex items-center justify-between">
           <div className="bg-white rounded-lg px-3.5 py-1.5 flex items-center shadow-xs">
           <Link to="/"><img src={Logo} alt="JobLinked" className="h-10" /></Link>
@@ -237,7 +237,7 @@ function JobSeekerRegister() {
       </header>
 
       <main className="flex-1 flex items-center justify-center p-[3%]">
-        <div className="w-full max-w-xl bg-white border-2 border-primary rounded-2xl p-7 md:p-9 shadow-xl animate-fade-in">
+        <div className="w-full max-w-xl bg-white border border-primary rounded-lg p-6 md:p-9 shadow-xl">
           <div className="flex items-center justify-between mb-4">
             <Link to="/register" className="text-xs text-gray-400 hover:text-primary transition-colors">
               ← Back to roles
@@ -268,7 +268,7 @@ function JobSeekerRegister() {
               )}
             </section>
 
-            <div className="grid grid-cols-1 gap-4">
+            <div className="grid grid-cols-1 gap-3">
               <div>
                 <label htmlFor="firstName" className={labelClass}>First Name</label>
                 <input id="firstName" name="firstName" type="text" placeholder="Juan" value={form.firstName} onChange={(e) => set("firstName", e.target.value)} className={inputClass} />
@@ -284,7 +284,7 @@ function JobSeekerRegister() {
                 {errors.lastName && <p className="text-danger text-xs mt-1">{errors.lastName}</p>}
               </div>
             </div>
-            <div className="grid grid-cols-1 gap-4">
+            <div className="grid grid-cols-1 gap-3">
               <div>
                 <label htmlFor="suffix" className={labelClass}>Suffix <span className="text-gray-400 font-normal">(optional)</span></label>
                 <input id="suffix" name="suffix" type="text" placeholder="Jr., Sr., III" value={form.suffix} onChange={(e) => set("suffix", e.target.value)} className={inputClass} />
@@ -296,7 +296,7 @@ function JobSeekerRegister() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 gap-4">
+            <div className="grid grid-cols-1 gap-3">
               <div>
                 <label htmlFor="mobileNumber" className={labelClass}>Mobile Number</label>
                 <input id="mobileNumber" name="mobileNumber" type="tel" placeholder="0917 123 4567" value={form.mobileNumber} onChange={(e) => set("mobileNumber", e.target.value)} className={inputClass} />
@@ -310,7 +310,7 @@ function JobSeekerRegister() {
               {errors.email && <p className="text-danger text-xs mt-1">{errors.email}</p>}
             </div>
 
-            <div className="grid grid-cols-1 gap-4">
+            <div className="grid grid-cols-1 gap-3">
               <div>
                 <label htmlFor="password" className={labelClass}>Password</label>
                 <input id="password" name="password" type="password" placeholder="Min. 8 characters" value={form.password} onChange={(e) => set("password", e.target.value)} className={inputClass} />
@@ -325,7 +325,7 @@ function JobSeekerRegister() {
 
             <section className="border-t border-gray-100 pt-4">
               <p className="font-mono text-[11px] tracking-[0.2em] text-primary uppercase mb-4 font-semibold">Address Information</p>
-              <div className="grid grid-cols-1 gap-4">
+              <div className="grid grid-cols-1 gap-3">
                 <div>
                   <label htmlFor="houseNumberUnit" className={labelClass}>House / Building / Unit No. <span className="text-gray-400 font-normal">(optional)</span></label>
                   <input id="houseNumberUnit" name="houseNumberUnit" type="text" placeholder="e.g. Unit 402 or Bldg 3" value={form.houseNumberUnit} onChange={(e) => set("houseNumberUnit", e.target.value)} className={inputClass} />

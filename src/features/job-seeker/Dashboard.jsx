@@ -64,7 +64,7 @@ function Dashboard() {
   }, [user]);
 
   if (loading) return <LoadingScreen />;
-  if (error) return <div className="py-16 text-center text-sm text-danger">{error}</div>;
+  if (error) return <div className="py-8 text-center text-sm text-danger">{error}</div>;
 
   const activeApplications = applications.length;
   const shortlisted = applications.filter((app) => app.status === "Shortlisted").length;
@@ -88,14 +88,14 @@ function Dashboard() {
   const completion = profileCompletion(user);
 
   return (
-    <div className="space-y-8 animate-fade-in bg-gray-50">
+    <div className="space-y-6 bg-gray-50">
       <PageHeader
         eyebrow="JOB SEEKER DASHBOARD"
         title="My Dashboard"
         subtitle="Track your applications and recruitment activity"
       />
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
         {stats.map((stat) => (
           <StatCard key={stat.label} label={stat.label} value={stat.value} highlight={stat.highlight} icon={stat.icon} />
         ))}
@@ -127,7 +127,7 @@ function Dashboard() {
             <Link to="/job-seeker/profile" className="text-primary hover:underline">Add skills and preferences →</Link>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             {recommended.map((job) => (
               <Link
                 key={job.id}
@@ -149,14 +149,14 @@ function Dashboard() {
       <SectionCard title="Recent Applications" subtitle="Latest jobs you've applied to with Santa Maria employers">
 
         {recentApps.length === 0 ? (
-          <div className="py-12 text-center text-sm text-gray-400">
+          <div className="py-8 text-center text-sm text-gray-400">
             You haven't applied to any jobs yet.{" "}
             <Link to="/job-seeker/jobs" className="text-primary hover:underline">Browse openings →</Link>
           </div>
         ) : (
           <div className="divide-y divide-gray-100">
             {recentApps.map((item) => (
-              <div key={item.id} className="py-4 first:pt-0 last:pb-0 flex items-center justify-between gap-4">
+              <div key={item.id} className="py-4 first:pt-0 last:pb-0 flex items-center justify-between gap-3">
                 <div className="min-w-0">
                   <p className="text-sm font-medium text-gray-900 truncate">{item.job?.title}</p>
                   <p className="mt-1 text-xs text-gray-500 truncate">{item.job?.employers?.company_name}</p>

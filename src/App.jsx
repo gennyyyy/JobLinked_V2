@@ -23,6 +23,7 @@ import UserManagement from './features/super-admin/UserManagement'
 import Settings from './features/super-admin/Settings'
 import Reports from './features/super-admin/Reports'
 import Logs from './features/super-admin/Logs'
+import SuperAdminNotifications from './features/super-admin/Notifications'
 import SuperAdminProfile from './features/super-admin/Profile'
 import EmployerLayout from './features/employer/EmployerLayout'
 import EmployerDashboard from './features/employer/Dashboard'
@@ -38,6 +39,7 @@ import Applications from './features/job-seeker/Applications'
 import Employment from './features/job-seeker/Employment'
 import Profile from './features/job-seeker/Profile'
 import Jobs from './features/job-seeker/Jobs'
+import NotificationsPage from './shared/components/NotificationsPage'
 
 function App() {
   return (
@@ -73,6 +75,7 @@ function App() {
           <Route path="settings" element={<Settings />} />
           <Route path="reports" element={<Reports />} />
           <Route path="logs" element={<Logs />} />
+          <Route path="notifications" element={<SuperAdminNotifications />} />
           <Route path="profile" element={<SuperAdminProfile />} />
         </Route>
 
@@ -90,6 +93,7 @@ function App() {
           <Route path="employees" element={<Employees />} />
           <Route path="company" element={<CompanyProfile />} />
           <Route path="accreditation" element={<EmployerAccreditation />} />
+          <Route path="notifications" element={<NotificationsPage title="Notifications" subtitle="Reviews, accreditations, and system updates" />} />
         </Route>
 
         <Route
@@ -106,6 +110,7 @@ function App() {
           <Route path="applications" element={<Applications />} />
           <Route path="employment" element={<Employment />} />
           <Route path="profile" element={<Profile />} />
+          <Route path="notifications" element={<NotificationsPage title="Notifications" subtitle="Application updates and system announcements" />} />
         </Route>
 
         <Route path="*" element={<Navigate to="/" replace />} />

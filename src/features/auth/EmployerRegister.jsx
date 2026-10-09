@@ -102,7 +102,7 @@ function EmployerRegister() {
   if (submitted) {
     return (
       <div className="min-h-screen bg-gray-50 text-gray-900 flex flex-col font-sans">
-        <header className="sticky top-0 z-20 bg-dark-blue border-b border-white/10 shadow-sm">
+        <header className="sticky top-0 z-20 bg-dark-blue border-b border-white/10">
           <div className="w-full px-4 h-[64px] flex items-center justify-between">
             <div className="bg-white rounded-lg px-3.5 py-1.5 flex items-center shadow-xs">
               <Link to="/"><img src={Logo} alt="JobLinked" className="h-10" /></Link>
@@ -112,7 +112,7 @@ function EmployerRegister() {
         </header>
 
         <main className="flex-1 flex items-center justify-center p-[3%]">
-          <div className="max-w-md w-full text-center bg-white border-2 border-primary rounded-2xl p-8 shadow-xl animate-fade-in">
+          <div className="max-w-md w-full text-center bg-white border border-primary rounded-lg p-6 shadow-xl">
             <span className="font-mono text-[10px] tracking-widest uppercase px-2.5 py-1 rounded-full bg-accent/20 border border-accent/40 text-dark-blue font-semibold">
               {needsConfirmation ? "VERIFY YOUR EMAIL" : "PENDING VERIFICATION"}
             </span>
@@ -144,7 +144,7 @@ function EmployerRegister() {
 
   return (
     <div className="min-h-screen bg-gray-50 text-gray-900 flex flex-col font-sans">
-      <header className="sticky top-0 z-20 bg-dark-blue border-b border-white/10 shadow-sm">
+      <header className="sticky top-0 z-20 bg-dark-blue border-b border-white/10">
         <div className="w-full px-4 h-[64px] flex items-center justify-between">
           <div className="bg-white rounded-lg px-3.5 py-1.5 flex items-center shadow-xs">
           <Link to="/"><img src={Logo} alt="JobLinked" className="h-10" /></Link>
@@ -154,7 +154,7 @@ function EmployerRegister() {
       </header>
 
       <main className="flex-1 flex items-center justify-center p-[3%]">
-        <div className="w-full max-w-2xl bg-white border-2 border-primary rounded-2xl p-7 md:p-10 shadow-xl animate-fade-in">
+        <div className="w-full max-w-2xl bg-white border border-primary rounded-lg p-6 md:p-10 shadow-xl">
           <div className="flex items-center justify-between mb-4">
             <Link to="/register" className="text-xs text-gray-400 hover:text-primary transition-colors">
               ← Back to roles
@@ -169,8 +169,8 @@ function EmployerRegister() {
             <p className="mt-2 text-sm text-gray-500">Submit business details and compliance credentials for Santa Maria PESO accreditation</p>
           </header>
 
-          <form onSubmit={handleSubmit} noValidate className="space-y-8">
-            <section className="bg-gray-50 border-2 border-primary rounded-2xl p-6">
+          <form onSubmit={handleSubmit} noValidate className="space-y-6">
+            <section className="bg-gray-50 border border-primary rounded-lg p-5">
               <p className="font-mono text-[11px] tracking-[0.2em] text-primary uppercase mb-4 font-semibold">Step 1 — Company Details</p>
               <div className="space-y-4">
                 <div>
@@ -185,7 +185,7 @@ function EmployerRegister() {
                 </div>
                 <div>
                   <p className={labelClass}>Address Information</p>
-                  <div className="grid grid-cols-1 gap-4">
+                  <div className="grid grid-cols-1 gap-3">
                     <div>
                       <label htmlFor="houseNumberUnit" className={labelClass}>House / Building / Unit No. <span className="text-gray-400 font-normal">(optional)</span></label>
                       <input id="houseNumberUnit" name="houseNumberUnit" type="text" placeholder="e.g. Unit 402 or Bldg 3" className={inputClass} />
@@ -237,7 +237,7 @@ function EmployerRegister() {
                   <input id="companyEmail" name="companyEmail" type="email" placeholder="hr@company.com" className={inputClass} onChange={() => { if (errors.companyEmail) setErrors((prev) => ({ ...prev, companyEmail: undefined })); }} />
                   {errors.companyEmail && <p className="text-danger text-xs mt-1">{errors.companyEmail}</p>}
                 </div>
-                <div className="grid grid-cols-1 gap-4 pt-2">
+                <div className="grid grid-cols-1 gap-3 pt-2">
                   <div>
                     <label htmlFor="password" className={labelClass}>Password</label>
                     <input id="password" name="password" type="password" placeholder="Min. 8 characters" className={inputClass} onChange={() => { if (errors.password) setErrors((prev) => ({ ...prev, password: undefined })); }} />
@@ -252,10 +252,10 @@ function EmployerRegister() {
               </div>
             </section>
 
-            <section className="bg-gray-50 border-2 border-primary rounded-2xl p-6">
+            <section className="bg-gray-50 border border-primary rounded-lg p-5">
               <p className="font-mono text-[11px] tracking-[0.2em] text-primary uppercase mb-4 font-semibold">Step 2 — Authorized Representative</p>
               <div className="space-y-4">
-                <div className="grid grid-cols-1 gap-4">
+                <div className="grid grid-cols-1 gap-3">
                   <div>
                     <label htmlFor="repFirstName" className={labelClass}>First Name</label>
                     <input id="repFirstName" name="repFirstName" type="text" placeholder="Maria" className={inputClass} onChange={() => { if (errors.repFirstName) setErrors((prev) => ({ ...prev, repFirstName: undefined })); }} />
@@ -271,7 +271,7 @@ function EmployerRegister() {
                     {errors.repLastName && <p className="text-danger text-xs mt-1">{errors.repLastName}</p>}
                   </div>
                 </div>
-                <div className="grid grid-cols-1 gap-4">
+                <div className="grid grid-cols-1 gap-3">
                   <div>
                     <label htmlFor="repSuffix" className={labelClass}>Suffix <span className="text-gray-400 font-normal">(optional)</span></label>
                     <input id="repSuffix" name="repSuffix" type="text" placeholder="Jr., Sr., III" className={inputClass} />
@@ -287,7 +287,7 @@ function EmployerRegister() {
                     {errors.repBirthdate && <p className="text-danger text-xs mt-1">{errors.repBirthdate}</p>}
                   </div>
                 </div>
-                <div className="grid grid-cols-1 gap-4">
+                <div className="grid grid-cols-1 gap-3">
                   <div>
                     <label htmlFor="repMobile" className={labelClass}>Representative Mobile</label>
                     <input id="repMobile" name="repMobile" type="tel" placeholder="0917 123 4567" className={inputClass} onChange={() => { if (errors.repMobile) setErrors((prev) => ({ ...prev, repMobile: undefined })); }} />

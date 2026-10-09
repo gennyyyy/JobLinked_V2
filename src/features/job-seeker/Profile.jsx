@@ -112,7 +112,7 @@ function Profile() {
   }, [user]);
 
   if (loading) return <LoadingScreen />;
-  if (error) return <div className="py-16 text-center text-sm text-danger">{error}</div>;
+  if (error) return <div className="py-8 text-center text-sm text-danger">{error}</div>;
 
   const fullName = [form.firstName, form.middleName, form.lastName, form.suffix].filter(Boolean).join(" ").trim() || user?.full_name || "Job Seeker";
   const activeResume = resumes.find((r) => r.is_active) || resumes[0];
@@ -260,17 +260,17 @@ function Profile() {
   ];
 
   return (
-    <div className="w-full animate-fade-in space-y-8">
+    <div className="w-full space-y-6">
       <header>
         <p className="font-mono text-[11px] tracking-[0.2em] text-[#0057B8] uppercase">MUNICIPAL CANDIDATE PROFILE</p>
-        <h1 className="mt-1 font-sans text-2xl md:text-3xl font-bold tracking-tight text-gray-900">My Account & Resume</h1>
+        <h1 className="mt-1 font-sans text-xl md:text-2xl font-bold tracking-tight text-gray-900">My Account & Resume</h1>
         <p className="mt-2 text-sm text-gray-500">Your credentials, contact information, and skill tags seen by Santa Maria employers</p>
       </header>
 
-      <div className="bg-white border-2 border-primary rounded-2xl p-7 md:p-9 shadow-sm">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-gray-200">
-          <div className="flex items-center gap-4">
-            <div className="w-16 h-16 rounded-2xl bg-[#0057B8]/15 border border-[#0057B8]/30 flex items-center justify-center font-bold text-xl text-[#0057B8] shadow-[0_4px_16px_rgba(0,117,162,0.15)]">
+      <div className="bg-white border border-primary rounded-lg p-6 md:p-9">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-6 border-b border-gray-200">
+          <div className="flex items-center gap-3">
+            <div className="w-16 h-16 rounded-lg bg-[#0057B8]/15 border border-[#0057B8]/30 flex items-center justify-center font-bold text-xl text-[#0057B8] shadow-[0_4px_16px_rgba(0,117,162,0.15)]">
               {form.firstName[0] || "J"}{form.lastName[0] || "S"}
             </div>
             <div>
@@ -287,13 +287,13 @@ function Profile() {
         </div>
 
         {saved && (
-          <div className="mt-6 p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-medium animate-fade-in">
+          <div className="mt-6 p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-medium">
             Profile information has been successfully updated.
           </div>
         )}
 
         <div className="mt-6">
-          <div className="flex items-center justify-between gap-4 mb-2">
+          <div className="flex items-center justify-between gap-3 mb-2">
             <p className="font-mono text-[11px] tracking-widest text-gray-500 uppercase">Profile Completion</p>
             <span className="font-mono text-sm font-bold text-primary">{completion}%</span>
           </div>
@@ -317,10 +317,10 @@ function Profile() {
         </div>
 
         {editing ? (
-          <form onSubmit={handleSubmit} className="mt-6 space-y-5 animate-fade-in">
+          <form onSubmit={handleSubmit} className="mt-6 space-y-5">
             {activeTab === "info" && (
               <>
-                <div className="grid grid-cols-1 lg:grid-cols-1 gap-4">
+                <div className="grid grid-cols-1 lg:grid-cols-1 gap-3">
                   <div>
                     <label className="block font-mono text-[11px] tracking-wider text-gray-500 uppercase mb-1.5">First Name</label>
                     <input value={form.firstName} onChange={(e) => handleChange("firstName", e.target.value)} className="w-full min-h-[44px] px-4 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all" />
@@ -346,7 +346,7 @@ function Profile() {
                     <input type="date" value={form.birthdate} onChange={(e) => handleChange("birthdate", e.target.value)} className="w-full min-h-[44px] px-4 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all" />
                   </div>
                 </div>
-                <div className="grid grid-cols-1 gap-4">
+                <div className="grid grid-cols-1 gap-3">
                   {[["houseNumberUnit", "House / Building / Unit No.", "e.g. Unit 402"], ["streetAddress", "Street Address & Lot / Block", "Street address"], ["subdivisionBuilding", "Subdivision / Village / Building Name", "Subdivision name"], ["barangayDistrict", "Barangay / District", "Barangay"], ["cityMunicipality", "City / Municipality", "e.g. Santa Maria"], ["provinceState", "Province / State", "e.g. Bulacan"], ["postalCode", "Postal / ZIP Code", "e.g. 3022"], ["country", "Country", "Philippines"]].map(([field, label, placeholder]) => (
                     <div key={field}>
                       <label className="block font-mono text-[11px] tracking-wider text-gray-500 uppercase mb-1.5">{label}</label>
@@ -354,7 +354,7 @@ function Profile() {
                     </div>
                   ))}
                 </div>
-                <div className="grid grid-cols-1 gap-4">
+                <div className="grid grid-cols-1 gap-3">
                   <div>
                     <label className="block font-mono text-[11px] tracking-wider text-gray-500 uppercase mb-1.5">Employment Status</label>
                     <select value={form.employmentStatus} onChange={(e) => handleChange("employmentStatus", e.target.value)} className="w-full min-h-[44px] px-4 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all">
@@ -479,7 +479,7 @@ function Profile() {
             )}
 
             <div className="flex items-center justify-end gap-3 pt-3">
-              <button type="submit" disabled={saving} className="min-h-[42px] px-6 rounded-xl bg-primary text-white text-xs font-medium hover:bg-primary-hover transition-colors shadow-sm disabled:opacity-60">
+              <button type="submit" disabled={saving} className="min-h-[42px] px-6 rounded-xl bg-primary text-white text-xs font-medium hover:bg-primary-hover transition-colors disabled:opacity-60">
                 {saving ? "Saving…" : "Save Profile"}
               </button>
               <button type="button" onClick={() => setEditing(false)} className="min-h-[42px] px-5 rounded-xl border border-gray-300 text-xs font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 transition-colors">

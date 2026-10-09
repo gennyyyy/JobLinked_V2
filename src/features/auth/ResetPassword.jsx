@@ -35,7 +35,7 @@ function ResetPassword() {
 
   return (
     <div className="min-h-screen bg-gray-50 text-gray-900 flex flex-col font-sans">
-      <header className="sticky top-0 z-20 bg-dark-blue border-b border-white/10 shadow-sm">
+      <header className="sticky top-0 z-20 bg-dark-blue border-b border-white/10">
         <div className="w-full px-4 h-[64px] flex items-center justify-between">
           <div className="bg-white rounded-lg px-3.5 py-1.5 flex items-center shadow-xs">
             <Link to="/"><img src={Logo} alt="JobLinked" className="h-10" /></Link>
@@ -45,7 +45,7 @@ function ResetPassword() {
       </header>
 
       <main className="flex-1 flex items-center justify-center p-[3%]">
-        <div className="w-full max-w-md bg-white border-2 border-primary rounded-2xl p-7 md:p-9 shadow-xl animate-fade-in">
+        <div className="w-full max-w-md bg-white border border-primary rounded-lg p-6 md:p-9 shadow-xl">
           <div className="flex items-center justify-between mb-6">
             <Link to="/portals" className="text-xs text-gray-400 hover:text-primary transition-colors">
               ← Portals

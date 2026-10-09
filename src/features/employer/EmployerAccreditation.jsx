@@ -15,6 +15,7 @@ function EmployerAccreditation() {
   const [files, setFiles] = useState({});
   const [uploading, setUploading] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [tab, setTab] = useState("documents");
 
   useEffect(() => {
     if (!user) return;
@@ -55,11 +56,10 @@ function EmployerAccreditation() {
   }
 
   if (loading) return <LoadingScreen />;
-  if (error) return <div className="py-16 text-center text-sm text-danger">{error}</div>;
+  if (error) return <div className="py-8 text-center text-sm text-danger">{error}</div>;
 
   const latest = accreditations[0] || null;
   const status = latest?.status || "none";
-
   const uploadedCount = DOC_TYPES.filter((doc) => documents.some((d) => d.doc_type === doc && d.status !== "missing")).length;
 
   function handleFileChange(docType, e) {
@@ -110,14 +110,14 @@ function EmployerAccreditation() {
   // No application submitted yet — show a prompt to start the process explicitly
   if (status === "none") {
     return (
-      <div className="w-full animate-fade-in space-y-8">
+      <div className="w-full space-y-6">
         <header>
           <p className="font-mono text-[11px] tracking-[0.2em] text-[#0057B8] uppercase">EMPLOYER ACCREDITATION</p>
-          <h1 className="mt-1 font-sans text-2xl md:text-3xl font-bold tracking-tight text-gray-900">Accreditation Application</h1>
+          <h1 className="mt-1 font-sans text-xl md:text-2xl font-bold tracking-tight text-gray-900">Accreditation Application</h1>
           <p className="mt-2 text-sm text-gray-500">Submit required documents for PESO verification and accreditation</p>
         </header>
 
-        <div className="bg-white border-2 border-primary rounded-2xl p-8 md:p-10 shadow-sm text-center space-y-4">
+        <div className="bg-white border border-primary rounded-lg p-6 md:p-10 text-center space-y-4">
           <div className="w-14 h-14 mx-auto rounded-full bg-primary/10 flex items-center justify-center">
             <span className="text-primary text-2xl">📋</span>
           </div>
@@ -139,10 +139,10 @@ function EmployerAccreditation() {
   }
 
   return (
-    <div className="w-full animate-fade-in space-y-8">
+    <div className="w-full space-y-6">
       <header>
         <p className="font-mono text-[11px] tracking-[0.2em] text-[#0057B8] uppercase">EMPLOYER ACCREDITATION</p>
-        <h1 className="mt-1 font-sans text-2xl md:text-3xl font-bold tracking-tight text-gray-900">Accreditation Application</h1>
+        <h1 className="mt-1 font-sans text-xl md:text-2xl font-bold tracking-tight text-gray-900">Accreditation Application</h1>
         <p className="mt-2 text-sm text-gray-500">Submit required documents for PESO verification and accreditation</p>
       </header>
 
@@ -152,7 +152,48 @@ function EmployerAccreditation() {
         </div>
       )}
 
-      <div className="bg-white border-2 border-primary rounded-2xl p-7 md:p-9 shadow-sm">
+      <div className="bg-white border border-primary rounded-lg p-6 md:p-9">
+        <div className="flex items-center gap-1 p-1 bg-gray-50 border border-gray-200 rounded-xl w-fit mb-6">
+          {[["documents", "Required Documents"], ["history", `History (${accreditations.length})`]].map(([key, label]) => (
+            <button
+              key={key}
+              onClick={() => setTab(key)}
+              className={`px-4 py-2 rounded-lg text-xs font-medium cursor-pointer transition-all ${tab === key ? "bg-primary text-white shadow-xs" : "text-gray-500 hover:text-gray-900"}`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+
+        {tab === "history" ? (
+          <div className="space-y-3">
+            {accreditations.length === 0 ? (
+              <p className="text-xs text-gray-400">No accreditation history yet.</p>
+            ) : (
+              accreditations.map((a) => (
+                <div key={a.id} className="flex items-start justify-between gap-3 p-4 rounded-xl bg-gray-50 border border-gray-200">
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-gray-900 capitalize">{a.status}</p>
+                    {a.remarks && <p className="text-xs text-gray-500 mt-1">PESO remarks: {a.remarks}</p>}
+                    <p className="font-mono text-[10px] text-gray-400 mt-1">
+                      Submitted {new Date(a.submitted_at).toLocaleDateString("en-PH", { dateStyle: "medium" })}
+                      {a.decided_at ? ` · Decided ${new Date(a.decided_at).toLocaleDateString("en-PH", { dateStyle: "medium" })}` : ""}
+                    </p>
+                  </div>
+                  <span className={`shrink-0 font-mono text-[10px] tracking-wider px-2.5 py-0.5 rounded-full uppercase border ${
+                    a.status === "approved" ? "bg-emerald-50 border-emerald-200 text-emerald-700"
+                    : a.status === "pending" ? "bg-amber-50 border-amber-200 text-amber-700"
+                    : a.status === "rejected" || a.status === "revoked" ? "bg-danger/10 border-danger/20 text-danger"
+                    : "bg-gray-100 border-gray-200 text-gray-500"
+                  }`}>
+                    {a.status}
+                  </span>
+                </div>
+              ))
+            )}
+          </div>
+        ) : (
+        <>
         <div className="flex items-center justify-between pb-6 border-b border-gray-200">
           <div>
             <h2 className="text-lg font-semibold text-gray-900">Required Documents</h2>
@@ -200,6 +241,8 @@ function EmployerAccreditation() {
             );
           })}
         </div>
+        </>
+        )}
       </div>
     </div>
   );

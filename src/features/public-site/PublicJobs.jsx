@@ -37,7 +37,7 @@ function JobBrowser({ initialKeyword, initialLocation }) {
 
   return (
     <>
-      <form onSubmit={(e) => e.preventDefault()} className="bg-white border-2 border-primary rounded-2xl p-3 flex flex-col sm:flex-row gap-3 shadow-sm mb-8">
+      <form onSubmit={(e) => e.preventDefault()} className="bg-white border border-primary rounded-lg p-3 flex flex-col sm:flex-row gap-3 mb-8">
         <input
           type="text"
           value={search}
@@ -68,14 +68,14 @@ function JobBrowser({ initialKeyword, initialLocation }) {
       {loading ? (
         <LoadingScreen />
       ) : error ? (
-        <div className="py-16 text-center text-sm text-danger">{error}</div>
+        <div className="py-8 text-center text-sm text-danger">{error}</div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-1 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-1 gap-3">
           {jobs.map((job) => (
             <Link
               key={job.id}
               to={`/jobs/${job.id}`}
-              className="group bg-white border-2 border-primary rounded-2xl p-6 hover:border-primary/40 hover:-translate-y-0.5 transition-all flex flex-col justify-between shadow-sm"
+              className="group bg-white border border-primary rounded-lg p-5 hover:border-primary/40 transition-all flex flex-col justify-between"
             >
               <div>
                 <div className="flex items-start justify-between gap-3">
@@ -98,14 +98,14 @@ function JobBrowser({ initialKeyword, initialLocation }) {
       )}
 
       {!loading && !error && jobs.length === 0 && (
-        <div className="py-16 text-center bg-gray-50 border-2 border-primary rounded-2xl">
+        <div className="py-8 text-center bg-gray-50 border border-primary rounded-lg">
           <p className="text-sm text-gray-500">No jobs match your search criteria.</p>
           <button onClick={() => { setSearch(""); setLocation(""); }} className="mt-4 text-xs font-mono text-[#0057B8] hover:underline">Clear all filters</button>
         </div>
       )}
 
       {!loading && !error && totalPages > 1 && (
-        <div className="flex items-center justify-center gap-4 mt-8">
+        <div className="flex items-center justify-center gap-3 mt-8">
           <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1} className="px-4 py-2 text-xs font-medium rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-100 disabled:opacity-40 transition-colors">← Prev</button>
           <span className="text-xs text-gray-500">Page {page} of {totalPages}</span>
           <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages} className="px-4 py-2 text-xs font-medium rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-100 disabled:opacity-40 transition-colors">Next →</button>
@@ -132,10 +132,10 @@ function PublicJobs() {
         </div>
       </header>
 
-      <main className="flex-1 w-full p-[3%] animate-fade-in">
+      <main className="flex-1 w-full p-[3%]">
         <div className="mb-8">
           <p className="font-mono text-[11px] tracking-[0.2em] text-[#0057B8] uppercase">PUBLIC EMPLOYMENT BULLETINS</p>
-          <h1 className="mt-2 text-3xl md:text-4xl font-bold tracking-tight text-dark-blue">Find Openings in Santa Maria</h1>
+          <h1 className="mt-2 text-2xl md:text-3xl font-bold tracking-tight text-dark-blue">Find Openings in Santa Maria</h1>
           <p className="mt-3 text-sm md:text-base text-gray-500 max-w-2xl">Explore verified job postings from accredited Santa Maria employers. Apply directly through the municipal portal.</p>
         </div>
 

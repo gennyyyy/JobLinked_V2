@@ -1,6 +1,101 @@
 import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { listUsers, updateUser, listAllEmployees, listReferrals } from "../../shared/services/admin";
+import { listSeekerEducation, listSeekerExperience } from "../../shared/services/seekers";
 import LoadingScreen from "../../shared/components/LoadingScreen";
+
+// ─── Seeker detail modal ─────────────────────────────────────────────────
+// Verified before adding: status/skills/preferences already ride on the
+// seeker row (skills[], employment_status, preferred_position/location),
+// so the profile tab renders them with no fetch. Only education/experience
+// need reads (admin-unrestricted per Addendum B), with empty-on-error
+// fallback. Tab/y styling reuses the page tab-switcher pattern.
+function SeekerModal({ seeker, onClose }) {
+  const [tab, setTab] = useState("profile");
+  const [education, setEducation] = useState([]);
+  const [experience, setExperience] = useState([]);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    Promise.all([
+      listSeekerEducation(seeker.id).catch(() => []),
+      listSeekerExperience(seeker.id).catch(() => []),
+    ])
+      .then(([edu, exp]) => { setEducation(edu || []); setExperience(exp || []); })
+      .catch((err) => setError(err.message || "Failed to load credentials"));
+  }, [seeker.id]);
+
+  return createPortal(
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
+      <div className="bg-white w-full max-w-2xl max-h-[90vh] overflow-y-auto border border-primary rounded-lg shadow-xl p-5 md:p-6">
+        <div className="flex items-start justify-between gap-3 pb-4 border-b border-gray-200">
+          <div>
+            <h2 className="text-xl font-bold text-gray-900">{seeker.full_name}</h2>
+            <p className="mt-1 font-mono text-xs text-gray-500 break-all">{seeker.email}</p>
+          </div>
+          <button onClick={onClose} aria-label="Close" className="p-1 rounded-lg text-gray-400 hover:text-gray-900 hover:bg-gray-100 transition-colors">✕</button>
+        </div>
+        <div className="flex gap-1 p-1 bg-white border border-gray-200 rounded-xl w-fit shadow-xs mt-6 mb-4">
+          {[
+            { key: "profile", label: "Profile" },
+            { key: "education", label: `Education (${education.length})` },
+            { key: "experience", label: `Experience (${experience.length})` },
+          ].map((t) => (
+            <button
+              key={t.key}
+              onClick={() => setTab(t.key)}
+              className={`px-5 py-2 rounded-lg text-xs font-medium cursor-pointer transition-all ${
+                tab === t.key ? "bg-primary text-white shadow-xs" : "text-gray-500 hover:text-gray-900 hover:bg-gray-50"
+              }`}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+        {error && <p className="mb-3 text-xs text-danger">{error}</p>}
+        {tab === "profile" && (
+          <dl className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm p-4 rounded-xl bg-gray-50 border border-gray-200">
+            <div><dt className="font-mono text-[10px] tracking-widest uppercase text-gray-400">Status</dt><dd className="mt-1 text-xs text-gray-700">{seeker.status || "—"}</dd></div>
+            <div><dt className="font-mono text-[10px] tracking-widest uppercase text-gray-400">Barangay</dt><dd className="mt-1 text-xs text-gray-700">{seeker.barangay_district || "—"}</dd></div>
+            <div><dt className="font-mono text-[10px] tracking-widest uppercase text-gray-400">Employment status</dt><dd className="mt-1 text-xs text-gray-700">{seeker.employment_status || "—"}</dd></div>
+            <div><dt className="font-mono text-[10px] tracking-widest uppercase text-gray-400">Registered</dt><dd className="mt-1 text-xs text-gray-700">{seeker.created_at ? new Date(seeker.created_at).toLocaleDateString() : "—"}</dd></div>
+            <div><dt className="font-mono text-[10px] tracking-widest uppercase text-gray-400">Skills</dt><dd className="mt-1 text-xs text-gray-700">{(seeker.skills || []).join(", ") || "—"}</dd></div>
+            <div><dt className="font-mono text-[10px] tracking-widest uppercase text-gray-400">Preferred position</dt><dd className="mt-1 text-xs text-gray-700">{seeker.preferred_position || "—"}</dd></div>
+            <div><dt className="font-mono text-[10px] tracking-widest uppercase text-gray-400">Preferred location</dt><dd className="mt-1 text-xs text-gray-700">{seeker.preferred_location || "—"}</dd></div>
+          </dl>
+        )}
+        {tab === "education" && (
+          <div className="space-y-2">
+            {education.length === 0 ? (
+              <p className="text-xs text-gray-400">No education records.</p>
+            ) : education.map((e) => (
+              <div key={e.id} className="p-3 rounded-xl bg-gray-50 border border-gray-200">
+                <p className="text-xs font-medium text-gray-900">{e.level}{e.field ? ` · ${e.field}` : ""}</p>
+                <p className="text-[11px] text-gray-500">{e.school}{e.end_year ? ` · ${e.end_year}` : ""}</p>
+              </div>
+            ))}
+          </div>
+        )}
+        {tab === "experience" && (
+          <div className="space-y-2">
+            {experience.length === 0 ? (
+              <p className="text-xs text-gray-400">No work experience records.</p>
+            ) : experience.map((e) => (
+              <div key={e.id} className="p-3 rounded-xl bg-gray-50 border border-gray-200">
+                <p className="text-xs font-medium text-gray-900">{e.position}</p>
+                <p className="text-[11px] text-gray-500">{e.company}</p>
+              </div>
+            ))}
+          </div>
+        )}
+        <div className="mt-6 pt-4 border-t border-gray-200 flex justify-end">
+          <button onClick={onClose} className="px-5 py-2 text-xs font-medium rounded-xl border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors">Close</button>
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
+}
 
 // ─── Job Seekers Registry ────────────────────────────────────────────────────
 
@@ -10,6 +105,7 @@ function JobSeekersSection() {
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [viewing, setViewing] = useState(null);
 
   useEffect(() => {
     listUsers({ role: "job-seeker" })
@@ -35,7 +131,7 @@ function JobSeekersSection() {
 
   return (
     <section className="space-y-4">
-      <div className="bg-white border-2 border-primary rounded-2xl shadow-xs">
+      <div className="bg-white border border-primary rounded-lg shadow-xs">
         {/* Filter bar */}
         <div className="px-5 py-4 flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-3 border-b border-gray-100">
           <div className="flex-1 min-w-[200px]">
@@ -83,7 +179,7 @@ function JobSeekersSection() {
             </thead>
             <tbody>
               {filtered.length === 0 ? (
-                <tr><td colSpan={5} className="py-12 text-center text-sm text-gray-400">No job seekers found.</td></tr>
+                <tr><td colSpan={5} className="py-8 text-center text-sm text-gray-400">No job seekers found.</td></tr>
               ) : filtered.map((emp) => (
                 <tr key={emp.id} className="border-t border-gray-100 hover:bg-gray-50/60 transition-colors">
                   <td className="py-3 pl-5 pr-3 text-gray-900 font-medium text-xs">{emp.full_name}</td>
@@ -100,7 +196,13 @@ function JobSeekersSection() {
                       {emp.status}
                     </span>
                   </td>
-                  <td className="py-3 px-3 pr-5 text-right">
+                  <td className="py-3 px-3 pr-5 text-right space-x-3">
+                    <button
+                      onClick={() => setViewing(emp)}
+                      className="text-xs font-mono text-primary hover:text-gray-900 cursor-pointer transition-colors"
+                    >
+                      View
+                    </button>
                     <button
                       onClick={() => toggleStatus(emp)}
                       className={`text-xs font-mono cursor-pointer transition-colors ${
@@ -116,6 +218,7 @@ function JobSeekersSection() {
           </table>
         </div>
       </div>
+      {viewing && <SeekerModal seeker={viewing} onClose={() => setViewing(null)} />}
     </section>
   );
 }
@@ -133,7 +236,7 @@ function CompanyEmployeeTable({ companyName, employees, search }) {
   const placementRate = filtered.length ? Math.round((active / filtered.length) * 100) : 0;
 
   return (
-    <div className="bg-white border-2 border-primary rounded-2xl shadow-sm overflow-hidden">
+    <div className="bg-white border border-primary rounded-lg overflow-hidden">
       {/* Company header */}
       <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 bg-gray-50/60">
         <div className="flex items-center gap-3">
@@ -245,19 +348,19 @@ function EmployeesByCompanySection() {
     <section className="space-y-4">
       {/* Summary stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <div className="p-4 rounded-2xl border bg-white border-gray-200 shadow-sm">
+        <div className="p-4 rounded-lg border bg-white border-gray-200">
           <p className="text-2xl font-bold text-gray-900">{allEmployees.length}</p>
           <p className="text-xs font-mono uppercase tracking-wider text-gray-500 mt-1">Total Placed</p>
         </div>
-        <div className="p-4 rounded-2xl border bg-emerald-50/50 border-emerald-300 shadow-sm">
+        <div className="p-4 rounded-lg border bg-emerald-50/50 border-emerald-300">
           <p className="text-2xl font-bold text-emerald-700">{totalActive}</p>
           <p className="text-xs font-mono uppercase tracking-wider text-gray-500 mt-1">Active</p>
         </div>
-        <div className="p-4 rounded-2xl border bg-white border-gray-200 shadow-sm">
+        <div className="p-4 rounded-lg border bg-white border-gray-200">
           <p className="text-2xl font-bold text-gray-500">{totalTerminated}</p>
           <p className="text-xs font-mono uppercase tracking-wider text-gray-500 mt-1">Terminated</p>
         </div>
-        <div className="p-4 rounded-2xl border bg-white border-gray-200 shadow-sm">
+        <div className="p-4 rounded-lg border bg-white border-gray-200">
           <p className="text-2xl font-bold text-primary">{companies.length}</p>
           <p className="text-xs font-mono uppercase tracking-wider text-gray-500 mt-1">Companies</p>
         </div>
@@ -285,7 +388,7 @@ function EmployeesByCompanySection() {
 
       {/* Per-company tables */}
       {companies.length === 0 ? (
-        <div className="py-16 text-center bg-white border-2 border-primary rounded-2xl shadow-sm text-sm text-gray-400">
+        <div className="py-8 text-center bg-white border border-primary rounded-lg text-sm text-gray-400">
           No placed employees found.
         </div>
       ) : (
@@ -328,7 +431,7 @@ function ReferralsSection() {
   );
 
   return (
-    <section className="bg-white border-2 border-primary rounded-2xl shadow-xs">
+    <section className="bg-white border border-primary rounded-lg shadow-xs">
       <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
         <p className="text-sm font-semibold text-dark-blue">Referral History</p>
         <span className="self-center text-xs text-gray-400 font-medium">{referrals.length} records</span>
@@ -345,7 +448,7 @@ function ReferralsSection() {
           </thead>
           <tbody>
             {referrals.length === 0 ? (
-              <tr><td colSpan={4} className="py-12 text-center text-sm text-gray-400">No referred applications yet.</td></tr>
+              <tr><td colSpan={4} className="py-8 text-center text-sm text-gray-400">No referred applications yet.</td></tr>
             ) : referrals.map((r) => (
               <tr key={r.id} className="border-t border-gray-100 hover:bg-gray-50/60 transition-colors">
                 <td className="py-3 pl-5 pr-3 text-gray-900 font-medium text-xs">{r.seeker?.full_name}</td>
@@ -367,13 +470,13 @@ function Employees() {
   const [tab, setTab] = useState("employees");
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="space-y-6">
       <header>
         <div className="flex items-center gap-2.5">
           <div className="w-1 h-5 bg-primary rounded-full" />
           <p className="font-mono text-[11px] tracking-[0.2em] text-primary uppercase font-medium">MUNICIPAL REGISTRY</p>
         </div>
-        <h1 className="mt-1 text-2xl md:text-3xl font-bold tracking-tight text-dark-blue">People Registry</h1>
+        <h1 className="mt-1 text-xl md:text-2xl font-bold tracking-tight text-dark-blue">People Registry</h1>
         <p className="mt-2 text-sm text-gray-500">Registered job seekers and placed employees across all accredited companies</p>
       </header>
 

@@ -72,11 +72,11 @@ export default function NotificationsPage({ title = "Notifications", subtitle = 
   const rest = notifications.filter((n) => !isSystem(n));
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div className="space-y-6">
+      <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <p className="font-mono text-[11px] tracking-[0.2em] text-primary uppercase font-medium">INBOX</p>
-          <h1 className="mt-1 text-2xl md:text-3xl font-bold tracking-tight text-gray-900">{title}</h1>
+          <h1 className="mt-1 text-xl md:text-2xl font-bold tracking-tight text-gray-900">{title}</h1>
           <p className="mt-1 text-sm text-gray-500">{subtitle}</p>
         </div>
         <div className="flex items-center gap-2">
@@ -100,18 +100,18 @@ export default function NotificationsPage({ title = "Notifications", subtitle = 
       {error && <div className="p-4 rounded-xl bg-danger/10 border border-danger/20 text-danger text-sm">{error}</div>}
 
       {system.length > 0 && (
-        <section className="bg-white border-2 border-primary rounded-2xl shadow-xs overflow-hidden">
+        <section className="bg-white border border-primary rounded-lg shadow-xs overflow-hidden">
           <p className="px-4 py-3 border-b border-gray-100 font-mono text-[10px] tracking-widest text-primary uppercase">System announcements ({system.length})</p>
           {system.map((n) => <NotificationItem key={n.id} n={n} onMarkRead={handleMarkRead} />)}
         </section>
       )}
 
-      <section className="bg-white border-2 border-primary rounded-2xl shadow-xs overflow-hidden">
+      <section className="bg-white border border-primary rounded-lg shadow-xs overflow-hidden">
         {system.length > 0 && (
           <p className="px-4 py-3 border-b border-gray-100 font-mono text-[10px] tracking-widest text-gray-400 uppercase">All other updates ({rest.length})</p>
         )}
         {notifications.length === 0 ? (
-          <p className="py-12 text-center text-sm text-gray-400">No notifications yet.</p>
+          <p className="py-8 text-center text-sm text-gray-400">No notifications yet.</p>
         ) : (
           (system.length > 0 ? rest : notifications).map((n) => <NotificationItem key={n.id} n={n} onMarkRead={handleMarkRead} />)
         )}

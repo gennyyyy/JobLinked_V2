@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
-import { listAllAccreditations, listCompanies, updateUser } from "../../shared/services/admin";
+import { listAllAccreditations, listCompanies, updateUser, requestDocs } from "../../shared/services/admin";
 import { signedUrl, updateAccreditation, updateDocumentStatus, listCompanyDocuments, latestAccByCompany } from "../../shared/services/documents";
 import LoadingScreen from "../../shared/components/LoadingScreen";
 import ConfirmationModal from "../../shared/components/ConfirmationModal";
@@ -46,9 +46,9 @@ function DetailModal({ accreditation, onClose }) {
   const company = accreditation.employers;
 
   return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 animate-fade-in p-4">
-      <div className="bg-white w-full max-w-2xl max-h-[90vh] overflow-y-auto border-2 border-primary rounded-2xl shadow-xl p-6 md:p-8">
-        <div className="flex items-start justify-between gap-4 pb-4 border-b border-gray-200">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
+      <div className="bg-white w-full max-w-2xl max-h-[90vh] overflow-y-auto border border-primary rounded-lg shadow-xl p-5 md:p-6">
+        <div className="flex items-start justify-between gap-3 pb-4 border-b border-gray-200">
           <div>
             <span className="font-mono text-[10px] tracking-widest text-[#0057B8] uppercase">APPLICATION DOCUMENTS</span>
             <h2 className="mt-1 text-xl font-bold text-gray-900">{company?.company_name}</h2>
@@ -61,7 +61,7 @@ function DetailModal({ accreditation, onClose }) {
 
         <section className="mt-6">
           <h3 className="font-mono text-[11px] tracking-[0.2em] text-[#0057B8] uppercase mb-4">Company Information</h3>
-          <div className="grid grid-cols-1 gap-4 p-4 rounded-xl bg-gray-50 border border-gray-200">
+          <div className="grid grid-cols-1 gap-3 p-4 rounded-xl bg-gray-50 border border-gray-200">
             <InfoRow label="Company Name" value={company?.company_name} />
             <InfoRow label="Barangay" value={company?.barangay_district} />
             <InfoRow label="Business Address" value={formatFullAddress(company)} />
@@ -122,6 +122,9 @@ function Accreditation() {
   const [rejectingId, setRejectingId] = useState(null);
   const [rejectNote, setRejectNote] = useState("");
   const [rejectError, setRejectError] = useState(false);
+  const [requestingId, setRequestingId] = useState(null);
+  const [requestNote, setRequestNote] = useState("");
+  const [requestError, setRequestError] = useState("");
   const [viewingId, setViewingId] = useState(null);
   const [revoking, setRevoking] = useState(null);
 
@@ -136,7 +139,7 @@ function Accreditation() {
   }, []);
 
   if (loading) return <LoadingScreen />;
-  if (error) return <div className="py-16 text-center text-sm text-danger">{error}</div>;
+  if (error) return <div className="py-8 text-center text-sm text-danger">{error}</div>;
 
   // accs is ordered by submitted_at desc, so the first row per company is its latest
   const pending = accs.filter((a) => a.status === "pending");
@@ -165,6 +168,25 @@ function Accreditation() {
     setRejectError(false);
   }
 
+  // Request-documents resubmission reuses the reject-modal remarks pattern:
+  // PATCH accreditations/:id { status: 'resubmission', remarks }. Shape
+  // matches the admin accreditation contract ({ status, remarks? }); if the
+  // backend rejects the status, the row stays pending and the error shows.
+  async function confirmRequestDocs(acc) {
+    const note = requestNote.trim();
+    if (!note) { setRequestError("Please list the documents required."); return; }
+    try {
+      await requestDocs(acc.id, note);
+      setAccs((prev) => prev.map((a) => (a.id === acc.id ? { ...a, status: "resubmission", remarks: note } : a)));
+      setCompanies((prev) => prev.map((c) => (c.id === acc.company_id ? { ...c, accreditation_status: "resubmission" } : c)));
+      setRequestingId(null);
+      setRequestNote("");
+      setRequestError("");
+    } catch (err) {
+      setRequestError(err.message || "Request failed — resubmission status rejected by the server.");
+    }
+  }
+
   async function toggleCompanyStatus(company) {
     const newStatus = company.status === "suspended" ? "active" : "suspended";
     await updateUser(company.id, { status: newStatus });
@@ -191,17 +213,17 @@ function Accreditation() {
   const viewingAcc = viewingId ? pending.find((a) => a.id === viewingId) : null;
 
   return (
-    <div className="space-y-8 animate-fade-in bg-gray-50">
+    <div className="space-y-6 bg-gray-50">
       <header>
         <div className="flex items-center gap-3">
           <div className="w-1 h-6 bg-primary rounded-full" />
           <p className="font-mono text-[11px] tracking-[0.2em] text-primary uppercase">EMPLOYER DIRECTORY</p>
         </div>
-        <h1 className="mt-1 font-sans text-2xl md:text-3xl font-bold tracking-tight text-dark-blue">Accreditation Management</h1>
+        <h1 className="mt-1 font-sans text-xl md:text-2xl font-bold tracking-tight text-dark-blue">Accreditation Management</h1>
         <p className="mt-2 text-sm text-gray-500">Verify municipal employer applications and manage compliance statuses</p>
       </header>
 
-      <section className="bg-white border-2 border-primary rounded-2xl p-6 shadow-sm">
+      <section className="bg-white border border-primary rounded-lg p-5">
         <div className="flex items-center gap-3 mb-6 border-l-4 border-primary pl-4">
           <div className="flex items-center gap-2.5">
             <h2 className="text-lg font-semibold text-dark-blue">Pending Accreditation</h2>
@@ -216,7 +238,7 @@ function Accreditation() {
         ) : (
           <div className="divide-y divide-gray-100">
             {pending.map((acc) => (
-              <div key={acc.id} className="py-5 first:pt-0 last:pb-0 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+              <div key={acc.id} className="py-5 first:pt-0 last:pb-0 flex flex-col lg:flex-row lg:items-center justify-between gap-3">
                 <div className="min-w-0">
                   <p className="text-base font-semibold text-gray-900">{acc.employers?.company_name}</p>
                   <p className="mt-1 text-xs text-gray-500">
@@ -228,9 +250,28 @@ function Accreditation() {
                 </div>
 
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 shrink-0">
-                  {rejectingId === acc.id ? (
+                  {requestingId === acc.id ? (
                     <div className="flex flex-col gap-2 w-full sm:w-72">
+                      <label htmlFor={`request-docs-${acc.id}`} className="font-mono text-[10px] tracking-wider text-gray-500 uppercase">Documents required</label>
                       <textarea
+                        id={`request-docs-${acc.id}`}
+                        value={requestNote}
+                        onChange={(e) => { setRequestNote(e.target.value); setRequestError(""); }}
+                        rows={2}
+                        placeholder="List the missing or deficient documents…"
+                        className="w-full px-3 py-2 text-xs bg-gray-50 border border-amber-300 rounded-xl text-gray-900 placeholder:text-gray-400 focus:outline-none"
+                      />
+                      {requestError && <p className="text-[11px] text-danger">{requestError}</p>}
+                      <div className="flex gap-2">
+                        <button onClick={() => confirmRequestDocs(acc)} className="flex-1 px-3 py-1.5 text-xs font-medium rounded-lg bg-amber-600 text-white hover:bg-amber-700 transition-colors">Confirm Request</button>
+                        <button onClick={() => { setRequestingId(null); setRequestError(""); }} className="px-3 py-1.5 text-xs rounded-lg text-gray-500 hover:text-gray-900 transition-colors">Cancel</button>
+                      </div>
+                    </div>
+                  ) : rejectingId === acc.id ? (
+                    <div className="flex flex-col gap-2 w-full sm:w-72">
+                      <label htmlFor={`reject-note-${acc.id}`} className="font-mono text-[10px] tracking-wider text-gray-500 uppercase">Rejection reason</label>
+                      <textarea
+                        id={`reject-note-${acc.id}`}
                         value={rejectNote}
                         onChange={(e) => { setRejectNote(e.target.value); setRejectError(false); }}
                         rows={2}
@@ -247,6 +288,7 @@ function Accreditation() {
                     <div className="flex items-center gap-2">
                       <button onClick={() => setViewingId(acc.id)} className="px-3.5 py-2 text-xs font-medium rounded-xl border border-gray-200 text-gray-600 hover:text-gray-900 hover:bg-gray-50 transition-colors">View Documents</button>
                       <button onClick={() => handleApprove(acc)} className="px-4 py-2 text-xs font-medium rounded-xl bg-primary text-white hover:bg-primary-hover transition-colors shadow-[0_2px_8px_rgba(0,87,184,0.25)]">Accredit</button>
+                      <button onClick={() => { setRequestingId(acc.id); setRequestNote(""); setRequestError(""); }} className="px-3.5 py-2 text-xs font-medium rounded-xl border border-amber-300 text-amber-700 hover:bg-amber-50 transition-colors">Request Documents</button>
                       <button onClick={() => startReject(acc)} className="px-3.5 py-2 text-xs font-medium rounded-xl border border-danger/30 text-danger hover:bg-danger/10 transition-colors">Reject</button>
                     </div>
                   )}
@@ -257,7 +299,7 @@ function Accreditation() {
         )}
       </section>
 
-      <section className="bg-white border-2 border-primary rounded-2xl p-6 shadow-sm">
+      <section className="bg-white border border-primary rounded-lg p-5">
         <div className="flex items-center gap-3 mb-6 border-l-4 border-primary pl-4">
           <h2 className="text-lg font-semibold text-dark-blue">Registered Employers ({companies.length})</h2>
         </div>

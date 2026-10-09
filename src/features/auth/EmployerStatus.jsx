@@ -50,22 +50,22 @@ function EmployerStatus() {
     </div>
   );
 
-  if (!user) return <div className="py-16 text-center text-sm text-gray-500">Please sign in to view your accreditation status.</div>;
+  if (!user) return <div className="py-8 text-center text-sm text-gray-500">Please sign in to view your accreditation status.</div>;
   if (loading) return <LoadingScreen />;
-  if (error) return <div className="py-16 text-center text-sm text-danger">{error}</div>;
+  if (error) return <div className="py-8 text-center text-sm text-danger">{error}</div>;
 
   // No employers row yet — user registered but hasn't completed their profile
   if (!employer || !employer.accreditation_status) {
     return (
       <div className="min-h-screen bg-gray-50 text-gray-900 flex flex-col font-sans">
-        <header className="sticky top-0 z-20 bg-dark-blue border-b border-white/10 shadow-sm">
+        <header className="sticky top-0 z-20 bg-dark-blue border-b border-white/10">
           <div className="w-full px-4 h-[64px] flex items-center justify-between">
             {headerLogo}
             <span className="hidden sm:block font-mono text-[11px] text-gray-400">PESO · SANTA MARIA</span>
           </div>
         </header>
         <main className="flex-1 flex items-center justify-center p-[3%]">
-          <div className="max-w-md w-full text-center bg-white border-2 border-primary rounded-2xl p-8 shadow-xl animate-fade-in">
+          <div className="max-w-md w-full text-center bg-white border border-primary rounded-lg p-6 shadow-xl">
             <h1 className="text-xl font-bold text-dark-blue">No Application Found</h1>
             <p className="mt-3 text-sm text-gray-500">You haven&apos;t submitted an employer accreditation application yet.</p>
             <Link to="/register/employer" className="inline-flex mt-6 min-h-[44px] items-center justify-center px-6 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-primary-hover active:scale-[0.98] transition-all shadow-md">
@@ -87,7 +87,7 @@ function EmployerStatus() {
 
   return (
     <div className="min-h-screen bg-gray-50 text-gray-900 flex flex-col font-sans">
-      <header className="sticky top-0 z-20 bg-dark-blue border-b border-white/10 shadow-sm">
+      <header className="sticky top-0 z-20 bg-dark-blue border-b border-white/10">
         <div className="w-full px-4 h-[64px] flex items-center justify-between">
           {headerLogo}
           <span className="hidden sm:block font-mono text-[11px] text-gray-400">PESO · SANTA MARIA</span>
@@ -95,7 +95,7 @@ function EmployerStatus() {
       </header>
 
       <main className="flex-1 flex items-center justify-center p-[3%]">
-        <div className="w-full max-w-lg bg-white border-2 border-primary rounded-2xl p-7 md:p-9 shadow-xl animate-fade-in">
+        <div className="w-full max-w-lg bg-white border border-primary rounded-lg p-6 md:p-9 shadow-xl">
           {(isRejected || isRevoked) && remarks && (
             <div className="mb-6 p-4 rounded-xl border border-danger/20 bg-danger/5">
               <p className="font-mono text-[10px] tracking-widest text-danger uppercase font-semibold">Action Required</p>
@@ -103,7 +103,7 @@ function EmployerStatus() {
             </div>
           )}
 
-          <div className="flex items-start justify-between gap-4 pb-6 border-b border-gray-100">
+          <div className="flex items-start justify-between gap-3 pb-6 border-b border-gray-100">
             <div>
               <span className="font-mono text-[10px] tracking-widest uppercase text-primary font-semibold">ACCREDITATION STATUS</span>
               <h1 className="mt-1 text-2xl font-bold text-dark-blue">{employer.company_name}</h1>

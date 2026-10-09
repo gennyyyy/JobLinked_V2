@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { getStats, listAllAccreditations } from "../../shared/services/admin";
 import LoadingScreen from "../../shared/components/LoadingScreen";
-import { Users, Clock, Building2, Briefcase, FileText, Globe } from "lucide-react";
+import { Users, Clock, Building2, Briefcase, FileText, Globe, BadgeCheck, ClipboardList, UserCheck, Star } from "lucide-react";
 import { PageHeader, StatCard, SectionCard } from "../../shared/components/dashboard";
 
 function Dashboard() {
@@ -22,7 +22,7 @@ function Dashboard() {
   }, []);
 
   if (loading) return <LoadingScreen />;
-  if (error) return <div className="py-16 text-center text-sm text-danger">{error}</div>;
+  if (error) return <div className="py-8 text-center text-sm text-danger">{error}</div>;
   if (!stats) return null;
 
   const statCards = [
@@ -32,17 +32,25 @@ function Dashboard() {
     { label: "Job Posts", value: stats.jobs, highlight: false, icon: <Briefcase size={18} /> },
     { label: "Applications", value: stats.applications, highlight: false, icon: <FileText size={18} /> },
     { label: "Companies", value: stats.companies, highlight: false, icon: <Globe size={18} /> },
+    // Extended GET admin/stats keys — render only keys present at runtime.
+    ...[
+      { label: "Accredited", value: stats.accreditedEmployers, icon: <BadgeCheck size={18} /> },
+      { label: "Pending Jobs", value: stats.pendingJobs, icon: <ClipboardList size={18} /> },
+      { label: "Shortlisted", value: stats.shortlistedApplicants, icon: <Star size={18} /> },
+      { label: "Accepted", value: stats.acceptedApplicants, icon: <UserCheck size={18} /> },
+      { label: "Placed", value: stats.placedApplicants, icon: <BadgeCheck size={18} /> },
+    ].filter((c) => c.value !== undefined && c.value !== null).map((c) => ({ ...c, highlight: false })),
   ];
 
   return (
-    <div className="space-y-8 animate-fade-in bg-gray-50">
+    <div className="space-y-6 bg-gray-50">
       <PageHeader
         eyebrow="ADMINISTRATION OVERVIEW"
         title="PESO Operations Dashboard"
         subtitle="Real-time municipal statistics, accreditations, and system activities"
       />
 
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
         {statCards.map((stat) => (
           <StatCard key={stat.label} label={stat.label} value={stat.value} highlight={stat.highlight} icon={stat.icon} />
         ))}
@@ -55,11 +63,11 @@ function Dashboard() {
       >
 
         {recentAccreditations.length === 0 ? (
-          <div className="py-12 text-center text-sm text-gray-400">No employer applications submitted yet.</div>
+          <div className="py-8 text-center text-sm text-gray-400">No employer applications submitted yet.</div>
         ) : (
           <div className="divide-y divide-gray-100">
             {recentAccreditations.map((acc) => (
-              <div key={acc.id} className="py-4 first:pt-0 last:pb-0 flex items-center justify-between gap-4">
+              <div key={acc.id} className="py-4 first:pt-0 last:pb-0 flex items-center justify-between gap-3">
                 <div className="min-w-0">
                   <p className="text-sm font-medium text-gray-900 truncate">{acc.employers?.company_name}</p>
                   <p className="mt-1 text-xs text-gray-500 truncate">

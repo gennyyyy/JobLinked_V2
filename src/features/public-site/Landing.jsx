@@ -62,7 +62,7 @@ function Landing() {
 
   return (
     <div className="min-h-screen bg-white text-gray-900 font-sans">
-      <header className="sticky top-0 z-20 bg-dark-blue border-b border-white/10 shadow-sm">
+      <header className="sticky top-0 z-20 bg-dark-blue border-b border-white/10">
         <div className="w-full px-4 h-[64px] flex items-center justify-between">
           <div className="flex items-center gap-10">
             <div className="bg-white rounded-lg px-3.5 py-1.5 flex items-center shadow-xs">
@@ -70,7 +70,7 @@ function Landing() {
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <Link to="/portals" className="min-h-[40px] inline-flex items-center px-5 rounded-lg border-2 border-yellow-500 text-yellow-600 text-sm font-semibold hover:bg-yellow-50 transition-colors">Login</Link>
+            <Link to="/portals" className="min-h-[40px] inline-flex items-center px-5 rounded-lg border border-yellow-500 text-yellow-600 text-sm font-semibold hover:bg-yellow-50 transition-colors">Login</Link>
             <Link to="/register" className="min-h-[40px] inline-flex items-center px-5 rounded-lg bg-primary text-white text-sm font-semibold hover:bg-primary-hover transition-colors shadow-md">Sign Up</Link>
           </div>
         </div>
@@ -94,7 +94,7 @@ function Landing() {
               <button onClick={() => setActiveTab("employer")} className={`px-5 py-3 text-sm font-semibold border-b-2 -mb-px transition-colors ${activeTab === "employer" ? "text-primary border-primary" : "text-gray-400 border-transparent hover:text-gray-600"}`}>For Employers</button>
             </div>
 
-            <form onSubmit={handleQuickSearch} className="mt-6 flex flex-col sm:flex-row gap-3 bg-white rounded-2xl p-3 shadow-lg border border-gray-200">
+            <form onSubmit={handleQuickSearch} className="mt-6 flex flex-col sm:flex-row gap-3 bg-white rounded-lg p-3 border border-gray-200">
               <div className="flex items-center gap-2 flex-1 px-3">
                 <svg className="w-5 h-5 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
@@ -120,7 +120,7 @@ function Landing() {
           <div className="relative hidden md:block">
             <div className="absolute -top-10 -right-10 w-72 h-72 bg-accent/20 rounded-full blur-3xl" />
             <img src={heroImage} alt="Job seekers in Santa Maria" className="relative w-full aspect-[4/3] object-cover rounded-3xl shadow-2xl" />
-            <div className="absolute -bottom-6 -left-6 bg-white rounded-2xl p-5 shadow-xl border border-gray-100 max-w-[220px]">
+            <div className="absolute -bottom-6 -left-6 bg-white rounded-lg p-5 shadow-xl border border-gray-100 max-w-[220px]">
               <svg className="w-6 h-6 text-accent mb-2" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M4.583 17.321C3.553 16.227 3 15 3 13.011c0-3.5 2.457-6.637 6.03-8.188l.893 1.378c-3.335 1.804-3.987 4.145-4.247 5.621.537-.278 1.24-.375 1.929-.311 1.804.167 3.226 1.648 3.226 3.489a3.5 3.5 0 01-3.5 3.5c-1.073 0-2.099-.49-2.748-1.179zm10 0C13.553 16.227 13 15 13 13.011c0-3.5 2.457-6.637 6.03-8.188l.893 1.378c-3.335 1.804-3.987 4.145-4.247 5.621.537-.278 1.24-.375 1.929-.311 1.804.167 3.226 1.648 3.226 3.489a3.5 3.5 0 01-3.5 3.5c-1.073 0-2.099-.49-2.748-1.179z"/>
               </svg>
@@ -133,9 +133,9 @@ function Landing() {
       </section>
 
       <section className="w-full p-[3%] relative z-10">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          {featureCards.map((card, i) => (
-            <div key={card.title} style={{ animationDelay: `${i * 80}ms` }} className="animate-fade-in bg-white rounded-2xl p-6 shadow-lg border border-gray-100 hover:shadow-xl hover:-translate-y-1 transition-all cursor-pointer group">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+          {featureCards.map((card) => (
+            <div key={card.title} className="bg-white rounded-lg p-5 border border-gray-100 transition-all cursor-pointer group">
               <div className={`w-12 h-12 ${card.color} rounded-xl flex items-center justify-center text-white mb-4 group-hover:scale-110 transition-transform`}>
                 {card.icon}
               </div>
@@ -158,9 +158,9 @@ function Landing() {
         <div className="absolute inset-0 opacity-30">
           <div className="absolute top-0 left-0 w-full h-full bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4xIj48cGF0aCBkPSJNMCAyMDBoMjAwVjBIMHYyMDB6Ii8+PC9nPjwvZz48L3N2Zz4=')] opacity-20" />
         </div>
-        <div className="relative w-full px-[3%] py-16 md:py-20 text-center">
+        <div className="relative w-full px-[3%] py-8 md:py-20 text-center">
           <p className="text-white/80 text-sm font-medium mb-2">Connecting People.</p>
-          <h2 className="font-sans text-3xl md:text-4xl font-black text-white leading-tight">
+          <h2 className="font-sans text-2xl md:text-3xl font-black text-white leading-tight">
             Building a Brighter Santa Maria<br />for a Better Tomorrow.
           </h2>
         </div>
