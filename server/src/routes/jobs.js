@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { pool } from '../db.js';
 import { auth, optionalAuth, requireRole } from '../auth.js';
-import { ah, err, audit, notifyAdmins } from '../util.js';
+import { ah, err, audit, notifyAdmins, notifyUser } from '../util.js';
 
 const router = Router();
 const JOB_STATUSES = ['draft', 'pending', 'approved', 'rejected', 'published', 'closed', 'archived'];
@@ -89,8 +89,29 @@ router.get('/employers/:employerId/jobs', auth, ah(async (req, res) => {
 const JOB_COLS = ['title', 'office', 'location', 'employment_type', 'salary_min', 'salary_max',
   'description', 'requirements', 'benefits', 'vacancies', 'deadline', 'instructions', 'tags', 'status', 'remarks'];
 
+// Best-effort seeker matching on publish (skills overlap or location match).
+// Exported so the admin review-approve path (admin.js, sibling-owned) can call it too.
+// ponytail: naive fan-out, no queue/dedup — proper matcher/queue if publish gets noisy.
+export async function notifyMatchingSeekers(job) {
+  try {
+    const tags = Array.isArray(job?.tags) ? job.tags.filter(Boolean) : [];
+    const loc = (job?.location || '').trim();
+    if (!tags.length && !loc) return;
+    const conds = [];
+    const vals = [];
+    if (tags.length) { vals.push(tags); conds.push(`skills && $${vals.length}::text[]`); }
+    if (loc) { vals.push(`%${loc}%`); conds.push(`preferred_location ilike $${vals.length}`); }
+    const { rows } = await pool.query(
+      `select id from job_seekers where status = 'active' and (${conds.join(' or ')}) limit 100`, vals);
+    for (const r of rows) {
+      void notifyUser(r.id, { type: 'job', title: 'New job for you',
+        message: `"${job.title}" matches your profile.`, link: `/jobs/${job.id}` });
+    }
+  } catch { /* ponytail: publish succeeds even when matching/notify fails */ }
+}
+
 // Single-transaction job + history write shared by PATCH and POST /:id/status.
-async function writeStatus(client, jobId, status, remarks, changedBy) {
+export async function writeStatus(client, jobId, status, remarks, changedBy) {
   const stamps = { published: 'published_at', closed: 'closed_at', archived: 'archived_at' };
   await client.query(
     `update job_vacancies set status = $2, remarks = $3, updated_at = now()${stamps[status] ? `, ${stamps[status]} = now()` : ''} where id = $1`,
@@ -106,12 +127,35 @@ router.post('/jobs', auth, requireRole('employer'), ah(async (req, res) => {
   const cols = ['company_id'];
   const vals = [req.user.id];
   for (const c of JOB_COLS) {
+    if (c === 'status') continue; // client status ignored except draft — see below
     if (b[c] !== undefined) { cols.push(c); vals.push(c === 'tags' && !Array.isArray(b[c]) ? [] : (b[c] === '' ? null : b[c])); }
   }
-  const { rows } = await pool.query(
-    `insert into job_vacancies (${cols.join(',')}) values (${cols.map((_, i) => `$${i + 1}`).join(',')}) returning *`, vals);
-  const job = await loadJob(rows[0].id);
+  // Non-draft client status collapses to pending (needs PESO review).
+  const status = b.status === 'draft' ? 'draft' : 'pending';
+  cols.push('status'); vals.push(status);
+  const client = await pool.connect();
+  let jobId;
+  try {
+    await client.query('begin');
+    const { rows } = await client.query(
+      `insert into job_vacancies (${cols.join(',')}) values (${cols.map((_, i) => `$${i + 1}`).join(',')}) returning id`, vals);
+    jobId = rows[0].id;
+    await client.query(
+      'insert into job_status_history (job_id, status, remarks, changed_by) values ($1,$2,$3,$4)',
+      [jobId, status, b.remarks ?? null, req.user.id]);
+    await client.query('commit');
+  } catch (e) {
+    await client.query('rollback');
+    throw e;
+  } finally {
+    client.release();
+  }
+  const job = await loadJob(jobId);
   void audit(req.user.id, 'job.create', 'job_vacancies', job.id);
+  if (status === 'pending') {
+    void notifyAdmins({ type: 'job', title: 'Job awaiting review',
+      message: `"${job.title}" needs PESO review before publishing.`, link: '/super-admin/job-posts' });
+  }
   res.status(201).json(embed(job));
 }));
 
@@ -143,7 +187,9 @@ router.patch('/jobs/:id', auth, ah(async (req, res) => {
       client.release();
     }
     void audit(req.user.id, 'job.update', 'job_vacancies', job.id);
-    return res.json(embed(await loadJob(job.id)));
+    const patched = await loadJob(job.id);
+    if (status === 'published') void notifyMatchingSeekers(patched);
+    return res.json(embed(patched));
   }
   const keys = Object.keys(patch);
   await pool.query(
@@ -162,10 +208,26 @@ router.post('/jobs/:id/duplicate', auth, ah(async (req, res) => {
   rest.status = 'draft';
   rest.deadline = null;
   const cols = Object.keys(rest);
-  const { rows } = await pool.query(
-    `insert into job_vacancies (${cols.join(',')}) values (${cols.map((_, i) => `$${i + 1}`).join(',')}) returning *`,
-    cols.map((k) => (k === 'tags' && !Array.isArray(rest[k]) ? [] : rest[k])));
-  const copy = await loadJob(rows[0].id);
+  const vals = cols.map((k) => (k === 'tags' && !Array.isArray(rest[k]) ? [] : rest[k]));
+  const client = await pool.connect();
+  let copyId;
+  try {
+    await client.query('begin');
+    const { rows } = await client.query(
+      `insert into job_vacancies (${cols.join(',')}) values (${cols.map((_, i) => `$${i + 1}`).join(',')}) returning *`,
+      vals);
+    copyId = rows[0].id;
+    await client.query(
+      'insert into job_status_history (job_id, status, remarks, changed_by) values ($1,$2,$3,$4)',
+      [copyId, 'draft', null, req.user.id]);
+    await client.query('commit');
+  } catch (e) {
+    await client.query('rollback');
+    throw e;
+  } finally {
+    client.release();
+  }
+  const copy = await loadJob(copyId);
   void audit(req.user.id, 'job.create', 'job_vacancies', copy.id);
   res.status(201).json(embed(copy));
 }));
@@ -174,12 +236,12 @@ router.post('/jobs/:id/duplicate', auth, ah(async (req, res) => {
 router.post('/jobs/:id/status', auth, ah(async (req, res) => {
   const job = await ownOrAdmin(req, res, await loadJob(req.params.id));
   if (!job) return;
-  const { status, remarks = null } = req.body || {};
+  const { status, remarks } = req.body || {};
   if (!JOB_STATUSES.includes(status)) return err(res, 400, 'BAD_REQUEST', `status must be one of ${JOB_STATUSES.join(', ')}`);
   const client = await pool.connect();
   try {
     await client.query('begin');
-    await writeStatus(client, job.id, status, remarks, req.user.id);
+    await writeStatus(client, job.id, status, remarks ?? job.remarks, req.user.id);
     await client.query('commit');
   } catch (e) {
     await client.query('rollback');
@@ -188,11 +250,13 @@ router.post('/jobs/:id/status', auth, ah(async (req, res) => {
     client.release();
   }
   void audit(req.user.id, `job.status.${status}`, 'job_vacancies', job.id);
+  const fresh = await loadJob(job.id);
   if (status === 'published') {
     void notifyAdmins({ type: 'job', title: 'Job published',
-      message: `"${job.title}" (${job.company_name}) is now live on the job board.`, link: '/super-admin/job-posts' });
+      message: `"${fresh.title}" (${fresh.company_name}) is now live on the job board.`, link: '/super-admin/job-posts' });
+    void notifyMatchingSeekers(fresh);
   }
-  res.json(embed(await loadJob(job.id)));
+  res.json(embed(fresh));
 }));
 
 router.get('/jobs/:id/history', auth, ah(async (req, res) => {

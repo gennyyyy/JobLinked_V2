@@ -1,7 +1,8 @@
 import { Router } from 'express';
 import { pool } from '../db.js';
 import { auth, requireRole } from '../auth.js';
-import { ah, err, audit } from '../util.js';
+import { ah, err, audit, notifyUser } from '../util.js';
+import { notifyMatchingSeekers } from './jobs.js';
 
 const router = Router();
 const admin = [auth, requireRole('super-admin')];
@@ -9,15 +10,27 @@ const SEEKER_COLS = 'id, full_name, email, phone, barangay_district, skills, emp
 
 router.get('/admin/stats', ...admin, ah(async (req, res) => {
   const q = (sql, p = []) => pool.query(sql, p).then((r) => Number(r.rows[0].c));
-  const [seekers, employers, jobs, applications, pendingAccreditations, unreadNotifications] = await Promise.all([
+  const [seekers, employers, jobs, applications, pendingAccreditations, unreadNotifications,
+    pendingJobs, approvedJobs, closedJobs, expiredJobs,
+    shortlistedApplicants, acceptedApplicants, placedApplicants, accreditedEmployers] = await Promise.all([
     q('select count(*) c from job_seekers'),
     q('select count(*) c from employers'),
     q('select count(*) c from job_vacancies'),
     q('select count(*) c from job_applications'),
     q(`select count(*) c from employer_accreditations where status = 'pending'`),
     q('select count(*) c from notifications where is_read = false'),
+    q(`select count(*) c from job_vacancies where status = 'pending'`),
+    q(`select count(*) c from job_vacancies where status = 'approved'`),
+    q(`select count(*) c from job_vacancies where status = 'closed'`),
+    q(`select count(*) c from job_vacancies where deadline < current_date and status not in ('closed','archived')`),
+    q(`select count(*) c from job_applications where status = 'Shortlisted'`),
+    q(`select count(*) c from job_applications where status = 'Accepted'`),
+    q(`select count(*) c from job_applications where status = 'Placed'`),
+    q(`select count(*) c from employers where accreditation_status = 'approved'`),
   ]);
-  res.json({ seekers, employers, companies: employers, jobs, applications, pendingAccreditations, unreadNotifications });
+  res.json({ seekers, employers, companies: employers, jobs, applications, pendingAccreditations, unreadNotifications,
+    pendingJobs, approvedJobs, closedJobs, expiredJobs,
+    shortlistedApplicants, acceptedApplicants, placedApplicants, accreditedEmployers });
 }));
 
 const USER_TABLES = { 'job-seeker': 'job_seekers', employer: 'employers', 'super-admin': 'super_admins' };
@@ -225,6 +238,137 @@ router.post('/notifications/:id/read', auth, ah(async (req, res) => {
 router.post('/notifications/read-all', auth, ah(async (req, res) => {
   await pool.query('update notifications set is_read = true where user_id = $1 and is_read = false', [req.user.id]);
   res.json({ read: true });
+}));
+
+// Same JOB_COLS allowlist as employer PATCH /jobs/:id in jobs.js
+// (replicated so all edits stay in this file); status goes through the same
+// single-transaction job + history write as jobs.js writeStatus.
+const ADMIN_JOB_COLS = ['title', 'office', 'location', 'employment_type', 'salary_min', 'salary_max',
+  'description', 'requirements', 'benefits', 'vacancies', 'deadline', 'instructions', 'tags', 'status', 'remarks'];
+const ADMIN_JOB_STATUSES = ['draft', 'pending', 'approved', 'rejected', 'published', 'closed', 'archived'];
+
+async function adminWriteStatus(client, jobId, status, remarks, changedBy) {
+  const stamps = { published: 'published_at', closed: 'closed_at', archived: 'archived_at' };
+  await client.query(
+    `update job_vacancies set status = $2, remarks = $3, updated_at = now()${stamps[status] ? `, ${stamps[status]} = now()` : ''} where id = $1`,
+    [jobId, status, remarks]);
+  await client.query(
+    'insert into job_status_history (job_id, status, remarks, changed_by) values ($1,$2,$3,$4)',
+    [jobId, status, remarks, changedBy]);
+}
+
+router.patch('/admin/jobs/:id', ...admin, ah(async (req, res) => {
+  const { rows: jrows } = await pool.query('select * from job_vacancies where id = $1', [req.params.id]);
+  if (!jrows[0]) return err(res, 404, 'NOT_FOUND', 'Job not found');
+  const job = jrows[0];
+  const patch = {};
+  for (const c of ADMIN_JOB_COLS) if (req.body?.[c] !== undefined) patch[c] = req.body[c] === '' && c !== 'title' ? null : req.body[c];
+  if (!Object.keys(patch).length) return err(res, 400, 'BAD_REQUEST', 'Nothing to update');
+  if (patch.status !== undefined && !ADMIN_JOB_STATUSES.includes(patch.status)) {
+    return err(res, 400, 'BAD_REQUEST', `status must be one of ${ADMIN_JOB_STATUSES.join(', ')}`);
+  }
+  const client = await pool.connect();
+  try {
+    await client.query('begin');
+    if (patch.status !== undefined) {
+      const { status, ...rest } = patch;
+      const restKeys = Object.keys(rest).filter((k) => k !== 'remarks');
+      if (restKeys.length) {
+        await client.query(
+          `update job_vacancies set ${restKeys.map((k, i) => `${k} = $${i + 2}`).join(', ')}, updated_at = now() where id = $1`,
+          [job.id, ...restKeys.map((k) => rest[k])]);
+      }
+      await adminWriteStatus(client, job.id, status, patch.remarks !== undefined ? patch.remarks : job.remarks, req.user.id);
+    } else {
+      const keys = Object.keys(patch);
+      await client.query(
+        `update job_vacancies set ${keys.map((k, i) => `${k} = $${i + 2}`).join(', ')}, updated_at = now() where id = $1`,
+        [job.id, ...keys.map((k) => patch[k])]);
+    }
+    await client.query('commit');
+  } catch (e) {
+    await client.query('rollback');
+    throw e;
+  } finally {
+    client.release();
+  }
+  void audit(req.user.id, 'job.update', 'job_vacancies', job.id);
+  const { rows } = await pool.query('select * from job_vacancies where id = $1', [job.id]);
+  // Review-approve (admin PATCH) → same seeker fan-out as the publish endpoint.
+  if (patch.status === 'approved' || patch.status === 'published') void notifyMatchingSeekers(rows[0]);
+  res.json(rows[0]);
+}));
+
+// Thin adminWriteStatus wrappers: publish → published (+published_at),
+// unpublish → draft, each with history row + company notify.
+const adminJobPublish = (status, title) => ah(async (req, res) => {
+  const { rows: jrows } = await pool.query('select * from job_vacancies where id = $1', [req.params.id]);
+  if (!jrows[0]) return err(res, 404, 'NOT_FOUND', 'Job not found');
+  const job = jrows[0];
+  const client = await pool.connect();
+  try {
+    await client.query('begin');
+    await adminWriteStatus(client, job.id, status, job.remarks, req.user.id);
+    await client.query('commit');
+  } catch (e) {
+    await client.query('rollback');
+    throw e;
+  } finally {
+    client.release();
+  }
+  void audit(req.user.id, `job.${status === 'published' ? 'publish' : 'unpublish'}`, 'job_vacancies', job.id);
+  void notifyUser(job.company_id, { type: 'job', title, message: `"${job.title}" ${status === 'published' ? 'is now live on the job board.' : 'was unpublished by PESO.'}`, link: '/employer/jobs' });
+  const { rows } = await pool.query('select * from job_vacancies where id = $1', [job.id]);
+  if (status === 'published') void notifyMatchingSeekers(rows[0]);
+  res.json(rows[0]);
+});
+router.post('/admin/jobs/:id/publish', ...admin, adminJobPublish('published', 'Job published'));
+router.post('/admin/jobs/:id/unpublish', ...admin, adminJobPublish('draft', 'Job unpublished'));
+
+// System broadcast: one 'system' row per ACTIVE user (fan-out, never a NULL
+// user_id — the column is NOT NULL). expires_at lives only in the audit
+// details jsonb (notifications has no details column — adding one is DDL,
+// needs arch approval).
+// ponytail: single multi-row INSERT; per-user queue table if user count explodes
+router.post('/admin/system-notifications', ...admin, ah(async (req, res) => {
+  const { title, message, link = null, expires_at = null } = req.body || {};
+  if (!title || !message) return err(res, 400, 'BAD_REQUEST', 'title and message are required');
+  const { rowCount } = await pool.query(
+    `insert into notifications (user_id, type, title, message, link)
+     select id, 'system', $1, $2, $3 from (
+       select id from job_seekers where status = 'active'
+       union all select id from employers where status = 'active'
+       union all select id from super_admins where status = 'active') u`,
+    [title, message, link]);
+  void audit(req.user.id, 'notification.broadcast', null, null, { title, expires_at, sent: rowCount });
+  res.json({ sent: rowCount });
+}));
+
+// Cross-table role move: deactivate old row, insert minimal new row with the
+// same id/email/full_name. 403 on self-move (lockout footgun).
+router.post('/admin/users/:id/role', ...admin, ah(async (req, res) => {
+  if (req.params.id === req.user.id) return err(res, 403, 'FORBIDDEN', 'You cannot change your own role');
+  const { role } = req.body || {};
+  if (!USER_TABLES[role]) return err(res, 400, 'BAD_REQUEST', 'Invalid role');
+  const { table, profile } = await findUserTable(req.params.id);
+  if (!profile) return err(res, 404, 'NOT_FOUND', 'User account not found');
+  if (profile.role === role) return res.json({ id: req.params.id, role });
+  const client = await pool.connect();
+  try {
+    await client.query('begin');
+    await client.query(`update ${table} set status = 'inactive', updated_at = now() where id = $1`, [req.params.id]);
+    await client.query(
+      `insert into ${USER_TABLES[role]} (id, email, full_name, status) values ($1,$2,$3,'active')`,
+      [req.params.id, profile.email, profile.full_name]);
+    await client.query('commit');
+  } catch (e) {
+    await client.query('rollback');
+    throw e;
+  } finally {
+    client.release();
+  }
+  void audit(req.user.id, 'user.role.change', USER_TABLES[role], req.params.id, { from: profile.role, to: role });
+  res.json({ id: req.params.id, role });
 }));
 
 export default router;

@@ -8,14 +8,19 @@ import jobsRoutes from './routes/jobs.js';
 import applicationsRoutes from './routes/applications.js';
 import profilesRoutes from './routes/profiles.js';
 import adminRoutes from './routes/admin.js';
+import reportsRoutes from './routes/reports.js';
+import { authLimiter, uploadLimiter } from './middleware/rateLimit.js';
 import { err } from './util.js';
 
 const app = express();
 app.use(cors({ origin: process.env.CORS_ORIGIN?.split(',') || true }));
 app.use(express.json({ limit: '1mb' }));
+app.use('/api/auth', authLimiter);
+app.post('/api/documents', uploadLimiter);
+app.post('/api/files/*', uploadLimiter);
 
 app.get('/api/health', (_req, res) => res.json({ ok: true }));
-app.use('/api', authRoutes, jobsRoutes, applicationsRoutes, profilesRoutes, adminRoutes);
+app.use('/api', authRoutes, jobsRoutes, applicationsRoutes, profilesRoutes, adminRoutes, reportsRoutes);
 
 app.use('/api', (_req, res) => err(res, 404, 'NOT_FOUND', 'Route not found'));
 // eslint-disable-next-line no-unused-vars

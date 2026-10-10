@@ -6,8 +6,7 @@ import { randomUUID } from 'node:crypto';
 const ALLOWED_EXTS = ['pdf', 'doc', 'docx', 'png', 'jpg', 'jpeg'];
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
 
-export const uploadDir = process.env.UPLOAD_DIR?.startsWith('/')
-  || process.env.UPLOAD_DIR?.match(/^[A-Za-z]:/)
+export const uploadDir = process.env.UPLOAD_DIR && path.isAbsolute(process.env.UPLOAD_DIR)
   ? process.env.UPLOAD_DIR
   : path.join(process.cwd(), process.env.UPLOAD_DIR || 'uploads');
 

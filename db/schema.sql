@@ -360,3 +360,45 @@ create index if not exists employer_accreditations_status_idx on public.employer
 create index if not exists employer_documents_company_idx on public.employer_documents(company_id);
 create index if not exists employer_documents_path_idx on public.employer_documents(file_path);
 create index if not exists notifications_user_created_idx on public.notifications(user_id, created_at desc);
+
+-- ---------------------------------------------------------------------------
+-- ADR-041 ACID gaps (db/migrations/002_acid_gaps.sql upgrades existing DBs;
+-- keep this block in sync). Intentionally no FK on notifications.user_id
+-- (fan-out to 3 role tables), no speculative indexes, no trigger changes.
+-- ---------------------------------------------------------------------------
+-- Uniqueness: one account per email (was app-only). Guarded: skips with
+-- NOTICE when duplicates exist — dedupe first, re-run.
+do $$
+begin
+  if exists (
+    select 1 from (
+      select email from public.job_seekers group by email having count(*) > 1
+    ) d
+  ) then
+    raise notice 'skipping job_seekers email unique index: duplicate emails present';
+  else
+    execute 'create unique index if not exists job_seekers_email_uidx on public.job_seekers(email)';
+  end if;
+end $$;
+
+do $$
+begin
+  if exists (
+    select 1 from (
+      select email from public.employers group by email having count(*) > 1
+    ) d
+  ) then
+    raise notice 'skipping employers email unique index: duplicate emails present';
+  else
+    execute 'create unique index if not exists employers_email_uidx on public.employers(email)';
+  end if;
+end $$;
+
+-- Backfill: one job_status_history row per job missing it. No-op on fresh
+-- DBs; marker identifies backfilled rows for rollback.
+insert into public.job_status_history (job_id, status, remarks, changed_by)
+select v.id, v.status, 'backfill: duplicate-path orphan', null
+from public.job_vacancies v
+where not exists (
+  select 1 from public.job_status_history h where h.job_id = v.id
+);

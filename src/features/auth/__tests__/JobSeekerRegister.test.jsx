@@ -3,20 +3,10 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import JobSeekerRegister from '../JobSeekerRegister'
 import { signUp } from '../../../shared/services/auth'
-import { addEducation } from '../../../shared/services/seekers'
 import { extractResumeText } from '../../../shared/lib/resumeText'
 
 vi.mock('../../../shared/services/auth', () => ({
   signUp: vi.fn(),
-}))
-
-vi.mock('../../../shared/services/documents', () => ({
-  validateFile: vi.fn(() => null),
-  uploadResume: vi.fn(),
-}))
-
-vi.mock('../../../shared/services/seekers', () => ({
-  addEducation: vi.fn(),
 }))
 
 vi.mock('../../../shared/lib/resumeText', () => ({
@@ -146,7 +136,8 @@ describe('JobSeekerRegister autofill', () => {
 
     await waitFor(() => expect(signUp).toHaveBeenCalled())
     expect(JSON.stringify(signUp.mock.calls[0][0])).not.toContain('PUP Santa Maria')
-    expect(addEducation).not.toHaveBeenCalled()
+    expect(signUp.mock.calls[0][0].extra).not.toHaveProperty('education')
+    await waitFor(() => expect(screen.getByText(/registration complete/i)).toBeInTheDocument())
   })
 
   it('renders inert education history placeholders matching Profile', () => {
@@ -189,6 +180,6 @@ describe('JobSeekerRegister autofill', () => {
     for (const key of ['eduLevel', 'eduSchool', 'eduField', 'eduYear', 'education', 'level', 'school', 'field', 'end_year', 'Bulacan State']) {
       expect(payload).not.toContain(key)
     }
-    expect(addEducation).not.toHaveBeenCalled()
+    await waitFor(() => expect(screen.getByText(/registration complete/i)).toBeInTheDocument())
   })
 })

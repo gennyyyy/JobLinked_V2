@@ -91,10 +91,15 @@ left join employers e on e.id = d.company_id`;
 
 async function storeDocument(companyId, docType, accreditationId, file) {
   const rel = relPath('documents', companyId, path.basename(file.path));
-  const { rows } = await pool.query(
-    `insert into employer_documents (company_id, accreditation_id, doc_type, file_path, file_name)
-     values ($1,$2,$3,$4,$5) returning *`, [companyId, accreditationId || null, docType, rel, file.originalname]);
-  return rows[0];
+  try {
+    const { rows } = await pool.query(
+      `insert into employer_documents (company_id, accreditation_id, doc_type, file_path, file_name)
+       values ($1,$2,$3,$4,$5) returning *`, [companyId, accreditationId || null, docType, rel, file.originalname]);
+    return rows[0];
+  } catch (e) {
+    try { fs.unlinkSync(file.path); } catch { /* compensation best-effort */ }
+    throw e;
+  }
 }
 
 async function notifyDocAdmins(companyId, docType) {

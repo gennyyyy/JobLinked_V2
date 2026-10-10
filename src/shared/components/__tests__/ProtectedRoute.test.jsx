@@ -14,6 +14,7 @@ function renderWithRouter(ui, { route = '/' } = {}) {
     <MemoryRouter initialEntries={[route]}>
       <Routes>
         <Route path={route} element={ui} />
+        <Route path="/employer/login" element={<div>Employer Login</div>} />
       </Routes>
     </MemoryRouter>
   )
@@ -26,21 +27,23 @@ describe('ProtectedRoute', () => {
     expect(screen.getByText(/loading/i)).toBeInTheDocument()
   })
 
-  it('redirects unauthenticated user to login', () => {
+  it('redirects unauthenticated user to login', async () => {
     useAuth.mockReturnValue({ user: null, role: null, loading: false })
     renderWithRouter(
       <ProtectedRoute role="employer"><div>Secret</div></ProtectedRoute>,
       { route: '/employer' }
     )
+    expect(await screen.findByText('Employer Login')).toBeInTheDocument()
     expect(screen.queryByText('Secret')).not.toBeInTheDocument()
   })
 
-  it('redirects wrong-role user to their portal home', () => {
+  it('redirects wrong-role user to their portal home', async () => {
     useAuth.mockReturnValue({ user: { id: '1' }, role: 'job-seeker', loading: false })
     renderWithRouter(
       <ProtectedRoute role="employer"><div>Secret</div></ProtectedRoute>,
       { route: '/employer' }
     )
+    expect(await screen.findByText('Employer Login')).toBeInTheDocument()
     expect(screen.queryByText('Secret')).not.toBeInTheDocument()
   })
 

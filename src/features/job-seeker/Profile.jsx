@@ -64,6 +64,7 @@ function Profile() {
   const [employments, setEmployments] = useState([]);
   const [resumes, setResumes] = useState([]);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [pendingDelete, setPendingDelete] = useState(null);
   const [uploadError, setUploadError] = useState("");
   const [newEdu, setNewEdu] = useState({ level: "", school: "", field: "", end_year: "" });
   const [newExp, setNewExp] = useState({ company: "", position: "", start_date: "", end_date: "", description: "" });
@@ -211,6 +212,7 @@ function Profile() {
     await deleteResume(resume.id, resume.file_path);
     setResumes(resumes.filter((r) => r.id !== resume.id));
     setShowDeleteConfirm(false);
+    setPendingDelete(null);
   }
 
   async function handleSubmit(event) {
@@ -463,7 +465,7 @@ function Profile() {
                               <button type="button" onClick={() => handleSetActiveResume(resume.id)} className="px-3 py-1.5 text-xs font-medium text-primary border border-primary/30 rounded-lg hover:bg-primary/5 transition-colors">Set Active</button>
                             )}
                             <label htmlFor="resume-upload" className="cursor-pointer px-3 py-1.5 text-xs font-medium text-primary border border-primary/30 rounded-lg hover:bg-primary/5 transition-colors">Replace</label>
-                            <button type="button" onClick={() => setShowDeleteConfirm(true)} className="px-3 py-1.5 text-xs font-medium text-danger border border-danger/30 rounded-lg hover:bg-danger/5 transition-colors">Delete</button>
+                            <button type="button" onClick={() => { setPendingDelete(resume); setShowDeleteConfirm(true); }} className="px-3 py-1.5 text-xs font-medium text-danger border border-danger/30 rounded-lg hover:bg-danger/5 transition-colors">Delete</button>
                           </div>
                         </div>
                       ))}
@@ -601,11 +603,11 @@ function Profile() {
             )}
           </div>
         )}
-        {showDeleteConfirm && resumes.length > 0 && (
+        {showDeleteConfirm && pendingDelete && (
           <ConfirmationModal
             message="Are you sure you want to delete this resume?"
-            onConfirm={() => handleDeleteResume(resumes.find((r) => r.is_active) || resumes[0])}
-            onCancel={() => setShowDeleteConfirm(false)}
+            onConfirm={() => handleDeleteResume(pendingDelete)}
+            onCancel={() => { setPendingDelete(null); setShowDeleteConfirm(false); }}
             confirmLabel="Delete"
             danger
           />
