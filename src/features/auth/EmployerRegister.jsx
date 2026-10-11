@@ -23,9 +23,6 @@ function EmployerRegister() {
     if (!values.industry?.trim()) e.industry = "Industry is required";
     if (!values.streetAddress?.trim()) e.streetAddress = "Street address is required";
     if (!values.barangayDistrict) e.barangayDistrict = "Barangay is required";
-    if (!values.cityMunicipality?.trim()) e.cityMunicipality = "City / Municipality is required";
-    if (!values.provinceState?.trim()) e.provinceState = "Province / State is required";
-    if (!values.postalCode?.trim()) e.postalCode = "Postal code is required";
     if (!values.contactNumber?.trim()) e.contactNumber = "Contact number is required";
     if (!values.companyEmail?.trim()) e.companyEmail = "Company email is required";
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.companyEmail)) e.companyEmail = "Invalid email address";
@@ -78,10 +75,6 @@ function EmployerRegister() {
           streetAddress: values.streetAddress.trim(),
           subdivisionBuilding: values.subdivisionBuilding?.trim() || "",
           barangayDistrict: values.barangayDistrict,
-          cityMunicipality: values.cityMunicipality.trim(),
-          provinceState: values.provinceState.trim(),
-          postalCode: values.postalCode.trim(),
-          country: values.country?.trim() || "Philippines",
         },
       });
 
@@ -204,25 +197,6 @@ function EmployerRegister() {
                       <input id="barangayDistrict" name="barangayDistrict" type="text" placeholder="e.g. Pulong Buhangin" className={inputClass} onChange={() => { if (errors.barangayDistrict) setErrors((prev) => ({ ...prev, barangayDistrict: undefined })); }} />
                       {errors.barangayDistrict && <p className="text-danger text-xs mt-1">{errors.barangayDistrict}</p>}
                     </div>
-                    <div>
-                      <label htmlFor="cityMunicipality" className={labelClass}>City / Municipality</label>
-                      <input id="cityMunicipality" name="cityMunicipality" type="text" placeholder="e.g. Santa Maria" className={inputClass} onChange={() => { if (errors.cityMunicipality) setErrors((prev) => ({ ...prev, cityMunicipality: undefined })); }} />
-                      {errors.cityMunicipality && <p className="text-danger text-xs mt-1">{errors.cityMunicipality}</p>}
-                    </div>
-                    <div>
-                      <label htmlFor="provinceState" className={labelClass}>Province / State</label>
-                      <input id="provinceState" name="provinceState" type="text" placeholder="e.g. Bulacan" className={inputClass} onChange={() => { if (errors.provinceState) setErrors((prev) => ({ ...prev, provinceState: undefined })); }} />
-                      {errors.provinceState && <p className="text-danger text-xs mt-1">{errors.provinceState}</p>}
-                    </div>
-                    <div>
-                      <label htmlFor="postalCode" className={labelClass}>Postal / ZIP Code</label>
-                      <input id="postalCode" name="postalCode" type="text" inputMode="numeric" placeholder="e.g. 3022" className={inputClass} onChange={() => { if (errors.postalCode) setErrors((prev) => ({ ...prev, postalCode: undefined })); }} />
-                      {errors.postalCode && <p className="text-danger text-xs mt-1">{errors.postalCode}</p>}
-                    </div>
-                    <div>
-                      <label htmlFor="country" className={labelClass}>Country</label>
-                      <input id="country" name="country" type="text" defaultValue="Philippines" className={inputClass} />
-                    </div>
                   </div>
                 </div>
                 <div>
@@ -258,7 +232,7 @@ function EmployerRegister() {
                 <div className="grid grid-cols-1 gap-3">
                   <div>
                     <label htmlFor="repFirstName" className={labelClass}>First Name</label>
-                    <input id="repFirstName" name="repFirstName" type="text" placeholder="Maria" className={inputClass} onChange={() => { if (errors.repFirstName) setErrors((prev) => ({ ...prev, repFirstName: undefined })); }} />
+                  <input id="repFirstName" name="repFirstName" type="text" placeholder="Maria" className={inputClass} onChange={() => { if (errors.repFirstName) setErrors((prev) => ({ ...prev, repFirstName: undefined })); }} />
                     {errors.repFirstName && <p className="text-danger text-xs mt-1">{errors.repFirstName}</p>}
                   </div>
                   <div>
@@ -267,14 +241,14 @@ function EmployerRegister() {
                   </div>
                   <div>
                     <label htmlFor="repLastName" className={labelClass}>Last Name</label>
-                    <input id="repLastName" name="repLastName" type="text" placeholder="Reyes" className={inputClass} onChange={() => { if (errors.repLastName) setErrors((prev) => ({ ...prev, repLastName: undefined })); }} />
+                  <input id="repLastName" name="repLastName" type="text" placeholder="Reyes" className={inputClass} onChange={() => { if (errors.repLastName) setErrors((prev) => ({ ...prev, repLastName: undefined })); }} />
                     {errors.repLastName && <p className="text-danger text-xs mt-1">{errors.repLastName}</p>}
                   </div>
                 </div>
                 <div className="grid grid-cols-1 gap-3">
                   <div>
                     <label htmlFor="repSuffix" className={labelClass}>Suffix <span className="text-gray-400 font-normal">(optional)</span></label>
-                    <input id="repSuffix" name="repSuffix" type="text" placeholder="Jr., Sr., III" className={inputClass} />
+                  <input id="repSuffix" name="repSuffix" type="text" placeholder="Jr., Sr., III" className={inputClass} />
                   </div>
                   <div>
                     <label htmlFor="repPosition" className={labelClass}>Designation / Position</label>

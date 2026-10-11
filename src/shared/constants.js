@@ -1,6 +1,34 @@
 export const ROLES = { SUPER_ADMIN: 'super-admin', EMPLOYER: 'employer', JOB_SEEKER: 'job-seeker' };
 
-export const EMPLOYMENT_STATUSES = ['Employed', 'Unemployed', 'Underemployed', 'Fresh Graduate'];
+export const EMPLOYMENT_STATUSES = ['Employed', 'Unemployed', 'Underemployed', 'Fresh Graduate', 'Student'];
+
+// Official 24 barangays of Santa Maria, Bulacan — used for location filters.
+export const SANTA_MARIA_BARANGAYS = [
+  'Bagbaguin',
+  'Balasing',
+  'Buenavista',
+  'Bulac',
+  'Camangyanan',
+  'Catmon',
+  'Cay Pombo',
+  'Caysio',
+  'Guyong',
+  'Lalakhan',
+  'Mag-asawang Sapa',
+  'Mahabang Parang',
+  'Manggahan',
+  'Parada',
+  'Poblacion',
+  'Pulong Buhangin',
+  'San Gabriel',
+  'San Jose Patag',
+  'San Vicente',
+  'Santa Clara',
+  'Santa Cruz',
+  'Silangan',
+  'Tabing Bakod',
+  'Tumana',
+];
 
 export const JOB_TAGS = [
   'Urgent Hiring',

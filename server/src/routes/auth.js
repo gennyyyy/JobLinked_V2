@@ -7,7 +7,11 @@ const router = Router();
 
 const PERSON = ['first_name', 'middle_name', 'last_name', 'suffix', 'full_name', 'phone',
   'house_number_unit', 'street_address', 'subdivision_building', 'barangay_district',
-  'city_municipality', 'province_state', 'postal_code', 'country', 'birthdate'];
+  'city_municipality', 'province_state', 'postal_code', 'country', 'birthdate', 'employment_status'];
+const LOWERCASE_PERSON = new Set(['first_name', 'middle_name', 'last_name', 'suffix', 'full_name',
+  'house_number_unit', 'street_address', 'subdivision_building', 'barangay_district',
+  'city_municipality', 'province_state', 'postal_code', 'country']);
+const EMPLOYMENT_STATUSES = ['Employed', 'Unemployed', 'Underemployed', 'Fresh Graduate', 'Student'];
 
 // Replaces handle_new_user. Idempotent on (id) — 200 if the row already exists.
 // Addendum B: token-only auth, NO provisioned-row gate (fresh sessions have no row).
@@ -25,9 +29,28 @@ router.post('/auth/provision', tokenAuth, ah(async (req, res) => {
 
   const email = req.user.email || b.email || '';
   const person = {};
-  for (const k of PERSON) person[k] = b[k] ?? (k === 'country' ? 'Philippines' : null);
+  for (const k of PERSON) {
+    const value = b[k] ?? (k === 'country' ? 'Philippines' : null);
+    person[k] = LOWERCASE_PERSON.has(k) && typeof value === 'string' ? value.trim().toLowerCase() : value;
+  }
   if (!person.full_name) {
     person.full_name = [person.first_name, person.middle_name, person.last_name, person.suffix].filter(Boolean).join(' ');
+  }
+  const employmentStatus = b.employment_status ?? null;
+  if (employmentStatus !== null && employmentStatus !== '' && !EMPLOYMENT_STATUSES.includes(employmentStatus)) {
+    return err(res, 400, 'BAD_REQUEST', 'employment_status must be Employed, Unemployed, Underemployed, Fresh Graduate, or Student');
+  }
+  person.employment_status = employmentStatus || null;
+  const skills = Array.isArray(b.skills)
+    ? [...new Set(b.skills.filter((skill) => typeof skill === 'string').map((skill) => skill.trim().toLowerCase()).filter(Boolean))]
+    : [];
+  const education = role === 'job-seeker' ? b.education : null;
+  if (education && (
+    typeof education.level !== 'string' || !education.level.trim() ||
+    typeof education.school !== 'string' || !education.school.trim() ||
+    (education.end_year !== null && education.end_year !== undefined && !Number.isInteger(Number(education.end_year)))
+  )) {
+    return err(res, 400, 'BAD_REQUEST', 'education requires a level and school, with an optional graduation year');
   }
 
   const client = await pool.connect();
@@ -37,12 +60,26 @@ router.post('/auth/provision', tokenAuth, ah(async (req, res) => {
     if (role === 'job-seeker') {
       const r = await client.query(
         `insert into job_seekers (id, email, first_name, middle_name, last_name, suffix, full_name, phone,
-          house_number_unit, street_address, subdivision_building, barangay_district, city_municipality,
-          province_state, postal_code, country, birthdate)
-         values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17) returning *`,
-        [req.user.id, email, ...PERSON.map((k) => person[k] ?? (k === 'country' ? 'Philippines' : null))]
+          lot, block, street_address, house_number_unit, subdivision_building, barangay_district, city_municipality,
+          province_state, postal_code, country, birthdate, employment_status, skills)
+         values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21) returning *`,
+        [req.user.id, email, person.first_name, person.middle_name, person.last_name, person.suffix,
+          person.full_name, person.phone,
+          typeof b.lot === 'string' ? b.lot.trim().toLowerCase() : null,
+          typeof b.block === 'string' ? b.block.trim().toLowerCase() : null, person.street_address,
+          person.house_number_unit, person.subdivision_building, person.barangay_district,
+          person.city_municipality, person.province_state, person.postal_code,
+          person.country ?? 'Philippines', person.birthdate, person.employment_status, skills]
       );
       row = r.rows[0];
+      if (education) {
+        await client.query(
+          `insert into education (seeker_id, level, school, field, end_year) values ($1,$2,$3,$4,$5)`,
+          [req.user.id, education.level.trim().toLowerCase(), education.school.trim().toLowerCase(),
+            typeof education.field === 'string' ? education.field.trim().toLowerCase() || null : null,
+            education.end_year ? Number(education.end_year) : null]
+        );
+      }
     } else if (role === 'employer') {
       const r = await client.query(
         `insert into employers (id, email, first_name, middle_name, last_name, suffix, full_name, phone,
@@ -52,7 +89,7 @@ router.post('/auth/provision', tokenAuth, ah(async (req, res) => {
          values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21) returning *`,
         [req.user.id, email, person.first_name, person.middle_name, person.last_name, person.suffix,
           person.full_name, person.phone,
-          b.company_name ?? '', b.company_email ?? null,
+          typeof b.company_name === 'string' ? b.company_name.trim().toLowerCase() : '', b.company_email ?? null,
           b.industry ?? null, person.house_number_unit, person.street_address, person.subdivision_building,
           person.barangay_district, person.city_municipality, person.province_state, person.postal_code,
           person.country ?? 'Philippines', b.representative_email ?? null,

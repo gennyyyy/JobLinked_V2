@@ -9,6 +9,7 @@ import { formatFullAddress } from "../../shared/utils/address";
 import LoadingScreen from "../../shared/components/LoadingScreen";
 import ChangePassword from "../../shared/components/ChangePassword";
 import { TagInput, splitTags } from "../../shared/components/TagInput";
+import { PageHeader } from "../../shared/components/dashboard";
 
 // Per-resume View (new tab) + Download links. The API streams the file, so
 // resolve it to a blob URL via the existing signedUrl service (same shape as before).
@@ -57,8 +58,7 @@ function Profile() {
   const [error, setError] = useState("");
   const [saved, setSaved] = useState(false);
   const [editing, setEditing] = useState(false);
-  const [activeTab, setActiveTab] = useState("info");
-  const [form, setForm] = useState({ firstName: "", middleName: "", lastName: "", suffix: "", phone: "", houseNumberUnit: "", streetAddress: "", subdivisionBuilding: "", barangayDistrict: "", cityMunicipality: "", provinceState: "", postalCode: "", country: "Philippines", birthdate: "", skills: "", employmentStatus: "", preferredPosition: "", preferredLocation: "" });
+  const [form, setForm] = useState({ firstName: "", middleName: "", lastName: "", suffix: "", phone: "", lot: "", block: "", houseNumberUnit: "", streetAddress: "", subdivisionBuilding: "", barangayDistrict: "", birthdate: "", skills: "", employmentStatus: "", preferredPosition: "", preferredLocation: "" });
   const [education, setEducation] = useState([]);
   const [experience, setExperience] = useState([]);
   const [employments, setEmployments] = useState([]);
@@ -66,7 +66,7 @@ function Profile() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [pendingDelete, setPendingDelete] = useState(null);
   const [uploadError, setUploadError] = useState("");
-  const [newEdu, setNewEdu] = useState({ level: "", school: "", field: "", end_year: "" });
+  const [newEdu, setNewEdu] = useState({ level: "", school: "", field: "", end_year: "", studying: false });
   const [newExp, setNewExp] = useState({ company: "", position: "", start_date: "", end_date: "", description: "" });
   const [eduError, setEduError] = useState("");
   const [expError, setExpError] = useState("");
@@ -93,14 +93,12 @@ function Profile() {
           lastName: user.last_name || "",
           suffix: user.suffix || "",
           phone: user.phone || "",
+          lot: user.lot || "",
+          block: user.block || "",
           houseNumberUnit: user.house_number_unit || "",
           streetAddress: user.street_address || "",
           subdivisionBuilding: user.subdivision_building || "",
           barangayDistrict: user.barangay_district || "",
-          cityMunicipality: user.city_municipality || "",
-          provinceState: user.province_state || "",
-          postalCode: user.postal_code || "",
-          country: user.country || "Philippines",
           birthdate: user.birthdate || "",
           skills: (user.skills || []).join(", "),
           employmentStatus: user.employment_status || "",
@@ -121,8 +119,8 @@ function Profile() {
 
   const completion = Math.round(([
     form.firstName && form.lastName, form.phone, form.barangayDistrict,
-    form.cityMunicipality, education.length, skills.length, resumes.length,
-  ].filter(Boolean).length / 7) * 100);
+    education.length, skills.length, resumes.length,
+  ].filter(Boolean).length / 6) * 100);
 
   function handleChange(field, value) {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -132,7 +130,7 @@ function Profile() {
     const level = newEdu.level.trim();
     const school = newEdu.school.trim();
     if (!level || !school) { setEduError("Please select a level and enter a school name."); return; }
-    const endYear = newEdu.end_year.trim();
+    const endYear = newEdu.studying ? "" : newEdu.end_year.trim();
     if (endYear && !/^\d{4}$/.test(endYear)) { setEduError("Graduation year must be a 4-digit year."); return; }
     setEduError("");
     setAddingEdu(true);
@@ -145,7 +143,7 @@ function Profile() {
       });
       if (!data) throw new Error("Could not save education. Please try again.");
       setEducation([...education, data]);
-      setNewEdu({ level: "", school: "", field: "", end_year: "" });
+      setNewEdu({ level: "", school: "", field: "", end_year: "", studying: false });
     } catch (err) {
       setEduError(err.message || "Failed to add education.");
     } finally {
@@ -228,14 +226,11 @@ function Profile() {
         suffix: form.suffix,
         full_name: fullName,
         phone: form.phone,
-        house_number_unit: form.houseNumberUnit,
+        lot: form.lot,
+        block: form.block,
         street_address: form.streetAddress,
         subdivision_building: form.subdivisionBuilding,
         barangay_district: form.barangayDistrict,
-        city_municipality: form.cityMunicipality,
-        province_state: form.provinceState,
-        postal_code: form.postalCode,
-        country: form.country,
         birthdate: form.birthdate || null,
         skills: skillsArray,
         employment_status: form.employmentStatus || null,
@@ -254,29 +249,22 @@ function Profile() {
     }
   }
 
-  const tabs = [
-    { id: "info", label: "Personal Info" },
-    { id: "education", label: "Education" },
-    { id: "experience", label: "Experience" },
-    { id: "resume", label: "Resume" },
-  ];
-
   return (
     <div className="w-full space-y-6">
-      <header>
-        <p className="font-mono text-[11px] tracking-[0.2em] text-[#0057B8] uppercase">MUNICIPAL CANDIDATE PROFILE</p>
-        <h1 className="mt-1 font-sans text-xl md:text-2xl font-bold tracking-tight text-gray-900">My Account & Resume</h1>
-        <p className="mt-2 text-sm text-gray-500">Your credentials, contact information, and skill tags seen by Santa Maria employers</p>
-      </header>
+      <PageHeader
+        eyebrow="MUNICIPAL CANDIDATE PROFILE"
+        title="My Account & Resume"
+        subtitle="Your credentials, contact information, and skill tags seen by Santa Maria employers"
+      />
 
       <div className="bg-white border border-primary rounded-lg p-6 md:p-9">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-6 border-b border-gray-200">
           <div className="flex items-center gap-3">
-            <div className="w-16 h-16 rounded-lg bg-[#0057B8]/15 border border-[#0057B8]/30 flex items-center justify-center font-bold text-xl text-[#0057B8] shadow-[0_4px_16px_rgba(0,117,162,0.15)]">
-              {form.firstName[0] || "J"}{form.lastName[0] || "S"}
+            <div className="w-16 h-16 rounded-lg bg-accent/20 border border-accent/30 flex items-center justify-center font-bold text-xl text-accent shadow-[0_4px_16px_rgba(0,117,162,0.15)]">
+              {(form.firstName[0] || "J").toUpperCase()}{(form.lastName[0] || "S").toUpperCase()}
             </div>
             <div>
-              <h2 className="text-xl font-bold text-gray-900">{fullName}</h2>
+              <h2 className="text-xl font-bold text-gray-900 uppercase">{fullName}</h2>
               <p className="font-mono text-xs text-gray-400 mt-0.5">Accredited Job Seeker · {user?.email}</p>
             </div>
           </div>
@@ -304,25 +292,11 @@ function Profile() {
           </div>
         </div>
 
-        <div className="mt-6 flex gap-1 border-b border-gray-200">
-          {tabs.map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`px-4 py-2.5 text-xs font-medium transition-colors border-b-2 -mb-px ${
-                activeTab === tab.id ? "text-[#0057B8] border-[#0057B8]" : "text-gray-400 border-transparent hover:text-gray-600"
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
-
         {editing ? (
-          <form onSubmit={handleSubmit} className="mt-6 space-y-5">
-            {activeTab === "info" && (
-              <>
-                <div className="grid grid-cols-1 lg:grid-cols-1 gap-3">
+          <form onSubmit={handleSubmit} className="mt-6 space-y-6">
+            <section className="p-5 rounded-xl bg-gray-50 border border-gray-200">
+              <p className="font-mono text-[10px] tracking-[0.2em] uppercase text-primary font-semibold mb-4">Personal Info</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
                   <div>
                     <label className="block font-mono text-[11px] tracking-wider text-gray-500 uppercase mb-1.5">First Name</label>
                     <input value={form.firstName} onChange={(e) => handleChange("firstName", e.target.value)} className="w-full min-h-[44px] px-4 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all" />
@@ -348,15 +322,15 @@ function Profile() {
                     <input type="date" value={form.birthdate} onChange={(e) => handleChange("birthdate", e.target.value)} className="w-full min-h-[44px] px-4 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all" />
                   </div>
                 </div>
-                <div className="grid grid-cols-1 gap-3">
-                  {[["houseNumberUnit", "House / Building / Unit No.", "e.g. Unit 402"], ["streetAddress", "Street Address & Lot / Block", "Street address"], ["subdivisionBuilding", "Subdivision / Village / Building Name", "Subdivision name"], ["barangayDistrict", "Barangay / District", "Barangay"], ["cityMunicipality", "City / Municipality", "e.g. Santa Maria"], ["provinceState", "Province / State", "e.g. Bulacan"], ["postalCode", "Postal / ZIP Code", "e.g. 3022"], ["country", "Country", "Philippines"]].map(([field, label, placeholder]) => (
+                <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+                  {[['block', 'Block', 'e.g. 4'], ['lot', 'Lot', 'e.g. 12'], ['streetAddress', 'Street Address', 'e.g. Norzagaray-Santa Maria Road'], ['subdivisionBuilding', 'Subdivision / Village / Building Name', 'Subdivision name'], ['barangayDistrict', 'Barangay / District', 'Barangay']].map(([field, label, placeholder]) => (
                     <div key={field}>
                       <label className="block font-mono text-[11px] tracking-wider text-gray-500 uppercase mb-1.5">{label}</label>
                       <input value={form[field]} onChange={(e) => handleChange(field, e.target.value)} placeholder={placeholder} className="w-full min-h-[44px] px-4 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all" />
                     </div>
                   ))}
                 </div>
-                <div className="grid grid-cols-1 gap-3">
+                <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
                   <div>
                     <label className="block font-mono text-[11px] tracking-wider text-gray-500 uppercase mb-1.5">Employment Status</label>
                     <select value={form.employmentStatus} onChange={(e) => handleChange("employmentStatus", e.target.value)} className="w-full min-h-[44px] px-4 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all">
@@ -373,112 +347,121 @@ function Profile() {
                     <TagInput value={form.preferredLocation} onChange={(v) => handleChange("preferredLocation", v)} placeholder="e.g. Santa Maria — Enter to add" />
                   </div>
                 </div>
-                <div>
+            </section>
+
+            <div className="grid grid-cols-1 xl:grid-cols-2 xl:auto-rows-fr gap-6 items-stretch">
+                <section className="h-full p-5 rounded-xl bg-gray-50 border border-gray-200 flex flex-col">
+                  <p className="font-mono text-[10px] tracking-[0.2em] uppercase text-primary font-semibold mb-4">Skills</p>
                   <label className="block font-mono text-[11px] tracking-wider text-gray-500 uppercase mb-1.5">Skills & Competencies <span className="text-gray-400 font-normal">(tags)</span></label>
-                  <TagInput value={form.skills} onChange={(v) => handleChange("skills", v)} placeholder="e.g. Data Entry — Enter to add" />
-                </div>
-              </>
-            )}
+                  <TagInput value={form.skills} onChange={(v) => handleChange("skills", v)} placeholder="e.g. Data Entry — Enter to add" className="flex-1" />
+                </section>
 
-            {activeTab === "education" && (
-              <div className="space-y-4">
-                {education.map((edu) => (
-                  <div key={edu.id} className="flex items-start justify-between p-4 rounded-xl bg-gray-50 border border-gray-200">
-                    <div>
-                      <p className="text-sm font-medium text-gray-900">{edu.school}</p>
-                      <p className="text-xs text-gray-500 mt-0.5">{edu.level}{edu.field ? ` · ${edu.field}` : ""}{edu.end_year ? ` · ${edu.end_year}` : ""}</p>
-                    </div>
-                    <button type="button" onClick={() => handleRemoveEducation(edu.id)} className="text-gray-400 hover:text-primary text-xs">Remove</button>
-                  </div>
-                ))}
-                <div className="grid grid-cols-1 gap-3">
-                  <select value={newEdu.level} onChange={(e) => setNewEdu({ ...newEdu, level: e.target.value })} className="px-4 py-2.5 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 focus:outline-none focus:border-primary/60 transition-all">
-                    <option value="">Education level</option>
-                    {["Elementary", "High School", "Senior High School", "Vocational", "College", "Post-Graduate"].map((l) => <option key={l} value={l}>{l}</option>)}
-                  </select>
-                  <input value={newEdu.school} onChange={(e) => setNewEdu({ ...newEdu, school: e.target.value })} placeholder="School name" className="px-4 py-2.5 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-primary/60 transition-all" />
-                  <div className="flex gap-2">
-                    <input value={newEdu.field} onChange={(e) => setNewEdu({ ...newEdu, field: e.target.value })} placeholder="Course / field" className="flex-1 px-4 py-2.5 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-primary/60 transition-all" />
-                    <input value={newEdu.end_year} onChange={(e) => setNewEdu({ ...newEdu, end_year: e.target.value })} placeholder="Year" inputMode="numeric" className="w-20 px-3 py-2.5 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-primary/60 transition-all" />
-                  </div>
-                </div>
-                <button type="button" onClick={handleAddEducation} disabled={addingEdu} className="px-4 py-2.5 text-sm font-medium text-white bg-primary hover:bg-primary-hover rounded-xl active:scale-[0.98] transition-colors disabled:opacity-60">{addingEdu ? "Adding…" : "Add Education"}</button>
-                {eduError && <p className="text-xs text-danger">{eduError}</p>}
-              </div>
-            )}
-
-            {activeTab === "experience" && (
-              <div className="space-y-4">
-                {employments.length > 0 && (
-                  <div className="space-y-3">
-                    <p className="font-mono text-[11px] tracking-widest text-gray-500 uppercase">Synced Employment <span className="text-gray-400 font-normal">(from hiring activity)</span></p>
-                    {employments.map((job) => <SyncedEmployment key={job.id} job={job} />)}
-                  </div>
-                )}
-                {experience.map((exp) => (
-                  <div key={exp.id} className="flex items-start justify-between p-4 rounded-xl bg-gray-50 border border-gray-200">
-                    <div>
-                      <p className="text-sm font-medium text-gray-900">{exp.position}</p>
-                      <p className="text-xs text-gray-500 mt-0.5">{exp.company} · {exp.start_date || "Start"} – {exp.end_date || "Present"}</p>
-                      {exp.description && <p className="text-xs text-gray-400 mt-1">{exp.description}</p>}
-                    </div>
-                    <button type="button" onClick={() => handleRemoveExperience(exp.id)} className="text-gray-400 hover:text-primary text-xs">Remove</button>
-                  </div>
-                ))}
-                <div className="grid grid-cols-1 gap-3">
-                  <input value={newExp.company} onChange={(e) => setNewExp({ ...newExp, company: e.target.value })} placeholder="Company name" className="px-4 py-2.5 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-primary/60 transition-all" />
-                  <input value={newExp.position} onChange={(e) => setNewExp({ ...newExp, position: e.target.value })} placeholder="Job title" className="px-4 py-2.5 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-primary/60 transition-all" />
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="block font-mono text-[11px] tracking-wider text-gray-500 uppercase mb-1.5">Start Date</label>
-                      <input type="date" value={newExp.start_date} onChange={(e) => setNewExp({ ...newExp, start_date: e.target.value })} className="w-full px-4 py-2.5 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 focus:outline-none focus:border-primary/60 transition-all" />
-                    </div>
-                    <div>
-                      <label className="block font-mono text-[11px] tracking-wider text-gray-500 uppercase mb-1.5">End Date <span className="text-gray-400 font-normal">(blank = present)</span></label>
-                      <input type="date" value={newExp.end_date} onChange={(e) => setNewExp({ ...newExp, end_date: e.target.value })} className="w-full px-4 py-2.5 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 focus:outline-none focus:border-primary/60 transition-all" />
-                    </div>
-                  </div>
-                </div>
-                <input value={newExp.description} onChange={(e) => setNewExp({ ...newExp, description: e.target.value })} placeholder="Brief description of responsibilities" className="w-full px-4 py-2.5 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-primary/60 transition-all" />
-                <button type="button" onClick={handleAddExperience} disabled={addingExp} className="px-4 py-2.5 text-sm font-medium text-white bg-primary hover:bg-primary-hover rounded-xl active:scale-[0.98] transition-colors disabled:opacity-60">{addingExp ? "Adding…" : "Add Experience"}</button>
-                {expError && <p className="text-xs text-danger">{expError}</p>}
-              </div>
-            )}
-
-            {activeTab === "resume" && (
-              <div className="space-y-4">
-                <div className="p-5 rounded-xl bg-gray-50 border border-dashed border-gray-300">
-                  <input type="file" accept=".pdf,.doc,.docx" onChange={handleResumeUpload} className="hidden" id="resume-upload" />
-                  {resumes.length > 0 ? (
-                    <div className="space-y-3">
-                      {resumes.map((resume) => (
-                        <div key={resume.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-xl bg-white border border-gray-200">
-                          <div>
-                            <p className="text-sm text-gray-900">{resume.file_name}</p>
-                            <p className="text-xs text-gray-400 mt-0.5">Uploaded {new Date(resume.uploaded_at).toLocaleDateString()}</p>
-                          </div>
-                          <div className="flex gap-2 flex-wrap">
-                            <ResumeLinks resume={resume} />
-                            {resume.is_active ? (
-                              <span className="px-3 py-1.5 text-xs font-medium text-emerald-600 bg-emerald-50 border border-emerald-200 rounded-lg">Active</span>
-                            ) : (
-                              <button type="button" onClick={() => handleSetActiveResume(resume.id)} className="px-3 py-1.5 text-xs font-medium text-primary border border-primary/30 rounded-lg hover:bg-primary/5 transition-colors">Set Active</button>
-                            )}
-                            <label htmlFor="resume-upload" className="cursor-pointer px-3 py-1.5 text-xs font-medium text-primary border border-primary/30 rounded-lg hover:bg-primary/5 transition-colors">Replace</label>
-                            <button type="button" onClick={() => { setPendingDelete(resume); setShowDeleteConfirm(true); }} className="px-3 py-1.5 text-xs font-medium text-danger border border-danger/30 rounded-lg hover:bg-danger/5 transition-colors">Delete</button>
-                          </div>
+                <section className="h-full p-5 rounded-xl bg-gray-50 border border-gray-200">
+                  <p className="font-mono text-[10px] tracking-[0.2em] uppercase text-primary font-semibold mb-4">Experience</p>
+                  <div className="space-y-4">
+                    {employments.length > 0 && (
+                      <div className="space-y-3">
+                        <p className="font-mono text-[11px] tracking-widest text-gray-500 uppercase">Synced Employment <span className="text-gray-400 font-normal">(from hiring activity)</span></p>
+                        {employments.map((job) => <SyncedEmployment key={job.id} job={job} />)}
+                      </div>
+                    )}
+                    {experience.map((exp) => (
+                      <div key={exp.id} className="flex items-start justify-between p-4 rounded-xl bg-gray-50 border border-gray-200">
+                        <div>
+                          <p className="text-sm font-medium text-gray-900">{exp.position}</p>
+                          <p className="text-xs text-gray-500 mt-0.5">{exp.company} · {exp.start_date || "Start"} – {exp.end_date || "Present"}</p>
+                          {exp.description && <p className="text-xs text-gray-400 mt-1">{exp.description}</p>}
                         </div>
-                      ))}
+                        <button type="button" onClick={() => handleRemoveExperience(exp.id)} className="text-gray-400 hover:text-primary text-xs">Remove</button>
+                      </div>
+                    ))}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <input value={newExp.company} onChange={(e) => setNewExp({ ...newExp, company: e.target.value })} placeholder="Company name" className="px-4 py-2.5 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-primary/60 transition-all" />
+                      <input value={newExp.position} onChange={(e) => setNewExp({ ...newExp, position: e.target.value })} placeholder="Job title" className="px-4 py-2.5 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-primary/60 transition-all" />
+                      <div className="grid grid-cols-2 gap-3 sm:col-span-2">
+                        <div>
+                          <label className="block font-mono text-[11px] tracking-wider text-gray-500 uppercase mb-1.5">Start Date</label>
+                          <input type="date" value={newExp.start_date} onChange={(e) => setNewExp({ ...newExp, start_date: e.target.value })} className="w-full px-4 py-2.5 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 focus:outline-none focus:border-primary/60 transition-all" />
+                        </div>
+                        <div>
+                          <label className="block font-mono text-[11px] tracking-wider text-gray-500 uppercase mb-1.5">End Date <span className="text-gray-400 font-normal">(blank = present)</span></label>
+                          <input type="date" value={newExp.end_date} onChange={(e) => setNewExp({ ...newExp, end_date: e.target.value })} className="w-full px-4 py-2.5 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 focus:outline-none focus:border-primary/60 transition-all" />
+                        </div>
+                      </div>
                     </div>
-                  ) : (
-                    <label htmlFor="resume-upload" className="cursor-pointer text-sm text-gray-500 hover:text-primary transition-colors">
-                      Click to upload resume (PDF, DOC, DOCX)
-                    </label>
-                  )}
-                  {uploadError && <p className="mt-2 text-xs text-red-500">{uploadError}</p>}
-                </div>
-              </div>
-            )}
+                    <input value={newExp.description} onChange={(e) => setNewExp({ ...newExp, description: e.target.value })} placeholder="Brief description of responsibilities" className="w-full px-4 py-2.5 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-primary/60 transition-all" />
+                    <button type="button" onClick={handleAddExperience} disabled={addingExp} className="px-4 py-2.5 text-sm font-medium text-white bg-primary hover:bg-primary-hover rounded-xl active:scale-[0.98] transition-colors disabled:opacity-60">{addingExp ? "Adding…" : "Add Experience"}</button>
+                    {expError && <p className="text-xs text-danger">{expError}</p>}
+                  </div>
+                </section>
+
+                <section className="h-full p-5 rounded-xl bg-gray-50 border border-gray-200">
+                  <p className="font-mono text-[10px] tracking-[0.2em] uppercase text-primary font-semibold mb-4">Education</p>
+                  <div className="space-y-4">
+                    {education.map((edu) => (
+                      <div key={edu.id} className="flex items-start justify-between p-4 rounded-xl bg-gray-50 border border-gray-200">
+                        <div>
+                          <p className="text-sm font-medium text-gray-900 uppercase">{edu.school}</p>
+                          <p className="text-xs text-gray-500 mt-0.5 uppercase">{edu.level}{edu.field ? ` · ${edu.field}` : ""}{edu.end_year ? ` · ${edu.end_year}` : " · Present"}</p>
+                        </div>
+                        <button type="button" onClick={() => handleRemoveEducation(edu.id)} className="text-gray-400 hover:text-primary text-xs">Remove</button>
+                      </div>
+                    ))}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <select value={newEdu.level} onChange={(e) => setNewEdu({ ...newEdu, level: e.target.value })} className="px-4 py-2.5 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 focus:outline-none focus:border-primary/60 transition-all">
+                        <option value="">Education level</option>
+                        {["Elementary", "High School", "Senior High School", "Vocational", "College", "Post-Graduate"].map((l) => <option key={l} value={l}>{l}</option>)}
+                      </select>
+                      <input value={newEdu.school} onChange={(e) => setNewEdu({ ...newEdu, school: e.target.value })} placeholder="School name" className="px-4 py-2.5 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-primary/60 transition-all" />
+                      <div className="flex gap-2">
+                        <input value={newEdu.field} onChange={(e) => setNewEdu({ ...newEdu, field: e.target.value })} placeholder="Course / field" className="flex-1 px-4 py-2.5 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-primary/60 transition-all" />
+                        <input value={newEdu.end_year} onChange={(e) => setNewEdu({ ...newEdu, end_year: e.target.value })} placeholder="Year" inputMode="numeric" disabled={newEdu.studying} className="w-20 px-3 py-2.5 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-primary/60 transition-all disabled:opacity-50" />
+                      </div>
+                      <label className="flex items-center gap-2 text-xs text-gray-500 select-none cursor-pointer">
+                        <input type="checkbox" checked={newEdu.studying} onChange={(e) => setNewEdu({ ...newEdu, studying: e.target.checked })} className="accent-primary" />
+                        Currently studying here <span className="text-gray-400">(blank = Present)</span>
+                      </label>
+                    </div>
+                    <button type="button" onClick={handleAddEducation} disabled={addingEdu} className="px-4 py-2.5 text-sm font-medium text-white bg-primary hover:bg-primary-hover rounded-xl active:scale-[0.98] transition-colors disabled:opacity-60">{addingEdu ? "Adding…" : "Add Education"}</button>
+                    {eduError && <p className="text-xs text-danger">{eduError}</p>}
+                  </div>
+                </section>
+
+                <section className="h-full p-5 rounded-xl bg-gray-50 border border-gray-200 flex flex-col">
+                  <p className="font-mono text-[10px] tracking-[0.2em] uppercase text-primary font-semibold mb-4">Resume</p>
+                  <div className="flex-1 flex flex-col">
+                    <div className="flex-1 flex flex-col justify-center items-center p-5 rounded-xl bg-gray-50 border border-dashed border-gray-300">
+                      <input type="file" accept=".pdf,.doc,.docx" onChange={handleResumeUpload} className="hidden" id="resume-upload" />
+                      {resumes.length > 0 ? (
+                        <div className="space-y-3 w-full">
+                          {resumes.map((resume) => (
+                            <div key={resume.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-xl bg-white border border-gray-200">
+                              <div>
+                                <p className="text-sm text-gray-900">{resume.file_name}</p>
+                                <p className="text-xs text-gray-400 mt-0.5">Uploaded {new Date(resume.uploaded_at).toLocaleDateString()}</p>
+                              </div>
+                              <div className="flex gap-2 flex-wrap">
+                                <ResumeLinks resume={resume} />
+                            {!resume.is_active && (
+                                  <button type="button" onClick={() => handleSetActiveResume(resume.id)} className="px-3 py-1.5 text-xs font-medium text-primary border border-primary/30 rounded-lg hover:bg-primary/5 transition-colors">Set Active</button>
+                                )}
+                                <label htmlFor="resume-upload" className="cursor-pointer px-3 py-1.5 text-xs font-medium text-primary border border-primary/30 rounded-lg hover:bg-primary/5 transition-colors">Replace</label>
+                                <button type="button" onClick={() => { setPendingDelete(resume); setShowDeleteConfirm(true); }} className="px-3 py-1.5 text-xs font-medium text-danger border border-danger/30 rounded-lg hover:bg-danger/5 transition-colors">Delete</button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <label htmlFor="resume-upload" className="cursor-pointer text-sm text-gray-500 hover:text-primary transition-colors flex flex-col items-center justify-center py-6 w-full h-full text-center">
+                          <span>Click to upload resume (PDF, DOC, or DOCX)</span>
+                          <span className="mt-2 text-xs text-gray-400">PDF up to 2 MB; DOC or DOCX up to 5 MB.</span>
+                        </label>
+                      )}
+                      {uploadError && <p className="mt-2 text-xs text-red-500 text-center">{uploadError}</p>}
+                    </div>
+                  </div>
+                </section>
+            </div>
 
             <div className="flex items-center justify-end gap-3 pt-3">
               <button type="submit" disabled={saving} className="min-h-[42px] px-6 rounded-xl bg-primary text-white text-xs font-medium hover:bg-primary-hover transition-colors disabled:opacity-60">
@@ -491,9 +474,9 @@ function Profile() {
           </form>
         ) : (
           <div className="mt-6 space-y-6">
-            {activeTab === "info" && (
-              <>
-                <dl className="grid grid-cols-1 gap-5 text-sm p-5 rounded-xl bg-gray-50 border border-gray-200">
+            <section className="p-5 rounded-xl bg-gray-50 border border-gray-200">
+              <p className="font-mono text-[10px] tracking-[0.2em] uppercase text-primary font-semibold mb-4">Personal Info</p>
+                <dl className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-5 text-sm">
                   <div>
                     <dt className="font-mono text-[10px] tracking-widest uppercase text-gray-400">Email Address</dt>
                     <dd className="mt-1 font-mono text-xs text-gray-700">{user?.email || "—"}</dd>
@@ -504,11 +487,15 @@ function Profile() {
                   </div>
                   <div>
                     <dt className="font-mono text-[10px] tracking-widest uppercase text-gray-400">Barangay Address</dt>
-                    <dd className="mt-1 text-xs text-gray-700">{formatFullAddress({ house_number_unit: form.houseNumberUnit, street_address: form.streetAddress, subdivision_building: form.subdivisionBuilding, barangay_district: form.barangayDistrict, city_municipality: form.cityMunicipality, province_state: form.provinceState, postal_code: form.postalCode, country: form.country }) || "Not set"}</dd>
+                    <dd className="mt-1 text-xs text-gray-700">{formatFullAddress({ lot: form.lot ? `Lot ${form.lot}` : "", block: form.block ? `Blk. ${form.block}` : "", house_number_unit: form.houseNumberUnit, street_address: form.streetAddress, subdivision_building: form.subdivisionBuilding, barangay_district: form.barangayDistrict }) || "Not set"}</dd>
                   </div>
                   <div>
                     <dt className="font-mono text-[10px] tracking-widest uppercase text-gray-400">Date of Birth</dt>
-                    <dd className="mt-1 text-xs text-gray-700">{form.birthdate || "Not set"}</dd>
+                    <dd className="mt-1 text-xs text-gray-700">
+                      {form.birthdate
+                        ? new Date(form.birthdate).toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" })
+                        : "Not set"}
+                    </dd>
                   </div>
                   <div>
                     <dt className="font-mono text-[10px] tracking-widest uppercase text-gray-400">Employment Status</dt>
@@ -539,68 +526,72 @@ function Profile() {
                     </dd>
                   </div>
                 </dl>
-                <section>
-                  <h3 className="font-mono text-[11px] tracking-[0.2em] text-[#0057B8] uppercase mb-3">Skills & Capabilities</h3>
+            </section>
+
+            <div className="grid grid-cols-1 xl:grid-cols-2 xl:auto-rows-fr gap-6 items-stretch">
+                <section className="h-full p-5 rounded-xl bg-gray-50 border border-gray-200 flex flex-col">
+                  <p className="font-mono text-[10px] tracking-[0.2em] uppercase text-primary font-semibold mb-4">Skills</p>
                   {skills.length ? (
-                    <div className="flex flex-wrap gap-2">
+                    <div className="flex flex-wrap gap-2 content-start flex-1">
                       {skills.map((skill) => (
-                        <span key={skill} className="font-mono text-xs px-3 py-1 rounded-full bg-primary/10 border border-primary/25 text-primary">{skill}</span>
+                        <span key={skill} className="font-mono text-xs px-3 py-1 rounded-full bg-primary/10 border border-primary/25 text-primary uppercase h-fit">{skill}</span>
                       ))}
                     </div>
                   ) : (
-                    <p className="text-xs text-gray-400">No skills specified yet.</p>
+                    <p className="text-xs text-gray-400 py-2">No skills specified yet.</p>
                   )}
                 </section>
-              </>
-            )}
 
-            {activeTab === "education" && (
-              <div className="space-y-3">
-                {education.length ? education.map((edu) => (
-                  <div key={edu.id} className="p-4 rounded-xl bg-gray-50 border border-gray-200">
-                    <p className="text-sm font-medium text-gray-900">{edu.school}</p>
-                    <p className="text-xs text-gray-500 mt-0.5">{edu.level}{edu.field ? ` · ${edu.field}` : ""}{edu.end_year ? ` · ${edu.end_year}` : ""}</p>
-                  </div>
-                )) : <p className="text-xs text-gray-400">No education added yet.</p>}
-              </div>
-            )}
-
-            {activeTab === "experience" && (
-              <div className="space-y-3">
-                {employments.length > 0 && (
+                <section className="h-full p-5 rounded-xl bg-gray-50 border border-gray-200">
+                  <p className="font-mono text-[10px] tracking-[0.2em] uppercase text-primary font-semibold mb-4">Experience</p>
                   <div className="space-y-3">
-                    <p className="font-mono text-[11px] tracking-widest text-gray-500 uppercase">Synced Employment</p>
-                    {employments.map((job) => <SyncedEmployment key={job.id} job={job} />)}
+                    {employments.length > 0 && (
+                      <div className="space-y-3">
+                        <p className="font-mono text-[11px] tracking-widest text-gray-500 uppercase">Synced Employment</p>
+                        {employments.map((job) => <SyncedEmployment key={job.id} job={job} />)}
+                      </div>
+                    )}
+                    {employments.length > 0 && experience.length > 0 && (
+                      <p className="font-mono text-[11px] tracking-widest text-gray-500 uppercase pt-2">Added Manually</p>
+                    )}
+                    {experience.length ? experience.map((exp) => (
+                      <div key={exp.id} className="p-4 rounded-xl bg-gray-50 border border-gray-200">
+                        <p className="text-sm font-medium text-gray-900">{exp.position}</p>
+                        <p className="text-xs text-gray-500 mt-0.5">{exp.company} · {exp.start_date || "Start"} – {exp.end_date || "Present"}</p>
+                        {exp.description && <p className="text-xs text-gray-400 mt-1">{exp.description}</p>}
+                      </div>
+                    )) : (employments.length === 0 && <p className="text-xs text-gray-400 text-center py-4">No experience added yet.</p>)}
                   </div>
-                )}
-                {employments.length > 0 && experience.length > 0 && (
-                  <p className="font-mono text-[11px] tracking-widest text-gray-500 uppercase pt-2">Added Manually</p>
-                )}
-                {experience.length ? experience.map((exp) => (
-                  <div key={exp.id} className="p-4 rounded-xl bg-gray-50 border border-gray-200">
-                    <p className="text-sm font-medium text-gray-900">{exp.position}</p>
-                    <p className="text-xs text-gray-500 mt-0.5">{exp.company} · {exp.start_date || "Start"} – {exp.end_date || "Present"}</p>
-                    {exp.description && <p className="text-xs text-gray-400 mt-1">{exp.description}</p>}
+                </section>
+                <section className="h-full p-5 rounded-xl bg-gray-50 border border-gray-200">
+                  <p className="font-mono text-[10px] tracking-[0.2em] uppercase text-primary font-semibold mb-4">Education</p>
+                  <div className="space-y-3">
+                    {education.length ? education.map((edu) => (
+                      <div key={edu.id} className="p-4 rounded-xl bg-gray-50 border border-gray-200">
+                        <p className="text-sm font-medium text-gray-900 uppercase">{edu.school}</p>
+                        <p className="text-xs text-gray-500 mt-0.5 uppercase">{edu.level}{edu.field ? ` · ${edu.field}` : ""}{edu.end_year ? ` · ${edu.end_year}` : " · Present"}</p>
+                      </div>
+                    )) : <p className="text-xs text-gray-400 text-center py-4">No education added yet.</p>}
                   </div>
-                )) : (employments.length === 0 && <p className="text-xs text-gray-400">No experience added yet.</p>)}
-              </div>
-            )}
+                </section>
 
-            {activeTab === "resume" && (
-              <div className="p-5 rounded-xl bg-gray-50 border border-gray-200 text-center">
-                {resumes.length > 0 ? (
-                  <div>
-                    <p className="text-sm text-gray-900">{activeResume.file_name}</p>
-                    <p className="text-xs text-gray-400 mt-1">{resumes.length} resume{resumes.length > 1 ? "s" : ""} on file</p>
-                    <div className="mt-3 flex justify-center gap-2">
-                      <ResumeLinks resume={activeResume} />
-                    </div>
+                <section className="h-full p-5 rounded-xl bg-gray-50 border border-gray-200 text-center flex flex-col">
+                  <p className="font-mono text-[10px] tracking-[0.2em] uppercase text-primary font-semibold mb-4 text-left">Resume</p>
+                  <div className="flex-1 flex flex-col justify-center items-center">
+                    {resumes.length > 0 ? (
+                      <div>
+                        <p className="text-sm text-gray-900">{activeResume.file_name}</p>
+                        <p className="text-xs text-gray-400 mt-1">{resumes.length} resume{resumes.length > 1 ? "s" : ""} on file</p>
+                        <div className="mt-3 flex justify-center gap-2">
+                          <ResumeLinks resume={activeResume} />
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="text-xs text-gray-400 text-center py-4">No resume uploaded yet.</p>
+                    )}
                   </div>
-                ) : (
-                  <p className="text-xs text-gray-400">No resume uploaded yet.</p>
-                )}
-              </div>
-            )}
+                </section>
+            </div>
           </div>
         )}
         {showDeleteConfirm && pendingDelete && (

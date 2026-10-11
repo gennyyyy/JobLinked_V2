@@ -59,24 +59,35 @@ const ALLOWED_SIGNUP_ROLES = ['job-seeker', 'employer'];
 export async function signUp({ email, password, role, firstName, middleName = '', lastName, suffix = '', extra = {} }) {
   if (!ALLOWED_SIGNUP_ROLES.includes(role)) throw new Error('Invalid role');
   const fullName = [firstName, middleName, lastName, suffix].filter(Boolean).join(' ');
+  const lower = (value) => typeof value === 'string' ? value.trim().toLowerCase() : value;
   const meta = {
     role,
-    first_name: firstName,
-    middle_name: middleName,
-    last_name: lastName,
-    suffix,
-    full_name: fullName,
+    first_name: lower(firstName),
+    middle_name: lower(middleName),
+    last_name: lower(lastName),
+    suffix: lower(suffix),
+    full_name: lower(fullName),
     phone: extra.phone || null,
-    house_number_unit: extra.houseNumberUnit || null,
-    street_address: extra.streetAddress || null,
-    subdivision_building: extra.subdivisionBuilding || null,
-    barangay_district: extra.barangayDistrict || null,
-    city_municipality: extra.cityMunicipality || null,
-    province_state: extra.provinceState || null,
-    postal_code: extra.postalCode || null,
-    country: extra.country || 'Philippines',
+    lot: lower(extra.lot) || null,
+    block: lower(extra.block) || null,
+    house_number_unit: lower(extra.houseNumberUnit) || null,
+    street_address: lower(extra.streetAddress) || null,
+    subdivision_building: lower(extra.subdivisionBuilding) || null,
+    barangay_district: lower(extra.barangayDistrict) || null,
+    city_municipality: lower(extra.cityMunicipality) || null,
+    province_state: lower(extra.provinceState) || null,
+    postal_code: lower(extra.postalCode) || null,
+    country: lower(extra.country) || 'philippines',
     birthdate: extra.birthdate || null,
-    company_name: extra.companyName || null,
+    employment_status: extra.employmentStatus || null,
+    skills: Array.isArray(extra.skills) ? extra.skills.map((skill) => String(skill).trim().toLowerCase()).filter(Boolean) : [],
+    education: extra.education ? {
+      level: lower(extra.education.level),
+      school: lower(extra.education.school),
+      field: lower(extra.education.field) || null,
+      end_year: extra.education.end_year || null,
+    } : null,
+    company_name: lower(extra.companyName) || null,
     industry: extra.industry || null,
     company_phone: extra.companyPhone || null,
     company_email: extra.companyEmail || null,
@@ -88,7 +99,7 @@ export async function signUp({ email, password, role, firstName, middleName = ''
     password,
     options: {
       data: meta,
-      emailRedirectTo: `${window.location.origin}/`,
+      emailRedirectTo: `${window.location.origin}/auth/callback`,
     },
   });
   if (error) throw error;

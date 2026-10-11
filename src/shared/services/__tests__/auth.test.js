@@ -18,7 +18,7 @@ vi.mock('../../../shared/lib/supabase', () => ({
 
 import { api } from '../../../shared/lib/api'
 import { supabase } from '../../../shared/lib/supabase'
-import { signIn, getProfile, changePassword, resetPassword } from '../auth'
+import { signIn, signUp, getProfile, changePassword, resetPassword } from '../auth'
 
 beforeEach(() => vi.clearAllMocks())
 
@@ -81,6 +81,28 @@ describe('getProfile', () => {
   it('throws on other errors', async () => {
     api.get.mockRejectedValue({ status: 500, message: 'Server error' })
     await expect(getProfile('u1')).rejects.toThrow()
+  })
+})
+
+describe('signUp employment_status', () => {
+  it('persists extra.employmentStatus into signup meta for the confirm-required path', async () => {
+    supabase.auth.signUp.mockResolvedValue({ data: { user: { id: 'u1' } }, error: null })
+
+    await signUp({ email: 's@test.com', password: 'pw123456', role: 'job-seeker', firstName: 'A', lastName: 'B', extra: { employmentStatus: 'Student' } })
+
+    expect(supabase.auth.signUp).toHaveBeenCalledWith(expect.objectContaining({
+      options: expect.objectContaining({ data: expect.objectContaining({ employment_status: 'Student' }) }),
+    }))
+  })
+
+  it('defaults employment_status to null when not given', async () => {
+    supabase.auth.signUp.mockResolvedValue({ data: { user: { id: 'u1' } }, error: null })
+
+    await signUp({ email: 's@test.com', password: 'pw123456', role: 'job-seeker', firstName: 'A', lastName: 'B' })
+
+    expect(supabase.auth.signUp).toHaveBeenCalledWith(expect.objectContaining({
+      options: expect.objectContaining({ data: expect.objectContaining({ employment_status: null }) }),
+    }))
   })
 })
 

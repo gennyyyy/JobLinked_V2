@@ -1,5 +1,7 @@
 export function formatFullAddress(address = {}) {
   const parts = [
+    address.block,
+    address.lot,
     address.house_number_unit,
     address.street_address,
     address.subdivision_building,
@@ -8,5 +10,5 @@ export function formatFullAddress(address = {}) {
     address.province_state,
     address.postal_code,
   ].filter(Boolean);
-  return parts.length ? [...parts, address.country].filter(Boolean).join(", ") : "";
+  return parts.length ? [...parts, address.country].filter(Boolean).join(", ").toUpperCase() : "";
 }

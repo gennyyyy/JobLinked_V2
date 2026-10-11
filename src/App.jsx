@@ -11,6 +11,7 @@ import Register from './features/auth/Register'
 import JobSeekerRegister from './features/auth/JobSeekerRegister'
 import EmployerRegister from './features/auth/EmployerRegister'
 import EmployerStatus from './features/auth/EmployerStatus'
+import AuthCallback from './features/auth/AuthCallback'
 import ProtectedRoute from './shared/components/ProtectedRoute'
 import LoadingScreen from './shared/components/LoadingScreen'
 import useAuth from './shared/hooks/useAuth'
@@ -55,6 +56,7 @@ function App() {
         <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
         <Route path="/forgot-password" element={<PublicRoute><ForgotPassword /></PublicRoute>} />
         <Route path="/reset-password" element={<PublicRoute><ResetPassword /></PublicRoute>} />
+        <Route path="/auth/callback" element={<AuthCallback />} />
         <Route path="/register/job-seeker" element={<PublicRoute><JobSeekerRegister /></PublicRoute>} />
         <Route path="/register/employer" element={<PublicRoute><EmployerRegister /></PublicRoute>} />
         <Route path="/register/employer/status" element={<PublicRoute><EmployerStatus /></PublicRoute>} />

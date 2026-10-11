@@ -45,7 +45,6 @@ describe('Profile resume delete', () => {
 
     render(<Profile />)
     await user.click(await screen.findByRole('button', { name: 'Edit Profile' }))
-    await user.click(await screen.findByRole('button', { name: 'Resume' }))
     await screen.findByText('old.pdf')
 
     const deleteButtons = screen.getAllByRole('button', { name: 'Delete' })

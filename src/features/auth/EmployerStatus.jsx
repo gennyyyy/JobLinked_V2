@@ -106,7 +106,7 @@ function EmployerStatus() {
           <div className="flex items-start justify-between gap-3 pb-6 border-b border-gray-100">
             <div>
               <span className="font-mono text-[10px] tracking-widest uppercase text-primary font-semibold">ACCREDITATION STATUS</span>
-              <h1 className="mt-1 text-2xl font-bold text-dark-blue">{employer.company_name}</h1>
+              <h1 className="mt-1 text-2xl font-bold text-dark-blue uppercase">{employer.company_name}</h1>
             </div>
             <span className={`shrink-0 font-mono text-[11px] tracking-wider px-3 py-1 rounded-full uppercase border font-semibold ${
               isApproved ? "bg-emerald-50 border-emerald-200 text-emerald-600"

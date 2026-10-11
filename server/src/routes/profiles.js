@@ -9,7 +9,7 @@ import { uploadSingle, uploadDir, relPath } from '../upload.js';
 const router = Router();
 
 const SEEKER_ALLOW = ['first_name', 'middle_name', 'last_name', 'suffix', 'full_name', 'phone',
-  'house_number_unit', 'street_address', 'subdivision_building', 'barangay_district',
+  'lot', 'block', 'house_number_unit', 'street_address', 'subdivision_building', 'barangay_district',
   'city_municipality', 'province_state', 'postal_code', 'country', 'birthdate',
   'skills', 'employment_status', 'preferred_position', 'preferred_location'];
 const EMPLOYER_ALLOW = ['first_name', 'middle_name', 'last_name', 'suffix', 'full_name', 'phone',
@@ -17,7 +17,9 @@ const EMPLOYER_ALLOW = ['first_name', 'middle_name', 'last_name', 'suffix', 'ful
   'subdivision_building', 'barangay_district', 'city_municipality', 'province_state',
   'postal_code', 'country', 'representative_email', 'representative_position',
   'website', 'description', 'logo_path'];
-
+const LOWERCASE_FIELDS = new Set(['first_name', 'middle_name', 'last_name', 'suffix', 'full_name',
+  'company_name', 'house_number_unit', 'lot', 'block', 'street_address', 'subdivision_building',
+  'barangay_district', 'city_municipality', 'province_state', 'postal_code', 'country']);
 const meRoutes = (path, table, role, allow) => {
   router.get(path, auth, requireRole(role), ah(async (req, res) => {
     const { rows } = await pool.query(`select * from ${table} where id = $1`, [req.user.id]);
@@ -26,7 +28,13 @@ const meRoutes = (path, table, role, allow) => {
   }));
   router.patch(path, auth, requireRole(role), ah(async (req, res) => {
     const patch = {};
-    for (const c of allow) if (req.body?.[c] !== undefined) patch[c] = req.body[c] === '' ? null : req.body[c];
+    for (const c of allow) if (req.body?.[c] !== undefined) {
+      const value = req.body[c];
+      patch[c] = value === '' ? null
+        : c === 'skills' && Array.isArray(value) ? value.map((skill) => String(skill).trim().toLowerCase()).filter(Boolean)
+          : LOWERCASE_FIELDS.has(c) && typeof value === 'string' ? value.trim().toLowerCase()
+            : value;
+    }
     if (!Object.keys(patch).length) return err(res, 400, 'BAD_REQUEST', 'Nothing to update');
     const keys = Object.keys(patch);
     const { rows } = await pool.query(
@@ -238,7 +246,10 @@ const seekerChild = (path, table, order, allow = null, required = []) => {
     if (!keys.length) return err(res, 400, 'BAD_REQUEST', 'Nothing to add');
     const { rows } = await pool.query(
       `insert into ${table} (seeker_id, ${keys.join(', ')}) values ($1, ${keys.map((_, i) => `$${i + 2}`).join(', ')}) returning *`,
-      [req.user.id, ...keys.map((k) => (req.body[k] === '' ? null : req.body[k]))]);
+      [req.user.id, ...keys.map((k) => {
+        const value = req.body[k];
+        return value === '' ? null : table === 'education' && typeof value === 'string' ? value.trim().toLowerCase() : value;
+      })]);
     void audit(req.user.id, `${table}.create`, table, rows[0].id);
     res.status(201).json(rows[0]);
   }));

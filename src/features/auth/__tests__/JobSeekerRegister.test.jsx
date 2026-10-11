@@ -3,10 +3,15 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import JobSeekerRegister from '../JobSeekerRegister'
 import { signUp } from '../../../shared/services/auth'
+import { addEducation } from '../../../shared/services/seekers'
 import { extractResumeText } from '../../../shared/lib/resumeText'
 
 vi.mock('../../../shared/services/auth', () => ({
   signUp: vi.fn(),
+}))
+
+vi.mock('../../../shared/services/seekers', () => ({
+  addEducation: vi.fn(),
 }))
 
 vi.mock('../../../shared/lib/resumeText', () => ({
@@ -37,6 +42,23 @@ function pickFile(name = 'resume.pdf', type = 'application/pdf') {
   const input = screen.getByLabelText(/autofill from resume/i)
   fireEvent.change(input, { target: { files: [new File(['x'], name, { type })] } })
   return input
+}
+
+function fillRequired() {
+  fireEvent.change(screen.getByLabelText(/^first name/i), { target: { value: 'Juan' } })
+  fireEvent.change(screen.getByLabelText(/last name/i), { target: { value: 'Cruz' } })
+  fireEvent.change(screen.getByLabelText(/email address/i), { target: { value: 'juan@example.com' } })
+  fireEvent.change(screen.getByLabelText(/mobile number/i), { target: { value: '09171234567' } })
+  fireEvent.change(screen.getByLabelText(/birthday/i), { target: { value: '1990-05-04' } })
+  fireEvent.change(screen.getByLabelText(/street address/i), { target: { value: 'Norzagaray-Santa Maria Road' } })
+  fireEvent.change(screen.getByLabelText(/barangay/i), { target: { value: 'Pulong Buhangin' } })
+  fireEvent.change(screen.getByLabelText(/city \/ municipality/i), { target: { value: 'Santa Maria' } })
+  fireEvent.change(screen.getByLabelText(/province/i), { target: { value: 'Bulacan' } })
+  fireEvent.change(screen.getByLabelText(/postal/i), { target: { value: '3022' } })
+  fireEvent.change(screen.getByLabelText(/^password/i), { target: { value: 'password123' } })
+  fireEvent.change(screen.getByLabelText(/confirm password/i), { target: { value: 'password123' } })
+  fireEvent.click(screen.getByRole('checkbox', { name: /agree to the municipal/i }))
+  fireEvent.click(screen.getByRole('checkbox', { name: /true and correct/i }))
 }
 
 describe('JobSeekerRegister autofill', () => {
@@ -110,7 +132,8 @@ describe('JobSeekerRegister autofill', () => {
     fireEvent.change(screen.getByLabelText(/^password/i), { target: { value: 'password123' } })
     fireEvent.change(screen.getByLabelText(/confirm password/i), { target: { value: 'password123' } })
     fireEvent.change(screen.getByLabelText(/barangay/i), { target: { value: 'Pulong Buhangin' } })
-    fireEvent.click(screen.getByRole('checkbox'))
+    fireEvent.click(screen.getByRole('checkbox', { name: /agree to the municipal/i }))
+    fireEvent.click(screen.getByRole('checkbox', { name: /true and correct/i }))
     fireEvent.click(screen.getByRole('button', { name: /create account/i }))
 
     await waitFor(() => expect(signUp).toHaveBeenCalled())
@@ -131,7 +154,8 @@ describe('JobSeekerRegister autofill', () => {
     fireEvent.change(screen.getByLabelText(/^password/i), { target: { value: 'password123' } })
     fireEvent.change(screen.getByLabelText(/confirm password/i), { target: { value: 'password123' } })
     fireEvent.change(screen.getByLabelText(/barangay/i), { target: { value: 'Pulong Buhangin' } })
-    fireEvent.click(screen.getByRole('checkbox'))
+    fireEvent.click(screen.getByRole('checkbox', { name: /agree to the municipal/i }))
+    fireEvent.click(screen.getByRole('checkbox', { name: /true and correct/i }))
     fireEvent.click(screen.getByRole('button', { name: /create account/i }))
 
     await waitFor(() => expect(signUp).toHaveBeenCalled())
@@ -172,7 +196,8 @@ describe('JobSeekerRegister autofill', () => {
     fireEvent.change(screen.getByLabelText(/^password/i), { target: { value: 'password123' } })
     fireEvent.change(screen.getByLabelText(/confirm password/i), { target: { value: 'password123' } })
     fireEvent.change(screen.getByLabelText(/barangay/i), { target: { value: 'Pulong Buhangin' } })
-    fireEvent.click(screen.getByRole('checkbox'))
+    fireEvent.click(screen.getByRole('checkbox', { name: /agree to the municipal/i }))
+    fireEvent.click(screen.getByRole('checkbox', { name: /true and correct/i }))
     fireEvent.click(screen.getByRole('button', { name: /create account/i }))
 
     await waitFor(() => expect(signUp).toHaveBeenCalled())
@@ -181,5 +206,64 @@ describe('JobSeekerRegister autofill', () => {
       expect(payload).not.toContain(key)
     }
     await waitFor(() => expect(screen.getByText(/registration complete/i)).toBeInTheDocument())
+  })
+
+  it('persists Student employment status via signUp extra', async () => {
+    signUp.mockResolvedValue({ id: 'seeker-1', emailConfirmationRequired: false })
+    renderPage()
+    fillRequired()
+    fireEvent.change(screen.getByLabelText(/employment status/i), { target: { value: 'Student' } })
+    fireEvent.click(screen.getByRole('button', { name: /create account/i }))
+
+    await waitFor(() => expect(signUp).toHaveBeenCalled())
+    expect(signUp.mock.calls[0][0].extra).toMatchObject({ employmentStatus: 'Student' })
+  })
+
+  it('skips year validation when currently studying and posts end_year null', async () => {
+    signUp.mockResolvedValue({ id: 'seeker-1', emailConfirmationRequired: false })
+    addEducation.mockResolvedValue({ id: 'edu-1' })
+    renderPage()
+    fillRequired()
+    fireEvent.change(screen.getByLabelText(/education level/i), { target: { value: 'College' } })
+    fireEvent.change(screen.getByPlaceholderText('School name'), { target: { value: 'PUP Santa Maria' } })
+    fireEvent.click(screen.getByRole('checkbox', { name: /currently studying/i }))
+    expect(screen.getByPlaceholderText('Year')).toBeDisabled()
+    fireEvent.click(screen.getByRole('button', { name: /create account/i }))
+
+    await waitFor(() => expect(signUp).toHaveBeenCalled())
+    await waitFor(() => expect(addEducation).toHaveBeenCalledWith(
+      expect.objectContaining({ level: 'College', school: 'PUP Santa Maria', end_year: null }),
+    ))
+  })
+
+  it('requires a 4-digit year when not currently studying', async () => {
+    signUp.mockResolvedValue({ id: 'seeker-1', emailConfirmationRequired: false })
+    renderPage()
+    fillRequired()
+    fireEvent.change(screen.getByLabelText(/education level/i), { target: { value: 'College' } })
+    fireEvent.change(screen.getByPlaceholderText('School name'), { target: { value: 'PUP Santa Maria' } })
+    fireEvent.click(screen.getByRole('button', { name: /create account/i }))
+
+    await waitFor(() => expect(screen.getByText(/graduation year must be a 4-digit year/i)).toBeInTheDocument())
+    expect(signUp).not.toHaveBeenCalled()
+  })
+
+  it('blocks submit when accuracy confirmation is unchecked', async () => {
+    renderPage()
+    fillRequired()
+    fireEvent.click(screen.getByRole('checkbox', { name: /true and correct/i }))
+    fireEvent.click(screen.getByRole('button', { name: /create account/i }))
+
+    await waitFor(() => expect(screen.getByText(/please confirm your information is true and correct/i)).toBeInTheDocument())
+    expect(signUp).not.toHaveBeenCalled()
+  })
+
+  it('submits when both agree and accuracy confirmation are checked', async () => {
+    signUp.mockResolvedValue({ id: 'seeker-1', emailConfirmationRequired: false })
+    renderPage()
+    fillRequired()
+    fireEvent.click(screen.getByRole('button', { name: /create account/i }))
+
+    await waitFor(() => expect(signUp).toHaveBeenCalled())
   })
 })
