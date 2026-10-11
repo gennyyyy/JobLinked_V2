@@ -15,7 +15,7 @@ create extension if not exists pgcrypto;
 do $$ begin create type user_role as enum ('super-admin','employer','job-seeker'); exception when duplicate_object then null; end $$;
 do $$ begin create type account_status as enum ('active','inactive','suspended'); exception when duplicate_object then null; end $$;
 do $$ begin create type job_status as enum ('draft','pending','approved','rejected','published','closed','archived'); exception when duplicate_object then null; end $$;
-do $$ begin create type application_status as enum ('Applied','Under Review','Shortlisted','Interview','Accepted','Rejected','Placed','Terminated'); exception when duplicate_object then null; end $$;
+do $$ begin create type application_status as enum ('Applied','Under Review','Interview','Accepted','Rejected','Placed','Terminated'); exception when duplicate_object then null; end $$;
 do $$ begin create type accreditation_status as enum ('none','pending','approved','rejected','resubmission','revoked'); exception when duplicate_object then null; end $$;
 do $$ begin create type document_status as enum ('pending','verified','rejected','missing'); exception when duplicate_object then null; end $$;
 
@@ -32,6 +32,8 @@ create table if not exists public.job_seekers (
   full_name            text        not null default '',
   email                text        not null default '',
   phone                text,
+  lot                  text,
+  block                text,
   house_number_unit    text,
   street_address       text,
   subdivision_building text,
@@ -46,9 +48,14 @@ create table if not exists public.job_seekers (
   preferred_position   text,
   preferred_location   text,
   status               account_status not null default 'active',
+  -- super-admin custom-role tag (null = no custom role); FK added after reference_data exists
+  custom_role_id       bigint,
   created_at           timestamptz not null default now(),
   updated_at           timestamptz not null default now()
 );
+
+alter table public.job_seekers add column if not exists lot text;
+alter table public.job_seekers add column if not exists block text;
 
 create table if not exists public.employers (
   id                     uuid        primary key,
@@ -80,6 +87,8 @@ create table if not exists public.employers (
   accreditation_status   accreditation_status default null,
   accreditation_remarks  text        default null,
   status                 account_status not null default 'active',
+  -- super-admin custom-role tag (null = no custom role); FK added after reference_data exists
+  custom_role_id         bigint,
   created_at             timestamptz not null default now(),
   updated_at             timestamptz not null default now()
 );
@@ -93,6 +102,8 @@ create table if not exists public.super_admins (
   full_name  text        not null default '',
   email      text        not null default '',
   status     account_status not null default 'active',
+  -- super-admin custom-role tag (null = no custom role); FK added after reference_data exists
+  custom_role_id bigint,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
@@ -105,8 +116,32 @@ create table if not exists public.reference_data (
   category   text not null,
   value      text not null,
   sort_order int  not null default 0,
+  -- custom_role rows: { description, permissions[], base_role } (migration 005)
+  details    jsonb,
   unique (category, value)
 );
+
+-- Existing databases may have role tables from before custom roles were added.
+alter table public.job_seekers add column if not exists custom_role_id bigint;
+alter table public.employers add column if not exists custom_role_id bigint;
+alter table public.super_admins add column if not exists custom_role_id bigint;
+
+-- custom_role_id FKs (reference_data didn't exist when the role tables were created)
+do $$
+begin
+  if not exists (select 1 from pg_constraint where conname = 'job_seekers_custom_role_id_fkey') then
+    alter table public.job_seekers add constraint job_seekers_custom_role_id_fkey
+      foreign key (custom_role_id) references public.reference_data(id) on delete set null;
+  end if;
+  if not exists (select 1 from pg_constraint where conname = 'employers_custom_role_id_fkey') then
+    alter table public.employers add constraint employers_custom_role_id_fkey
+      foreign key (custom_role_id) references public.reference_data(id) on delete set null;
+  end if;
+  if not exists (select 1 from pg_constraint where conname = 'super_admins_custom_role_id_fkey') then
+    alter table public.super_admins add constraint super_admins_custom_role_id_fkey
+      foreign key (custom_role_id) references public.reference_data(id) on delete set null;
+  end if;
+end $$;
 
 -- ---------------------------------------------------------------------------
 -- Accreditation
@@ -145,6 +180,8 @@ create table if not exists public.job_vacancies (
   office          text,
   location        text,
   employment_type text,
+  work_arrangement text not null default 'On-site'
+    check (work_arrangement in ('On-site', 'Remote / Work from home', 'Hybrid')),
   salary_min      numeric,
   salary_max      numeric,
   description     text,
