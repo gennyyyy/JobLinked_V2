@@ -46,7 +46,7 @@ function PublicJobDetail() {
             <div>
               <span className="font-mono text-[10px] tracking-widest uppercase px-2.5 py-1 rounded-full bg-primary/10 border border-primary/25 text-primary">{job.location} · {job.employment_type}</span>
               <h1 className="mt-3 text-xl md:text-2xl font-bold tracking-tight text-dark-blue">{job.title}</h1>
-              <p className="mt-1 text-sm text-gray-500 font-medium">{job.employers?.company_name}</p>
+              <p className="mt-1 text-sm text-gray-500 font-medium uppercase">{job.employers?.company_name}</p>
             </div>
             <span className="inline-flex px-3.5 py-1.5 rounded-full bg-primary/10 border border-primary/25 font-mono text-sm text-primary font-semibold self-start">
               {job.salary_min ? `₱${job.salary_min}${job.salary_max ? `–₱${job.salary_max}` : ""}` : "Negotiable"}

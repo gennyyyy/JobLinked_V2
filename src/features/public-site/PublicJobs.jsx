@@ -83,7 +83,7 @@ function JobBrowser({ initialKeyword, initialLocation }) {
                   <span className="text-gray-300 group-hover:text-primary transition-colors text-sm">↗</span>
                 </div>
                 <h2 className="mt-2 text-lg font-semibold text-gray-900 group-hover:text-primary transition-colors line-clamp-1">{job.title}</h2>
-                <p className="text-xs text-gray-500 mt-1">{job.employers?.company_name}</p>
+                <p className="text-xs text-gray-500 mt-1 uppercase">{job.employers?.company_name}</p>
                 {job.description && <p className="mt-3 text-xs text-gray-500 line-clamp-2 leading-relaxed">{job.description}</p>}
               </div>
               <div className="mt-5 pt-4 border-t border-gray-200 flex items-center justify-between">

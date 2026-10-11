@@ -5,6 +5,7 @@ import { ah, err, audit, notifyAdmins, notifyUser } from '../util.js';
 
 const router = Router();
 const JOB_STATUSES = ['draft', 'pending', 'approved', 'rejected', 'published', 'closed', 'archived'];
+const JOB_ARRANGEMENTS = ['On-site', 'Remote / Work from home', 'Hybrid'];
 const ORDER_COLS = ['created_at', 'updated_at', 'salary_min', 'salary_max', 'title', 'deadline', 'published_at'];
 
 const embed = (j) => ({ ...j, employers: j.company_id ? { id: j.company_id, company_name: j.company_name, logo_path: j.logo_path } : null });
@@ -38,7 +39,19 @@ router.get('/jobs', optionalAuth, ah(async (req, res) => {
   if (q.search) { vals.push(`%${q.search}%`, `%${q.search}%`); where.push(`(j.title ilike $${vals.length - 1} or j.description ilike $${vals.length})`); }
   if (q.location) { vals.push(`%${q.location}%`); where.push(`j.location ilike $${vals.length}`); }
   if (q.employmentType) { vals.push(q.employmentType); where.push(`j.employment_type = $${vals.length}`); }
-  if (q.employer) { vals.push(`%${q.employer}%`); where.push(`e.company_name ilike $${vals.length}`); }
+  if (q.workArrangement) {
+    if (!JOB_ARRANGEMENTS.includes(q.workArrangement)) return err(res, 400, 'BAD_REQUEST', `workArrangement must be one of ${JOB_ARRANGEMENTS.join(', ')}`);
+    vals.push(q.workArrangement);
+    where.push(`j.work_arrangement = $${vals.length}`);
+  }
+  const employers = String(q.employer || '').split(',').map((name) => name.trim()).filter(Boolean);
+  if (employers.length) {
+    const employerConditions = employers.map((name) => {
+      vals.push(`%${name}%`);
+      return `e.company_name ilike $${vals.length}`;
+    });
+    where.push(`(${employerConditions.join(' or ')})`);
+  }
   if (q.salaryMin && !Number.isNaN(Number(q.salaryMin))) {
     vals.push(Number(q.salaryMin), Number(q.salaryMin));
     where.push(`(j.salary_min >= $${vals.length - 1} or j.salary_max >= $${vals.length})`);
@@ -86,7 +99,7 @@ router.get('/employers/:employerId/jobs', auth, ah(async (req, res) => {
   res.json(rows.map(embed));
 }));
 
-const JOB_COLS = ['title', 'office', 'location', 'employment_type', 'salary_min', 'salary_max',
+const JOB_COLS = ['title', 'office', 'location', 'employment_type', 'work_arrangement', 'salary_min', 'salary_max',
   'description', 'requirements', 'benefits', 'vacancies', 'deadline', 'instructions', 'tags', 'status', 'remarks'];
 
 // Best-effort seeker matching on publish (skills overlap or location match).
@@ -124,6 +137,9 @@ export async function writeStatus(client, jobId, status, remarks, changedBy) {
 router.post('/jobs', auth, requireRole('employer'), ah(async (req, res) => {
   const b = req.body || {};
   if (!b.title) return err(res, 400, 'BAD_REQUEST', 'title is required');
+  if (b.work_arrangement !== undefined && !JOB_ARRANGEMENTS.includes(b.work_arrangement)) {
+    return err(res, 400, 'BAD_REQUEST', `work_arrangement must be one of ${JOB_ARRANGEMENTS.join(', ')}`);
+  }
   const cols = ['company_id'];
   const vals = [req.user.id];
   for (const c of JOB_COLS) {
@@ -164,6 +180,9 @@ router.patch('/jobs/:id', auth, ah(async (req, res) => {
   if (!job) return;
   const patch = {};
   for (const c of JOB_COLS) if (req.body?.[c] !== undefined) patch[c] = req.body[c] === '' && c !== 'title' ? null : req.body[c];
+  if (patch.work_arrangement !== undefined && !JOB_ARRANGEMENTS.includes(patch.work_arrangement)) {
+    return err(res, 400, 'BAD_REQUEST', `work_arrangement must be one of ${JOB_ARRANGEMENTS.join(', ')}`);
+  }
   if (!Object.keys(patch).length) return err(res, 400, 'BAD_REQUEST', 'Nothing to update');
   if (patch.status !== undefined) {
     if (!JOB_STATUSES.includes(patch.status)) return err(res, 400, 'BAD_REQUEST', `status must be one of ${JOB_STATUSES.join(', ')}`);

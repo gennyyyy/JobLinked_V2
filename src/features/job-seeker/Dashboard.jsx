@@ -4,7 +4,7 @@ import useAuth from "../../shared/hooks/useAuth";
 import { listBySeeker } from "../../shared/services/applications";
 import { listJobs } from "../../shared/services/jobs";
 import LoadingScreen from "../../shared/components/LoadingScreen";
-import { FileText, UserCheck, XCircle, TrendingUp } from "lucide-react";
+import { FileText, XCircle, TrendingUp, CheckCircle } from "lucide-react";
 import { PageHeader, StatCard, SectionCard } from "../../shared/components/dashboard";
 
 function splitPref(value) {
@@ -67,8 +67,8 @@ function Dashboard() {
   if (error) return <div className="py-8 text-center text-sm text-danger">{error}</div>;
 
   const activeApplications = applications.length;
-  const shortlisted = applications.filter((app) => app.status === "Shortlisted").length;
   const rejected = applications.filter((app) => app.status === "Rejected").length;
+  const accepted = applications.filter(app => app.status === "Accepted").length;
   const newThisWeek = applications.filter((app) => {
     const days = (today - new Date(app.applied_at).getTime()) / 86400000;
     return days <= 7;
@@ -76,7 +76,7 @@ function Dashboard() {
 
   const stats = [
     { label: "Active Applications", value: activeApplications, highlight: false, icon: <FileText size={18} /> },
-    { label: "Shortlisted", value: shortlisted, highlight: shortlisted > 0, icon: <UserCheck size={18} /> },
+    { label: "Accepted", value: accepted, highlight: accepted > 0, icon: <CheckCircle size={18} /> },
     { label: "Rejected", value: rejected, highlight: false, icon: <XCircle size={18} /> },
     { label: "New This Week", value: newThisWeek, highlight: newThisWeek > 0, icon: <TrendingUp size={18} /> },
   ];
@@ -88,7 +88,7 @@ function Dashboard() {
   const completion = profileCompletion(user);
 
   return (
-    <div className="space-y-6 bg-gray-50">
+    <>
       <PageHeader
         eyebrow="JOB SEEKER DASHBOARD"
         title="My Dashboard"
@@ -136,7 +136,7 @@ function Dashboard() {
               >
                 <span className="font-mono text-[10px] tracking-widest text-gray-400 uppercase">{job.location} · {job.employment_type}</span>
                 <h3 className="mt-1.5 text-sm font-semibold text-gray-900 group-hover:text-primary transition-colors line-clamp-2">{job.title}</h3>
-                <p className="mt-1 text-xs text-gray-500">{job.employers?.company_name}</p>
+                <p className="mt-1 text-xs text-gray-500 uppercase">{job.employers?.company_name}</p>
                 <span className="inline-block mt-3 px-2.5 py-1 rounded-full bg-primary/10 border border-primary/25 font-mono text-xs text-primary">
                   {job.salary_min ? `₱${job.salary_min}${job.salary_max ? `–₱${job.salary_max}` : ""}` : "Negotiable"}
                 </span>
@@ -159,7 +159,7 @@ function Dashboard() {
               <div key={item.id} className="py-4 first:pt-0 last:pb-0 flex items-center justify-between gap-3">
                 <div className="min-w-0">
                   <p className="text-sm font-medium text-gray-900 truncate">{item.job?.title}</p>
-                  <p className="mt-1 text-xs text-gray-500 truncate">{item.job?.employers?.company_name}</p>
+                  <p className="mt-1 text-xs text-gray-500 truncate uppercase">{item.job?.employers?.company_name}</p>
                   <p className="mt-1 font-mono text-[11px] text-gray-500">
                     Applied on {new Date(item.applied_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                   </p>
@@ -167,9 +167,7 @@ function Dashboard() {
                 <div className="flex items-center gap-3 shrink-0">
                   <span
                     className={`font-mono text-[10px] tracking-wider px-3 py-1 rounded-full uppercase border ${
-                      item.status === "Shortlisted"
-                        ? "bg-emerald-50 border-emerald-200 text-emerald-700"
-                        : item.status === "Rejected" || item.status === "Terminated"
+                      item.status === "Rejected" || item.status === "Terminated"
                           ? "bg-danger/10 border-danger/20 text-danger"
                           : "bg-amber-50 border-amber-200 text-amber-700"
                     }`}
@@ -182,7 +180,7 @@ function Dashboard() {
           </div>
         )}
       </SectionCard>
-    </div>
+    </>
   );
 }
 

@@ -5,6 +5,7 @@ import { getJob } from "../../shared/services/jobs";
 import { applyToJob, listBySeeker } from "../../shared/services/applications";
 import { listResumes, uploadResume, validateFile } from "../../shared/services/documents";
 import LoadingScreen from "../../shared/components/LoadingScreen";
+import { SectionCard } from "../../shared/components/dashboard";
 
 function JobDetail() {
   const { jobId } = useParams();
@@ -85,21 +86,23 @@ function JobDetail() {
         ← Back to all jobs
       </Link>
 
-      <article className="bg-white border border-primary rounded-lg p-6 md:p-10 shadow-md">
-        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 pb-6 border-b border-gray-200">
-          <div>
-            <span className="font-mono text-[10px] tracking-widest uppercase px-2.5 py-1 rounded-full bg-[#0057B8]/10 border border-[#0057B8]/25 text-[#0057B8]">
-              {job.location} · {job.employment_type}
-            </span>
-            <h1 className="mt-3 text-xl md:text-2xl font-bold tracking-tight text-gray-900">{job.title}</h1>
-            <p className="mt-1 text-sm text-gray-500 font-medium">{job.employers?.company_name}</p>
-          </div>
-          <span className="inline-flex px-3.5 py-1.5 rounded-full bg-primary/10 border border-primary/25 font-mono text-sm text-primary font-semibold self-start">
+      <SectionCard
+        titleAs="h1"
+        title={job.title}
+        subtitle={job.employers?.company_name?.toUpperCase()}
+        action={
+          <span className="inline-flex px-3.5 py-1.5 rounded-full bg-primary/10 border border-primary/25 font-mono text-sm text-primary font-semibold shrink-0">
             {job.salary_min ? `₱${job.salary_min}${job.salary_max ? `–₱${job.salary_max}` : ""}` : "Negotiable"}
+          </span>
+        }
+      >
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3 pb-6 border-b border-gray-100">
+          <span className="font-mono text-[10px] tracking-widest uppercase px-2.5 py-1 rounded-full bg-primary/10 border border-primary/25 text-primary">
+            {job.location} · {job.employment_type}
           </span>
         </div>
 
-        <div className="mt-8 grid grid-cols-1 gap-3 p-5 rounded-xl bg-gray-50 border border-gray-200">
+        <div className="mt-6 grid grid-cols-1 gap-3 p-5 rounded-xl bg-gray-50 border border-gray-200">
           <div>
             <p className="font-mono text-[10px] tracking-widest uppercase text-gray-400">Compensation</p>
             <p className="mt-1 font-mono text-sm text-gray-900 font-medium">{job.salary_min ? `₱${job.salary_min}${job.salary_max ? `–₱${job.salary_max}` : ""}` : "—"}</p>
@@ -107,6 +110,10 @@ function JobDetail() {
           <div>
             <p className="font-mono text-[10px] tracking-widest uppercase text-gray-400">Location</p>
             <p className="mt-1 text-sm text-gray-900 font-medium">Brgy. {job.location}</p>
+          </div>
+          <div>
+            <p className="font-mono text-[10px] tracking-widest uppercase text-gray-400">Work Arrangement</p>
+            <p className="mt-1 text-sm text-gray-900 font-medium">{job.work_arrangement || "On-site"}</p>
           </div>
           <div>
             <p className="font-mono text-[10px] tracking-widest uppercase text-gray-400">Vacancies</p>
@@ -128,13 +135,13 @@ function JobDetail() {
           </div>
         </div>
 
-        <section className="mt-8">
+        <section className="mt-6">
           <h2 className="font-mono text-[11px] tracking-[0.2em] text-[#0057B8] uppercase mb-3">Position Overview</h2>
           <p className="text-sm md:text-base text-gray-600 leading-relaxed whitespace-pre-line">{job.description || "No description provided for this opening."}</p>
         </section>
 
         {requirements.length > 0 && (
-          <section className="mt-8">
+          <section className="mt-6">
             <h2 className="font-mono text-[11px] tracking-[0.2em] text-[#0057B8] uppercase mb-3">Role Requirements</h2>
             <ul className="space-y-2.5">
               {requirements.map((req) => (
@@ -148,21 +155,21 @@ function JobDetail() {
         )}
 
         {job.benefits && (
-          <section className="mt-8">
+          <section className="mt-6">
             <h2 className="font-mono text-[11px] tracking-[0.2em] text-[#0057B8] uppercase mb-3">Benefits</h2>
             <p className="text-sm text-gray-600 whitespace-pre-line">{job.benefits}</p>
           </section>
         )}
 
         {job.instructions && (
-          <section className="mt-8">
+          <section className="mt-6">
             <h2 className="font-mono text-[11px] tracking-[0.2em] text-[#0057B8] uppercase mb-3">Application Instructions</h2>
             <p className="text-sm text-gray-600 whitespace-pre-line">{job.instructions}</p>
           </section>
         )}
 
         {tags.length > 0 && (
-          <section className="mt-8">
+          <section className="mt-6">
             <h2 className="font-mono text-[11px] tracking-[0.2em] text-[#0057B8] uppercase mb-3">Tags</h2>
             <div className="flex flex-wrap gap-2">
               {tags.map((tag) => (
@@ -172,7 +179,7 @@ function JobDetail() {
           </section>
         )}
 
-        <div className="mt-10 pt-8 border-t border-gray-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+        <div className="mt-6 pt-6 border-t border-gray-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           <div>
             {alreadyApplied ? (
               <span className="font-mono text-xs text-emerald-600 font-medium flex items-center gap-1.5">
@@ -202,6 +209,7 @@ function JobDetail() {
               <label htmlFor="job-resume-upload" className="inline-flex items-center min-h-[44px] px-4 rounded-xl text-xs font-medium text-gray-600 hover:text-gray-900 bg-gray-100 hover:bg-gray-200 border border-gray-200 transition-colors cursor-pointer">
                 {uploading ? "Uploading…" : "Upload New Resume"}
               </label>
+              <p className="mt-2 text-xs text-gray-400">PDF up to 2 MB; DOC or DOCX up to 5 MB.</p>
               <button
                 onClick={handleApply}
                 disabled={applying}
@@ -219,7 +227,7 @@ function JobDetail() {
         </div>
         {applyError && <p className="mt-3 text-xs text-danger">{applyError}</p>}
         {uploadError && <p className="mt-3 text-xs text-danger">{uploadError}</p>}
-      </article>
+      </SectionCard>
     </div>
   );
 }

@@ -44,6 +44,7 @@ const initialForm = {
   instructions: "",
   benefits: "",
   tags: [],
+  work_arrangement: "On-site",
 };
 
 export default function JobPosts() {
@@ -149,6 +150,7 @@ export default function JobPosts() {
       salary_min: job.salary_min !== null && job.salary_min !== undefined ? job.salary_min : "",
       salary_max: job.salary_max !== null && job.salary_max !== undefined ? job.salary_max : "",
       employment_type: job.employment_type || "Full-time",
+      work_arrangement: job.work_arrangement || "On-site",
       location: job.location || "",
       vacancies: job.vacancies || 1,
       deadline: job.deadline ? job.deadline.split("T")[0] : "",
@@ -213,6 +215,7 @@ export default function JobPosts() {
         salary_min: form.salary_min !== "" ? Number(form.salary_min) : null,
         salary_max: form.salary_max !== "" ? Number(form.salary_max) : null,
         employment_type: form.employment_type,
+        work_arrangement: form.work_arrangement,
         location: form.location,
         vacancies: Number(form.vacancies) || 1,
         deadline: form.deadline || null,
@@ -528,7 +531,7 @@ export default function JobPosts() {
           onClick={() => setStatusFilter("all")}
           className={`p-4 rounded-lg border text-left transition-all cursor-pointer ${
             statusFilter === "all"
-              ? "bg-white border-primary ring-1 ring-primary/20"
+              ? "bg-white border-gray-900 ring-1 ring-gray-900/20"
               : "bg-white border-gray-200 hover:border-gray-300"
           }`}
         >
@@ -541,13 +544,12 @@ export default function JobPosts() {
           onClick={() => setStatusFilter("published")}
           className={`p-4 rounded-lg border text-left transition-all cursor-pointer ${
             statusFilter === "published"
-              ? "bg-emerald-50/50 border-emerald-500 ring-1 ring-emerald-500/20"
+              ? "bg-white border-gray-900 ring-1 ring-gray-900/20"
               : "bg-white border-gray-200 hover:border-gray-300"
           }`}
         >
           <div className="flex items-center justify-between">
-            <p className="text-2xl font-bold text-emerald-700">{stats.published}</p>
-            <span className="w-2 h-2 rounded-full bg-emerald-500" />
+            <p className="text-2xl font-bold text-gray-900">{stats.published}</p>
           </div>
           <p className="text-xs font-mono uppercase tracking-wider text-gray-500 mt-1">Active / Live</p>
         </button>
@@ -557,11 +559,11 @@ export default function JobPosts() {
           onClick={() => setStatusFilter("draft")}
           className={`p-4 rounded-lg border text-left transition-all cursor-pointer ${
             statusFilter === "draft"
-              ? "bg-slate-50 border-slate-500 ring-1 ring-slate-500/20"
+              ? "bg-white border-gray-900 ring-1 ring-gray-900/20"
               : "bg-white border-gray-200 hover:border-gray-300"
           }`}
         >
-          <p className="text-2xl font-bold text-slate-700">{stats.draft}</p>
+          <p className="text-2xl font-bold text-gray-900">{stats.draft}</p>
           <p className="text-xs font-mono uppercase tracking-wider text-gray-500 mt-1">Drafts</p>
         </button>
 
@@ -570,12 +572,12 @@ export default function JobPosts() {
           onClick={() => setStatusFilter("archived")}
           className={`p-4 rounded-lg border text-left transition-all cursor-pointer ${
             statusFilter === "archived"
-              ? "bg-zinc-50/50 border-zinc-500 ring-1 ring-zinc-500/20"
+              ? "bg-white border-gray-900 ring-1 ring-gray-900/20"
               : "bg-white border-gray-200 hover:border-gray-300"
           }`}
         >
           <div className="flex items-center justify-between">
-            <p className="text-2xl font-bold text-zinc-700">{stats.archived}</p>
+            <p className="text-2xl font-bold text-gray-900">{stats.archived}</p>
             {stats.archived > 0 && <Archive className="w-4 h-4 text-zinc-600" />}
           </div>
           <p className="text-xs font-mono uppercase tracking-wider text-gray-500 mt-1">Archived</p>
@@ -586,11 +588,11 @@ export default function JobPosts() {
           onClick={() => setStatusFilter("closed")}
           className={`p-4 rounded-lg border text-left transition-all cursor-pointer ${
             statusFilter === "closed"
-              ? "bg-gray-100 border-gray-400 ring-1 ring-gray-400/20"
+              ? "bg-white border-gray-900 ring-1 ring-gray-900/20"
               : "bg-white border-gray-200 hover:border-gray-300"
           }`}
         >
-          <p className="text-2xl font-bold text-gray-600">{stats.closed}</p>
+          <p className="text-2xl font-bold text-gray-900">{stats.closed}</p>
           <p className="text-xs font-mono uppercase tracking-wider text-gray-500 mt-1">Closed</p>
         </button>
       </div>
@@ -697,6 +699,9 @@ export default function JobPosts() {
                           )}
                           <span className="font-mono text-[10px] px-2 py-0.5 rounded-md bg-gray-100 text-gray-600 border border-gray-200">
                             {post.employment_type}
+                          </span>
+                          <span className="font-mono text-[10px] px-2 py-0.5 rounded-md bg-violet-50 text-violet-700 border border-violet-200">
+                            {post.work_arrangement || "On-site"}
                           </span>
                         </div>
 
@@ -958,6 +963,20 @@ export default function JobPosts() {
                     <option value="Job Order">Job Order</option>
                     <option value="Seasonal">Seasonal</option>
                     <option value="Internship">Internship</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block font-mono text-[11px] tracking-wider text-gray-600 uppercase font-semibold mb-1.5">
+                    Work Arrangement <span className="text-rose-500">*</span>
+                  </label>
+                  <select
+                    value={form.work_arrangement}
+                    onChange={(e) => setForm({ ...form, work_arrangement: e.target.value })}
+                    className="w-full min-h-[44px] px-4 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 focus:outline-none focus:bg-white focus:border-primary transition-all cursor-pointer"
+                  >
+                    <option value="On-site">On-site</option>
+                    <option value="Remote / Work from home">Remote / Work from home</option>
+                    <option value="Hybrid">Hybrid</option>
                   </select>
                 </div>
               </div>
@@ -1232,7 +1251,7 @@ export default function JobPosts() {
                 </span>
                 <h2 className="text-2xl font-bold text-gray-900 mt-2">{viewingJob.title}</h2>
                 <div className="flex items-center gap-3 text-xs text-gray-500 mt-1">
-                  <span>{company?.company_name || "My Company"}</span>
+                  <span className="uppercase">{company?.company_name || "My Company"}</span>
                   {viewingJob.office && <span>· Dept: {viewingJob.office}</span>}
                   <span>· Posted on {new Date(viewingJob.created_at).toLocaleDateString()}</span>
                 </div>
@@ -1268,6 +1287,10 @@ export default function JobPosts() {
               <div>
                 <p className="font-mono text-[10px] text-gray-500 uppercase tracking-wider">Employment</p>
                 <p className="text-xs font-semibold text-gray-900 mt-1">{viewingJob.employment_type}</p>
+              </div>
+              <div>
+                <p className="font-mono text-[10px] text-gray-500 uppercase tracking-wider">Work arrangement</p>
+                <p className="text-xs font-semibold text-gray-900 mt-1">{viewingJob.work_arrangement || "On-site"}</p>
               </div>
               <div>
                 <p className="font-mono text-[10px] text-gray-500 uppercase tracking-wider">Location</p>

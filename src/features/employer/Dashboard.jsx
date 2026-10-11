@@ -63,7 +63,7 @@ function Dashboard() {
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
         {stats.map((stat) => (
-          <StatCard key={stat.label} label={stat.label} value={stat.value} highlight={stat.highlight} icon={stat.icon} />
+          <StatCard key={stat.label} label={stat.label} value={stat.value} highlight={false} icon={stat.icon} valueClassName="text-gray-900" />
         ))}
       </div>
 
@@ -79,7 +79,7 @@ function Dashboard() {
             {recentApplicants.map((item) => (
               <div key={item.id} className="py-4 first:pt-0 last:pb-0 flex items-center justify-between gap-3">
                 <div className="min-w-0">
-                  <p className="text-sm font-medium text-gray-900 truncate">{item.seeker?.full_name}</p>
+                  <p className="text-sm font-medium text-gray-900 truncate uppercase">{item.seeker?.full_name}</p>
                   <p className="mt-1 text-xs text-gray-500 truncate">
                     Applied for <span className="text-gray-600">{item.job?.title}</span>
                   </p>

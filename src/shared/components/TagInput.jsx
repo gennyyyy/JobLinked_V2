@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 
 // TagInput + its splitTags helper move together from Profile.
 // eslint-disable-next-line react-refresh/only-export-components
@@ -10,8 +10,9 @@ export function splitTags(value) {
 // Minimal tag input — type + Enter/comma to add, Backspace or × to remove.
 // Reused for preferred jobs + preferred locations; values stay comma-separated
 // strings so the existing text columns need no migration.
-export function TagInput({ value, onChange, placeholder, id }) {
+export function TagInput({ value, onChange, placeholder, id, className = "" }) {
   const [draft, setDraft] = useState("");
+  const inputRef = useRef(null);
   const tags = splitTags(value);
 
   function commit(raw) {
@@ -30,15 +31,29 @@ export function TagInput({ value, onChange, placeholder, id }) {
   }
 
   return (
-    <div className="w-full min-h-[44px] px-3 py-2 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 focus-within:border-primary/60 focus-within:ring-1 focus-within:ring-primary/30 transition-all">
-      <div className="flex flex-wrap items-center gap-1.5">
+    <div
+      onClick={() => inputRef.current?.focus()}
+      className={`w-full min-h-[44px] px-3 py-2 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 focus-within:border-primary/60 focus-within:ring-1 focus-within:ring-primary/30 transition-all flex flex-col cursor-text ${className}`}
+    >
+      <div className="flex flex-wrap items-center gap-1.5 content-start">
         {tags.map((tag) => (
           <span key={tag} className="inline-flex items-center gap-1 font-mono text-xs px-2.5 py-1 rounded-full bg-primary/10 border border-primary/25 text-primary">
             {tag}
-            <button type="button" onClick={() => removeTag(tag)} aria-label={`Remove ${tag}`} className="hover:text-primary-hover font-bold leading-none">×</button>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                removeTag(tag);
+              }}
+              aria-label={`Remove ${tag}`}
+              className="hover:text-primary-hover font-bold leading-none"
+            >
+              ×
+            </button>
           </span>
         ))}
         <input
+          ref={inputRef}
           id={id}
           aria-label={placeholder || "Tags input"}
           value={draft}

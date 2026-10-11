@@ -1,6 +1,7 @@
 import { api } from '../lib/api';
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
+const MAX_PDF_SIZE = 2 * 1024 * 1024;
 const ALLOWED_EXTENSIONS = ['pdf', 'doc', 'docx', 'png', 'jpg', 'jpeg'];
 const ALLOWED_MIME_TYPES = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'image/png', 'image/jpeg'];
 
@@ -8,6 +9,7 @@ export function validateFile(file) {
   const ext = (file.name.split('.').pop() || '').toLowerCase();
   if (!ALLOWED_EXTENSIONS.includes(ext)) return 'Only PDF, DOC, DOCX, PNG, or JPG files are allowed.';
   if (!ALLOWED_MIME_TYPES.includes(file.type)) return 'Invalid file type.';
+  if (ext === 'pdf' && file.size > MAX_PDF_SIZE) return 'PDF files must be 2 MB or smaller.';
   if (file.size > MAX_FILE_SIZE) return 'File must be 5 MB or smaller.';
   return null;
 }

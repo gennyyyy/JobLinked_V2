@@ -3,8 +3,8 @@ import { createPortal } from "react-dom";
 function ConfirmationModal({ message, onConfirm, onCancel, confirmLabel = "Confirm", cancelLabel = "Cancel", danger = false }) {
   if (typeof document === "undefined") return null;
   return createPortal(
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-xs">
-      <div className="bg-white border border-primary rounded-lg p-5 w-full shadow-2xl">
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
+      <div role="dialog" aria-modal="true" className="bg-white border border-primary rounded-lg p-5 w-full max-w-md shadow-2xl">
         <p className="text-sm text-gray-700 mb-6">{message}</p>
         <div className="flex gap-3 justify-end">
           <button

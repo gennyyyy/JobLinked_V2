@@ -5,6 +5,7 @@ import { randomUUID } from 'node:crypto';
 
 const ALLOWED_EXTS = ['pdf', 'doc', 'docx', 'png', 'jpg', 'jpeg'];
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
+const MAX_PDF_SIZE = 2 * 1024 * 1024;
 
 export const uploadDir = process.env.UPLOAD_DIR && path.isAbsolute(process.env.UPLOAD_DIR)
   ? process.env.UPLOAD_DIR
@@ -34,6 +35,11 @@ export const uploadSingle = (bucket) => (req, res, next) => {
   multer({ storage, limits: { fileSize: MAX_FILE_SIZE }, fileFilter }).single('file')(req, res, (e) => {
     if (e) return res.status(400).json({ error: { code: 'BAD_REQUEST', message: e.message } });
     if (!req.file) return res.status(400).json({ error: { code: 'BAD_REQUEST', message: 'No file uploaded' } });
+    const ext = (path.extname(req.file.originalname).slice(1) || '').toLowerCase();
+    if (ext === 'pdf' && req.file.size > MAX_PDF_SIZE) {
+      fs.unlink(req.file.path, () => {});
+      return res.status(400).json({ error: { code: 'BAD_REQUEST', message: 'PDF files must be 2 MB or smaller.' } });
+    }
     next();
   });
 };

@@ -1,7 +1,7 @@
 import { api } from '../lib/api';
 
-export async function listJobs({ search = '', location = '', employmentType = '', employer = '', salaryMin = null, skills = '', status = null, page = 1, pageSize = 10, order = 'created_at.desc' } = {}) {
-  return api.get('jobs', { search, location, employmentType, employer, salaryMin, skills, status, page, pageSize, order });
+export async function listJobs({ search = '', location = '', employmentType = '', workArrangement = '', employer = '', salaryMin = null, skills = '', status = null, page = 1, pageSize = 10, order = 'created_at.desc' } = {}) {
+  return api.get('jobs', { search, location, employmentType, workArrangement, employer, salaryMin, skills, status, page, pageSize, order });
 }
 
 export async function getJob(id) {

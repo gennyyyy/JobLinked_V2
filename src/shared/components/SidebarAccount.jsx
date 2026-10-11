@@ -3,13 +3,10 @@ import { LogOut } from "lucide-react";
 
 function SidebarAccount({ user, profileTo, roleLabel, onNavigate, onLogout }) {
   const name = user?.full_name || user?.name || user?.email || roleLabel;
-  const initials = name
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0])
-    .join("")
-    .toUpperCase();
+  const nameParts = name.split(/\s+/).filter(Boolean);
+  const initials = user?.first_name || user?.last_name
+    ? `${user.first_name?.[0] || ""}${user.last_name?.[0] || ""}`.toUpperCase()
+    : (nameParts.length > 1 ? `${nameParts[0][0]}${nameParts.at(-1)[0]}` : nameParts[0]?.[0] || "").toUpperCase();
 
   return (
     <div className="p-4 border-t border-white/10 bg-dark-blue">
@@ -23,7 +20,7 @@ function SidebarAccount({ user, profileTo, roleLabel, onNavigate, onLogout }) {
             {initials || "U"}
           </span>
           <span className="min-w-0">
-            <span className="block truncate text-xs font-semibold text-white">{name}</span>
+            <span className="block truncate text-xs font-semibold text-white uppercase">{name}</span>
             <span className="block truncate mt-0.5 text-[10px] text-white/50 uppercase tracking-wider">{roleLabel}</span>
           </span>
         </Link>

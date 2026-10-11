@@ -4,6 +4,7 @@ import { updateProfile, getEmployer, provision } from "../../shared/services/aut
 import LoadingScreen from "../../shared/components/LoadingScreen";
 import ChangePassword from "../../shared/components/ChangePassword";
 import { formatFullAddress } from "../../shared/utils/address";
+import { PageHeader } from "../../shared/components/dashboard";
 
 function CompanyProfile() {
   const { user, refreshUser } = useAuth();
@@ -29,10 +30,6 @@ function CompanyProfile() {
             street_address: data.street_address || "",
             subdivision_building: data.subdivision_building || "",
             barangay_district: data.barangay_district || "",
-            city_municipality: data.city_municipality || "",
-            province_state: data.province_state || "",
-            postal_code: data.postal_code || "",
-            country: data.country || "Philippines",
             phone: data.phone || "",
             email: data.email || "",
             company_email: data.company_email || data.email || "",
@@ -100,16 +97,16 @@ function CompanyProfile() {
 
   return (
     <div className="w-full space-y-6">
-      <header>
-        <p className="font-mono text-[11px] tracking-[0.2em] text-[#0057B8] uppercase">COMPANY PROFILE</p>
-        <h1 className="mt-1 font-sans text-xl md:text-2xl font-bold tracking-tight text-gray-900">Business Information</h1>
-        <p className="mt-2 text-sm text-gray-500">Your company details visible to PESO and job seekers</p>
-      </header>
+      <PageHeader
+        eyebrow="COMPANY PROFILE"
+        title="Business Information"
+        subtitle="Your company details visible to PESO and job seekers"
+      />
 
       <div className="bg-white border border-primary rounded-lg p-6 md:p-9">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-6 border-b border-gray-200">
           <div className="flex items-center gap-3">
-            <div className="w-16 h-16 rounded-lg bg-primary/10 border border-primary/25 flex items-center justify-center font-bold text-xl text-primary">
+            <div className="w-16 h-16 rounded-lg bg-accent/20 border border-accent/30 flex items-center justify-center font-bold text-xl text-accent">
               {form.name?.[0] || "C"}
             </div>
             <div>
@@ -136,10 +133,10 @@ function CompanyProfile() {
         )}
 
         {editing ? (
-          <form onSubmit={handleSubmit} className="mt-6 space-y-6">
-            <section className="bg-gray-50 border border-gray-200 rounded-xl p-5 space-y-4">
+          <form onSubmit={handleSubmit} className="mt-6 grid grid-cols-1 xl:grid-cols-2 gap-6 items-stretch">
+            <section className="bg-gray-50 border border-gray-200 rounded-xl p-5 space-y-4 xl:col-span-2">
               <p className="font-mono text-[11px] tracking-[0.2em] text-primary uppercase font-semibold">Company Details</p>
-              <div className="grid grid-cols-1 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
                 <div>
                   <label className="block font-mono text-[11px] tracking-wider text-gray-500 uppercase mb-1.5">Company Name</label>
                   <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="w-full min-h-[44px] px-4 rounded-xl text-sm bg-white border border-gray-200 text-gray-900 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all" />
@@ -168,8 +165,8 @@ function CompanyProfile() {
             </section>
             <section className="bg-gray-50 border border-gray-200 rounded-xl p-5 space-y-4">
               <p className="block font-mono text-[11px] tracking-[0.2em] text-primary uppercase font-semibold">Business Address</p>
-              <div className="grid grid-cols-1 gap-3">
-                {[["house_number_unit", "House / Building / Unit No.", "e.g. Unit 402 or Bldg 3"], ["street_address", "Street Address & Lot / Block", "Street address"], ["subdivision_building", "Subdivision / Village / Building Name", "Subdivision name"], ["barangay_district", "Barangay / District", "Barangay"], ["city_municipality", "City / Municipality", "e.g. Santa Maria"], ["province_state", "Province / State", "e.g. Bulacan"], ["postal_code", "Postal / ZIP Code", "e.g. 3022"], ["country", "Country", "Philippines"]].map(([field, label, placeholder]) => (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {[["house_number_unit", "House / Building / Unit No.", "e.g. Unit 402 or Bldg 3"], ["street_address", "Street Address & Lot / Block", "Street address"], ["subdivision_building", "Subdivision / Village / Building Name", "Subdivision name"], ["barangay_district", "Barangay / District", "Barangay"]].map(([field, label, placeholder]) => (
                   <div key={field}>
                     <label htmlFor={field} className="block font-mono text-[11px] tracking-wider text-gray-500 uppercase mb-1.5">{label}</label>
                     <input id={field} value={form[field] || ""} onChange={(e) => setForm({ ...form, [field]: e.target.value })} placeholder={placeholder} className="w-full min-h-[44px] px-4 rounded-xl text-sm bg-white border border-gray-200 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all" />
@@ -179,7 +176,7 @@ function CompanyProfile() {
             </section>
             <section className="bg-gray-50 border border-gray-200 rounded-xl p-5 space-y-4">
               <p className="font-mono text-[11px] tracking-[0.2em] text-primary uppercase font-semibold">Authorized Representative</p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block font-mono text-[11px] tracking-wider text-gray-500 uppercase mb-1.5">First Name</label>
                   <input value={form.first_name} onChange={(e) => setForm({ ...form, first_name: e.target.value })} placeholder="Maria" className="w-full min-h-[44px] px-4 rounded-xl text-sm bg-white border border-gray-200 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all" />
@@ -210,7 +207,7 @@ function CompanyProfile() {
                 <input value={form.email} disabled className="w-full min-h-[44px] px-4 rounded-xl text-sm bg-gray-100 border border-gray-200 text-gray-500 cursor-not-allowed" />
               </div>
             </section>
-            <div className="flex items-center gap-3 pt-3">
+            <div className="xl:col-span-2 flex items-center justify-end gap-3 pt-3">
               <button type="submit" disabled={saving} className="min-h-[42px] px-6 rounded-xl bg-primary text-white text-xs font-medium hover:bg-primary-hover active:scale-[0.98] transition-colors disabled:opacity-60">
                 {saving ? "Saving…" : "Save Profile"}
               </button>
@@ -220,8 +217,8 @@ function CompanyProfile() {
             </div>
           </form>
         ) : (
-          <div className="mt-6 space-y-5">
-            <section className="p-5 rounded-xl bg-gray-50 border border-gray-200">
+          <div className="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
+            <section className="p-5 rounded-xl bg-gray-50 border border-gray-200 lg:col-span-2">
               <p className="font-mono text-[10px] tracking-[0.2em] uppercase text-primary font-semibold mb-4">Company Details</p>
               <dl className="grid grid-cols-1 sm:grid-cols-2 gap-5 text-sm">
                 <div>
@@ -262,14 +259,10 @@ function CompanyProfile() {
                   ["Street / Lot / Block", form.street_address],
                   ["Subdivision / Village", form.subdivision_building],
                   ["Barangay / District", form.barangay_district],
-                  ["City / Municipality", form.city_municipality],
-                  ["Province / State", form.province_state],
-                  ["Postal / ZIP Code", form.postal_code],
-                  ["Country", form.country],
                 ].map(([label, value]) => (
                   <div key={label}>
                     <dt className="font-mono text-[10px] tracking-widest uppercase text-gray-400">{label}</dt>
-                    <dd className="mt-1 text-xs text-gray-700">{value || "Not set"}</dd>
+                    <dd className="mt-1 text-xs text-gray-700 uppercase">{value || "Not set"}</dd>
                   </div>
                 ))}
                 <div className="sm:col-span-2">
@@ -283,13 +276,13 @@ function CompanyProfile() {
               <dl className="grid grid-cols-1 sm:grid-cols-2 gap-5 text-sm">
                 <div>
                   <dt className="font-mono text-[10px] tracking-widest uppercase text-gray-400">Full Name</dt>
-                  <dd className="mt-1 text-xs text-gray-700 font-medium">
+                  <dd className="mt-1 text-xs text-gray-700 font-medium uppercase">
                     {[form.first_name, form.middle_name, form.last_name, form.suffix].filter(Boolean).join(" ") || "Not set"}
                   </dd>
                 </div>
                 <div>
                   <dt className="font-mono text-[10px] tracking-widest uppercase text-gray-400">Designation / Position</dt>
-                  <dd className="mt-1 text-xs text-gray-700">{form.representative_position || "Not set"}</dd>
+                  <dd className="mt-1 text-xs text-gray-700 uppercase">{form.representative_position || "Not set"}</dd>
                 </div>
                 <div>
                   <dt className="font-mono text-[10px] tracking-widest uppercase text-gray-400">Representative Email</dt>
