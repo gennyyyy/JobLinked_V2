@@ -35,7 +35,7 @@
 
 | Feature | Location | Approach |
 |---------|----------|----------|
-| Data Deletion | `superadmin/Settings.jsx` + Supabase | Admin-triggered purge with confirmation modal, cascading deletes |
+| Data Deletion | `server/src/routes/admin.js` (`runRetentionPurge()`) | Fully automated daily retention job, no UI or manual trigger — deletes 12+ month-old non-employment applications only (Accepted/Placed/Terminated always retained per Terms §4); audit-logged as System (`data.purge`) |
 | ~~Data Retention~~ | — | **Skipped** — deferred indefinitely |
 
 ## Dependency Order

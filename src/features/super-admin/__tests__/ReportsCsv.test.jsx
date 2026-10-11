@@ -54,16 +54,17 @@ function readBlob(blob) {
 }
 
 describe('Reports CSV export', () => {
-  it('Export CSV downloads identical bytes + filename', async () => {
-    render(<Reports />)
-    fireEvent.click(await screen.findByText('Export CSV'))
-    await waitFor(() => expect(capturedBlob).toBeTruthy())
-    expect(capturedName).toBe('applications-report.csv')
-    expect(await readBlob(capturedBlob)).toBe(expectedCSV)
-  })
-
   it('server export 400 falls back to client CSV', async () => {
     exportReport.mockRejectedValue(Object.assign(new Error('bad'), { status: 400 }))
+    render(<Reports />)
+    fireEvent.click(await screen.findByText('Export applications'))
+    await waitFor(() => expect(capturedBlob).toBeTruthy())
+    expect(await readBlob(capturedBlob)).toBe(expectedCSV)
+    expect(capturedName).toBe('applications-report.csv')
+  })
+
+  it('server export 404 falls back to client CSV', async () => {
+    exportReport.mockRejectedValue(Object.assign(new Error('missing'), { status: 404 }))
     render(<Reports />)
     fireEvent.click(await screen.findByText('Export applications'))
     await waitFor(() => expect(capturedBlob).toBeTruthy())

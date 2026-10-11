@@ -98,7 +98,7 @@ router.post('/applications/:id/status', auth, ah(async (req, res) => {
   const app = await ownOrAdmin(req, res, await loadApp(req.params.id));
   if (!app) return;
   const { status, remarks = null, employerNotes = null, interviewAt = null, interviewInstructions = null } = req.body || {};
-  const valid = ['Applied', 'Under Review', 'Shortlisted', 'Interview', 'Accepted', 'Rejected', 'Placed', 'Terminated'];
+  const valid = ['Applied', 'Under Review', 'Interview', 'Accepted', 'Rejected', 'Placed', 'Terminated'];
   if (!valid.includes(status)) return err(res, 400, 'BAD_REQUEST', `status must be one of ${valid.join(', ')}`);
   const patch = { status };
   if (remarks !== null) patch.employer_notes = remarks;

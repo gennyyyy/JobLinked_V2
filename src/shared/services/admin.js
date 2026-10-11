@@ -48,11 +48,6 @@ export async function listReferrals() {
   return api.get('admin/referrals');
 }
 
-export async function purgeOldApplications(monthsOld = 12) {
-  const { deleted } = await api.post('admin/purge', { monthsOld });
-  return deleted ?? 0;
-}
-
 export async function listAllAccreditations() {
   return api.get('admin/accreditations');
 }
@@ -79,6 +74,42 @@ export async function requestDocs(id, remarks) {
 
 export async function assignRole(id, role) {
   return api.post(`admin/users/${id}/role`, { role });
+}
+
+// ─── Super-admin custom roles (catalog: Roles page; assignment: Users page) ──
+// Permission keys are the UI gate keys — keep in sync with ROLE_PERMISSIONS
+// in server/src/routes/admin.js.
+export const ROLE_PERMISSIONS = [
+  { key: "dashboard.view", label: "View Dashboard" },
+  { key: "accreditation.manage", label: "Manage Accreditations" },
+  { key: "jobs.manage", label: "Manage Job Posts" },
+  { key: "users.manage", label: "Manage Users" },
+  { key: "roles.manage", label: "Manage Roles" },
+  { key: "reports.view", label: "View Reports" },
+  { key: "logs.view", label: "View Audit Logs" },
+  { key: "notifications.send", label: "Send System Notifications" },
+  { key: "settings.manage", label: "Manage Settings" },
+];
+
+export async function listRoles() {
+  return api.get('admin/roles');
+}
+
+export async function createRole(payload) {
+  return api.post('admin/roles', payload);
+}
+
+export async function updateRole(id, payload) {
+  return api.patch(`admin/roles/${id}`, payload);
+}
+
+export async function deleteRole(id) {
+  return api.del(`admin/roles/${id}`);
+}
+
+// Tag/untag a user with a custom role (Users page only).
+export async function assignCustomRole(id, customRoleId) {
+  return api.post(`admin/users/${id}/custom-role`, { custom_role_id: customRoleId ?? null });
 }
 
 export async function sendSystemNotification({ title, message, link = null, expires_at = null }) {

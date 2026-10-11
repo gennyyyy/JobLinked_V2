@@ -35,7 +35,7 @@ function Profile() {
 
       <section className="bg-white border border-primary rounded-lg p-6">
         <div className="flex items-center gap-3">
-          <div className="w-14 h-14 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center text-lg font-bold text-primary">
+          <div className="w-14 h-14 rounded-lg bg-accent/20 border border-accent/30 flex items-center justify-center text-lg font-bold text-accent">
             {(user?.full_name || "SA").split(/\s+/).map((part) => part[0]).join("").slice(0, 2).toUpperCase()}
           </div>
           <div>

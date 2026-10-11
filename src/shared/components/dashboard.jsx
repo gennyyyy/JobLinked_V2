@@ -11,12 +11,12 @@ export function PageHeader({ eyebrow, title, subtitle }) {
   );
 }
 
-export function StatCard({ label, value, highlight, icon }) {
+export function StatCard({ label, value, highlight, icon, valueClassName = "text-primary" }) {
   return (
     <div className="bg-white border border-primary rounded-lg p-4">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="font-sans text-2xl md:text-3xl font-bold text-primary leading-none">{value}</p>
+          <p className={`font-sans text-2xl md:text-3xl font-bold leading-none ${valueClassName}`}>{value}</p>
           <p className="mt-3 font-mono text-[10px] md:text-[11px] tracking-widest text-gray-500 uppercase">{label}</p>
         </div>
         {icon ? <span className="grid place-items-center w-10 h-10 rounded-lg bg-primary-subtle text-primary">{icon}</span> : null}
@@ -26,14 +26,15 @@ export function StatCard({ label, value, highlight, icon }) {
   );
 }
 
-export function SectionCard({ title, subtitle, action, children, className = "" }) {
+export function SectionCard({ title, subtitle, action, children, className = "", titleAs = "h2" }) {
+  const TitleTag = titleAs;
   return (
     <section className={`bg-white border border-primary rounded-lg overflow-hidden ${className}`}>
       <div className="flex items-center justify-between gap-3 px-5 py-3 bg-gray-50 border-b border-gray-100">
         <div className="flex items-center gap-3 min-w-0">
           <span className="w-1 h-6 bg-primary rounded-full shrink-0" />
           <div className="min-w-0">
-            <h2 className="text-base font-semibold text-dark-blue truncate">{title}</h2>
+            <TitleTag className="text-base font-semibold text-dark-blue truncate">{title}</TitleTag>
             {subtitle ? <p className="text-xs text-gray-500 mt-0.5">{subtitle}</p> : null}
           </div>
         </div>

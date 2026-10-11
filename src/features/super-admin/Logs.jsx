@@ -28,7 +28,6 @@ const ACTIVITY_TYPES = [
   "application.create",
   "application.status.Applied",
   "application.status.Under Review",
-  "application.status.Shortlisted",
   "application.status.Interview",
   "application.status.Accepted",
   "application.status.Rejected",
@@ -98,7 +97,7 @@ function UserModal({ email, onClose }) {
         <div className="flex items-start justify-between gap-3 pb-4 border-b border-gray-200">
           <div>
             <span className="font-mono text-[10px] tracking-widest text-primary uppercase">USER PROFILE</span>
-            <h2 className="mt-1 text-xl font-bold text-gray-900">{loading ? email : user?.full_name || email}</h2>
+            <h2 className="mt-1 text-xl font-bold text-gray-900 uppercase">{loading ? email : user?.full_name || email}</h2>
             {user?.role && <span className="mt-2 inline-block px-2 py-1 rounded-lg bg-gray-100 text-gray-600 text-xs capitalize">{user.role.replace("-", " ")}</span>}
           </div>
           <button type="button" onClick={onClose} className="p-1 rounded-lg text-gray-400 hover:text-gray-900 hover:bg-gray-100 transition-colors cursor-pointer" aria-label="Close">✕</button>

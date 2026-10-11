@@ -97,5 +97,5 @@ renders `employer_notes`). No service/API changes. Empty notes send nothing.
 - `reports` table — reports are computed; storing them adds nothing.
 - Admin role-mutation — `updateUser` throws on role change by design; `RoleManagement.jsx` stays descriptive.
 - HTTPS/TLS, DB/file backup — deploy-layer concerns, nothing to build in-repo.
-- Data Retention beyond `purgeOldApplications` — deferred per `plan.md` Phase 5.
+- Data Retention beyond the automated `runRetentionPurge()` daily job — deferred per `plan.md` Phase 5.
 - `plan.md` Phase 3 `referred_by` migration — column already exists (`migration.sql:495`); plan.md is stale on this point.

@@ -12,7 +12,7 @@ router.get('/admin/stats', ...admin, ah(async (req, res) => {
   const q = (sql, p = []) => pool.query(sql, p).then((r) => Number(r.rows[0].c));
   const [seekers, employers, jobs, applications, pendingAccreditations, unreadNotifications,
     pendingJobs, approvedJobs, closedJobs, expiredJobs,
-    shortlistedApplicants, acceptedApplicants, placedApplicants, accreditedEmployers] = await Promise.all([
+    acceptedApplicants, placedApplicants, accreditedEmployers] = await Promise.all([
     q('select count(*) c from job_seekers'),
     q('select count(*) c from employers'),
     q('select count(*) c from job_vacancies'),
@@ -23,14 +23,13 @@ router.get('/admin/stats', ...admin, ah(async (req, res) => {
     q(`select count(*) c from job_vacancies where status = 'approved'`),
     q(`select count(*) c from job_vacancies where status = 'closed'`),
     q(`select count(*) c from job_vacancies where deadline < current_date and status not in ('closed','archived')`),
-    q(`select count(*) c from job_applications where status = 'Shortlisted'`),
     q(`select count(*) c from job_applications where status = 'Accepted'`),
     q(`select count(*) c from job_applications where status = 'Placed'`),
     q(`select count(*) c from employers where accreditation_status = 'approved'`),
   ]);
   res.json({ seekers, employers, companies: employers, jobs, applications, pendingAccreditations, unreadNotifications,
     pendingJobs, approvedJobs, closedJobs, expiredJobs,
-    shortlistedApplicants, acceptedApplicants, placedApplicants, accreditedEmployers });
+    acceptedApplicants, placedApplicants, accreditedEmployers });
 }));
 
 const USER_TABLES = { 'job-seeker': 'job_seekers', employer: 'employers', 'super-admin': 'super_admins' };
@@ -143,16 +142,31 @@ router.get('/admin/accreditations', ...admin, ah(async (req, res) => {
   res.json(rows);
 }));
 
-// Same keep-Accepted/Placed rule as the client purge.
-router.post('/admin/purge', ...admin, ah(async (req, res) => {
-  const monthsOld = Number(req.body?.monthsOld ?? 12) || 12;
+// Automated retention job implementing Terms §4 (Protection and Retention —
+// read-only): runs on a fixed server-side schedule, no manual trigger and no
+// request input. Deletes stale non-employment applications only (12+ months
+// old). Accepted / Placed / Terminated are lawfully retained as employment
+// records (closing an account does not erase records that must be retained)
+// and feed municipal reports (§2); deleting them would cascade-wipe linked
+// employment_history rows. Runs as user_id NULL (system) in the audit log.
+const RETENTION_MONTHS = 12;
+const RETENTION_INTERVAL_MS = 24 * 60 * 60 * 1000;
+const RETAINED_STATUSES = ['Accepted', 'Placed', 'Terminated'];
+
+export async function runRetentionPurge() {
   const cutoff = new Date();
-  cutoff.setMonth(cutoff.getMonth() - monthsOld);
+  cutoff.setMonth(cutoff.getMonth() - RETENTION_MONTHS);
   const { rowCount } = await pool.query(
-    `delete from job_applications where applied_at < $1 and status not in ('Accepted', 'Placed')`, [cutoff.toISOString()]);
-  void audit(req.user.id, 'data.purge', 'job_applications', null, { monthsOld, deleted: rowCount });
-  res.json({ deleted: rowCount });
-}));
+    `delete from job_applications where applied_at < $1 and status not in ('Accepted', 'Placed', 'Terminated')`, [cutoff.toISOString()]);
+  void audit(null, 'data.purge', 'job_applications', null, { automated: true, monthsOld: RETENTION_MONTHS, cutoff: cutoff.toISOString(), retainedStatuses: RETAINED_STATUSES, deleted: rowCount });
+  return rowCount;
+}
+
+if (process.env.RETENTION_DISABLE !== '1') {
+  setInterval(() => {
+    runRetentionPurge().catch((e) => console.error('[retention] purge failed:', e.message));
+  }, RETENTION_INTERVAL_MS).unref?.();
+}
 
 router.get('/admin/audit-logs', ...admin, ah(async (req, res) => {
   const { limit = 500, userId = '', action = '', from = '', to = '' } = req.query;
@@ -195,6 +209,117 @@ router.post('/admin/reference/:category', ...admin, ah(async (req, res) => {
     if (e.code === '23505') return err(res, 409, 'CONFLICT', 'Reference value already exists');
     throw e;
   }
+}));
+
+// ─── Custom roles (super-admin defined, tag-only) ──────────────────────────
+// Permission bundles stored as reference_data rows (category = 'custom_role').
+// The 3 system roles stay fixed in the user_role enum + role tables; a custom
+// role never creates a login identity. Assignment is a tag on the user's row
+// (custom_role_id) — editable only from the Users page.
+const ROLE_PERMISSIONS = [
+  "dashboard.view",
+  "accreditation.manage",
+  "jobs.manage",
+  "users.manage",
+  "roles.manage",
+  "reports.view",
+  "logs.view",
+  "notifications.send",
+  "settings.manage",
+];
+const ROLE_BASE_ROLES = ["super-admin", "employer", "job-seeker"];
+
+function parseCustomRole(row) {
+  const details = row.details || {};
+  return {
+    id: row.id,
+    name: row.value,
+    description: details.description || "",
+    permissions: Array.isArray(details.permissions) ? details.permissions : [],
+    base_role: ROLE_BASE_ROLES.includes(details.base_role) ? details.base_role : "super-admin",
+    sort_order: row.sort_order ?? 0,
+  };
+}
+
+function validateRolePayload(body) {
+  const { name, description = "", permissions = [], base_role = "super-admin" } = body || {};
+  if (!name || !String(name).trim()) return { error: "Role name is required" };
+  if (!ROLE_BASE_ROLES.includes(base_role)) return { error: "base_role must be super-admin, employer, or job-seeker" };
+  const clean = [...new Set((Array.isArray(permissions) ? permissions : []).filter((p) => ROLE_PERMISSIONS.includes(p)))];
+  return { value: { name: String(name).trim(), description: String(description || "").trim(), permissions: clean, base_role } };
+}
+
+async function roleNameTaken(name, excludeId = null) {
+  const { rows } = await pool.query(
+    `select id from reference_data
+      where category = 'custom_role' and lower(value) = lower($1)${excludeId ? ' and id <> $2' : ''}
+      limit 1`,
+    excludeId ? [name, excludeId] : [name]);
+  return rows.length > 0;
+}
+
+router.get('/admin/roles', ...admin, ah(async (req, res) => {
+  const { rows } = await pool.query(
+    `select * from reference_data where category = 'custom_role' order by sort_order, value`);
+  res.json(rows.map(parseCustomRole));
+}));
+
+router.post('/admin/roles', ...admin, ah(async (req, res) => {
+  const checked = validateRolePayload(req.body);
+  if (checked.error) return err(res, 400, 'BAD_REQUEST', checked.error);
+  if (await roleNameTaken(checked.value.name)) return err(res, 409, 'CONFLICT', 'A role with this name already exists');
+  const { rows } = await pool.query(
+    `insert into reference_data (category, value, sort_order, details)
+     values ('custom_role', $1, coalesce((select max(sort_order) + 1 from reference_data where category = 'custom_role'), 0), $2)
+     returning *`,
+    [checked.value.name, JSON.stringify({ description: checked.value.description, permissions: checked.value.permissions, base_role: checked.value.base_role })]);
+  void audit(req.user.id, 'role.create', 'reference_data', rows[0].id, { name: checked.value.name });
+  res.status(201).json(parseCustomRole(rows[0]));
+}));
+
+router.patch('/admin/roles/:id', ...admin, ah(async (req, res) => {
+  const { rows: existing } = await pool.query(
+    `select * from reference_data where id = $1 and category = 'custom_role'`, [req.params.id]);
+  if (!existing[0]) return err(res, 404, 'NOT_FOUND', 'Custom role not found');
+  const checked = validateRolePayload({ ...parseCustomRole(existing[0]), ...(req.body || {}) });
+  if (checked.error) return err(res, 400, 'BAD_REQUEST', checked.error);
+  if (await roleNameTaken(checked.value.name, req.params.id)) return err(res, 409, 'CONFLICT', 'A role with this name already exists');
+  const { rows } = await pool.query(
+    `update reference_data set value = $2, details = $3 where id = $1 and category = 'custom_role' returning *`,
+    [req.params.id, checked.value.name,
+      JSON.stringify({ description: checked.value.description, permissions: checked.value.permissions, base_role: checked.value.base_role })]);
+  void audit(req.user.id, 'role.update', 'reference_data', req.params.id, { name: checked.value.name });
+  res.json(parseCustomRole(rows[0]));
+}));
+
+router.delete('/admin/roles/:id', ...admin, ah(async (req, res) => {
+  const { rows: existing } = await pool.query(
+    `select * from reference_data where id = $1 and category = 'custom_role'`, [req.params.id]);
+  if (!existing[0]) return err(res, 404, 'NOT_FOUND', 'Custom role not found');
+  for (const table of Object.values(USER_TABLES)) {
+    await pool.query(`update ${table} set custom_role_id = null, updated_at = now() where custom_role_id = $1`, [req.params.id]);
+  }
+  await pool.query(`delete from reference_data where id = $1 and category = 'custom_role'`, [req.params.id]);
+  void audit(req.user.id, 'role.delete', 'reference_data', req.params.id, { name: existing[0].value });
+  res.json({ deleted: true });
+}));
+
+// Tag a user with a custom role (assignment lives on the Users page only).
+router.post('/admin/users/:id/custom-role', ...admin, ah(async (req, res) => {
+  if (req.params.id === req.user.id) return err(res, 403, 'FORBIDDEN', 'You cannot change your own role');
+  const { table, profile } = await findUserTable(req.params.id);
+  if (!profile) return err(res, 404, 'NOT_FOUND', 'User account not found');
+  const { custom_role_id = null } = req.body || {};
+  if (custom_role_id !== null) {
+    const { rows } = await pool.query(
+      `select id from reference_data where id = $1 and category = 'custom_role'`, [custom_role_id]);
+    if (!rows[0]) return err(res, 400, 'BAD_REQUEST', 'Custom role not found');
+  }
+  const { rows } = await pool.query(
+    `update ${table} set custom_role_id = $2, updated_at = now() where id = $1 returning *`,
+    [req.params.id, custom_role_id]);
+  void audit(req.user.id, 'user.custom-role.assign', table, req.params.id, { custom_role_id });
+  res.json({ ...rows[0], role: profile.role });
 }));
 
 router.delete('/admin/reference/:id', ...admin, ah(async (req, res) => {
@@ -243,9 +368,10 @@ router.post('/notifications/read-all', auth, ah(async (req, res) => {
 // Same JOB_COLS allowlist as employer PATCH /jobs/:id in jobs.js
 // (replicated so all edits stay in this file); status goes through the same
 // single-transaction job + history write as jobs.js writeStatus.
-const ADMIN_JOB_COLS = ['title', 'office', 'location', 'employment_type', 'salary_min', 'salary_max',
+const ADMIN_JOB_COLS = ['title', 'office', 'location', 'employment_type', 'work_arrangement', 'salary_min', 'salary_max',
   'description', 'requirements', 'benefits', 'vacancies', 'deadline', 'instructions', 'tags', 'status', 'remarks'];
 const ADMIN_JOB_STATUSES = ['draft', 'pending', 'approved', 'rejected', 'published', 'closed', 'archived'];
+const ADMIN_JOB_ARRANGEMENTS = ['On-site', 'Remote / Work from home', 'Hybrid'];
 
 async function adminWriteStatus(client, jobId, status, remarks, changedBy) {
   const stamps = { published: 'published_at', closed: 'closed_at', archived: 'archived_at' };
@@ -266,6 +392,9 @@ router.patch('/admin/jobs/:id', ...admin, ah(async (req, res) => {
   if (!Object.keys(patch).length) return err(res, 400, 'BAD_REQUEST', 'Nothing to update');
   if (patch.status !== undefined && !ADMIN_JOB_STATUSES.includes(patch.status)) {
     return err(res, 400, 'BAD_REQUEST', `status must be one of ${ADMIN_JOB_STATUSES.join(', ')}`);
+  }
+  if (patch.work_arrangement !== undefined && !ADMIN_JOB_ARRANGEMENTS.includes(patch.work_arrangement)) {
+    return err(res, 400, 'BAD_REQUEST', `work_arrangement must be one of ${ADMIN_JOB_ARRANGEMENTS.join(', ')}`);
   }
   const client = await pool.connect();
   try {

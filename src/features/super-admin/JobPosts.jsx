@@ -226,7 +226,7 @@ function JobPosts() {
               ) : filtered.map((post) => (
                 <tr key={post.id} className="border-t border-gray-100 hover:bg-gray-50/60 transition-colors">
                   <td className="py-3 pl-5 pr-3 text-gray-900 font-medium text-xs">{post.title}</td>
-                  <td className="py-3 px-3 text-xs text-gray-500">{post.employers?.company_name}</td>
+                  <td className="py-3 px-3 text-xs text-gray-500 uppercase">{post.employers?.company_name}</td>
                   <td className="py-3 px-3 text-xs text-gray-500">{post.location}</td>
                   <td className="py-3 px-3">
                     <span className={`font-mono text-[10px] tracking-wider px-2.5 py-0.5 rounded-full uppercase border ${statusBadge(post.status)}`}>

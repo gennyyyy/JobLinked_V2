@@ -30,7 +30,7 @@ function SeekerModal({ seeker, onClose }) {
       <div className="bg-white w-full max-w-2xl max-h-[90vh] overflow-y-auto border border-primary rounded-lg shadow-xl p-5 md:p-6">
         <div className="flex items-start justify-between gap-3 pb-4 border-b border-gray-200">
           <div>
-            <h2 className="text-xl font-bold text-gray-900">{seeker.full_name}</h2>
+            <h2 className="text-xl font-bold text-gray-900 uppercase">{seeker.full_name}</h2>
             <p className="mt-1 font-mono text-xs text-gray-500 break-all">{seeker.email}</p>
           </div>
           <button onClick={onClose} aria-label="Close" className="p-1 rounded-lg text-gray-400 hover:text-gray-900 hover:bg-gray-100 transition-colors">✕</button>
@@ -56,10 +56,10 @@ function SeekerModal({ seeker, onClose }) {
         {tab === "profile" && (
           <dl className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm p-4 rounded-xl bg-gray-50 border border-gray-200">
             <div><dt className="font-mono text-[10px] tracking-widest uppercase text-gray-400">Status</dt><dd className="mt-1 text-xs text-gray-700">{seeker.status || "—"}</dd></div>
-            <div><dt className="font-mono text-[10px] tracking-widest uppercase text-gray-400">Barangay</dt><dd className="mt-1 text-xs text-gray-700">{seeker.barangay_district || "—"}</dd></div>
+            <div><dt className="font-mono text-[10px] tracking-widest uppercase text-gray-400">Barangay</dt><dd className="mt-1 text-xs text-gray-700 uppercase">{seeker.barangay_district || "—"}</dd></div>
             <div><dt className="font-mono text-[10px] tracking-widest uppercase text-gray-400">Employment status</dt><dd className="mt-1 text-xs text-gray-700">{seeker.employment_status || "—"}</dd></div>
             <div><dt className="font-mono text-[10px] tracking-widest uppercase text-gray-400">Registered</dt><dd className="mt-1 text-xs text-gray-700">{seeker.created_at ? new Date(seeker.created_at).toLocaleDateString() : "—"}</dd></div>
-            <div><dt className="font-mono text-[10px] tracking-widest uppercase text-gray-400">Skills</dt><dd className="mt-1 text-xs text-gray-700">{(seeker.skills || []).join(", ") || "—"}</dd></div>
+            <div><dt className="font-mono text-[10px] tracking-widest uppercase text-gray-400">Skills</dt><dd className="mt-1 text-xs text-gray-700 uppercase">{(seeker.skills || []).join(", ") || "—"}</dd></div>
             <div><dt className="font-mono text-[10px] tracking-widest uppercase text-gray-400">Preferred position</dt><dd className="mt-1 text-xs text-gray-700">{seeker.preferred_position || "—"}</dd></div>
             <div><dt className="font-mono text-[10px] tracking-widest uppercase text-gray-400">Preferred location</dt><dd className="mt-1 text-xs text-gray-700">{seeker.preferred_location || "—"}</dd></div>
           </dl>
@@ -70,8 +70,8 @@ function SeekerModal({ seeker, onClose }) {
               <p className="text-xs text-gray-400">No education records.</p>
             ) : education.map((e) => (
               <div key={e.id} className="p-3 rounded-xl bg-gray-50 border border-gray-200">
-                <p className="text-xs font-medium text-gray-900">{e.level}{e.field ? ` · ${e.field}` : ""}</p>
-                <p className="text-[11px] text-gray-500">{e.school}{e.end_year ? ` · ${e.end_year}` : ""}</p>
+                <p className="text-xs font-medium text-gray-900 uppercase">{e.level}{e.field ? ` · ${e.field}` : ""}</p>
+                <p className="text-[11px] text-gray-500 uppercase">{e.school}{e.end_year ? ` · ${e.end_year}` : ""}</p>
               </div>
             ))}
           </div>
@@ -182,7 +182,7 @@ function JobSeekersSection() {
                 <tr><td colSpan={5} className="py-8 text-center text-sm text-gray-400">No job seekers found.</td></tr>
               ) : filtered.map((emp) => (
                 <tr key={emp.id} className="border-t border-gray-100 hover:bg-gray-50/60 transition-colors">
-                  <td className="py-3 pl-5 pr-3 text-gray-900 font-medium text-xs">{emp.full_name}</td>
+                  <td className="py-3 pl-5 pr-3 text-gray-900 font-medium text-xs uppercase">{emp.full_name}</td>
                   <td className="py-3 px-3 font-mono text-xs text-gray-500 break-all">{emp.email}</td>
                   <td className="py-3 px-3 text-xs text-gray-500">
                     {new Date(emp.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
@@ -278,11 +278,11 @@ function CompanyEmployeeTable({ companyName, employees, search }) {
             {filtered.map((emp) => (
               <tr key={emp.id} className="hover:bg-primary/5 transition-colors">
                 <td className="py-3 px-6">
-                  <p className="text-gray-900 font-medium text-sm">{emp.seeker?.full_name}</p>
+                  <p className="text-gray-900 font-medium text-sm uppercase">{emp.seeker?.full_name}</p>
                   <p className="font-mono text-[10px] text-gray-400 mt-0.5">{emp.seeker?.email}</p>
                 </td>
                 <td className="py-3 px-4 text-gray-600 text-xs">{emp.job?.title || "—"}</td>
-                <td className="py-3 px-4 font-mono text-xs text-gray-500">{emp.seeker?.barangay_district || "—"}</td>
+                <td className="py-3 px-4 font-mono text-xs text-gray-500 uppercase">{emp.seeker?.barangay_district || "—"}</td>
                 <td className="py-3 px-4 font-mono text-xs text-gray-500">
                   {new Date(emp.updated_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
                 </td>
@@ -451,9 +451,9 @@ function ReferralsSection() {
               <tr><td colSpan={4} className="py-8 text-center text-sm text-gray-400">No referred applications yet.</td></tr>
             ) : referrals.map((r) => (
               <tr key={r.id} className="border-t border-gray-100 hover:bg-gray-50/60 transition-colors">
-                <td className="py-3 pl-5 pr-3 text-gray-900 font-medium text-xs">{r.seeker?.full_name}</td>
+                <td className="py-3 pl-5 pr-3 text-gray-900 font-medium text-xs uppercase">{r.seeker?.full_name}</td>
                 <td className="py-3 px-3 text-xs text-gray-600">{r.job?.title}</td>
-                <td className="py-3 px-3 text-xs text-gray-500">{r.job?.employers?.company_name}</td>
+                <td className="py-3 px-3 text-xs text-gray-500 uppercase">{r.job?.employers?.company_name}</td>
                 <td className="py-3 px-3 pr-5"><span className="font-mono text-[10px] px-2 py-0.5 rounded-full bg-gray-100 border border-gray-200">{r.status}</span></td>
               </tr>
             ))}

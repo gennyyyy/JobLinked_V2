@@ -51,7 +51,7 @@ function DetailModal({ accreditation, onClose }) {
         <div className="flex items-start justify-between gap-3 pb-4 border-b border-gray-200">
           <div>
             <span className="font-mono text-[10px] tracking-widest text-[#0057B8] uppercase">APPLICATION DOCUMENTS</span>
-            <h2 className="mt-1 text-xl font-bold text-gray-900">{company?.company_name}</h2>
+            <h2 className="mt-1 text-xl font-bold text-gray-900 uppercase">{company?.company_name}</h2>
             <p className="mt-1 text-xs text-gray-500">
               Submitted {new Date(accreditation.submitted_at).toLocaleString("en-PH", { dateStyle: "medium", timeStyle: "short" })}
             </p>
@@ -240,7 +240,7 @@ function Accreditation() {
             {pending.map((acc) => (
               <div key={acc.id} className="py-5 first:pt-0 last:pb-0 flex flex-col lg:flex-row lg:items-center justify-between gap-3">
                 <div className="min-w-0">
-                  <p className="text-base font-semibold text-gray-900">{acc.employers?.company_name}</p>
+                  <p className="text-base font-semibold text-gray-900 uppercase">{acc.employers?.company_name}</p>
                   <p className="mt-1 text-xs text-gray-500">
                     {formatFullAddress(acc.employers) || "Address not provided"}
                   </p>
@@ -319,8 +319,8 @@ function Accreditation() {
             <tbody className="divide-y divide-gray-100">
               {companies.map((company) => (
                 <tr key={company.id} className="hover:bg-primary/5 transition-colors">
-                  <td className="py-3.5 px-4 text-gray-900 font-medium">{company.company_name}</td>
-                  <td className="py-3.5 px-4 font-mono text-xs text-gray-500">{company.full_name}</td>
+                  <td className="py-3.5 px-4 text-gray-900 font-medium uppercase">{company.company_name}</td>
+                  <td className="py-3.5 px-4 font-mono text-xs text-gray-500 uppercase">{company.full_name}</td>
                   <td className="py-3.5 px-4 font-mono text-xs text-gray-500">{company.email}</td>
                   <td className="py-3.5 px-4">
                     <span className={`font-mono text-[10px] tracking-wider px-2.5 py-0.5 rounded-full uppercase border ${company.status === "active" ? "bg-emerald-50 border-emerald-200 text-emerald-700"

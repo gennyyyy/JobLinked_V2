@@ -234,10 +234,7 @@ function Reports() {
           <label htmlFor="date-to" className="text-xs text-gray-500">To</label>
           <input id="date-to" type="date" value={dateTo} onChange={e => { setDateTo(e.target.value); setPage(1); }} className="px-3 py-2 text-xs border border-gray-200 rounded-lg bg-white" />
         </div>
-        <button onClick={exportCSV} className="ml-auto px-4 py-2 text-xs font-medium text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg transition-colors">
-          Export CSV
-        </button>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 ml-auto">
           <label htmlFor="export-format" className="text-xs text-gray-500">Format</label>
           <select id="export-format" value={exportFormat} onChange={(e) => setExportFormat(e.target.value)} className="px-3 py-2 text-xs border border-gray-200 rounded-lg bg-white">
             <option value="csv">CSV</option>
@@ -300,7 +297,7 @@ function Reports() {
         )}
         {(reportType === "seekers" || reportType === "employers") && (
           <div className="p-4 rounded-xl bg-gray-50 border border-gray-200 text-center col-span-2">
-            <p className="text-sm text-gray-500">Use the Export CSV button to download detailed data</p>
+            <p className="text-sm text-gray-500">Use the Export button to download detailed data</p>
           </div>
         )}
         {reportType === "barangay" && (
@@ -404,9 +401,9 @@ function Reports() {
             <tbody className="divide-y divide-gray-100">
               {reportType === "applications" && paginate(currentTableData).map((a) => (
                 <tr key={a.id} className="hover:bg-gray-50">
-                  <td className="py-3 px-4 text-gray-900 font-medium">{a.seeker?.full_name}</td>
+                  <td className="py-3 px-4 text-gray-900 font-medium uppercase">{a.seeker?.full_name}</td>
                   <td className="py-3 px-4 text-gray-600">{a.job?.title}</td>
-                  <td className="py-3 px-4 text-gray-500">{a.job?.employers?.company_name}</td>
+                  <td className="py-3 px-4 text-gray-500 uppercase">{a.job?.employers?.company_name}</td>
                   <td className="py-3 px-4"><span className="font-mono text-[10px] px-2 py-0.5 rounded-full bg-gray-100 border border-gray-200">{a.status}</span></td>
                   <td className="py-3 px-4 text-xs text-gray-500">{new Date(a.applied_at).toLocaleDateString()}</td>
                 </tr>
@@ -414,23 +411,23 @@ function Reports() {
               {reportType === "jobs" && paginate(currentTableData).map((j) => (
                 <tr key={j.id} className="hover:bg-gray-50">
                   <td className="py-3 px-4 text-gray-900 font-medium">{j.title}</td>
-                  <td className="py-3 px-4 text-gray-500">{j.employers?.company_name}</td>
+                  <td className="py-3 px-4 text-gray-500 uppercase">{j.employers?.company_name}</td>
                   <td className="py-3 px-4 text-xs text-gray-500">{j.location}</td>
                   <td className="py-3 px-4"><span className="font-mono text-[10px] px-2 py-0.5 rounded-full bg-gray-100 border border-gray-200">{j.status}</span></td>
                 </tr>
               ))}
               {reportType === "seekers" && paginate(currentTableData).map((u) => (
                 <tr key={u.id} className="hover:bg-gray-50">
-                  <td className="py-3 px-4 text-gray-900 font-medium">{u.full_name}</td>
+                  <td className="py-3 px-4 text-gray-900 font-medium uppercase">{u.full_name}</td>
                   <td className="py-3 px-4 text-gray-500">{u.email}</td>
-                  <td className="py-3 px-4 text-xs text-gray-500">{u.barangay_district}</td>
+                  <td className="py-3 px-4 text-xs text-gray-500 uppercase">{u.barangay_district}</td>
                   <td className="py-3 px-4"><span className="font-mono text-[10px] px-2 py-0.5 rounded-full bg-gray-100 border border-gray-200">{u.status}</span></td>
                 </tr>
               ))}
               {reportType === "employers" && paginate(currentTableData).map((c) => (
                 <tr key={c.id} className="hover:bg-gray-50">
-                  <td className="py-3 px-4 text-gray-900 font-medium">{c.company_name}</td>
-                  <td className="py-3 px-4 text-gray-500">{c.full_name}</td>
+                  <td className="py-3 px-4 text-gray-900 font-medium uppercase">{c.company_name}</td>
+                  <td className="py-3 px-4 text-gray-500 uppercase">{c.full_name}</td>
                   <td className="py-3 px-4 text-gray-500">{c.email}</td>
                   <td className="py-3 px-4"><span className="font-mono text-[10px] px-2 py-0.5 rounded-full bg-gray-100 border border-gray-200">{c.status}</span></td>
                   <td className="py-3 px-4">

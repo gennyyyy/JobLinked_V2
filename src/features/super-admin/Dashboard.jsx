@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { getStats, listAllAccreditations } from "../../shared/services/admin";
 import LoadingScreen from "../../shared/components/LoadingScreen";
-import { Users, Clock, Building2, Briefcase, FileText, Globe, BadgeCheck, ClipboardList, UserCheck, Star } from "lucide-react";
+import { Users, Clock, Building2, Briefcase, FileText, Globe, BadgeCheck, ClipboardList, UserCheck } from "lucide-react";
 import { PageHeader, StatCard, SectionCard } from "../../shared/components/dashboard";
 
 function Dashboard() {
@@ -36,7 +36,6 @@ function Dashboard() {
     ...[
       { label: "Accredited", value: stats.accreditedEmployers, icon: <BadgeCheck size={18} /> },
       { label: "Pending Jobs", value: stats.pendingJobs, icon: <ClipboardList size={18} /> },
-      { label: "Shortlisted", value: stats.shortlistedApplicants, icon: <Star size={18} /> },
       { label: "Accepted", value: stats.acceptedApplicants, icon: <UserCheck size={18} /> },
       { label: "Placed", value: stats.placedApplicants, icon: <BadgeCheck size={18} /> },
     ].filter((c) => c.value !== undefined && c.value !== null).map((c) => ({ ...c, highlight: false })),
@@ -69,9 +68,9 @@ function Dashboard() {
             {recentAccreditations.map((acc) => (
               <div key={acc.id} className="py-4 first:pt-0 last:pb-0 flex items-center justify-between gap-3">
                 <div className="min-w-0">
-                  <p className="text-sm font-medium text-gray-900 truncate">{acc.employers?.company_name}</p>
+                  <p className="text-sm font-medium text-gray-900 truncate uppercase">{acc.employers?.company_name}</p>
                   <p className="mt-1 text-xs text-gray-500 truncate">
-                    Barangay {acc.employers?.barangay_district} · {new Date(acc.submitted_at).toLocaleDateString("en-PH", { dateStyle: "medium" })}
+                    Barangay <span className="uppercase">{acc.employers?.barangay_district}</span> · {new Date(acc.submitted_at).toLocaleDateString("en-PH", { dateStyle: "medium" })}
                   </p>
                 </div>
                 <span
