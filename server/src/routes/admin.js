@@ -107,6 +107,9 @@ router.post('/admin/users/invite', ...admin, ah(async (req, res) => {
     if (!rows[0]) return err(res, 400, 'BAD_REQUEST', 'Custom role not found');
     role = rows[0].base_role;
     customRoleId = rows[0].id;
+    if (b.role && b.role !== role) {
+      return err(res, 400, 'BAD_REQUEST', 'role must match the custom role base role');
+    }
   }
   if (!INVITE_BASE_ROLES.includes(role)) {
     return err(res, 400, 'BAD_REQUEST', 'role must be job-seeker, employer, or super-admin');

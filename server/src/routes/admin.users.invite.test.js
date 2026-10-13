@@ -77,6 +77,15 @@ describe('invite runtime', () => {
     expect(r.status).toBe(400);
     expect(mocks.invite).not.toHaveBeenCalled();
   });
+  it('400 when role disagrees with the custom role base role', async () => {
+    // reference_data lookup resolves the custom role to base_role 'employer',
+    // while the request claims 'job-seeker' → reject, never invite.
+    mocks.poolQuery.mockResolvedValue({ rows: [{ id: 12, base_role: 'employer' }] });
+    const r = await post({ email: 'c@x.com', role: 'job-seeker', custom_role_id: 12, first_name: 'A', last_name: 'B', company_name: 'Acme' });
+    expect(r.status).toBe(400);
+    expect((await r.json()).error.code).toBe('BAD_REQUEST');
+    expect(mocks.invite).not.toHaveBeenCalled();
+  });
   it('403 when the caller is not a super-admin', async () => {
     mocks.role = 'employer';
     const r = await post({ email: 'e@x.com', role: 'job-seeker', first_name: 'A', last_name: 'B' });
