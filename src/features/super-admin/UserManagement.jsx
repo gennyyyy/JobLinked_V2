@@ -149,22 +149,13 @@ function UserManagement() {
 
   return (
     <div className="space-y-6">
-      <header className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2.5">
-            <div className="w-1 h-5 bg-primary rounded-full" />
-            <p className="font-mono text-[11px] tracking-[0.2em] text-primary uppercase font-medium">SYSTEM ADMINISTRATION</p>
-          </div>
-          <h1 className="mt-1 text-xl md:text-2xl font-bold tracking-tight text-dark-blue">User Management</h1>
-          <p className="mt-2 text-sm text-gray-500">Manage system users and assign them to roles</p>
+      <header>
+        <div className="flex items-center gap-2.5">
+          <div className="w-1 h-5 bg-primary rounded-full" />
+          <p className="font-mono text-[11px] tracking-[0.2em] text-primary uppercase font-medium">SYSTEM ADMINISTRATION</p>
         </div>
-        <button
-          type="button"
-          onClick={() => setShowInvite(true)}
-          className="shrink-0 min-h-[38px] px-4 rounded-xl bg-primary text-white text-sm font-medium hover:bg-primary-hover transition-colors cursor-pointer"
-        >
-          Add user
-        </button>
+        <h1 className="mt-1 text-xl md:text-2xl font-bold tracking-tight text-dark-blue">User Management</h1>
+        <p className="mt-2 text-sm text-gray-500">Manage system users and assign them to roles</p>
       </header>
 
       {success && (
@@ -200,6 +191,13 @@ function UserManagement() {
             />
           </div>
           <span className="self-center ml-auto text-xs text-gray-400 font-medium whitespace-nowrap">{filteredUsers.length} records</span>
+          <button
+            type="button"
+            onClick={() => setShowInvite(true)}
+            className="shrink-0 min-h-[38px] px-4 rounded-xl bg-primary text-white text-sm font-medium hover:bg-primary-hover transition-colors cursor-pointer"
+          >
+            Add user
+          </button>
         </div>
 
         {/* Table */}
