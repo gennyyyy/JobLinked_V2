@@ -193,7 +193,7 @@ function UserManagement() {
           <span className="self-center ml-auto text-xs text-gray-400 font-medium whitespace-nowrap">{filteredUsers.length} records</span>
           <button
             type="button"
-            onClick={() => setShowInvite(true)}
+            onClick={() => { setActionError(""); setShowInvite(true); }}
             className="shrink-0 min-h-[38px] px-4 rounded-xl bg-primary text-white text-sm font-medium hover:bg-primary-hover transition-colors cursor-pointer"
           >
             Add user
@@ -326,6 +326,7 @@ function UserManagement() {
               <div>
                 <span className="font-mono text-[10px] tracking-widest text-primary uppercase">INVITE</span>
                 <h2 id="invite-title" className="mt-1 text-xl font-bold text-gray-900">Add user</h2>
+                <p className="mt-1 text-xs text-gray-500">Send an invitation email to onboard a new municipal user or partner.</p>
               </div>
               <button type="button" onClick={() => setShowInvite(false)} className="p-1 rounded-lg text-gray-400 hover:text-gray-900 hover:bg-gray-100 transition-colors cursor-pointer" aria-label="Close">
                 <X className="w-4 h-4" aria-hidden="true" />
@@ -335,7 +336,7 @@ function UserManagement() {
             <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="sm:col-span-2">
                 <label htmlFor="invite-email" className="block text-xs font-medium text-gray-700 mb-1">Email</label>
-                <input id="invite-email" type="email" required value={inviteForm.email} onChange={(e) => setInviteField("email", e.target.value)} className={INVITE_INPUT_CLASS} />
+                <input id="invite-email" type="email" required placeholder="e.g. juan.delacruz@example.com" value={inviteForm.email} onChange={(e) => setInviteField("email", e.target.value)} className={INVITE_INPUT_CLASS} />
               </div>
               <div className="sm:col-span-2">
                 <label htmlFor="invite-role" className="block text-xs font-medium text-gray-700 mb-1">Role</label>
@@ -357,31 +358,33 @@ function UserManagement() {
               </div>
               <div>
                 <label htmlFor="invite-first" className="block text-xs font-medium text-gray-700 mb-1">First name</label>
-                <input id="invite-first" type="text" required value={inviteForm.first_name} onChange={(e) => setInviteField("first_name", e.target.value)} className={INVITE_INPUT_CLASS} />
+                <input id="invite-first" type="text" required placeholder="e.g. Juan" value={inviteForm.first_name} onChange={(e) => setInviteField("first_name", e.target.value)} className={INVITE_INPUT_CLASS} />
               </div>
               <div>
                 <label htmlFor="invite-middle" className="block text-xs font-medium text-gray-700 mb-1">Middle name</label>
-                <input id="invite-middle" type="text" value={inviteForm.middle_name} onChange={(e) => setInviteField("middle_name", e.target.value)} className={INVITE_INPUT_CLASS} />
+                <input id="invite-middle" type="text" placeholder="e.g. Santos (optional)" value={inviteForm.middle_name} onChange={(e) => setInviteField("middle_name", e.target.value)} className={INVITE_INPUT_CLASS} />
               </div>
               <div>
                 <label htmlFor="invite-last" className="block text-xs font-medium text-gray-700 mb-1">Last name</label>
-                <input id="invite-last" type="text" required value={inviteForm.last_name} onChange={(e) => setInviteField("last_name", e.target.value)} className={INVITE_INPUT_CLASS} />
+                <input id="invite-last" type="text" required placeholder="e.g. Dela Cruz" value={inviteForm.last_name} onChange={(e) => setInviteField("last_name", e.target.value)} className={INVITE_INPUT_CLASS} />
               </div>
               <div>
                 <label htmlFor="invite-suffix" className="block text-xs font-medium text-gray-700 mb-1">Suffix</label>
-                <input id="invite-suffix" type="text" value={inviteForm.suffix} onChange={(e) => setInviteField("suffix", e.target.value)} className={INVITE_INPUT_CLASS} />
+                <input id="invite-suffix" type="text" placeholder="e.g. Jr., III (optional)" value={inviteForm.suffix} onChange={(e) => setInviteField("suffix", e.target.value)} className={INVITE_INPUT_CLASS} />
               </div>
               <div className="sm:col-span-2">
                 <label htmlFor="invite-phone" className="block text-xs font-medium text-gray-700 mb-1">Phone</label>
-                <input id="invite-phone" type="tel" value={inviteForm.phone} onChange={(e) => setInviteField("phone", e.target.value)} className={INVITE_INPUT_CLASS} />
+                <input id="invite-phone" type="tel" placeholder="e.g. 0917 123 4567" value={inviteForm.phone} onChange={(e) => setInviteField("phone", e.target.value)} className={INVITE_INPUT_CLASS} />
               </div>
               {inviteBaseRole === "employer" && (
                 <div className="sm:col-span-2">
                   <label htmlFor="invite-company" className="block text-xs font-medium text-gray-700 mb-1">Company name</label>
-                  <input id="invite-company" type="text" required value={inviteForm.company_name} onChange={(e) => setInviteField("company_name", e.target.value)} className={INVITE_INPUT_CLASS} />
+                  <input id="invite-company" type="text" required placeholder="e.g. San Miguel Corporation" value={inviteForm.company_name} onChange={(e) => setInviteField("company_name", e.target.value)} className={INVITE_INPUT_CLASS} />
                 </div>
               )}
             </div>
+
+            {actionError && <div className="mt-4 text-sm text-danger bg-danger/10 border border-danger/20 px-4 py-3 rounded-lg">{actionError}</div>}
 
             <div className="mt-6 pt-5 border-t border-gray-200 flex justify-end gap-3">
               <button type="button" onClick={() => setShowInvite(false)} className="px-5 py-2 text-xs font-medium rounded-xl border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors cursor-pointer">

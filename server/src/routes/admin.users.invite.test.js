@@ -77,6 +77,18 @@ describe('invite runtime', () => {
     expect(r.status).toBe(400);
     expect(mocks.invite).not.toHaveBeenCalled();
   });
+  it('400 when the request omits the email', async () => {
+    const r = await post({ role: 'job-seeker', first_name: 'A', last_name: 'B' });
+    expect(r.status).toBe(400);
+    expect((await r.json()).error.code).toBe('BAD_REQUEST');
+    expect(mocks.invite).not.toHaveBeenCalled();
+  });
+  it('400 when the request omits first_name and last_name', async () => {
+    const r = await post({ email: 'x@x.com', role: 'job-seeker' });
+    expect(r.status).toBe(400);
+    expect((await r.json()).error.code).toBe('BAD_REQUEST');
+    expect(mocks.invite).not.toHaveBeenCalled();
+  });
   it('400 when role disagrees with the custom role base role', async () => {
     // reference_data lookup resolves the custom role to base_role 'employer',
     // while the request claims 'job-seeker' → reject, never invite.
