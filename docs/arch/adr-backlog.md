@@ -12,6 +12,13 @@ Decision: spec is amended, not code. Publish is direct; admin retains
 Close + Archive (`superadmin/JobPosts.jsx:113-116`). All "Job Approved /
 Rejected / Awaiting Approval" notification items are consequently out of scope.
 
+Amended 2026-10-13: the create path had drifted from this decision — `POST /jobs`
+still collapsed a non-draft create to `pending` and fired a "Job awaiting review"
+admin notice (`jobs.js:149-150,171-174`), while `PATCH /jobs/:id` and
+`POST /jobs/:id/status` published directly. Create now honors the same rule
+(`draft` → draft, anything else → `published`, `published_at` stamped via the
+shared `writeStatus`), so no new ADR was needed — this entry is the decision.
+
 ## P0 — signed off, dispatch now (no schema changes)
 
 ### ADR-001 — Dead/broken one-liners bundle
@@ -75,6 +82,18 @@ textarea wired to the existing `employerNotes` param of
 `updateApplicationStatus` (contract already accepts it; seeker side already
 renders `employer_notes`). No service/API changes. Empty notes send nothing.
 
+### ADR-013 — Employer job post: permanent delete
+`DELETE /api/jobs/:id` (owner employer or super-admin, same `ownOrAdmin`
+check as `PATCH`). Unconditional hard delete — chosen over an
+applicants-present guard. It is destructive by contract: `job_vacancies`
+cascades to `job_status_history` and `job_applications`, which cascades
+onward to `application_status_history` and `employment_history` (verified in
+the live DB: both FKs are `ON DELETE CASCADE`). Because the loss is silent
+otherwise, the client's confirm dialog must state the exact number of
+applications destroyed (`applicant_count` is already on the employer list
+payload) and the API returns `{ deleted: true, applications: n }` with `n` in
+the audit detail. Archive stays as the soft alternative. No schema change.
+
 | ID | Item | Scope note |
 |---|---|---|
 | ADR-004 | ✅ signed off above (frontend-only) |
@@ -83,6 +102,7 @@ renders `employer_notes`). No service/API changes. Empty notes send nothing.
 | ADR-007 | ✅ signed off above (frontend-only) |
 | ADR-010 | Admin All-Applications table | `admin.js:listAllApplications` exported, zero page imports; new tab reusing `Reports.jsx` table markup. |
 | ADR-011 | Employer applicant search by skill/edu/barangay | Name-only today (`Applicants.jsx:136-143`); extend client filter over already-fetched seeker fields. |
+| ADR-013 | ✅ signed off above (new endpoint + row action) |
 
 ## P2 — backlog, needs design before code
 
@@ -99,3 +119,15 @@ renders `employer_notes`). No service/API changes. Empty notes send nothing.
 - HTTPS/TLS, DB/file backup — deploy-layer concerns, nothing to build in-repo.
 - Data Retention beyond the automated `runRetentionPurge()` daily job — deferred per `plan.md` Phase 5.
 - `plan.md` Phase 3 `referred_by` migration — column already exists (`migration.sql:495`); plan.md is stale on this point.
+
+## ADR-024 — Admin-initiated user invites follow the Supabase email flow, with lazy provisioning [SIGNED OFF 2026-10-14]
+
+Super admins create users via `POST /api/admin/users/invite`, which calls Supabase
+`admin.inviteUserByEmail` (metadata + `redirectTo: <appOrigin>/accept-invite`) and writes
+no DB row. The role row is created by the existing `POST /api/auth/provision` when the
+invitee accepts the link and sets a password on the new `/accept-invite` page. Rationale:
+email verification stays authoritative (no pre-confirmed accounts), no orphan `active`
+rows, and the proven provision path is reused. `POST /api/auth/provision` gains an
+optional `custom_role_id`. No schema change. Inviting `super-admin` is an accepted
+privilege-escalation surface, guarded by the admin-only endpoint and audit logging.
+Spec: `docs/arch/specs/2026-10-14-super-admin-user-invite-design.md`.
