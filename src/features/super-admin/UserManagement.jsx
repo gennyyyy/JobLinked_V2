@@ -1,11 +1,19 @@
 import { useState, useEffect } from "react";
-import { listUsers, updateUser, listAllAccreditations, listRoles, assignRole, assignCustomRole } from "../../shared/services/admin";
+import { X } from "lucide-react";
+import { listUsers, updateUser, listAllAccreditations, listRoles, assignRole, assignCustomRole, inviteUser } from "../../shared/services/admin";
 import { latestAccByCompany } from "../../shared/services/documents";
 import useAuth from "../../shared/hooks/useAuth";
-import ConfirmationModal from "../../shared/components/ConfirmationModal";
 import LoadingScreen from "../../shared/components/LoadingScreen";
+import { titleCase } from "../../shared/utils/titleCase";
 
 const SYSTEM_ROLE_LABELS = { "super-admin": "Super Admin", employer: "Employer", "job-seeker": "Job Seeker" };
+
+const EMPTY_INVITE = {
+  email: "", role: "", first_name: "", middle_name: "", last_name: "",
+  suffix: "", phone: "", company_name: "",
+};
+
+const INVITE_INPUT_CLASS = "w-full min-h-[38px] px-3.5 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all";
 
 function UserManagement() {
   const { user: currentUser } = useAuth();
@@ -19,7 +27,9 @@ function UserManagement() {
   const [savingId, setSavingId] = useState(null);
   const [filterRole, setFilterRole] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
-  const [confirmDeleteId, setConfirmDeleteId] = useState(null);
+  const [showInvite, setShowInvite] = useState(false);
+  const [inviteForm, setInviteForm] = useState(EMPTY_INVITE);
+  const [inviting, setInviting] = useState(false);
 
   useEffect(() => {
     Promise.all([listUsers(), listAllAccreditations(), listRoles().catch(() => [])])
@@ -79,12 +89,49 @@ function UserManagement() {
     setUsers((prev) => prev.map((u) => (u.id === user.id ? { ...u, status: newStatus } : u)));
   }
 
-  async function confirmDelete() {
-    await updateUser(confirmDeleteId, { status: "inactive" });
-    setUsers((prev) => prev.filter((u) => u.id !== confirmDeleteId));
-    setConfirmDeleteId(null);
-    setSuccess("User deactivated");
-    setTimeout(() => setSuccess(""), 3000);
+  // Invite (ADR-024): role select carries either a system role or `custom:<id>`;
+  // a custom selection must also send its base_role (spec §5.1).
+  const inviteBaseRole = inviteForm.role.startsWith("custom:")
+    ? customRoles.find((r) => String(r.id) === inviteForm.role.slice(7))?.base_role
+    : inviteForm.role;
+
+  function setInviteField(field, value) {
+    setInviteForm((prev) => ({ ...prev, [field]: value }));
+  }
+
+  async function handleInvite(e) {
+    e.preventDefault();
+    setActionError("");
+    setSuccess("");
+    setInviting(true);
+    try {
+      const payload = {
+        email: inviteForm.email,
+        first_name: inviteForm.first_name,
+        middle_name: inviteForm.middle_name,
+        last_name: inviteForm.last_name,
+        suffix: inviteForm.suffix,
+        phone: inviteForm.phone,
+      };
+      if (inviteBaseRole === "employer") payload.company_name = inviteForm.company_name;
+      if (inviteForm.role.startsWith("custom:")) {
+        const role = customRoles.find((r) => String(r.id) === inviteForm.role.slice(7));
+        if (!role) throw new Error("Custom role not found — refresh the page");
+        payload.custom_role_id = Number(role.id);
+        payload.role = role.base_role;
+      } else {
+        payload.role = inviteForm.role;
+      }
+      await inviteUser(payload);
+      setSuccess(`Invite sent to ${inviteForm.email}`);
+      setShowInvite(false);
+      setInviteForm(EMPTY_INVITE);
+      setTimeout(() => setSuccess(""), 4000);
+    } catch (err) {
+      setActionError(err.message || "Failed to send invite");
+    } finally {
+      setInviting(false);
+    }
   }
 
   const filteredUsers = users.filter((u) => {
@@ -102,13 +149,22 @@ function UserManagement() {
 
   return (
     <div className="space-y-6">
-      <header>
-        <div className="flex items-center gap-2.5">
-          <div className="w-1 h-5 bg-primary rounded-full" />
-          <p className="font-mono text-[11px] tracking-[0.2em] text-primary uppercase font-medium">SYSTEM ADMINISTRATION</p>
+      <header className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-2.5">
+            <div className="w-1 h-5 bg-primary rounded-full" />
+            <p className="font-mono text-[11px] tracking-[0.2em] text-primary uppercase font-medium">SYSTEM ADMINISTRATION</p>
+          </div>
+          <h1 className="mt-1 text-xl md:text-2xl font-bold tracking-tight text-dark-blue">User Management</h1>
+          <p className="mt-2 text-sm text-gray-500">Manage system users and assign them to roles</p>
         </div>
-        <h1 className="mt-1 text-xl md:text-2xl font-bold tracking-tight text-dark-blue">User Management</h1>
-        <p className="mt-2 text-sm text-gray-500">Manage system users and assign them to roles</p>
+        <button
+          type="button"
+          onClick={() => setShowInvite(true)}
+          className="shrink-0 min-h-[38px] px-4 rounded-xl bg-primary text-white text-sm font-medium hover:bg-primary-hover transition-colors cursor-pointer"
+        >
+          Add user
+        </button>
       </header>
 
       {success && (
@@ -176,7 +232,7 @@ function UserManagement() {
                 </tr>
               ) : filteredUsers.map((user) => (
                 <tr key={user.id} className="border-t border-gray-100 hover:bg-gray-50/60 transition-colors">
-                  <td className="py-3 pl-5 pr-3 text-gray-900 font-medium text-xs uppercase">{user.full_name}</td>
+                  <td className="py-3 pl-5 pr-3 text-gray-900 font-medium text-xs">{titleCase(user.full_name)}</td>
                   <td className="py-3 px-3 text-xs text-gray-500 break-all">{user.email}</td>
                   <td className="py-3 px-3">
                     {currentUser && user.id === currentUser.id ? (
@@ -250,7 +306,6 @@ function UserManagement() {
                     <button onClick={() => handleToggleStatus(user)} className="text-xs text-gray-600 hover:text-gray-900 cursor-pointer transition-colors">
                       {user.status === "active" ? "Suspend" : "Activate"}
                     </button>
-                    <button onClick={() => setConfirmDeleteId(user.id)} className="text-xs text-danger hover:text-danger/80 font-bold cursor-pointer" title="Deactivate user">✕</button>
                   </td>
                 </tr>
               ))}
@@ -259,14 +314,87 @@ function UserManagement() {
         </div>
       </section>
 
-      {confirmDeleteId && (
-        <ConfirmationModal
-          message="Are you sure you want to deactivate this user?"
-          onConfirm={confirmDelete}
-          onCancel={() => setConfirmDeleteId(null)}
-          confirmLabel="Deactivate"
-          danger
-        />
+      {showInvite && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" onClick={() => setShowInvite(false)}>
+          <form
+            onSubmit={handleInvite}
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="invite-title"
+            className="bg-white w-full max-w-lg max-h-[90vh] overflow-y-auto border border-primary rounded-lg shadow-xl p-5"
+          >
+            <div className="flex items-start justify-between gap-3 pb-4 border-b border-gray-200">
+              <div>
+                <span className="font-mono text-[10px] tracking-widest text-primary uppercase">INVITE</span>
+                <h2 id="invite-title" className="mt-1 text-xl font-bold text-gray-900">Add user</h2>
+              </div>
+              <button type="button" onClick={() => setShowInvite(false)} className="p-1 rounded-lg text-gray-400 hover:text-gray-900 hover:bg-gray-100 transition-colors cursor-pointer" aria-label="Close">
+                <X className="w-4 h-4" aria-hidden="true" />
+              </button>
+            </div>
+
+            <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="sm:col-span-2">
+                <label htmlFor="invite-email" className="block text-xs font-medium text-gray-700 mb-1">Email</label>
+                <input id="invite-email" type="email" required value={inviteForm.email} onChange={(e) => setInviteField("email", e.target.value)} className={INVITE_INPUT_CLASS} />
+              </div>
+              <div className="sm:col-span-2">
+                <label htmlFor="invite-role" className="block text-xs font-medium text-gray-700 mb-1">Role</label>
+                <select id="invite-role" required value={inviteForm.role} onChange={(e) => setInviteField("role", e.target.value)} className={`${INVITE_INPUT_CLASS} cursor-pointer`}>
+                  <option value="" disabled>Select a role…</option>
+                  <optgroup label="System roles">
+                    {Object.entries(SYSTEM_ROLE_LABELS).map(([key, label]) => (
+                      <option key={key} value={key}>{label}</option>
+                    ))}
+                  </optgroup>
+                  {customRoles.length > 0 && (
+                    <optgroup label="Custom roles">
+                      {customRoles.map((r) => (
+                        <option key={r.id} value={`custom:${r.id}`}>{r.name}</option>
+                      ))}
+                    </optgroup>
+                  )}
+                </select>
+              </div>
+              <div>
+                <label htmlFor="invite-first" className="block text-xs font-medium text-gray-700 mb-1">First name</label>
+                <input id="invite-first" type="text" required value={inviteForm.first_name} onChange={(e) => setInviteField("first_name", e.target.value)} className={INVITE_INPUT_CLASS} />
+              </div>
+              <div>
+                <label htmlFor="invite-middle" className="block text-xs font-medium text-gray-700 mb-1">Middle name</label>
+                <input id="invite-middle" type="text" value={inviteForm.middle_name} onChange={(e) => setInviteField("middle_name", e.target.value)} className={INVITE_INPUT_CLASS} />
+              </div>
+              <div>
+                <label htmlFor="invite-last" className="block text-xs font-medium text-gray-700 mb-1">Last name</label>
+                <input id="invite-last" type="text" required value={inviteForm.last_name} onChange={(e) => setInviteField("last_name", e.target.value)} className={INVITE_INPUT_CLASS} />
+              </div>
+              <div>
+                <label htmlFor="invite-suffix" className="block text-xs font-medium text-gray-700 mb-1">Suffix</label>
+                <input id="invite-suffix" type="text" value={inviteForm.suffix} onChange={(e) => setInviteField("suffix", e.target.value)} className={INVITE_INPUT_CLASS} />
+              </div>
+              <div className="sm:col-span-2">
+                <label htmlFor="invite-phone" className="block text-xs font-medium text-gray-700 mb-1">Phone</label>
+                <input id="invite-phone" type="tel" value={inviteForm.phone} onChange={(e) => setInviteField("phone", e.target.value)} className={INVITE_INPUT_CLASS} />
+              </div>
+              {inviteBaseRole === "employer" && (
+                <div className="sm:col-span-2">
+                  <label htmlFor="invite-company" className="block text-xs font-medium text-gray-700 mb-1">Company name</label>
+                  <input id="invite-company" type="text" required value={inviteForm.company_name} onChange={(e) => setInviteField("company_name", e.target.value)} className={INVITE_INPUT_CLASS} />
+                </div>
+              )}
+            </div>
+
+            <div className="mt-6 pt-5 border-t border-gray-200 flex justify-end gap-3">
+              <button type="button" onClick={() => setShowInvite(false)} className="px-5 py-2 text-xs font-medium rounded-xl border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors cursor-pointer">
+                Cancel
+              </button>
+              <button type="submit" disabled={inviting} className="px-5 py-2 text-xs font-medium rounded-xl bg-primary text-white hover:bg-primary-hover transition-colors cursor-pointer disabled:opacity-50">
+                {inviting ? "Sending…" : "Send invite"}
+              </button>
+            </div>
+          </form>
+        </div>
       )}
     </div>
   );

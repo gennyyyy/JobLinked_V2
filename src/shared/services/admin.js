@@ -112,6 +112,12 @@ export async function assignCustomRole(id, customRoleId) {
   return api.post(`admin/users/${id}/custom-role`, { custom_role_id: customRoleId ?? null });
 }
 
+// Admin-initiated invite (ADR-024): Supabase emails the invitee; their role row
+// is created by POST /auth/provision when they accept.
+export async function inviteUser(payload) {
+  return api.post('admin/users/invite', payload);
+}
+
 export async function sendSystemNotification({ title, message, link = null, expires_at = null }) {
   return api.post('admin/system-notifications', { title, message, link, expires_at });
 }
