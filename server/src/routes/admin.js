@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { pool } from '../db.js';
-import { auth, requireRole } from '../auth.js';
+import { auth, requireRole, supa } from '../auth.js';
 import { ah, err, audit, notifyUser } from '../util.js';
 import { notifyMatchingSeekers } from './jobs.js';
 
@@ -64,13 +64,20 @@ async function findUserTable(id) {
 router.patch('/admin/users/:id', ...admin, ah(async (req, res) => {
   const { table, profile } = await findUserTable(req.params.id);
   if (!profile) return err(res, 404, 'NOT_FOUND', 'User account not found');
-  const patch = { ...(req.body || {}) };
-  delete patch.id;
-  if (patch.role && patch.role !== profile.role) {
+  const body = { ...(req.body || {}) };
+  delete body.id;
+  if (body.role && body.role !== profile.role) {
     return err(res, 400, 'BAD_REQUEST', 'Role changes are disabled because each role has its own account table.');
   }
-  delete patch.role;
-  delete patch.created_at;
+  delete body.role;
+  delete body.created_at;
+  // Allowlist from the live table: always in sync with db/schema.sql, and no
+  // client-supplied key can ever reach SQL as a column identifier.
+  const { rows: cols } = await pool.query(
+    `select column_name from information_schema.columns where table_schema = 'public' and table_name = $1`, [table]);
+  const valid = new Set(cols.map((c) => c.column_name));
+  const patch = {};
+  for (const k of Object.keys(body)) if (valid.has(k)) patch[k] = body[k];
   const keys = Object.keys(patch);
   if (!keys.length) return err(res, 400, 'BAD_REQUEST', 'Nothing to update');
   const { rows } = await pool.query(
@@ -78,6 +85,57 @@ router.patch('/admin/users/:id', ...admin, ah(async (req, res) => {
     [req.params.id, ...keys.map((k) => patch[k])]);
   void audit(req.user.id, 'user.update', table, req.params.id, { fields: keys });
   res.json(rows[0]);
+}));
+
+// Admin-initiated invite (ADR-024). No DB row here — the invitee's role row is
+// created lazily by POST /auth/provision when they accept (see AcceptInvite.jsx).
+router.post('/admin/users/invite', ...admin, ah(async (req, res) => {
+  const INVITE_BASE_ROLES = ['job-seeker', 'employer', 'super-admin'];
+  const b = req.body || {};
+  const email = String(b.email || '').trim();
+  if (!email || !b.first_name?.trim?.() || !b.last_name?.trim?.()) {
+    return err(res, 400, 'BAD_REQUEST', 'email, first_name, and last_name are required');
+  }
+
+  // Resolve the effective base role: a custom role overrides `role` with its base_role.
+  let role = b.role;
+  let customRoleId = null;
+  if (b.custom_role_id != null) {
+    const { rows } = await pool.query(
+      `select id, details->>'base_role' as base_role from reference_data
+        where id = $1 and category = 'custom_role'`, [b.custom_role_id]);
+    if (!rows[0]) return err(res, 400, 'BAD_REQUEST', 'Custom role not found');
+    role = rows[0].base_role;
+    customRoleId = rows[0].id;
+  }
+  if (!INVITE_BASE_ROLES.includes(role)) {
+    return err(res, 400, 'BAD_REQUEST', 'role must be job-seeker, employer, or super-admin');
+  }
+  if (role === 'employer' && !String(b.company_name || '').trim()) {
+    return err(res, 400, 'BAD_REQUEST', 'company_name is required for employer accounts');
+  }
+
+  const { rows: dupe } = await pool.query(
+    `select 1 from job_seekers where lower(email) = lower($1)
+     union all select 1 from employers where lower(email) = lower($1)
+     union all select 1 from super_admins where lower(email) = lower($1) limit 1`, [email]);
+  if (dupe[0]) return err(res, 409, 'CONFLICT', 'Email is already registered');
+
+  const appOrigin = String(process.env.CORS_ORIGIN || '').split(',')[0].trim();
+  const metadata = {
+    role, custom_role_id: customRoleId,
+    first_name: b.first_name, middle_name: b.middle_name || '', last_name: b.last_name,
+    suffix: b.suffix || '', phone: b.phone || null,
+    full_name: [b.first_name, b.middle_name, b.last_name, b.suffix].filter(Boolean).join(' '),
+    company_name: b.company_name || null,
+  };
+  const { error } = await supa.auth.admin.inviteUserByEmail(email, {
+    data: metadata, redirectTo: `${appOrigin}/accept-invite`,
+  });
+  if (error) return err(res, 409, 'CONFLICT', 'Could not send the invite — the email may already be registered');
+
+  void audit(req.user.id, 'user.invite', null, null, { email, role, custom_role_id: customRoleId });
+  res.status(201).json({ invited: true, email, role });
 }));
 
 router.get('/admin/companies', ...admin, ah(async (req, res) => {
@@ -365,6 +423,13 @@ router.post('/notifications/read-all', auth, ah(async (req, res) => {
   res.json({ read: true });
 }));
 
+router.delete('/notifications/:id', auth, ah(async (req, res) => {
+  if (!/^\d+$/.test(req.params.id)) return err(res, 400, 'BAD_REQUEST', 'Invalid notification id');
+  const { rowCount } = await pool.query('delete from notifications where id = $1 and user_id = $2', [req.params.id, req.user.id]);
+  if (!rowCount) return err(res, 404, 'NOT_FOUND', 'Notification not found');
+  res.json({ deleted: true });
+}));
+
 // Same JOB_COLS allowlist as employer PATCH /jobs/:id in jobs.js
 // (replicated so all edits stay in this file); status goes through the same
 // single-transaction job + history write as jobs.js writeStatus.
@@ -446,7 +511,7 @@ const adminJobPublish = (status, title) => ah(async (req, res) => {
     client.release();
   }
   void audit(req.user.id, `job.${status === 'published' ? 'publish' : 'unpublish'}`, 'job_vacancies', job.id);
-  void notifyUser(job.company_id, { type: 'job', title, message: `"${job.title}" ${status === 'published' ? 'is now live on the job board.' : 'was unpublished by PESO.'}`, link: '/employer/jobs' });
+  void notifyUser(job.company_id, { type: 'job', title, message: `"${job.title}" ${status === 'published' ? 'is now live on the job board.' : 'was unpublished by PESO.'}`, link: '/employer/job-posts' });
   const { rows } = await pool.query('select * from job_vacancies where id = $1', [job.id]);
   if (status === 'published') void notifyMatchingSeekers(rows[0]);
   res.json(rows[0]);

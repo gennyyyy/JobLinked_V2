@@ -2,7 +2,7 @@ import { createClient } from '@supabase/supabase-js';
 import { pool } from './db.js';
 import { err } from './util.js';
 
-const supa = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
+export const supa = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
 
 const ROLE_TABLES = [
   ['super_admins', 'super-admin'],
