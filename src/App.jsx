@@ -12,6 +12,7 @@ import JobSeekerRegister from './features/auth/JobSeekerRegister'
 import EmployerRegister from './features/auth/EmployerRegister'
 import EmployerStatus from './features/auth/EmployerStatus'
 import AuthCallback from './features/auth/AuthCallback'
+import AcceptInvite from './features/auth/AcceptInvite'
 import ProtectedRoute from './shared/components/ProtectedRoute'
 import LoadingScreen from './shared/components/LoadingScreen'
 import useAuth from './shared/hooks/useAuth'
@@ -22,6 +23,7 @@ import JobPosts from './features/super-admin/JobPosts'
 import RoleManagement from './features/super-admin/RoleManagement'
 import UserManagement from './features/super-admin/UserManagement'
 import Settings from './features/super-admin/Settings'
+import Broadcast from './features/super-admin/Broadcast'
 import Reports from './features/super-admin/Reports'
 import Logs from './features/super-admin/Logs'
 import SuperAdminNotifications from './features/super-admin/Notifications'
@@ -57,6 +59,7 @@ function App() {
         <Route path="/forgot-password" element={<PublicRoute><ForgotPassword /></PublicRoute>} />
         <Route path="/reset-password" element={<PublicRoute><ResetPassword /></PublicRoute>} />
         <Route path="/auth/callback" element={<AuthCallback />} />
+        <Route path="/accept-invite" element={<AcceptInvite />} />
         <Route path="/register/job-seeker" element={<PublicRoute><JobSeekerRegister /></PublicRoute>} />
         <Route path="/register/employer" element={<PublicRoute><EmployerRegister /></PublicRoute>} />
         <Route path="/register/employer/status" element={<PublicRoute><EmployerStatus /></PublicRoute>} />
@@ -75,6 +78,7 @@ function App() {
           <Route path="roles" element={<RoleManagement />} />
           <Route path="users" element={<UserManagement />} />
           <Route path="settings" element={<Settings />} />
+          <Route path="broadcast" element={<Broadcast />} />
           <Route path="reports" element={<Reports />} />
           <Route path="logs" element={<Logs />} />
           <Route path="notifications" element={<SuperAdminNotifications />} />
