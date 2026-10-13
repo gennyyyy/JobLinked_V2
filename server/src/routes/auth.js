@@ -53,6 +53,15 @@ router.post('/auth/provision', tokenAuth, ah(async (req, res) => {
     return err(res, 400, 'BAD_REQUEST', 'education requires a level and school, with an optional graduation year');
   }
 
+  // Optional invite tag: resolve against the custom_role catalog once. A stale
+  // or unknown id is ignored (null), never a 400 — the invite may be old.
+  let customRoleId = null;
+  if (b.custom_role_id != null) {
+    const { rows } = await pool.query(
+      `select id from reference_data where id = $1 and category = 'custom_role'`, [b.custom_role_id]);
+    if (rows[0]) customRoleId = rows[0].id;
+  }
+
   const client = await pool.connect();
   try {
     await client.query('begin');
@@ -61,15 +70,15 @@ router.post('/auth/provision', tokenAuth, ah(async (req, res) => {
       const r = await client.query(
         `insert into job_seekers (id, email, first_name, middle_name, last_name, suffix, full_name, phone,
           lot, block, street_address, house_number_unit, subdivision_building, barangay_district, city_municipality,
-          province_state, postal_code, country, birthdate, employment_status, skills)
-         values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21) returning *`,
+          province_state, postal_code, country, birthdate, employment_status, skills, custom_role_id)
+         values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22) returning *`,
         [req.user.id, email, person.first_name, person.middle_name, person.last_name, person.suffix,
           person.full_name, person.phone,
           typeof b.lot === 'string' ? b.lot.trim().toLowerCase() : null,
           typeof b.block === 'string' ? b.block.trim().toLowerCase() : null, person.street_address,
           person.house_number_unit, person.subdivision_building, person.barangay_district,
           person.city_municipality, person.province_state, person.postal_code,
-          person.country ?? 'Philippines', person.birthdate, person.employment_status, skills]
+          person.country ?? 'Philippines', person.birthdate, person.employment_status, skills, customRoleId]
       );
       row = r.rows[0];
       if (education) {
@@ -85,24 +94,24 @@ router.post('/auth/provision', tokenAuth, ah(async (req, res) => {
         `insert into employers (id, email, first_name, middle_name, last_name, suffix, full_name, phone,
           company_name, company_email, industry, house_number_unit, street_address, subdivision_building,
           barangay_district, city_municipality, province_state, postal_code, country,
-          representative_email, representative_position)
-         values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21) returning *`,
+          representative_email, representative_position, custom_role_id)
+         values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22) returning *`,
         [req.user.id, email, person.first_name, person.middle_name, person.last_name, person.suffix,
           person.full_name, person.phone,
           typeof b.company_name === 'string' ? b.company_name.trim().toLowerCase() : '', b.company_email ?? null,
           b.industry ?? null, person.house_number_unit, person.street_address, person.subdivision_building,
           person.barangay_district, person.city_municipality, person.province_state, person.postal_code,
           person.country ?? 'Philippines', b.representative_email ?? null,
-          b.representative_position ?? null]
+          b.representative_position ?? null, customRoleId]
       );
       row = r.rows[0];
       // Mirror handle_new_user: employer signup opens a pending accreditation row.
       await client.query(`insert into employer_accreditations (company_id) values ($1)`, [req.user.id]);
     } else {
       const r = await client.query(
-        `insert into super_admins (id, email, first_name, middle_name, last_name, suffix, full_name)
-         values ($1,$2,$3,$4,$5,$6,$7) returning *`,
-        [req.user.id, email, person.first_name, person.middle_name, person.last_name, person.suffix, person.full_name]
+        `insert into super_admins (id, email, first_name, middle_name, last_name, suffix, full_name, custom_role_id)
+         values ($1,$2,$3,$4,$5,$6,$7,$8) returning *`,
+        [req.user.id, email, person.first_name, person.middle_name, person.last_name, person.suffix, person.full_name, customRoleId]
       );
       row = r.rows[0];
     }

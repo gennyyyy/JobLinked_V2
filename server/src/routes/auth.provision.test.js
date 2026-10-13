@@ -23,3 +23,15 @@ describe('provision employment_status', () => {
     expect(authSrc).toMatch(/Employed.*Unemployed.*Underemployed.*Fresh Graduate.*Student/s);
   });
 });
+
+describe('provision custom_role_id', () => {
+  it('validates the id against the custom_role catalog', () => {
+    expect(authSrc).toMatch(/category = 'custom_role'/);
+  });
+  it('persists custom_role_id on the role insert', () => {
+    expect(authSrc).toMatch(/insert into job_seekers[\s\S]*custom_role_id/);
+  });
+  it('ignores an unresolvable id instead of failing (stale invite)', () => {
+    expect(authSrc).not.toMatch(/custom_role_id[\s\S]{0,120}BAD_REQUEST/);
+  });
+});
