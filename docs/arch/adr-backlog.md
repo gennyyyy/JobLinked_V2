@@ -131,3 +131,19 @@ rows, and the proven provision path is reused. `POST /api/auth/provision` gains 
 optional `custom_role_id`. No schema change. Inviting `super-admin` is an accepted
 privilege-escalation surface, guarded by the admin-only endpoint and audit logging.
 Spec: `docs/arch/specs/2026-10-14-super-admin-user-invite-design.md`.
+
+## Standalone ADRs (full text in `docs/arch/adr-0NN-*.md`)
+
+| ADR | Subject | Status |
+|---|---|---|
+| [ADR-025](adr-025-shared-backend-helpers.md) | Backend shared helpers, stay thin | Ratified; D3–D8 leftovers still open |
+| [ADR-026](adr-026-admin-router-decomposition.md) | Admin router decomposition | Ratified, **not yet done** (`routes/admin.js` = 697 lines) |
+| [ADR-027](adr-027-status-aware-role-resolution.md) | Status-aware role resolution; role moves never delete | **Signed off — do not revert to `delete`** |
+| [ADR-028](adr-028-auth-token-cache.md) | 60 s per-process JWT→user cache | Accepted; revocation tradeoff stated in the contract |
+| [ADR-029](adr-029-pagination-envelope.md) | Pagination envelope + shared `pageParams` guard | Accepted; four reads left unbounded on purpose |
+
+Each is also under 40 lines with Context / Decision / Consequences. ADR-020–023
+live in `docs/arch/rework/`. **Numbering:** 000–013, 020–028 and 030–033 are taken
+(ADR-030–033 are the ponytail-cleanup decisions in
+`docs/superpowers/plans/2026-10-09-ponytail-cleanup.md`); 029 was the next free
+number. Check both locations before minting a new one.

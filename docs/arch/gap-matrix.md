@@ -3,6 +3,13 @@
 Legend: **DONE** = wired UI + service + schema. **PARTIAL** = exists but incomplete/different. **STUB** = code/schema exists, never exercised end-to-end. **MISSING** = no evidence.
 Counts = DONE / PARTIAL / STUB / MISSING per module.
 
+> **Stale-premise notice (2026-10-16).** The rows below were written 2026-10-03 against
+> `src/pages/*` + `supabase/migration.sql`. Both have since been superseded: the app moved to
+> `src/features/<role>/` + `src/shared/`, and the live schema is `db/schema.sql` + `db/migrations/*`
+> (Supabase is auth-only, ADR-020). Row *statuses* are updated where re-verified below; several
+> *evidence paths* still point at files that no longer exist. See
+> **"Session close-out status (2026-10-16)"** at the bottom for the re-verified list.
+
 ---
 
 ## 1. Employee / Job Seeker (counts: 62 / 18 / 5 / 17)
@@ -15,7 +22,7 @@ Counts = DONE / PARTIAL / STUB / MISSING per module.
 | Login | DONE | `src/pages/Login.jsx:20-32` → `auth.js:30-41` | Role-based redirect via `PORTALS` |
 | Logout | DONE | `layouts/JobSeekerLayout.jsx:18-28` → `auth.js:90-95` | + AFK logout `hooks/useAFKTimer.js:29-31` |
 | Forgot Password | DONE | `src/pages/ForgotPassword.jsx:12-29` → `auth.js:109-114` | Sends reset link |
-| Reset Password | PARTIAL | `auth.js:109-114` sets `redirectTo: origin/`; `App.jsx:39-111` has **no** `/reset-password` route | Request works, completion lands on `/` with no handler → ADR-002 |
+| Reset Password | DONE | `auth.js:resetPassword` `redirectTo: origin/reset-password`; `App.jsx:66` route → `auth/ResetPassword.jsx` (ADR-002) | Full round-trip |
 | Account Verification | DONE | `JobSeekerRegister.jsx:89-122` `needsConfirmation` + Supabase confirm | — |
 
 ### Dashboard (5/2/0/0)
@@ -40,8 +47,8 @@ Personal/Contact/Address/Barangay/Employment Status/Education/Work Exp/Skills/Pr
 | Feature | Status | Evidence | Notes |
 |---|---|---|---|
 | Upload | DONE | `Profile.jsx:223-237` → `documents.js:15-23` bucket `resumes` (`migration.sql:920,928-945`) | 5 MB + ext check `documents.js:8-13` |
-| View Resume | MISSING | Seeker UI has no View/open; only employer `Applicants.jsx:81-89` + admin modal open via `signedUrl` | `signedUrl()` exists `documents.js:164-169` but seeker never calls it → ADR-004 |
-| Download Resume | MISSING | No `download`/`createObjectURL` for resume anywhere; only `window.open(url)` for view | → ADR-004 |
+| View Resume | DONE | `job-seeker/Profile.jsx:35` View (new tab, blob URL from the API file GET) | ADR-004 closed |
+| Download Resume | DONE | `Profile.jsx:36` `<a download>` with the original file name | ADR-004 closed |
 | Replace Resume | PARTIAL | `Profile.jsx:498` "Replace" label re-triggers upload; no explicit replace-by-id (adds new row) | Old file orphaned |
 | Delete Resume | DONE | `Profile.jsx:244-248` → `documents.js:59-63` | DB + storage remove |
 | Resume Management (active flag) | DONE | `Profile.jsx:492-497` + `documents.js:52-57` | — |
@@ -59,11 +66,11 @@ Personal/Contact/Address/Barangay/Employment Status/Education/Work Exp/Skills/Pr
 | Salary | DONE | `JobDetail.jsx:73-75,78-82` | — |
 | Benefits | DONE | `JobDetail.jsx:118-123` | — |
 | Location | DONE | `JobDetail.jsx:83-86` | — |
-| Number of Vacancies | MISSING | `vacancies` col (`migration.sql:390`) never rendered in `JobDetail.jsx`/`PublicJobDetail.jsx` | Only shown in employer table `JobPosts.jsx:750-758` → ADR-005 |
+| Number of Vacancies | DONE | `JobDetail.jsx:135` renders `job.vacancies` ("—" when null) → ADR-005 | Closed |
 | Education Requirements | PARTIAL | Folded into free-text `requirements` | No separate field |
 | Experience Requirements | PARTIAL | Same | — |
-| Skills (tags) | MISSING | `tags` col (`migration.sql:393`) never rendered on detail pages | `JOB_TAGS` `constants.js:9-17` unused in seeker UI → ADR-005 |
-| Application Deadline | MISSING | `deadline` col exists but `JobDetail.jsx`/`PublicJobDetail.jsx` omit it | Employer form has it `JobPosts.jsx:1097-1107` → ADR-005 |
+| Skills (tags) | DONE | `JobDetail.jsx:89,187-191` tag chips, only when non-empty → ADR-005 | Closed |
+| Application Deadline | DONE | `JobDetail.jsx:139` formatted date, "No deadline" when null → ADR-005 | Also drives the closed/disabled apply state |
 | Application Instructions | DONE | `JobDetail.jsx:125-130` | — |
 
 ### Applications & Status (10/1/2/2)
@@ -79,8 +86,8 @@ Personal/Contact/Address/Barangay/Employment Status/Education/Work Exp/Skills/Pr
 | Interview Details | DONE | `Applications.jsx:101-105,124-132` `interview_at` + `interview_instructions` | Set by employer `Applicants.jsx:57-61` |
 | Employer Instructions/Notes | DONE | `Applications.jsx:133-138` `employer_notes` | Written by `applications.js:106-110` but no employer UI input (see §2) → ADR-007 |
 | Status: Applied | DONE | Default `'Applied'` `migration.sql:482`; rendered | — |
-| Status: Under Review | STUB | In enum `constants.js:19`, counted `Applicants.jsx:97` but **no button/flow ever sets it** | Dead status → ADR-003 |
-| Status: Shortlisted | STUB | Displayed `Dashboard.jsx:68`, `Applications.jsx:110` but **no employer UI sets it** | → ADR-003 |
+| Status: Under Review | DONE | `employer/Applicants.jsx:167,218,294` tab + "move back" action → ADR-003 | Wired |
+| Status: Shortlisted | STUB | `Dashboard.jsx:68`, `Applications.jsx:110` render/count it; `Applicants.jsx:166-170` has **no** shortlist action | Still unwired → ADR-003 half-open |
 | Status: Interview | DONE | `Applicants.jsx:184-187,260-301` schedule flow | — |
 | Status: Accepted | DONE | `Applicants.jsx:188-190`; moves to Employees `95` | Triggers `record_accepted_employment()` `migration.sql:634-668` |
 | Status: Rejected | DONE | `Applicants.jsx:191-195` | — |
@@ -126,7 +133,7 @@ Create/Save Draft/Edit/View modal/Duplicate/Close/Reopen/Archive DONE `JobPosts.
 
 ### Applicant Management (9/1/1/4)
 
-View/Search/Filter DONE `Applicants.jsx:100-104,135-143`; View Profile DONE `198-256`; View Resume DONE `81-89,222-226`; Download Resume **MISSING** (view-only `window.open`); Shortlist **MISSING** → ADR-003; Reject/Interview/Accept/Update Status DONE `37-61,182-196`; Internal Notes **MISSING** → ADR-007; Interview Instructions DONE; Application History **STUB** (`listApplicationHistory` `applications.js:137-145` exported, zero page imports).
+View/Search/Filter DONE `employer/Applicants.jsx:100-104,135-143`; View Profile DONE `198-256`; View Resume **PARTIAL** — the employer applicant list no longer opens a resume link itself (the blob-URL row action was removed in the Phase 6 cleanup; the seeker Profile page keeps its own View/Download, ADR-004); Shortlist **MISSING** → ADR-003 (Under Review **is** wired, `:167,294`); Reject/Interview/Accept/Update Status DONE `37-61,182-196`; Internal Notes **DONE** → ADR-007 (`:440-444` "Internal Notes" → `extra.employerNotes`); Interview Instructions DONE; Application History **DONE** on the seeker page; `listApplicationHistory` is gone from `services/applications.js` (dead-code pass).
 
 ### Notifications (4/1/0/2)
 
@@ -158,11 +165,11 @@ All Seekers + Search + Filter DONE `Employees.jsx:7-56`; Referral History DONE `
 
 ### Application Monitoring (0/4/4/1)
 
-No dedicated page. `listAllApplications()` `admin.js:93-106` exists but **no page imports it** → STUB → ADR-010. By-Employer/By-Job/By-Status aggregates visible only inside Reports → PARTIAL.
+No dedicated page, but no longer dead: `listAllApplications()` (`services/admin.js:35`) is now consumed by `super-admin/Reports.jsx:31` for the applicants report → PARTIAL → ADR-010. By-Employer/By-Job/By-Status aggregates visible inside Reports → PARTIAL. (The old `super-admin/Employees.jsx` page was deleted in the Phase 6 dead-code pass — it had no route and no nav entry.)
 
 ### User Management (6/0/0/3)
 
-Employee/Employer/Admin lists DONE `UserManagement.jsx:18-26`; Activate/Deactivate/Suspend DONE `34-46,152-157`. Reset Password **MISSING** (self-service only). Role Management **MISSING** as mutation — `updateUser` throws on role change `admin.js:44`, by design (CUT list).
+Employee/Employer/Admin lists DONE `super-admin/UserManagement.jsx:18-26,51` — **role/search/status are filtered server-side** (`GET /admin/users` accepts all three; the Phase 6 F-04 client-side filter over a single 25-row page is gone). Activate/Deactivate/Suspend DONE `34-46,152-157`. Reset Password **MISSING** (self-service only). Custom-role tagging DONE via `POST /admin/users/:id/custom-role`; role *table* moves DONE via `POST /admin/users/:id/role` (ADR-027); direct `PATCH role` remains 400 by design (CUT list).
 
 ### System Settings (2/0/0/8)
 
@@ -188,18 +195,61 @@ RBAC / Secure Login / Hashing (Supabase Auth) / Private storage + RLS / File val
 
 ## 9. Core Database Entities (counts: 13 / 3 / 0 / 4)
 
-DONE: employers, employer_documents, employer_accreditations, job_vacancies (+history), job_applications (+history, +`referred_by`), resumes, education, work_experience, notifications, audit_logs. PARTIAL: users (`auth.users` + 3 role tables, no `public.users`), employees (`job_seekers` + derived `employment_history`). MISSING: skills, barangays, reports tables — all three CUT by design. NOTE: `plan.md` Phase 3 `referred_by` migration is stale — column already exists (`migration.sql:495`).
+DONE: employers, employer_documents, employer_accreditations (+status denormalized on employers table), job_vacancies (+history), job_applications (+history, +`referred_by`), resumes, education, work_experience, notifications, audit_logs. PARTIAL: users (`auth.users` + 3 role tables, no `public.users`), employees (`job_seekers` + derived `employment_history`). MISSING: skills, barangays, reports tables — all three CUT by design. NOTE: `plan.md` Phase 3 `referred_by` migration is stale — column already exists (`migration.sql:495`).
 
 ---
 
 ## REVERSE + TECH DEBT
 
-**Mock data still rendered:** none — all lists come from Supabase; empty states are honest.
+**Mock data still rendered:** none — every list comes from the Express API (`src/shared/services/*`); empty states are honest.
 
-**Dead exports (zero page imports):** `listByJob`, `listByCompanyIds`, `listApplicationHistory` (applications.js); `listJobHistory`, `countApplicants` (jobs.js); `unreadCount` (notifications.js — bell counts client-side); `getSession` (auth.js — session deliberately non-persistent). Candidates for deletion in a cleanup pass; not scheduled.
+**Dead exports (zero page imports):** **none left** (2026-10-16). Every export named here in the 2026-10-03 pass was removed: `listByJob`, `listByCompanyIds`, `listApplicationHistory` (applications.js), `listJobHistory`, `countApplicants` (jobs.js), `unreadCount` (notifications.js), `getSession` (auth.js), `listAllEmployees` + `listReferrals` + `exportReport` (admin.js). Server-side, `userFromToken` in `server/src/auth.js` was internal-only and its `export` keyword was dropped. One dead export remains and is deliberately kept: `roleFrom` (`server/src/auth.js:35`) — same shape, same reasoning, but touching it was outside the approved footprint.
 
-**Enum mismatches:** (1) `ACCREDITATION_STATUSES` lacks `'revoked'` → ADR-001. (2) `JOB_STATUSES` keeps dead `pending/approved`. (3) `APPLICATION_STATUSES` `Applied`/`Terminated` added via fragile `ALTER … ADD VALUE IF NOT EXISTS`. (4) `DOC_TYPES` strings vs free-text `doc_type` col — exact-string match risk. (5) `NOTIFICATION_TYPES.SYSTEM` rarely emitted.
+**Direct Supabase calls bypassing `src/services/`:** **resolved (2026-10-16)** — the browser no longer talks to Supabase for data at all (ADR-020 is fully landed). A service module now exists for the seeker profile children (`src/shared/services/seekers.js`: `listEducation`/`addEducation`/`removeEducation`, `listExperience`/`addExperience`/`removeExperience`, `listEmployment`, plus the employer-facing `listSeekerEducation`/`listSeekerExperience`). The remaining direct Supabase use is `supabase.auth.*` (sign-in, session, password) and file uploads through `src/shared/services/documents.js` — auth-only, which is exactly ADR-020's line.
 
-**Direct Supabase calls bypassing `src/services/`:** `job-seeker/Profile.jsx:109-111,169,188,199,219` (education/work_exp/employment_history CRUD — no service layer exists for these tables), `job-seeker/Employment.jsx:15`, `employer/Applicants.jsx:74-75`, `employer/CompanyProfile.jsx:23,86-90`, `employer/JobPosts.jsx:86`, `employer/EmployerAccreditation.jsx:21`, `EmployerStatus.jsx:40-44`, `employer/Dashboard.jsx:21`. Mostly read-only lookups; education/experience writes have no service home — future cleanup item, not scheduled.
+**Enum mismatches:** (1) `ACCREDITATION_STATUSES` lacks `'revoked'` → ADR-001. (2) `JOB_STATUSES` keeps dead `pending/approved` — still true: the employer PATCH/POST `/status` allow-list is `draft|published|closed|archived` while the super-admin one keeps the full enum, so `pending/approved/rejected` are reachable only through admin routes. (3) `APPLICATION_STATUSES` `Applied`/`Terminated` added via fragile `ALTER … ADD VALUE IF NOT EXISTS`. (4) `DOC_TYPES` strings vs free-text `doc_type` col — exact-string match risk. (5) `NOTIFICATION_TYPES.SYSTEM` rarely emitted.
 
 **Other:** `Reports.jsx:194` references a "Mark as Placed" employer button that doesn't exist (only Accept/Terminate); `JobSeekerRegister.jsx:16` bad route → ADR-001.
+
+---
+
+## Session close-out status (2026-10-16)
+
+Re-verified against the working tree on 2026-10-16. Each row cites the file:line that proves it.
+
+### Closed
+
+| Item | Evidence | Notes |
+|---|---|---|
+| ADR-002 — reset-password completion | `App.jsx:66` route, `auth/ResetPassword.jsx` | Round-trip works |
+| ADR-004 — seeker resume View/Download | `job-seeker/Profile.jsx:35-36` | API streams the file; blob URL |
+| ADR-005 — job detail fields | `JobDetail.jsx:135` vacancies, `:139` deadline, `:187-191` tags | Deadline also gates Apply |
+| ADR-007 — employer internal notes | `employer/Applicants.jsx:440-444` → `:92` `extra.employerNotes` | Rendered on seeker side |
+| ADR-003 — "Under Review" | `employer/Applicants.jsx:167,218,294` | Half-closed: "Shortlist" is still absent |
+| F-01 — "Open vacancies" hardwired to 0 | `super-admin/Reports.jsx:145` `job.status === "published"` | — |
+| F-02 — "Employers posting" hardwired to 0 | `super-admin/Reports.jsx:146` `job.company_id` (`job_vacancies` has no `employer_id`) | — |
+| F-03 — audit-log user filter truncated to 25 | `super-admin/Logs.jsx:159` `listUsers({ pageSize: 500 })`, `:88` search-keyed | Server max is 500 |
+| F-04 — filters over the current page only | `super-admin/UserManagement.jsx:42-44,48-49,51` sends role/search (search debounced); `GET /admin/users` also accepts `status` — the page has no status filter control | Employer `Employees.jsx` keeps a client filter over its own company's rows |
+| Dead `export` on `userFromToken` | `server/src/auth.js:43` | Keyword only; function and all 4 call sites intact |
+| Scratch artifacts | `dbcheck.cjs`, `test-final.txt`, `new_landing_page/` deleted | All three were untracked (`git ls-files` → empty); 1.34 KB + 3.5 KB + 1.49 MB removed |
+| API contract drift | `docs/arch/rework/02-api-contract.md` | See its "Reconciliation pass (2026-10-16)" section for the change list; second-pass corrections at the end of that section |
+| F-05 — 4 report types dropped with no decision on record | `server/src/routes/reports.js` keeps all 7 types server-side; `02-api-contract.md` records the browser-CSV client path and the export as a documented deliverable | Deletion recorded as a decision (not an ADR) |
+| F-14 — `attachPrincipal` runs on every `/api` request | `app.js:61-66` rationale comment; `tokenCache.js` (ADR-028) bounds the added cost | Accepted by design — the limiter keys on the principal |
+| Supabase token cache (Phase 4 F2) | `server/src/tokenCache.js` + `auth.js:43-49`; ADR-028 | 60 s TTL, positives only; revocation tradeoff in the contract |
+| Pagination envelope (Phase 1's top API gap) | `util.js:52` `pageParams`; five admin lists + `employers/:employerId/jobs`; ADR-029 | `{ data, total, page, pageSize }`; four reads left unbounded on purpose |
+| F-06 — failed PATCH reported as success | `src/shared/services/auth.js:49-50`, `50` guards the confirm re-read with `!refused && Object.keys(patch).length` | `refused` = 4xx (400 "Nothing to update", 403, 409) — the server refused *before* writing, so a matching re-read can no longer mask it. The re-read still runs for a lost response (5xx / unreachable). `auth.test.js` covers empty patch, 409 + matching re-read, and the 5xx-confirm path |
+| F-07 — 500 instead of 400 on NOT NULL / CHECK columns | `server/src/routes/jobs.js:255-260`; `server/src/routes/admin.js:601-606` — `vacancies must be a whole number` | Chose 400 over preserving the old value: `'' → null` cannot express "clear" for `vacancies int not null` (`schema.sql:190`), so it is a bad request, not a null write. `work_arrangement: ''` already 400s (it coerces to `null`, which is not in the allow-list). Covered by `jobs.crud.test.js` and `admin.jobs.patch.test.js` |
+| F-09 — double-encoded UTF-8 mojibake | `server/src/routes/jobs.js:37,54,55,95,101,160,195,223,337`; `auth.provision.test.js:28`; `api-rate-limit.test.js:15`; `notifications.routes.test.js:76,84` | Byte-level re-save (`C3 A2 …9D` → `—`, `C3 A2 …99` → `→`), line counts unchanged, zero logic touched. No other file in the tree carries the pattern |
+| F-13 — dead `companyPhone` in the signup payload | `src/features/auth/EmployerRegister.jsx` (line removed) | `signUp`'s `meta` never read `extra.companyPhone` and no such column exists; no other code referenced it. `contactNumber` input and its validation stay |
+
+### Still open (carried forward, now recorded as ADRs)
+
+- **ADR-027** — status-aware role resolution: **shipped and signed off**
+  (`auth.js:17-27`, `admin.js:672-695`). Carried forward as a do-not-revert warning,
+  not as work: reverting to a plain `delete` silently destroys a user's job postings,
+  applications, and applicant PII.
+- **ADR-024/025/026** (new records) — invite flow, thin shared helpers, admin-router decomposition (still not done: `routes/admin.js` is one 697-line file and `/notifications/*` still lives in it).
+- **Unbounded reads:** `GET /admin/employees`, `GET /admin/referrals`, `GET /applications/job/:jobId`, `GET /applications/company/:companyId`.
+- **"Shortlist" application status** — rendered and counted, but no employer action sets it.
+- **Live-Postgres verification** of `resolveRole` / the `/admin/users` `distinct on` ordering (no DB in this environment; `not null default 'active'` closes the NULL-sort hole on paper only).
+- **Migrations 007–009** may not be applied to any environment; without them the retention purge still cascades through `employment_history` and the pending-unique index is missing.
