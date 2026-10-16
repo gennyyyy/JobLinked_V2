@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { pool } from '../db.js';
 import { auth, requireRole } from '../auth.js';
-import { ah, err, audit, notifyUser, notifyAdmins } from '../util.js';
+import { ah, err, audit, notifyUser, notifyAdmins, isUuid, isNumericId, withTransaction } from '../util.js';
 import { uploadSingle, uploadDir, relPath } from '../upload.js';
 
 const router = Router();
@@ -20,6 +20,9 @@ const EMPLOYER_ALLOW = ['first_name', 'middle_name', 'last_name', 'suffix', 'ful
 const LOWERCASE_FIELDS = new Set(['first_name', 'middle_name', 'last_name', 'suffix', 'full_name',
   'company_name', 'house_number_unit', 'lot', 'block', 'street_address', 'subdivision_building',
   'barangay_district', 'city_municipality', 'province_state', 'postal_code', 'country']);
+// Declared `not null default ''` in job_seekers/employers — emptying one of these
+// must persist '' (NULL violates the constraint and 500s the whole PATCH).
+const REQUIRED_TEXT = new Set(['first_name', 'middle_name', 'last_name', 'suffix', 'full_name', 'country', 'company_name']);
 const meRoutes = (path, table, role, allow) => {
   router.get(path, auth, requireRole(role), ah(async (req, res) => {
     const { rows } = await pool.query(`select * from ${table} where id = $1`, [req.user.id]);
@@ -30,7 +33,7 @@ const meRoutes = (path, table, role, allow) => {
     const patch = {};
     for (const c of allow) if (req.body?.[c] !== undefined) {
       const value = req.body[c];
-      patch[c] = value === '' ? null
+      patch[c] = value === '' ? (REQUIRED_TEXT.has(c) ? '' : null)
         : c === 'skills' && Array.isArray(value) ? value.map((skill) => String(skill).trim().toLowerCase()).filter(Boolean)
           : LOWERCASE_FIELDS.has(c) && typeof value === 'string' ? value.trim().toLowerCase()
             : value;
@@ -55,7 +58,10 @@ const accSelect = `select a.*, json_build_object('full_name', s.full_name) as de
 router.post('/accreditations', auth, requireRole('employer'), ah(async (req, res) => {
   // employers.accreditation_status sync is handled by the DB trigger.
   const { rows } = await pool.query(
-    `insert into employer_accreditations (company_id, status) values ($1, 'pending') returning *`, [req.user.id]);
+    `insert into employer_accreditations (company_id, status) values ($1, 'pending')
+     on conflict (company_id) where status = 'pending'
+     do update set submitted_at = now()
+     returning *`, [req.user.id]);
   void audit(req.user.id, 'accreditation.submit', 'employer_accreditations', rows[0].id);
   void notifyAdmins({ type: 'accreditation', title: 'Accreditation awaiting review',
     message: 'A new employer accreditation application is waiting for PESO review.', link: '/super-admin/accreditation' });
@@ -63,6 +69,7 @@ router.post('/accreditations', auth, requireRole('employer'), ah(async (req, res
 }));
 
 router.get('/accreditations/company/:companyId', auth, ah(async (req, res) => {
+  if (!isUuid(req.params.companyId)) return err(res, 400, 'BAD_REQUEST', 'Invalid id');
   if (req.user.role !== 'super-admin' && req.params.companyId !== req.user.id) {
     return err(res, 403, 'FORBIDDEN', 'Not your company');
   }
@@ -71,6 +78,7 @@ router.get('/accreditations/company/:companyId', auth, ah(async (req, res) => {
 }));
 
 router.patch('/accreditations/:id', auth, requireRole('super-admin'), ah(async (req, res) => {
+  if (!isUuid(req.params.id)) return err(res, 404, 'NOT_FOUND', 'Accreditation not found');
   const { status, remarks = null } = req.body || {};
   if (!ACC_STATUSES.includes(status)) return err(res, 400, 'BAD_REQUEST', `status must be one of ${ACC_STATUSES.join(', ')}`);
   const terminal = ['approved', 'rejected', 'revoked'].includes(status);
@@ -100,9 +108,19 @@ left join employers e on e.id = d.company_id`;
 async function storeDocument(companyId, docType, accreditationId, file) {
   const rel = relPath('documents', companyId, path.basename(file.path));
   try {
+    // A client-supplied accreditation id must never link this document to
+    // another company's record — verify ownership, and drop it if it isn't ours.
+    // A malformed id is dropped like an unknown one: never a 22P02 500.
+    let accreditation = accreditationId && isUuid(accreditationId) ? accreditationId : null;
+    if (accreditation) {
+      const { rows: owned } = await pool.query(
+        'select 1 from employer_accreditations where id = $1 and company_id = $2',
+        [accreditation, companyId]);
+      accreditation = owned[0] ? accreditation : null;
+    }
     const { rows } = await pool.query(
       `insert into employer_documents (company_id, accreditation_id, doc_type, file_path, file_name)
-       values ($1,$2,$3,$4,$5) returning *`, [companyId, accreditationId || null, docType, rel, file.originalname]);
+       values ($1,$2,$3,$4,$5) returning *`, [companyId, accreditation, docType, rel, file.originalname]);
     return rows[0];
   } catch (e) {
     try { fs.unlinkSync(file.path); } catch { /* compensation best-effort */ }
@@ -129,6 +147,7 @@ router.post('/documents', auth, requireRole('employer'), uploadSingle('documents
 }));
 
 router.get('/documents/company/:companyId', auth, ah(async (req, res) => {
+  if (!isUuid(req.params.companyId)) return err(res, 400, 'BAD_REQUEST', 'Invalid id');
   if (req.user.role !== 'super-admin' && req.params.companyId !== req.user.id) {
     return err(res, 403, 'FORBIDDEN', 'Not your company');
   }
@@ -137,6 +156,9 @@ router.get('/documents/company/:companyId', auth, ah(async (req, res) => {
 }));
 
 router.patch('/documents/:id', auth, requireRole('super-admin'), ah(async (req, res) => {
+  // S1: a malformed id must answer 404 like every sibling route, not raise
+  // PG 22P02 on `where id = $1` and surface as a 500.
+  if (!isUuid(req.params.id)) return err(res, 404, 'NOT_FOUND', 'Document not found');
   const { status, remarks = null } = req.body || {};
   if (!['pending', 'verified', 'rejected', 'missing'].includes(status)) {
     return err(res, 400, 'BAD_REQUEST', 'status must be pending, verified, rejected, or missing');
@@ -160,38 +182,45 @@ router.patch('/documents/:id', auth, requireRole('super-admin'), ah(async (req, 
 // Upload + resume row. New upload becomes the active resume (setActiveResume, server-side).
 router.post('/files/resumes', auth, requireRole('job-seeker'), uploadSingle('resumes'), ah(async (req, res) => {
   const rel = relPath('resumes', req.user.id, path.basename(req.file.path));
-  const client = await pool.connect();
+  let row;
   try {
-    await client.query('begin');
-    await client.query('update resumes set is_active = false where seeker_id = $1', [req.user.id]);
-    const { rows } = await client.query(
-      'insert into resumes (seeker_id, file_path, file_name, is_active) values ($1,$2,$3,true) returning *',
-      [req.user.id, rel, req.file.originalname]);
-    await client.query('commit');
-    void audit(req.user.id, 'resume.upload', 'resumes', rel);
-    res.status(201).json({ path: rel, resume: rows[0] });
+    row = await withTransaction(async (client) => {
+      await client.query('update resumes set is_active = false where seeker_id = $1', [req.user.id]);
+      const { rows } = await client.query(
+        'insert into resumes (seeker_id, file_path, file_name, is_active) values ($1,$2,$3,true) returning *',
+        [req.user.id, rel, req.file.originalname]);
+      return rows[0];
+    });
   } catch (e) {
-    await client.query('rollback');
+    // B4: multer already wrote the file to disk — a failed insert (e.g. the
+    // one-active-resume unique index on a concurrent upload) must not leak
+    // the orphan. Same compensation as storeDocument.
+    try { fs.unlinkSync(req.file.path); } catch { /* compensation best-effort */ }
     throw e;
-  } finally {
-    client.release();
   }
+  void audit(req.user.id, 'resume.upload', 'resumes', rel);
+  res.status(201).json({ path: rel, resume: row });
 }));
 
 // Raw file store for the documents bucket; creates the employer_documents row when doc_type is given.
 router.post('/files/documents', auth, requireRole('employer'), uploadSingle('documents'), ah(async (req, res) => {
-  const { doc_type = null, accreditation_id = null } = req.body || {};
-  const rel = relPath('documents', req.user.id, path.basename(req.file.path));
-  let document = null;
-  if (doc_type) {
-    document = await storeDocument(req.user.id, doc_type, accreditation_id, req.file);
-    void audit(req.user.id, 'document.upload', 'employer_documents', document.id, { doc_type });
-    void notifyDocAdmins(req.user.id, doc_type);
+  const { doc_type, accreditation_id = null } = req.body || {};
+  // F-04: mirror POST /documents — without doc_type there is no
+  // employer_documents row, no audit, no read/delete path: multer has already
+  // written a 5 MB file nobody can ever reach. Reject AND unlink the orphan.
+  if (!doc_type) {
+    try { fs.unlinkSync(req.file.path); } catch { /* compensation best-effort */ }
+    return err(res, 400, 'BAD_REQUEST', 'doc_type is required');
   }
-  res.status(201).json(document ? { path: rel, document } : { path: rel });
+  const rel = relPath('documents', req.user.id, path.basename(req.file.path));
+  const document = await storeDocument(req.user.id, doc_type, accreditation_id, req.file);
+  void audit(req.user.id, 'document.upload', 'employer_documents', document.id, { doc_type });
+  void notifyDocAdmins(req.user.id, doc_type);
+  res.status(201).json({ path: rel, document });
 }));
 
 router.delete('/files/resumes/:id', auth, ah(async (req, res) => {
+  if (!isUuid(req.params.id)) return err(res, 404, 'NOT_FOUND', 'Resume not found');
   const { rows } = await pool.query('select * from resumes where id = $1', [req.params.id]);
   if (!rows[0]) return err(res, 404, 'NOT_FOUND', 'Resume not found');
   if (req.user.role !== 'super-admin' && rows[0].seeker_id !== req.user.id) {
@@ -209,23 +238,17 @@ router.get('/files/resumes/mine', auth, requireRole('job-seeker'), ah(async (req
 }));
 
 router.post('/files/resumes/:id/activate', auth, requireRole('job-seeker'), ah(async (req, res) => {
+  if (!isUuid(req.params.id)) return err(res, 404, 'NOT_FOUND', 'Resume not found');
   const { rows } = await pool.query('select * from resumes where id = $1', [req.params.id]);
   if (!rows[0]) return err(res, 404, 'NOT_FOUND', 'Resume not found');
   if (rows[0].seeker_id !== req.user.id) return err(res, 403, 'FORBIDDEN', 'Not your resume');
-  const client = await pool.connect();
-  try {
-    await client.query('begin');
+  const row = await withTransaction(async (client) => {
     await client.query('update resumes set is_active = false where seeker_id = $1', [req.user.id]);
     const r = await client.query('update resumes set is_active = true where id = $1 returning *', [req.params.id]);
-    await client.query('commit');
-    void audit(req.user.id, 'resume.activate', 'resumes', req.params.id);
-    res.json(r.rows[0]);
-  } catch (e) {
-    await client.query('rollback');
-    throw e;
-  } finally {
-    client.release();
-  }
+    return r.rows[0];
+  });
+  void audit(req.user.id, 'resume.activate', 'resumes', req.params.id);
+  res.json(row);
 }));
 
 // Addendum A: seeker profile children. Education/experience are seeker-owned
@@ -254,6 +277,7 @@ const seekerChild = (path, table, order, allow = null, required = []) => {
     res.status(201).json(rows[0]);
   }));
   router.delete(`${path}/:id`, auth, requireRole('job-seeker'), ah(async (req, res) => {
+    if (!isNumericId(req.params.id)) return err(res, 404, 'NOT_FOUND', 'Entry not found');
     const { rowCount } = await pool.query(`delete from ${table} where id = $1 and seeker_id = $2`, [req.params.id, req.user.id]);
     if (!rowCount) return err(res, 404, 'NOT_FOUND', 'Entry not found');
     void audit(req.user.id, `${table}.delete`, table, req.params.id);

@@ -15,7 +15,7 @@ describe('invite route shape', () => {
     expect(invite).toMatch(/company_name/);
   });
   it('invites with metadata and the /accept-invite redirect', () => {
-    expect(invite).toContain('supa.auth.admin.inviteUserByEmail');
+    expect(invite).toContain('supa().auth.admin.inviteUserByEmail');
     expect(invite).toContain('/accept-invite');
     expect(invite).toContain("audit(req.user.id, 'user.invite'");
   });
@@ -28,7 +28,8 @@ vi.mock('../auth.js', () => ({
   optionalAuth: (_req, _res, next) => next(),
   requireRole: (...roles) => (req, res, next) =>
     roles.includes(req.user?.role) ? next() : res.status(403).json({ error: { code: 'FORBIDDEN', message: 'Insufficient role' } }),
-  supa: { auth: { admin: { inviteUserByEmail: mocks.invite } } },
+  // S7: supa is a lazy getter, not a module-scope client.
+  supa: () => ({ auth: { admin: { inviteUserByEmail: mocks.invite } } }),
 }));
 process.env.RETENTION_DISABLE = '1';
 process.env.CORS_ORIGIN = 'https://app.test';

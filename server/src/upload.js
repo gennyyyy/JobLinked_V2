@@ -2,6 +2,7 @@ import multer from 'multer';
 import path from 'node:path';
 import fs from 'node:fs';
 import { randomUUID } from 'node:crypto';
+import { err } from './util.js';
 
 const ALLOWED_EXTS = ['pdf', 'doc', 'docx', 'png', 'jpg', 'jpeg'];
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
@@ -33,12 +34,12 @@ const fileFilter = (_req, file, cb) => {
 export const uploadSingle = (bucket) => (req, res, next) => {
   req.uploadBucket = bucket;
   multer({ storage, limits: { fileSize: MAX_FILE_SIZE }, fileFilter }).single('file')(req, res, (e) => {
-    if (e) return res.status(400).json({ error: { code: 'BAD_REQUEST', message: e.message } });
-    if (!req.file) return res.status(400).json({ error: { code: 'BAD_REQUEST', message: 'No file uploaded' } });
+    if (e) return err(res, 400, 'BAD_REQUEST', e.message);
+    if (!req.file) return err(res, 400, 'BAD_REQUEST', 'No file uploaded');
     const ext = (path.extname(req.file.originalname).slice(1) || '').toLowerCase();
     if (ext === 'pdf' && req.file.size > MAX_PDF_SIZE) {
       fs.unlink(req.file.path, () => {});
-      return res.status(400).json({ error: { code: 'BAD_REQUEST', message: 'PDF files must be 2 MB or smaller.' } });
+      return err(res, 400, 'BAD_REQUEST', 'PDF files must be 2 MB or smaller.');
     }
     next();
   });

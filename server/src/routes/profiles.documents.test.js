@@ -39,3 +39,36 @@ describe('profiles storeDocument compensation', () => {
     expect(store).toContain('file_path, file_name');
   });
 });
+
+// F-04: POST /files/documents without doc_type wrote multer's 5 MB file with
+// no employer_documents row, no audit, and no read/delete path — unbounded
+// orphan growth (uploadLimiter capped it, never cleaned it). The route now
+// mirrors POST /documents and unlinks the orphan.
+describe('F-04 — POST /files/documents requires doc_type', () => {
+  const src = readFileSync(path.join(process.cwd(), 'server', 'src/routes/profiles.js'), 'utf8');
+  const start = src.indexOf("router.post('/files/documents'");
+  const end = src.indexOf("router.delete('/files/resumes/:id'");
+  const route = src.slice(start, end === -1 ? undefined : end);
+
+  it('finds the route', () => {
+    expect(start).toBeGreaterThan(-1);
+  });
+
+  it('rejects a missing doc_type with 400, mirroring POST /documents', () => {
+    expect(route).toContain("err(res, 400, 'BAD_REQUEST', 'doc_type is required')");
+    // The silent no-row branch (201 { path } with nothing stored) is gone.
+    expect(route).not.toMatch(/if \(doc_type\)/);
+    expect(route).not.toContain('{ path: rel })');
+  });
+
+  it('unlinks multer\'s file BEFORE answering 400 — no orphan left on disk', () => {
+    expect(route).toContain('fs.unlinkSync(req.file.path)');
+    expect(route.indexOf('unlinkSync')).toBeLessThan(route.indexOf("'doc_type is required'"));
+  });
+
+  it('keeps the storeDocument + audit + notify happy path', () => {
+    expect(route).toContain('storeDocument(req.user.id, doc_type, accreditation_id, req.file)');
+    expect(route).toContain("void audit(req.user.id, 'document.upload'");
+    expect(route).toContain('void notifyDocAdmins(req.user.id, doc_type)');
+  });
+});

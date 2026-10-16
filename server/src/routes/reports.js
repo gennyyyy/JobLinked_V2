@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { pool } from '../db.js';
 import { auth, requireRole } from '../auth.js';
-import { ah, err } from '../util.js';
+import { ah, err, pageParams } from '../util.js';
 
 const router = Router();
 const admin = [auth, requireRole('super-admin')];
@@ -16,13 +16,19 @@ const APP_SELECT = `select a.*, json_build_object('id', j.id, 'title', j.title, 
 
 const s = (v) => (v === null || v === undefined ? '' : String(v));
 
-async function loadReport(type) {
-  // Frontend legacy names → canonical backend types.
+// ponytail: exports cap at pageSize 500 / 2000 like the audit-log limit — a
+// real "export everything" should stream; page through when a report outgrows it.
+async function loadReport(type, pg) {
+  // LIMIT/OFFSET tail for the row reports; the aggregate reports (barangay,
+  // monthly) group down to a naturally bounded result and stay unpaginated.
+  const bound = (order) => `${order} limit $${pg.vals.length + 1} offset $${pg.vals.length + 2}`;
+  const params = () => [...pg.vals, pg.pageSize, (pg.page - 1) * pg.pageSize];
+  // Frontend legacy names to canonical backend types.
   if (type === 'applications') type = 'applicants';
   if (type === 'jobs') type = 'vacancies';
   switch (type) {
     case 'applicants': {
-      const { rows } = await pool.query(`${APP_SELECT} order by a.applied_at desc`);
+      const { rows } = await pool.query(`${APP_SELECT} ${bound('order by a.applied_at desc')}`, params());
       return { title: 'Applicants report', headers: ['Seeker', 'Email', 'Job', 'Company', 'Status', 'Applied At'],
         rows: rows.map((a) => [s(a.seeker?.full_name), s(a.seeker?.email), s(a.job?.title),
           s(a.job?.employers?.company_name), s(a.status), s(a.applied_at)]) };
@@ -30,7 +36,7 @@ async function loadReport(type) {
     case 'vacancies': {
       const { rows } = await pool.query(
         `select j.*, json_build_object('id', e.id, 'company_name', e.company_name) as employers
-         from job_vacancies j left join employers e on e.id = j.company_id order by j.created_at desc`);
+         from job_vacancies j left join employers e on e.id = j.company_id ${bound('order by j.created_at desc')}`, params());
       return { title: 'Vacancies report', headers: ['Title', 'Company', 'Location', 'Status', 'Type', 'Created At'],
         rows: rows.map((j) => [s(j.title), s(j.employers?.company_name), s(j.location), s(j.status), s(j.employment_type), s(j.created_at)]) };
     }
@@ -38,20 +44,20 @@ async function loadReport(type) {
       const { rows } = await pool.query(
         `select a.*, json_build_object('id', j.id, 'title', j.title, 'company_id', j.company_id,
            'employers', json_build_object('id', e.id, 'company_name', e.company_name)) as job,
-         ${seekerJson} as seeker ${APP_JOIN}
-         where a.status in ('Accepted', 'Placed') order by a.updated_at desc`);
+          ${seekerJson} as seeker ${APP_JOIN}
+          where a.status in ('Accepted', 'Placed') ${bound('order by a.updated_at desc')}`, params());
       return { title: 'Placements report', headers: ['Seeker', 'Email', 'Job', 'Company', 'Status', 'Updated At'],
         rows: rows.map((a) => [s(a.seeker?.full_name), s(a.seeker?.email), s(a.job?.title),
           s(a.job?.employers?.company_name), s(a.status), s(a.updated_at)]) };
     }
     case 'seekers': {
       const { rows } = await pool.query(
-        'select id, full_name, email, status, created_at from job_seekers order by created_at desc');
+        `select id, full_name, email, status, created_at from job_seekers ${bound('order by created_at desc')}`, params());
       return { title: 'Seekers report', headers: ['ID', 'Full Name', 'Email', 'Status', 'Created At'],
         rows: rows.map((r) => [s(r.id), s(r.full_name), s(r.email), s(r.status), s(r.created_at)]) };
     }
     case 'employers': {
-      const { rows } = await pool.query('select * from employers order by created_at desc');
+      const { rows } = await pool.query(`select * from employers ${bound('order by created_at desc')}`, params());
       return { title: 'Employers report', headers: ['Company', 'Owner', 'Email', 'Status', 'Registered'],
         rows: rows.map((c) => [s(c.company_name), s(c.full_name), s(c.email), s(c.status), s(c.created_at)]) };
     }
@@ -81,8 +87,10 @@ async function loadReport(type) {
   }
 }
 
-// Same builder as the frontend buildCSV (comma-join, quoted cells).
-const toCSV = (headers, rows) => [headers, ...rows].map((r) => r.map((c) => `"${c}"`).join(',')).join('\n');
+// Same builder as the frontend buildCSV (comma-join, quoted cells). B9: RFC 4180
+// — embedded quotes are doubled so a cell cannot shift the columns after it;
+// commas and newlines stay contained by the surrounding quotes.
+const toCSV = (headers, rows) => [headers, ...rows].map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
 
 const TYPES = ['applicants', 'vacancies', 'placements', 'employers', 'barangay', 'monthly', 'applications', 'jobs', 'seekers'];
 
@@ -91,7 +99,9 @@ router.get('/admin/reports/:type/export', ...admin, ah(async (req, res) => {
   const format = String(req.query.format || 'csv');
   if (!TYPES.includes(type)) return err(res, 400, 'BAD_REQUEST', `type must be one of ${TYPES.join(', ')}`);
   if (format !== 'csv') return err(res, 400, 'BAD_REQUEST', 'format must be csv');
-  const report = await loadReport(type);
+  const pg = pageParams(res, req.query, 500, 2000);
+  if (!pg) return;
+  const report = await loadReport(type, { ...pg, vals: [] });
   const base = `${type}-report`;
   res.setHeader('Content-Type', 'text/csv');
   res.setHeader('Content-Disposition', `attachment; filename="${base}.csv"`);

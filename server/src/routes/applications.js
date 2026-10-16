@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { pool } from '../db.js';
 import { auth, requireRole } from '../auth.js';
-import { ah, err, audit, notifyUser } from '../util.js';
+import { ah, err, audit, notifyUser, isUuid, withTransaction } from '../util.js';
 
 const router = Router();
 const SEEKER_COLS = 'id, full_name, email, phone, barangay_district, skills, employment_status, preferred_position, preferred_location';
@@ -20,11 +20,13 @@ join employers e on e.id = j.company_id
 ${seekerJoin ? 'join job_seekers s on s.id = a.seeker_id' : ''}`;
 
 async function loadApp(id, withSeeker = true) {
+  if (!isUuid(id)) return null; // S1: 404, not a 22P02 500
   const { rows } = await pool.query(`${appSelect(withSeeker)} where a.id = $1`, [id]);
   return rows[0] || null;
 }
 
 async function loadJob(id) {
+  if (!isUuid(id)) return null; // S1: 404, not a 22P02 500
   const { rows } = await pool.query('select * from job_vacancies where id = $1', [id]);
   return rows[0] || null;
 }
@@ -44,17 +46,31 @@ router.post('/applications', auth, requireRole('job-seeker'), ah(async (req, res
   const job = await loadJob(job_id);
   if (!job) return err(res, 404, 'NOT_FOUND', 'Job not found');
   if (job.status !== 'published') return err(res, 400, 'BAD_REQUEST', 'This job is not accepting applications');
+  if (resume_id && !isUuid(resume_id)) {
+    return err(res, 400, 'BAD_REQUEST', 'The selected resume is no longer available. Please reload and try again.');
+  }
   if (resume_id) {
     const { rows } = await pool.query('select id from resumes where id = $1 and seeker_id = $2', [resume_id, req.user.id]);
     if (!rows[0]) return err(res, 400, 'BAD_REQUEST', 'The selected resume is no longer available. Please reload and try again.');
   }
   let row;
   try {
+    // B3: the deadline is enforced at the trust boundary, inside the SAME
+    // statement as the insert ( INSERT … SELECT … WHERE EXISTS ) so a job
+    // closed or expired between the load above and the write cannot slip an
+    // application through — no check-then-act TOCTOU. current_date in SQL
+    // avoids the JS-vs-Postgres timezone question on a DATE column.
     const r = await pool.query(
-      `insert into job_applications (job_id, seeker_id, resume_id) values ($1,$2,$3)
+      `insert into job_applications (job_id, seeker_id, resume_id)
+       select $1, $2, $3
+        where exists (
+          select 1 from job_vacancies
+           where id = $1 and status = 'published'
+             and (deadline is null or deadline >= current_date))
        returning id, job_id, seeker_id, resume_id, status, applied_at, updated_at`,
       [job_id, req.user.id, resume_id]);
     row = r.rows[0];
+    if (!row) return err(res, 400, 'BAD_REQUEST', 'The application deadline for this job has passed.');
   } catch (e) {
     if (e.code === '23505') return err(res, 409, 'CONFLICT', 'You have already applied to this job.');
     throw e;
@@ -84,6 +100,7 @@ router.get('/applications/job/:jobId', auth, ah(async (req, res) => {
 }));
 
 router.get('/applications/company/:companyId', auth, ah(async (req, res) => {
+  if (!isUuid(req.params.companyId)) return err(res, 400, 'BAD_REQUEST', 'Invalid id');
   if (req.user.role !== 'super-admin' && req.params.companyId !== req.user.id) {
     return err(res, 403, 'FORBIDDEN', 'Not your company');
   }
@@ -91,6 +108,31 @@ router.get('/applications/company/:companyId', auth, ah(async (req, res) => {
     `${appSelect(true)} where j.company_id = $1 order by a.applied_at desc`, [req.params.companyId]);
   void audit(req.user.id, 'application.list.view', 'job_applications', null, { companyId: req.params.companyId });
   res.json(rows);
+}));
+
+// Dashboard summary: the 4 counters + 5 recent applicants the employer
+// dashboard renders. One request instead of the full applicant list (with its
+// per-row resume subquery) that Applicants.jsx still uses. company_id comes
+// from the session token only — never a client-supplied id.
+router.get('/applications/employers/me/dashboard', auth, requireRole('employer'), ah(async (req, res) => {
+  const companyId = req.user.id;
+  const { rows: jobs } = await pool.query(
+    `select id, title, status from job_vacancies where company_id = $1 order by created_at desc`, [companyId]);
+  const { rows: [stats] } = await pool.query(
+    `select count(*)::int as total_candidates,
+            count(*) filter (where a.applied_at >= now() - interval '7 days')::int as new_this_week
+       from job_applications a
+       join job_vacancies j on j.id = a.job_id
+      where j.company_id = $1`, [companyId]);
+  const { rows: recent } = await pool.query(
+    `select a.id, a.applied_at, s.full_name as seeker_full_name, j.title as job_title
+       from job_applications a
+       join job_vacancies j on j.id = a.job_id
+       left join job_seekers s on s.id = a.seeker_id
+      where j.company_id = $1
+      order by a.applied_at desc, a.id desc
+      limit 5`, [companyId]);
+  res.json({ jobs, stats: stats || {}, recent });
 }));
 
 // Application + history row in one transaction; seeker notify is best-effort.
@@ -106,22 +148,14 @@ router.post('/applications/:id/status', auth, ah(async (req, res) => {
   if (interviewAt !== null) patch.interview_at = interviewAt;
   if (interviewInstructions !== null) patch.interview_instructions = interviewInstructions;
   const keys = Object.keys(patch);
-  const client = await pool.connect();
-  try {
-    await client.query('begin');
+  await withTransaction(async (client) => {
     await client.query(
       `update job_applications set ${keys.map((k, i) => `${k} = $${i + 2}`).join(', ')}, updated_at = now() where id = $1`,
       [app.id, ...keys.map((k) => patch[k])]);
     await client.query(
       'insert into application_status_history (application_id, status, remarks, changed_by) values ($1,$2,$3,$4)',
       [app.id, status, remarks, req.user.id]);
-    await client.query('commit');
-  } catch (e) {
-    await client.query('rollback');
-    throw e;
-  } finally {
-    client.release();
-  }
+  });
   void audit(req.user.id, `application.status.${status}`, 'job_applications', app.id);
   const updated = await loadApp(app.id);
   if (updated?.seeker_id) {
@@ -135,6 +169,7 @@ router.post('/applications/:id/status', auth, ah(async (req, res) => {
 // exception (a job_applications row links the seeker to one of their jobs).
 const credByLink = (table, order) => ah(async (req, res) => {
   const seekerId = req.params.seekerId;
+  if (!isUuid(seekerId)) return err(res, 400, 'BAD_REQUEST', 'Invalid id');
   if (req.user.role !== 'super-admin' && seekerId !== req.user.id) {
     if (req.user.role !== 'employer') return err(res, 403, 'FORBIDDEN', 'Not your applicant');
     const { rows: link } = await pool.query(

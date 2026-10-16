@@ -1,76 +1,146 @@
 import { Router } from 'express';
 import { pool } from '../db.js';
 import { auth, requireRole, supa } from '../auth.js';
-import { ah, err, audit, notifyUser } from '../util.js';
+import { ah, err, audit, notifyUser, buildFullName, isUuid, isNumericId, likeEscape, pageParams, withTransaction } from '../util.js';
 import { notifyMatchingSeekers } from './jobs.js';
+import logger from '../logger.js';
 
 const router = Router();
 const admin = [auth, requireRole('super-admin')];
 const SEEKER_COLS = 'id, full_name, email, phone, barangay_district, skills, employment_status, preferred_position, preferred_location';
 
 router.get('/admin/stats', ...admin, ah(async (req, res) => {
-  const q = (sql, p = []) => pool.query(sql, p).then((r) => Number(r.rows[0].c));
-  const [seekers, employers, jobs, applications, pendingAccreditations, unreadNotifications,
-    pendingJobs, approvedJobs, closedJobs, expiredJobs,
-    acceptedApplicants, placedApplicants, accreditedEmployers] = await Promise.all([
-    q('select count(*) c from job_seekers'),
-    q('select count(*) c from employers'),
-    q('select count(*) c from job_vacancies'),
-    q('select count(*) c from job_applications'),
-    q(`select count(*) c from employer_accreditations where status = 'pending'`),
-    q('select count(*) c from notifications where is_read = false'),
-    q(`select count(*) c from job_vacancies where status = 'pending'`),
-    q(`select count(*) c from job_vacancies where status = 'approved'`),
-    q(`select count(*) c from job_vacancies where status = 'closed'`),
-    q(`select count(*) c from job_vacancies where deadline < current_date and status not in ('closed','archived')`),
-    q(`select count(*) c from job_applications where status = 'Accepted'`),
-    q(`select count(*) c from job_applications where status = 'Placed'`),
-    q(`select count(*) c from employers where accreditation_status = 'approved'`),
+  // One aggregate pass per table (FILTER) instead of 13 separate count(*)
+  // queries — job_vacancies 5→1, job_applications 3→1, employers 2→1. Each
+  // response key still counts exactly what its old standalone query counted
+  // (FILTER conditions copied verbatim); ::int keeps the JSON values numbers
+  // like the old Number(bigint) conversion. Queries stay parallel.
+  const [s, p, u, e, j, a] = await Promise.all([
+    pool.query('select count(*)::int c from job_seekers'),
+    pool.query(`select count(*)::int c from employer_accreditations where status = 'pending'`),
+    pool.query('select count(*)::int c from notifications where is_read = false and user_id = $1', [req.user.id]),
+    pool.query(`select count(*)::int employers, count(*) filter (where accreditation_status = 'approved')::int accredited from employers`),
+    pool.query(`select count(*)::int jobs,
+        count(*) filter (where status = 'pending')::int pending,
+        count(*) filter (where status = 'approved')::int approved,
+        count(*) filter (where status = 'closed')::int closed,
+        count(*) filter (where deadline < current_date and status not in ('closed','archived'))::int expired
+      from job_vacancies`),
+    pool.query(`select count(*)::int applications,
+        count(*) filter (where status = 'Accepted')::int accepted,
+        count(*) filter (where status = 'Placed')::int placed
+      from job_applications`),
   ]);
+  const seekers = s.rows[0].c;
+  const pendingAccreditations = p.rows[0].c;
+  const unreadNotifications = u.rows[0].c;
+  const { employers, accredited: accreditedEmployers } = e.rows[0];
+  const { jobs, pending: pendingJobs, approved: approvedJobs, closed: closedJobs, expired: expiredJobs } = j.rows[0];
+  const { applications, accepted: acceptedApplicants, placed: placedApplicants } = a.rows[0];
   res.json({ seekers, employers, companies: employers, jobs, applications, pendingAccreditations, unreadNotifications,
     pendingJobs, approvedJobs, closedJobs, expiredJobs,
     acceptedApplicants, placedApplicants, accreditedEmployers });
 }));
 
 const USER_TABLES = { 'job-seeker': 'job_seekers', employer: 'employers', 'super-admin': 'super_admins' };
+// Derived so the role↔table mapping can never drift from USER_TABLES.
+const ROLE_BY_TABLE = Object.fromEntries(Object.entries(USER_TABLES).map(([role, table]) => [table, role]));
+// Table precedence, shared with resolveRole (auth.js): super-admin → employer
+// → job-seeker. Applied AFTER the active-row term there; same shape in the
+// /admin/users union below.
+const TABLE_ORD = { super_admins: 1, employers: 2, job_seekers: 3 };
+// B6: enum-valued filters are validated before they reach Postgres — an
+// unknown value raises 22P02 (500) instead of the 400 the contract wants.
+const ACCOUNT_STATUSES = ['active', 'inactive', 'suspended'];
+const APPLICATION_STATUSES = ['Applied', 'Under Review', 'Interview', 'Accepted', 'Rejected', 'Placed', 'Terminated'];
+
+// B15: LIKE metacharacters in a search must match literally.
+const likeFilter = (value) => `%${likeEscape(value)}%`;
 
 router.get('/admin/users', ...admin, ah(async (req, res) => {
   const { role = null, search = '', status = null } = req.query;
   const tables = role ? [USER_TABLES[role] || null] : Object.values(USER_TABLES);
   if (role && !tables[0]) return err(res, 400, 'BAD_REQUEST', 'Invalid role filter');
-  const out = [];
-  for (const table of tables) {
-    const vals = [];
-    const conds = [];
-    if (status) { vals.push(status); conds.push(`status = $${vals.length}`); }
-    if (search) { vals.push(`%${search}%`, `%${search}%`); conds.push(`(full_name ilike $${vals.length - 1} or email ilike $${vals.length})`); }
-    const userRole = Object.keys(USER_TABLES).find((k) => USER_TABLES[k] === table);
-    const { rows } = await pool.query(
-      `select *, '${userRole}' as role from ${table}${conds.length ? ` where ${conds.join(' and ')}` : ''} order by created_at desc`, vals);
-    out.push(...rows);
+  const pg = pageParams(res, req.query, 25, 500);
+  if (!pg) return;
+  const vals = [];
+  const conds = [];
+  if (status) {
+    if (!ACCOUNT_STATUSES.includes(status)) return err(res, 400, 'BAD_REQUEST', `status must be one of ${ACCOUNT_STATUSES.join(', ')}`);
+    vals.push(status); conds.push(`t.profile->>'status' = $${vals.length}`);
   }
-  out.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-  res.json(out);
+  if (search) {
+    vals.push(likeFilter(search), likeFilter(search));
+    conds.push(`(t.profile->>'full_name' ilike $${vals.length - 1} or t.profile->>'email' ilike $${vals.length})`);
+  }
+  const where = conds.length ? ` where ${conds.join(' and ')}` : '';
+  // M2: one UNION ALL with ORDER BY/LIMIT/OFFSET in SQL — the old code looped
+  // the three tables and sorted every row in JS before slicing. to_jsonb keeps
+  // the per-table columns; `role` is re-attached from the branch literal (the
+  // same mapping resolveRole uses). x.id breaks created_at ties so page N and
+  // page N+1 can never skip or repeat a row.
+  const union = tables
+    .map((t) => `select '${ROLE_BY_TABLE[t]}' as role, to_jsonb(x) as profile, x.created_at, x.id, ${TABLE_ORD[t]} as ord from ${t} x`)
+    .join(' union all ');
+  // One row per id, chosen exactly like resolveRole: an active row wins, then
+  // table precedence. A role move deactivates the old row instead of deleting
+  // it (the FK cascade would destroy the user's jobs and applications), so one
+  // id can sit in two tables — DISTINCT ON keeps the stale row out of the list.
+  // The status/search filters run on the deduped row (the user's current
+  // account), so a stale row can never leak through a filter either.
+  // ponytail: a ?role= filter naming the OLD table still shows the stale row
+  // (the union spans that one table). Scan all three tables under a role
+  // filter if that view ever matters — it costs the single-table contract.
+  const base = `from (select distinct on (id) role, profile, created_at, id from (${union}) t
+    order by id, (profile->>'status' = 'active') desc, ord) t${where}`;
+  const total = (await pool.query(`select count(*)::int c ${base}`, vals)).rows[0].c;
+  const { rows } = await pool.query(
+    `select t.role, t.profile ${base} order by t.created_at desc, t.id desc limit $${vals.length + 1} offset $${vals.length + 2}`,
+    [...vals, pg.pageSize, (pg.page - 1) * pg.pageSize]);
+  res.json({ data: rows.map((r) => ({ ...r.profile, role: r.role })), total, page: pg.page, pageSize: pg.pageSize });
 }));
 
-async function findUserTable(id) {
-  for (const [role, table] of Object.entries(USER_TABLES)) {
-    const { rows } = await pool.query(`select *, '${role}' as role from ${table} where id = $1`, [id]);
-    if (rows[0]) return { table, profile: rows[0] };
-  }
-  return {};
+// One round-trip instead of a per-table scan. Same super-admin → employer →
+// job-seeker precedence as resolveRole (and the same status-aware term: a
+// role move leaves the old table's row deactivated, and it must never shadow
+// the user's current row); the table name comes back from the
+// query so callers can use it in `update ${table} …`, and profile keeps the
+// `role` key the old `'${role}' as role` projection added.
+export async function findUserTable(id) {
+  if (!isUuid(id)) return {}; // S1: answer 404 instead of letting Postgres raise 22P02
+  const { rows } = await pool.query(
+    `select tbl, profile from (
+       select 'super_admins' as tbl, to_jsonb(s) as profile, 1 as ord from super_admins s where id = $1
+       union all
+       select 'employers' as tbl, to_jsonb(e) as profile, 2 as ord from employers e where id = $1
+       union all
+       select 'job_seekers' as tbl, to_jsonb(j) as profile, 3 as ord from job_seekers j where id = $1
+     ) t order by (profile->>'status' = 'active') desc, ord limit 1`, [id]);
+  const row = rows[0];
+  return row ? { table: row.tbl, profile: { ...row.profile, role: ROLE_BY_TABLE[row.tbl] } } : {};
 }
 
 router.patch('/admin/users/:id', ...admin, ah(async (req, res) => {
+  const body = { ...(req.body || {}) };
+  // Lone super-admin footgun: suspending or re-tagging yourself here (unlike
+  // the dedicated /role and /custom-role endpoints) has no second admin to
+  // undo it — refuse self-edits that could lock the account out.
+  if (req.params.id === req.user.id && (body.status !== undefined || body.custom_role_id !== undefined)) {
+    return err(res, 403, 'FORBIDDEN', 'You cannot change your own status or custom role');
+  }
   const { table, profile } = await findUserTable(req.params.id);
   if (!profile) return err(res, 404, 'NOT_FOUND', 'User account not found');
-  const body = { ...(req.body || {}) };
   delete body.id;
+  // Email lives in the role table AND in Supabase auth (the login identity).
+  // No admin flow rewrites it — every caller PATCHes { status } only — and a
+  // local-only change desyncs login/display, so strip it like id/role.
+  delete body.email;
   if (body.role && body.role !== profile.role) {
     return err(res, 400, 'BAD_REQUEST', 'Role changes are disabled because each role has its own account table.');
   }
   delete body.role;
   delete body.created_at;
+  delete body.updated_at; // the route owns updated_at = now() — a body value lands in the same SET list (PG 42701)
   // Allowlist from the live table: always in sync with db/schema.sql, and no
   // client-supplied key can ever reach SQL as a column identifier.
   const { rows: cols } = await pool.query(
@@ -80,11 +150,18 @@ router.patch('/admin/users/:id', ...admin, ah(async (req, res) => {
   for (const k of Object.keys(body)) if (valid.has(k)) patch[k] = body[k];
   const keys = Object.keys(patch);
   if (!keys.length) return err(res, 400, 'BAD_REQUEST', 'Nothing to update');
-  const { rows } = await pool.query(
-    `update ${table} set ${keys.map((k, i) => `${k} = $${i + 2}`).join(', ')}, updated_at = now() where id = $1 returning *`,
-    [req.params.id, ...keys.map((k) => patch[k])]);
-  void audit(req.user.id, 'user.update', table, req.params.id, { fields: keys });
-  res.json(rows[0]);
+  try {
+    const { rows } = await pool.query(
+      `update ${table} set ${keys.map((k, i) => `${k} = $${i + 2}`).join(', ')}, updated_at = now() where id = $1 returning *`,
+      [req.params.id, ...keys.map((k) => patch[k])]);
+    void audit(req.user.id, 'user.update', table, req.params.id, { fields: keys });
+    res.json(rows[0]);
+  } catch (e) {
+    // The per-table email unique index: editing a user onto an email that
+    // already exists is a conflict, not a server error.
+    if (e.code === '23505') return err(res, 409, 'CONFLICT', 'Another account already uses this email');
+    throw e;
+  }
 }));
 
 // Admin-initiated invite (ADR-024). No DB row here — the invitee's role row is
@@ -129,48 +206,81 @@ router.post('/admin/users/invite', ...admin, ah(async (req, res) => {
     role, custom_role_id: customRoleId,
     first_name: b.first_name, middle_name: b.middle_name || '', last_name: b.last_name,
     suffix: b.suffix || '', phone: b.phone || null,
-    full_name: [b.first_name, b.middle_name, b.last_name, b.suffix].filter(Boolean).join(' '),
+    full_name: buildFullName(b.first_name, b.middle_name, b.last_name, b.suffix),
     company_name: b.company_name || null,
   };
-  const { error } = await supa.auth.admin.inviteUserByEmail(email, {
+  const { data, error } = await supa().auth.admin.inviteUserByEmail(email, {
     data: metadata, redirectTo: `${appOrigin}/accept-invite`,
   });
   if (error) return err(res, 409, 'CONFLICT', 'Could not send the invite — the email may already be registered');
+
+  // app_metadata is service-role-only, so it is the role signal a client cannot
+  // forge: POST /auth/provision honours a 'super-admin' body role only when it
+  // matches. The `?.` tolerates clients without the admin surface — provision
+  // then fails closed (a body role alone can never create a super_admins row).
+  const meta = await supa().auth.admin.updateUserById?.(data.user.id, { app_metadata: { role } });
+  if (meta?.error) return err(res, 500, 'INTERNAL', 'Invite sent, but the account role could not be secured. Please retry the invite.');
 
   void audit(req.user.id, 'user.invite', null, null, { email, role, custom_role_id: customRoleId });
   res.status(201).json({ invited: true, email, role });
 }));
 
 router.get('/admin/companies', ...admin, ah(async (req, res) => {
+  const pg = pageParams(res, req.query, 25, 500);
+  if (!pg) return;
   const vals = [];
+  if (req.query.status && !ACCOUNT_STATUSES.includes(req.query.status)) {
+    return err(res, 400, 'BAD_REQUEST', `status must be one of ${ACCOUNT_STATUSES.join(', ')}`);
+  }
   const cond = req.query.status ? (vals.push(req.query.status), `where status = $1`) : '';
-  const { rows } = await pool.query(`select * from employers ${cond} order by created_at desc`, vals);
-  res.json(rows);
+  const total = (await pool.query(`select count(*)::int c from employers ${cond}`, vals)).rows[0].c;
+  const { rows } = await pool.query(
+    `select * from employers ${cond} order by created_at desc limit $${vals.length + 1} offset $${vals.length + 2}`,
+    [...vals, pg.pageSize, (pg.page - 1) * pg.pageSize]);
+  res.json({ data: rows, total, page: pg.page, pageSize: pg.pageSize });
 }));
 
 router.get('/admin/jobs', ...admin, ah(async (req, res) => {
+  const pg = pageParams(res, req.query, 25, 500);
+  if (!pg) return;
   const vals = [];
+  if (req.query.status && !ADMIN_JOB_STATUSES.includes(req.query.status)) {
+    return err(res, 400, 'BAD_REQUEST', `status must be one of ${ADMIN_JOB_STATUSES.join(', ')}`);
+  }
   const cond = req.query.status ? (vals.push(req.query.status), `where j.status = $1`) : '';
+  const base = `from job_vacancies j left join employers e on e.id = j.company_id ${cond}`;
+  const total = (await pool.query(`select count(*)::int c ${base}`, vals)).rows[0].c;
   const { rows } = await pool.query(
-    `select j.*, json_build_object('id', e.id, 'company_name', e.company_name) as employers
-     from job_vacancies j left join employers e on e.id = j.company_id ${cond} order by j.created_at desc`, vals);
-  res.json(rows);
+    `select j.*, json_build_object('id', e.id, 'company_name', e.company_name) as employers ${base}
+     order by j.created_at desc limit $${vals.length + 1} offset $${vals.length + 2}`,
+    [...vals, pg.pageSize, (pg.page - 1) * pg.pageSize]);
+  res.json({ data: rows, total, page: pg.page, pageSize: pg.pageSize });
 }));
 
 router.get('/admin/applications', ...admin, ah(async (req, res) => {
   const { status = null, search = '' } = req.query;
+  const pg = pageParams(res, req.query, 25, 500);
+  if (!pg) return;
   const vals = [];
   const conds = [];
-  if (status) { vals.push(status); conds.push(`a.status = $${vals.length}`); }
-  if (search) { vals.push(`%${search}%`); conds.push(`s.full_name ilike $${vals.length}`); }
+  if (status) {
+    if (!APPLICATION_STATUSES.includes(status)) {
+      return err(res, 400, 'BAD_REQUEST', `status must be one of ${APPLICATION_STATUSES.join(', ')}`);
+    }
+    vals.push(status); conds.push(`a.status = $${vals.length}`);
+  }
+  if (search) { vals.push(likeFilter(search)); conds.push(`s.full_name ilike $${vals.length}`); }
+  const where = conds.length ? `where ${conds.join(' and ')}` : '';
+  const base = `from job_applications a join job_vacancies j on j.id = a.job_id
+      join employers e on e.id = j.company_id join job_seekers s on s.id = a.seeker_id ${where}`;
+  const total = (await pool.query(`select count(*)::int c ${base}`, vals)).rows[0].c;
   const { rows } = await pool.query(
     `select a.*, json_build_object('id', j.id, 'title', j.title, 'location', j.location,
        'employers', json_build_object('company_name', e.company_name)) as job,
-     json_build_object(${SEEKER_COLS.split(', ').map((c) => `'${c.trim()}', s.${c.trim()}`).join(', ')}) as seeker
-     from job_applications a join job_vacancies j on j.id = a.job_id
-     join employers e on e.id = j.company_id join job_seekers s on s.id = a.seeker_id
-     ${conds.length ? `where ${conds.join(' and ')}` : ''} order by a.applied_at desc`, vals);
-  res.json(rows);
+     json_build_object(${SEEKER_COLS.split(', ').map((c) => `'${c.trim()}', s.${c.trim()}`).join(', ')}) as seeker ${base}
+     order by a.applied_at desc limit $${vals.length + 1} offset $${vals.length + 2}`,
+    [...vals, pg.pageSize, (pg.page - 1) * pg.pageSize]);
+  res.json({ data: rows, total, page: pg.page, pageSize: pg.pageSize });
 }));
 
 router.get('/admin/employees', ...admin, ah(async (req, res) => {
@@ -196,11 +306,15 @@ router.get('/admin/referrals', ...admin, ah(async (req, res) => {
 }));
 
 router.get('/admin/accreditations', ...admin, ah(async (req, res) => {
+  const pg = pageParams(res, req.query, 25, 500);
+  if (!pg) return;
+  const base = `from employer_accreditations a left join employers e on e.id = a.company_id
+      left join super_admins s on s.id = a.decided_by`;
+  const total = (await pool.query(`select count(*)::int c ${base}`)).rows[0].c;
   const { rows } = await pool.query(
-    `select a.*, e as employers, json_build_object('full_name', s.full_name) as decided_by
-     from employer_accreditations a left join employers e on e.id = a.company_id
-     left join super_admins s on s.id = a.decided_by order by a.submitted_at desc`);
-  res.json(rows);
+    `select a.*, e as employers, json_build_object('full_name', s.full_name) as decided_by ${base}
+     order by a.submitted_at desc limit $1 offset $2`, [pg.pageSize, (pg.page - 1) * pg.pageSize]);
+  res.json({ data: rows, total, page: pg.page, pageSize: pg.pageSize });
 }));
 
 // Automated retention job implementing Terms §4 (Protection and Retention —
@@ -215,17 +329,18 @@ const RETENTION_INTERVAL_MS = 24 * 60 * 60 * 1000;
 const RETAINED_STATUSES = ['Accepted', 'Placed', 'Terminated'];
 
 export async function runRetentionPurge() {
-  const cutoff = new Date();
-  cutoff.setMonth(cutoff.getMonth() - RETENTION_MONTHS);
+  // B10: the cutoff is computed by Postgres (`now() - make_interval`), never by
+  // JS setMonth — that overflows short months (Jan 31 - 12mo lands in early
+  // March) and purged rows inside the Terms §4 window on those dates.
   const { rowCount } = await pool.query(
-    `delete from job_applications where applied_at < $1 and status not in ('Accepted', 'Placed', 'Terminated')`, [cutoff.toISOString()]);
-  void audit(null, 'data.purge', 'job_applications', null, { automated: true, monthsOld: RETENTION_MONTHS, cutoff: cutoff.toISOString(), retainedStatuses: RETAINED_STATUSES, deleted: rowCount });
+    `delete from job_applications where applied_at < now() - make_interval(months => $1) and status not in ('Accepted', 'Placed', 'Terminated')`, [RETENTION_MONTHS]);
+  void audit(null, 'data.purge', 'job_applications', null, { automated: true, monthsOld: RETENTION_MONTHS, retainedStatuses: RETAINED_STATUSES, deleted: rowCount });
   return rowCount;
 }
 
 if (process.env.RETENTION_DISABLE !== '1') {
   setInterval(() => {
-    runRetentionPurge().catch((e) => console.error('[retention] purge failed:', e.message));
+    runRetentionPurge().catch((e) => logger.error('retention purge failed', { message: e?.message }));
   }, RETENTION_INTERVAL_MS).unref?.();
 }
 
@@ -239,11 +354,17 @@ router.get('/admin/audit-logs', ...admin, ah(async (req, res) => {
     }
     vals.push(userId); conds.push(`l.user_id = $${vals.length}`);
   }
-  if (action) { vals.push(`%${action}%`); conds.push(`l.action ilike $${vals.length}`); }
+  if (action) { vals.push(likeFilter(action)); conds.push(`l.action ilike $${vals.length}`); }
   // ponytail: naive-local comparison against timestamptz relies on the Postgres session TZ; fixed UTC+8 (PH, no DST) deployment matches today's behavior — make boundaries TZ-explicit if deploying elsewhere
-  if (from) { vals.push(`${from}T00:00:00`); conds.push(`l.created_at >= $${vals.length}`); }
+  if (from) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(from)) return err(res, 400, 'BAD_REQUEST', 'from must be a YYYY-MM-DD date');
+    vals.push(`${from}T00:00:00`); conds.push(`l.created_at >= $${vals.length}`);
+  }
   // ponytail: naive-local comparison against timestamptz relies on the Postgres session TZ; fixed UTC+8 (PH, no DST) deployment matches today's behavior — make boundaries TZ-explicit if deploying elsewhere
-  if (to) { vals.push(`${to}T23:59:59.999`); conds.push(`l.created_at <= $${vals.length}`); }
+  if (to) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(to)) return err(res, 400, 'BAD_REQUEST', 'to must be a YYYY-MM-DD date');
+    vals.push(`${to}T23:59:59.999`); conds.push(`l.created_at <= $${vals.length}`);
+  }
   const parsedLimit = parseInt(limit);
   vals.push(Math.min(2000, Math.max(1, Number.isFinite(parsedLimit) ? parsedLimit : 500)));
   const { rows } = await pool.query(
@@ -277,17 +398,21 @@ router.post('/admin/reference/:category', ...admin, ah(async (req, res) => {
 // The 3 system roles stay fixed in the user_role enum + role tables; a custom
 // role never creates a login identity. Assignment is a tag on the user's row
 // (custom_role_id) — editable only from the Users page.
+// Canonical permission catalog — labels included so the UI never needs a copy.
+// validateRolePayload validates against ROLE_PERMISSION_KEYS (derived from the
+// same list), so the two can never drift.
 const ROLE_PERMISSIONS = [
-  "dashboard.view",
-  "accreditation.manage",
-  "jobs.manage",
-  "users.manage",
-  "roles.manage",
-  "reports.view",
-  "logs.view",
-  "notifications.send",
-  "settings.manage",
+  { key: "dashboard.view", label: "View Dashboard" },
+  { key: "accreditation.manage", label: "Manage Accreditations" },
+  { key: "jobs.manage", label: "Manage Job Posts" },
+  { key: "users.manage", label: "Manage Users" },
+  { key: "roles.manage", label: "Manage Roles" },
+  { key: "reports.view", label: "View Reports" },
+  { key: "logs.view", label: "View Audit Logs" },
+  { key: "notifications.send", label: "Send System Notifications" },
+  { key: "settings.manage", label: "Manage Settings" },
 ];
+const ROLE_PERMISSION_KEYS = new Set(ROLE_PERMISSIONS.map((p) => p.key));
 const ROLE_BASE_ROLES = ["super-admin", "employer", "job-seeker"];
 
 function parseCustomRole(row) {
@@ -306,7 +431,7 @@ function validateRolePayload(body) {
   const { name, description = "", permissions = [], base_role = "super-admin" } = body || {};
   if (!name || !String(name).trim()) return { error: "Role name is required" };
   if (!ROLE_BASE_ROLES.includes(base_role)) return { error: "base_role must be super-admin, employer, or job-seeker" };
-  const clean = [...new Set((Array.isArray(permissions) ? permissions : []).filter((p) => ROLE_PERMISSIONS.includes(p)))];
+  const clean = [...new Set((Array.isArray(permissions) ? permissions : []).filter((p) => ROLE_PERMISSION_KEYS.has(p)))];
   return { value: { name: String(name).trim(), description: String(description || "").trim(), permissions: clean, base_role } };
 }
 
@@ -318,6 +443,10 @@ async function roleNameTaken(name, excludeId = null) {
     excludeId ? [name, excludeId] : [name]);
   return rows.length > 0;
 }
+
+router.get('/admin/permissions', ...admin, ah(async (_req, res) => {
+  res.json(ROLE_PERMISSIONS);
+}));
 
 router.get('/admin/roles', ...admin, ah(async (req, res) => {
   const { rows } = await pool.query(
@@ -339,6 +468,7 @@ router.post('/admin/roles', ...admin, ah(async (req, res) => {
 }));
 
 router.patch('/admin/roles/:id', ...admin, ah(async (req, res) => {
+  if (!isNumericId(req.params.id)) return err(res, 400, 'BAD_REQUEST', 'Invalid id');
   const { rows: existing } = await pool.query(
     `select * from reference_data where id = $1 and category = 'custom_role'`, [req.params.id]);
   if (!existing[0]) return err(res, 404, 'NOT_FOUND', 'Custom role not found');
@@ -354,6 +484,7 @@ router.patch('/admin/roles/:id', ...admin, ah(async (req, res) => {
 }));
 
 router.delete('/admin/roles/:id', ...admin, ah(async (req, res) => {
+  if (!isNumericId(req.params.id)) return err(res, 400, 'BAD_REQUEST', 'Invalid id');
   const { rows: existing } = await pool.query(
     `select * from reference_data where id = $1 and category = 'custom_role'`, [req.params.id]);
   if (!existing[0]) return err(res, 404, 'NOT_FOUND', 'Custom role not found');
@@ -384,6 +515,7 @@ router.post('/admin/users/:id/custom-role', ...admin, ah(async (req, res) => {
 }));
 
 router.delete('/admin/reference/:id', ...admin, ah(async (req, res) => {
+  if (!isNumericId(req.params.id)) return err(res, 400, 'BAD_REQUEST', 'Invalid id');
   const { rowCount } = await pool.query('delete from reference_data where id = $1', [req.params.id]);
   if (!rowCount) return err(res, 404, 'NOT_FOUND', 'Reference not found');
   void audit(req.user.id, 'settings.reference.remove', 'reference_data', req.params.id);
@@ -391,20 +523,14 @@ router.delete('/admin/reference/:id', ...admin, ah(async (req, res) => {
 }));
 
 // Addendum A: admin reads of seeker profile children.
-router.get('/admin/seekers/:id/education', ...admin, ah(async (req, res) => {
-  const { rows } = await pool.query('select * from education where seeker_id = $1 order by id desc', [req.params.id]);
+const seekerChildRead = (sql, order) => ah(async (req, res) => {
+  if (!isUuid(req.params.id)) return err(res, 404, 'NOT_FOUND', 'Seeker not found');
+  const { rows } = await pool.query(`select * from ${sql} where seeker_id = $1 order by ${order}`, [req.params.id]);
   res.json(rows);
-}));
-
-router.get('/admin/seekers/:id/experience', ...admin, ah(async (req, res) => {
-  const { rows } = await pool.query('select * from work_experience where seeker_id = $1 order by id desc', [req.params.id]);
-  res.json(rows);
-}));
-
-router.get('/admin/seekers/:id/employment', ...admin, ah(async (req, res) => {
-  const { rows } = await pool.query('select * from employment_history where seeker_id = $1 order by created_at desc', [req.params.id]);
-  res.json(rows);
-}));
+});
+router.get('/admin/seekers/:id/education', ...admin, seekerChildRead('education', 'id desc'));
+router.get('/admin/seekers/:id/experience', ...admin, seekerChildRead('work_experience', 'id desc'));
+router.get('/admin/seekers/:id/employment', ...admin, seekerChildRead('employment_history', 'created_at desc'));
 
 // user_id always comes from the token, never params.
 router.get('/notifications/mine', auth, ah(async (req, res) => {
@@ -417,7 +543,14 @@ router.get('/notifications/mine', auth, ah(async (req, res) => {
 }));
 
 router.post('/notifications/:id/read', auth, ah(async (req, res) => {
-  await pool.query('update notifications set is_read = true where id = $1 and user_id = $2', [req.params.id, req.user.id]);
+  if (!isNumericId(req.params.id)) return err(res, 400, 'BAD_REQUEST', 'Invalid notification id');
+  // Addendum C: match DELETE — another user's id answers 404, not a
+  // non-informative 200 (the update is scoped, but the response must not
+  // imply the caller's row was touched).
+  const { rows } = await pool.query(
+    'update notifications set is_read = true where id = $1 and user_id = $2 returning id',
+    [req.params.id, req.user.id]);
+  if (!rows[0]) return err(res, 404, 'NOT_FOUND', 'Notification not found');
   res.json({ read: true });
 }));
 
@@ -452,6 +585,7 @@ async function adminWriteStatus(client, jobId, status, remarks, changedBy) {
 }
 
 router.patch('/admin/jobs/:id', ...admin, ah(async (req, res) => {
+  if (!isUuid(req.params.id)) return err(res, 404, 'NOT_FOUND', 'Job not found');
   const { rows: jrows } = await pool.query('select * from job_vacancies where id = $1', [req.params.id]);
   if (!jrows[0]) return err(res, 404, 'NOT_FOUND', 'Job not found');
   const job = jrows[0];
@@ -464,9 +598,13 @@ router.patch('/admin/jobs/:id', ...admin, ah(async (req, res) => {
   if (patch.work_arrangement !== undefined && !ADMIN_JOB_ARRANGEMENTS.includes(patch.work_arrangement)) {
     return err(res, 400, 'BAD_REQUEST', `work_arrangement must be one of ${ADMIN_JOB_ARRANGEMENTS.join(', ')}`);
   }
-  const client = await pool.connect();
-  try {
-    await client.query('begin');
+  // '' is coerced to null above, and `vacancies int not null` (schema.sql:190)
+  // cannot store null — an emptied or non-integer value must answer 400 here
+  // instead of raising 23502 on the UPDATE.
+  if (patch.vacancies !== undefined && (patch.vacancies === null || !Number.isInteger(Number(patch.vacancies)))) {
+    return err(res, 400, 'BAD_REQUEST', 'vacancies must be a whole number');
+  }
+  await withTransaction(async (client) => {
     if (patch.status !== undefined) {
       const { status, ...rest } = patch;
       const restKeys = Object.keys(rest).filter((k) => k !== 'remarks');
@@ -482,13 +620,7 @@ router.patch('/admin/jobs/:id', ...admin, ah(async (req, res) => {
         `update job_vacancies set ${keys.map((k, i) => `${k} = $${i + 2}`).join(', ')}, updated_at = now() where id = $1`,
         [job.id, ...keys.map((k) => patch[k])]);
     }
-    await client.query('commit');
-  } catch (e) {
-    await client.query('rollback');
-    throw e;
-  } finally {
-    client.release();
-  }
+  });
   void audit(req.user.id, 'job.update', 'job_vacancies', job.id);
   const { rows } = await pool.query('select * from job_vacancies where id = $1', [job.id]);
   // Review-approve (admin PATCH) → same seeker fan-out as the publish endpoint.
@@ -499,20 +631,13 @@ router.patch('/admin/jobs/:id', ...admin, ah(async (req, res) => {
 // Thin adminWriteStatus wrappers: publish → published (+published_at),
 // unpublish → draft, each with history row + company notify.
 const adminJobPublish = (status, title) => ah(async (req, res) => {
+  if (!isUuid(req.params.id)) return err(res, 404, 'NOT_FOUND', 'Job not found');
   const { rows: jrows } = await pool.query('select * from job_vacancies where id = $1', [req.params.id]);
   if (!jrows[0]) return err(res, 404, 'NOT_FOUND', 'Job not found');
   const job = jrows[0];
-  const client = await pool.connect();
-  try {
-    await client.query('begin');
+  await withTransaction(async (client) => {
     await adminWriteStatus(client, job.id, status, job.remarks, req.user.id);
-    await client.query('commit');
-  } catch (e) {
-    await client.query('rollback');
-    throw e;
-  } finally {
-    client.release();
-  }
+  });
   void audit(req.user.id, `job.${status === 'published' ? 'publish' : 'unpublish'}`, 'job_vacancies', job.id);
   void notifyUser(job.company_id, { type: 'job', title, message: `"${job.title}" ${status === 'published' ? 'is now live on the job board.' : 'was unpublished by PESO.'}`, link: '/employer/job-posts' });
   const { rows } = await pool.query('select * from job_vacancies where id = $1', [job.id]);
@@ -541,8 +666,15 @@ router.post('/admin/system-notifications', ...admin, ah(async (req, res) => {
   res.json({ sent: rowCount });
 }));
 
-// Cross-table role move: deactivate old row, insert minimal new row with the
-// same id/email/full_name. 403 on self-move (lockout footgun).
+// Cross-table role move: the old-table row is DEACTIVATED, never deleted.
+// Deleting it cascades (job_vacancies.company_id → employers ON DELETE
+// CASCADE, then job_applications, resumes, education, history rows) and would
+// destroy the user's job postings, every application with its applicant PII,
+// and all status history — one request, no confirmation. The target row is
+// upserted, so a move BACK onto a table that still holds the old deactivated
+// row reactivates it instead of hitting the PK (the original B2 500).
+// Deactivate and upsert share one transaction; a same-email row already in
+// the target table is a 409. 403 on self-move (lockout footgun).
 router.post('/admin/users/:id/role', ...admin, ah(async (req, res) => {
   if (req.params.id === req.user.id) return err(res, 403, 'FORBIDDEN', 'You cannot change your own role');
   const { role } = req.body || {};
@@ -550,19 +682,19 @@ router.post('/admin/users/:id/role', ...admin, ah(async (req, res) => {
   const { table, profile } = await findUserTable(req.params.id);
   if (!profile) return err(res, 404, 'NOT_FOUND', 'User account not found');
   if (profile.role === role) return res.json({ id: req.params.id, role });
-  const client = await pool.connect();
   try {
-    await client.query('begin');
-    await client.query(`update ${table} set status = 'inactive', updated_at = now() where id = $1`, [req.params.id]);
-    await client.query(
-      `insert into ${USER_TABLES[role]} (id, email, full_name, status) values ($1,$2,$3,'active')`,
-      [req.params.id, profile.email, profile.full_name]);
-    await client.query('commit');
+    await withTransaction(async (client) => {
+      await client.query(`update ${table} set status = 'inactive', updated_at = now() where id = $1`, [req.params.id]);
+      await client.query(
+        `insert into ${USER_TABLES[role]} (id, email, full_name, status) values ($1,$2,$3,'active')
+         on conflict (id) do update set email = excluded.email, full_name = excluded.full_name, status = 'active', updated_at = now()`,
+        [req.params.id, profile.email, profile.full_name]);
+    });
   } catch (e) {
-    await client.query('rollback');
+    // The target table's per-email unique index: moving onto an email that
+    // already lives there is a conflict, not a server error.
+    if (e.code === '23505') return err(res, 409, 'CONFLICT', 'Another account already uses this email');
     throw e;
-  } finally {
-    client.release();
   }
   void audit(req.user.id, 'user.role.change', USER_TABLES[role], req.params.id, { from: profile.role, to: role });
   res.json({ id: req.params.id, role });
