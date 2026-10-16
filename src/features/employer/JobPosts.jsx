@@ -561,7 +561,7 @@ export default function JobPosts() {
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Search by job title, department, or barangay..."
-              className="w-full pl-10 pr-4 py-2 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 placeholder:text-gray-500 focus:outline-none focus:border-primary focus:bg-white transition-all"
+              className="w-full pl-10 pr-4 py-2 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 placeholder:text-gray-600 focus:outline-none focus:border-primary focus:bg-white transition-all"
             />
             {searchTerm && (
               <button
@@ -855,7 +855,7 @@ export default function JobPosts() {
                     if (errors.title) setErrors((prev) => ({ ...prev, title: undefined }));
                   }}
                   placeholder="e.g. Administrative Officer, Welder, Accountant..."
-                  className={`w-full min-h-[44px] px-4 rounded-xl text-sm bg-gray-50 border text-gray-900 placeholder:text-gray-500 focus:outline-none focus:bg-white focus:ring-2 focus:ring-primary/20 transition-all ${
+                  className={`w-full min-h-[44px] px-4 rounded-xl text-sm bg-gray-50 border text-gray-900 placeholder:text-gray-600 focus:outline-none focus:bg-white focus:ring-2 focus:ring-primary/20 transition-all ${
                     errors.title ? "border-rose-300 ring-1 ring-rose-200" : "border-gray-200 focus:border-primary"
                   }`}
                 />
@@ -874,7 +874,7 @@ export default function JobPosts() {
                     value={form.office}
                     onChange={(e) => setForm({ ...form, office: e.target.value })}
                     placeholder="e.g. Main Plant, Warehouse 1, Accounting"
-                    className="w-full min-h-[44px] px-4 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 placeholder:text-gray-500 focus:outline-none focus:bg-white focus:border-primary transition-all"
+                    className="w-full min-h-[44px] px-4 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 placeholder:text-gray-600 focus:outline-none focus:bg-white focus:border-primary transition-all"
                   />
                 </div>
 
@@ -947,7 +947,7 @@ export default function JobPosts() {
                           onChange={(e) => setBarangayQuery(e.target.value)}
                           autoFocus
                           placeholder="Search barangay..."
-                          className="w-full px-4 py-2.5 text-sm bg-transparent border-b border-gray-100 text-gray-900 placeholder:text-gray-500 focus:outline-none"
+                          className="w-full px-4 py-2.5 text-sm bg-transparent border-b border-gray-100 text-gray-900 placeholder:text-gray-600 focus:outline-none"
                         />
                         {filteredBarangays.length === 0 ? (
                           <p className="px-4 py-2.5 text-sm text-gray-500">No barangays match</p>
@@ -1043,7 +1043,7 @@ export default function JobPosts() {
                         }
                       }}
                       placeholder="e.g. 18000"
-                      className="w-full min-h-[44px] pl-8 pr-4 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 placeholder:text-gray-500 focus:outline-none focus:bg-white focus:border-primary transition-all"
+                      className="w-full min-h-[44px] pl-8 pr-4 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 placeholder:text-gray-600 focus:outline-none focus:bg-white focus:border-primary transition-all"
                     />
                   </div>
                   {errors.salary_min && (
@@ -1070,7 +1070,7 @@ export default function JobPosts() {
                         if (errors.salary_max) setErrors((prev) => ({ ...prev, salary_max: undefined }));
                       }}
                       placeholder="e.g. 25000"
-                      className="w-full min-h-[44px] pl-8 pr-4 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 placeholder:text-gray-500 focus:outline-none focus:bg-white focus:border-primary transition-all"
+                      className="w-full min-h-[44px] pl-8 pr-4 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 placeholder:text-gray-600 focus:outline-none focus:bg-white focus:border-primary transition-all"
                     />
                   </div>
                   {errors.salary_max && (
@@ -1107,7 +1107,7 @@ export default function JobPosts() {
                     if (errors.description) setErrors((prev) => ({ ...prev, description: undefined }));
                   }}
                   placeholder="Outline key duties, scope of work, day-to-day responsibilities, and team role..."
-                  className={`w-full p-4 rounded-xl text-sm bg-gray-50 border text-gray-900 placeholder:text-gray-500 focus:outline-none focus:bg-white transition-all ${
+                  className={`w-full p-4 rounded-xl text-sm bg-gray-50 border text-gray-900 placeholder:text-gray-600 focus:outline-none focus:bg-white transition-all ${
                     errors.description
                       ? "border-rose-300 ring-1 ring-rose-200"
                       : "border-gray-200 focus:border-primary"
@@ -1173,7 +1173,7 @@ export default function JobPosts() {
                     onChange={(e) => setForm({ ...form, requirements: applyExperience(form.requirements, e.target.value) })}
                     placeholder="Enter number of years"
                     aria-label="Number of years of experience required"
-                    className="mt-2 w-full min-h-[44px] px-4 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 placeholder:text-gray-500 focus:outline-none focus:bg-white focus:border-primary transition-all"
+                    className="mt-2 w-full min-h-[44px] px-4 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 placeholder:text-gray-600 focus:outline-none focus:bg-white focus:border-primary transition-all"
                   />
                 )}
               </div>
@@ -1256,7 +1256,7 @@ export default function JobPosts() {
                   value={form.instructions}
                   onChange={(e) => setForm({ ...form, instructions: e.target.value })}
                   placeholder="e.g. Please bring an updated resume, 2x2 photo, and NBI clearance. Walk-ins accepted Mon-Fri 9AM-3PM..."
-                  className="w-full p-4 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 placeholder:text-gray-500 focus:outline-none focus:bg-white focus:border-primary transition-all"
+                  className="w-full p-4 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 placeholder:text-gray-600 focus:outline-none focus:bg-white focus:border-primary transition-all"
                 />
               </div>
             </div>

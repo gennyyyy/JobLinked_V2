@@ -2,6 +2,7 @@ import { useState } from "react";
 import Logo from "../../assets/TextBased Logo.png";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "../../shared/lib/supabase";
+import SkipLink from "../../shared/components/SkipLink";
 
 function ResetPassword() {
   const navigate = useNavigate();
@@ -35,6 +36,7 @@ function ResetPassword() {
 
   return (
     <div className="min-h-screen bg-gray-50 text-gray-900 flex flex-col font-sans">
+      <SkipLink />
       <header className="sticky top-0 z-20 bg-dark-blue border-b border-white/10">
         <div className="w-full px-4 h-[64px] flex items-center justify-between">
           <div className="bg-white rounded-lg px-3.5 py-1.5 flex items-center shadow-xs">
@@ -44,10 +46,11 @@ function ResetPassword() {
         </div>
       </header>
 
-      <main className="flex-1 flex items-center justify-center p-[3%]">
+      <main id="main-content" tabIndex={-1}
+        className="flex-1 flex items-center justify-center p-[3%]">
         <div className="w-full max-w-md bg-white border border-primary rounded-lg p-6 md:p-9 shadow-xl">
           <div className="flex items-center justify-between mb-6">
-            <Link to="/portals" className="text-xs text-gray-400 hover:text-primary transition-colors">
+            <Link to="/portals" className="text-xs text-gray-600 hover:text-primary transition-colors">
               ← Portals
             </Link>
             <span className="font-mono text-[10px] tracking-widest uppercase px-2.5 py-1 rounded-full bg-primary/10 border border-primary/25 text-primary">
@@ -77,7 +80,7 @@ function ResetPassword() {
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full min-h-[44px] px-4 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all"
+                className="w-full min-h-[44px] px-4 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 placeholder:text-gray-600 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all"
               />
             </div>
 
@@ -93,7 +96,7 @@ function ResetPassword() {
                 required
                 value={confirm}
                 onChange={(e) => setConfirm(e.target.value)}
-                className="w-full min-h-[44px] px-4 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all"
+                className="w-full min-h-[44px] px-4 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 placeholder:text-gray-600 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all"
               />
             </div>
 

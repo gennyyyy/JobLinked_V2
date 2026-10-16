@@ -46,7 +46,7 @@ function AiMatchModal({ open, onClose }) {
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
             placeholder="Type a message..."
-            className="flex-1 min-h-[44px] px-4 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 placeholder:text-gray-500 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all"
+            className="flex-1 min-h-[44px] px-4 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 placeholder:text-gray-600 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all"
           />
           <button type="submit" className="min-h-[44px] px-4 rounded-xl bg-primary text-white text-xs font-medium hover:bg-primary-hover transition-colors">Send</button>
         </form>

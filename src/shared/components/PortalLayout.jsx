@@ -8,6 +8,7 @@ import TextBasedLogo from '../../assets/TextBased Logo.png'
 import SidebarAccount from './SidebarAccount'
 import NotificationBell from './NotificationBell'
 import { titleCase } from '../utils/titleCase'
+import SkipLink from './SkipLink'
 
 export default function PortalLayout({ navItems, badge, eyebrow, subhead, profileTo, roleLabel, homeTo }) {
   const navigate = useNavigate()
@@ -31,6 +32,7 @@ export default function PortalLayout({ navItems, badge, eyebrow, subhead, profil
 
   return (
     <div className="min-h-screen md:h-screen md:overflow-hidden bg-gray-50 text-gray-900 flex flex-col md:flex-row">
+      <SkipLink />
       <header className="md:hidden sticky top-0 z-30 bg-dark-blue border-b border-white/10 px-4 h-14 flex items-center justify-between shrink-0">
         <div className="flex items-center gap-2.5">
           <div className="bg-white rounded-lg px-3.5 py-1.5 flex items-center shadow-xs">
@@ -132,7 +134,8 @@ export default function PortalLayout({ navItems, badge, eyebrow, subhead, profil
         />
       )}
 
-      <main className="flex-1 min-h-0 w-full max-w-full overflow-hidden p-[3%] flex flex-col md:h-screen md:overflow-y-auto md:overflow-x-hidden min-h-[calc(100vh-56px)]">
+      <main id="main-content" tabIndex={-1}
+        className="flex-1 min-h-0 w-full max-w-full overflow-hidden p-[3%] flex flex-col md:h-screen md:overflow-y-auto md:overflow-x-hidden min-h-[calc(100vh-56px)]">
         <div className="w-full flex-1 min-h-0 flex flex-col gap-6">
           <Outlet />
           <footer aria-hidden="true" className="mt-auto h-6 shrink-0" />

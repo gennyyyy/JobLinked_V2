@@ -4,6 +4,7 @@ import Logo from "../../assets/TextBased Logo.png";
 import { getEmployer } from "../../shared/services/auth";import LoadingScreen from "../../shared/components/LoadingScreen";
 import { titleCase } from "../../shared/utils/titleCase";
 import useAuth from "../../shared/hooks/useAuth";
+import SkipLink from "../../shared/components/SkipLink";
 
 function StatusNode({ done, rejected, label, sub }) {
   return (
@@ -59,13 +60,15 @@ function EmployerStatus() {
   if (!employer || !employer.accreditation_status) {
     return (
       <div className="min-h-screen bg-gray-50 text-gray-900 flex flex-col font-sans">
+        <SkipLink />
         <header className="sticky top-0 z-20 bg-dark-blue border-b border-white/10">
           <div className="w-full px-4 h-[64px] flex items-center justify-between">
             {headerLogo}
             <span className="hidden sm:block font-mono text-[11px] text-gray-400">PESO · SANTA MARIA</span>
           </div>
         </header>
-        <main className="flex-1 flex items-center justify-center p-[3%]">
+        <main id="main-content" tabIndex={-1}
+          className="flex-1 flex items-center justify-center p-[3%]">
           <div className="max-w-md w-full text-center bg-white border border-primary rounded-lg p-6 shadow-xl">
             <h1 className="text-xl font-bold text-dark-blue">No Application Found</h1>
             <p className="mt-3 text-sm text-gray-500">You haven&apos;t submitted an employer accreditation application yet.</p>
@@ -88,6 +91,7 @@ function EmployerStatus() {
 
   return (
     <div className="min-h-screen bg-gray-50 text-gray-900 flex flex-col font-sans">
+      <SkipLink />
       <header className="sticky top-0 z-20 bg-dark-blue border-b border-white/10">
         <div className="w-full px-4 h-[64px] flex items-center justify-between">
           {headerLogo}
@@ -95,7 +99,7 @@ function EmployerStatus() {
         </div>
       </header>
 
-      <main className="flex-1 flex items-center justify-center p-[3%]">
+      <main id="main-content" tabIndex={-1} className="flex-1 flex items-center justify-center p-[3%]">
         <div className="w-full max-w-lg bg-white border border-primary rounded-lg p-6 md:p-9 shadow-xl">
           {(isRejected || isRevoked) && remarks && (
             <div className="mb-6 p-4 rounded-xl border border-danger/20 bg-danger/5">

@@ -5,6 +5,7 @@ import { SANTA_MARIA_BARANGAYS } from "../../shared/constants";
 import TextBasedLogo from "../../assets/TextBased Logo.png";
 import LoadingScreen from "../../shared/components/LoadingScreen";
 import { titleCase } from "../../shared/utils/titleCase";
+import SkipLink from "../../shared/components/SkipLink";
 
 function JobBrowser({ initialKeyword, initialLocation }) {
   const [keyword, setKeyword] = useState(initialKeyword);
@@ -52,11 +53,13 @@ function JobBrowser({ initialKeyword, initialLocation }) {
           value={keyword}
           onChange={(e) => { setKeyword(e.target.value); setPage(1); }}
           placeholder="Search by job title or employer..."
-          className="flex-1 min-h-[44px] px-4 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 placeholder:text-gray-500 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all"
+          aria-label="Search by job title or employer"
+          className="flex-1 min-h-[44px] px-4 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 placeholder:text-gray-600 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all"
         />
         <select
           value={location}
           onChange={(e) => { setLocation(e.target.value); setPage(1); }}
+          aria-label="Filter by barangay or municipality"
           className="min-h-[44px] px-4 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all"
         >
           <option value="">All Locations</option>
@@ -129,19 +132,21 @@ function PublicJobs() {
 
   return (
     <div className="min-h-screen bg-gray-50 text-gray-900 flex flex-col font-sans">
+      <SkipLink />
       <header className="sticky top-0 z-20 bg-dark-blue/90 backdrop-blur border-b border-white/10">
         <div className="w-full px-4 h-[56px] flex items-center justify-between">
           <div className="bg-white rounded-lg px-3.5 py-1.5 flex items-center shadow-xs">
             <Link to="/"><img src={TextBasedLogo} alt="JobLinked" width={480} height={160} className="h-6" /></Link>
           </div>
           <div className="flex items-center gap-3">
-            <Link to="/register" className="text-xs text-gray-500 hover:text-gray-900 transition-colors">Register</Link>
+            <Link to="/register" className="text-xs text-gray-300 hover:text-white transition-colors">Register</Link>
             <Link to="/portals" className="min-h-[36px] inline-flex items-center px-4 rounded-xl bg-primary text-white text-xs font-medium hover:bg-primary-hover transition-colors">Log In</Link>
           </div>
         </div>
       </header>
 
-      <main className="flex-1 w-full p-[3%]">
+      <main id="main-content" tabIndex={-1}
+        className="flex-1 w-full p-[3%]">
         <div className="mb-8">
           <p className="font-mono text-[11px] tracking-[0.2em] text-[#0057B8] uppercase">PUBLIC EMPLOYMENT BULLETINS</p>
           <h1 className="mt-2 text-2xl md:text-3xl font-bold tracking-tight text-dark-blue">Find Openings in Santa Maria</h1>
@@ -155,9 +160,9 @@ function PublicJobs() {
         />
       </main>
 
-      <footer className="border-t border-gray-200 bg-dark-blue text-white/30">
+      <footer className="border-t border-gray-200 bg-dark-blue text-white/70">
         <div className="w-full px-4 py-3 flex flex-col sm:flex-row justify-between gap-2 text-xs font-mono">
-          <span className="text-white/60 font-medium">Job<span className="text-[#0057B8]">Linked</span> <span className="text-white/40">PESO</span></span>
+          <span className="text-white/70 font-medium">Job<span className="text-accent">Linked</span> <span className="text-white/70">PESO</span></span>
           <span>Santa Maria Municipal Hall · hello@joblinked.ph</span>
           <span>© 2026</span>
         </div>

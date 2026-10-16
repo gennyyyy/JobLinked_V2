@@ -4,7 +4,7 @@ import { listNotifications } from "../../shared/services/notifications";
 import useAuth from "../../shared/hooks/useAuth";
 import LoadingScreen from "../../shared/components/LoadingScreen";
 
-const inputClass = "w-full px-4 py-2.5 text-sm bg-gray-50 border border-gray-200 text-gray-900 placeholder:text-gray-500 rounded-lg focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30";
+const inputClass = "w-full px-4 py-2.5 text-sm bg-gray-50 border border-gray-200 text-gray-900 placeholder:text-gray-600 rounded-lg focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30";
 
 export default function Broadcast() {
   const { user } = useAuth();

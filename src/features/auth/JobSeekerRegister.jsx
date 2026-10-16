@@ -7,6 +7,7 @@ import { normalizePhone, isValidPhone, withPrefix } from "../../shared/utils/pho
 import { TagInput } from "../../shared/components/TagInput";
 import TermsModal from "../../shared/components/TermsModal";
 import Logo from "../../assets/TextBased Logo.png";
+import SkipLink from "../../shared/components/SkipLink";
 
 const EDUCATION_LEVELS = ["Elementary", "High School", "Senior High School", "Vocational", "College", "Post-Graduate"];
 const MAX_PDF_SIZE = 2 * 1024 * 1024;
@@ -232,8 +233,8 @@ function JobSeekerRegister() {
     }
   }
 
-  const inputClass = "w-full min-h-[44px] px-4 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 placeholder:text-gray-500 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all";
-  const labelClass = "block font-mono text-[11px] tracking-wider text-gray-500 uppercase mb-1.5";
+  const inputClass = "w-full min-h-[44px] px-4 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 placeholder:text-gray-600 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all";
+  const labelClass = "block font-mono text-[11px] tracking-wider text-gray-600 uppercase mb-1.5";
   const reqMark = <span className="text-danger" aria-hidden="true"> *</span>;
 
   function focusFirstError(key) {
@@ -262,16 +263,18 @@ function JobSeekerRegister() {
   if (submitted) {
     return (
       <div className="min-h-screen bg-gray-50 text-gray-900 flex flex-col font-sans">
+        <SkipLink />
         <header className="sticky top-0 z-20 bg-dark-blue border-b border-white/10">
           <div className="w-full px-4 h-[64px] flex items-center justify-between">
             <div className="bg-white rounded-lg px-3.5 py-1.5 flex items-center shadow-xs">
               <Link to="/"><img src={Logo} alt="JobLinked" width={480} height={160} className="h-10" /></Link>
             </div>
-            <span className="hidden sm:block font-mono text-[11px] text-gray-500">PESO · SANTA MARIA</span>
+            <span className="hidden sm:block font-mono text-[11px] text-gray-400">PESO · SANTA MARIA</span>
           </div>
         </header>
 
-        <main className="flex-1 flex items-center justify-center p-[3%]">
+        <main id="main-content" tabIndex={-1}
+          className="flex-1 flex items-center justify-center p-[3%]">
           <div className="max-w-md w-full text-center bg-white border border-primary rounded-lg p-6 shadow-xl">
             <span className={`font-mono text-[10px] tracking-widest uppercase px-2.5 py-1 rounded-full border font-semibold ${needsConfirmation ? "bg-amber-50 border-amber-200 text-amber-700" : "bg-emerald-50 border-emerald-200 text-emerald-600"}`}>
               {needsConfirmation ? "VERIFY YOUR EMAIL" : "ACCOUNT READY"}
@@ -296,16 +299,17 @@ function JobSeekerRegister() {
 
   return (
     <div className="min-h-screen bg-gray-50 text-gray-900 flex flex-col font-sans">
+      <SkipLink />
       <header className="sticky top-0 z-20 bg-dark-blue border-b border-white/10">
         <div className="w-full px-4 h-[64px] flex items-center justify-between">
           <div className="bg-white rounded-lg px-3.5 py-1.5 flex items-center shadow-xs">
             <Link to="/"><img src={Logo} alt="JobLinked" width={480} height={160} className="h-10" /></Link>
           </div>
-          <span className="hidden sm:block font-mono text-[11px] text-gray-500">PESO · SANTA MARIA</span>
+          <span className="hidden sm:block font-mono text-[11px] text-gray-400">PESO · SANTA MARIA</span>
         </div>
       </header>
 
-      <main className="flex-1 flex items-center justify-center p-[3%]">
+      <main id="main-content" tabIndex={-1} className="flex-1 flex items-center justify-center p-[3%]">
         <div className="w-full max-w-4xl bg-white border border-primary rounded-lg p-6 md:p-10 shadow-xl">
           <div className="flex items-center justify-between mb-4">
             <Link to="/register" className="text-xs text-gray-500 hover:text-primary transition-colors">
@@ -332,9 +336,9 @@ function JobSeekerRegister() {
                 type="file"
                 accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
                 onChange={handleResumeChange}
-                className="block w-full text-xs text-gray-500 file:mr-3 file:min-h-[40px] file:px-4 file:rounded-xl file:border-0 file:bg-primary file:text-white file:text-xs file:font-semibold hover:file:bg-primary-hover file:cursor-pointer cursor-pointer"
+                className="block w-full text-xs text-gray-600 file:mr-3 file:min-h-[40px] file:px-4 file:rounded-xl file:border-0 file:bg-primary file:text-white file:text-xs file:font-semibold hover:file:bg-primary-hover file:cursor-pointer cursor-pointer"
               />
-              <p className="mt-2 text-xs text-gray-500">PDF up to 2 MB or DOCX up to 5 MB. We'll fill in details below; review and edit them before continuing.</p>
+              <p className="mt-2 text-xs text-gray-600">PDF up to 2 MB or DOCX up to 5 MB. We'll fill in details below; review and edit them before continuing.</p>
               {autofillStatus && (
                 <p role="status" aria-live="polite" className="mt-2 text-xs font-medium text-primary">{autofillStatus}</p>
               )}
@@ -475,10 +479,10 @@ function JobSeekerRegister() {
                   <option value="">Education level</option>
                   {EDUCATION_LEVELS.map((l) => <option key={l} value={l}>{l}</option>)}
                 </select>
-                <input aria-label="School name" placeholder="School name" value={education.school} onChange={(e) => setEducation({ ...education, school: e.target.value })} className="px-4 py-2.5 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 placeholder:text-gray-500 focus:outline-none focus:border-primary/60 transition-all" />
+                <input aria-label="School name" placeholder="School name" value={education.school} onChange={(e) => setEducation({ ...education, school: e.target.value })} className="px-4 py-2.5 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 placeholder:text-gray-600 focus:outline-none focus:border-primary/60 transition-all" />
                 <div className="flex gap-2">
-                  <input aria-label="Course / field of study" placeholder="Course / field" value={education.field} onChange={(e) => setEducation({ ...education, field: e.target.value })} className="flex-1 px-4 py-2.5 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 placeholder:text-gray-500 focus:outline-none focus:border-primary/60 transition-all" />
-                  <input aria-label="Graduation year" placeholder="Year" inputMode="numeric" disabled={education.studying} value={education.year} onChange={(e) => setEducation({ ...education, year: e.target.value })} className="w-20 px-3 py-2.5 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 placeholder:text-gray-500 focus:outline-none focus:border-primary/60 transition-all disabled:opacity-50" />
+                  <input aria-label="Course / field of study" placeholder="Course / field" value={education.field} onChange={(e) => setEducation({ ...education, field: e.target.value })} className="flex-1 px-4 py-2.5 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 placeholder:text-gray-600 focus:outline-none focus:border-primary/60 transition-all" />
+                  <input aria-label="Graduation year" placeholder="Year" inputMode="numeric" disabled={education.studying} value={education.year} onChange={(e) => setEducation({ ...education, year: e.target.value })} className="w-20 px-3 py-2.5 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 placeholder:text-gray-600 focus:outline-none focus:border-primary/60 transition-all disabled:opacity-50" />
                 </div>
               </div>
               <label className="mt-2 flex items-center gap-2 text-xs text-gray-500 select-none cursor-pointer">

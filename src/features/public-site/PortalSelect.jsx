@@ -1,10 +1,12 @@
 import { Link } from "react-router-dom";
 import Logo from "../../assets/TextBased Logo.png";
 import { PORTALS } from "../../shared/constants";
+import SkipLink from "../../shared/components/SkipLink";
 
 function PortalSelect() {
   return (
     <div className="min-h-screen bg-gray-50 text-gray-900 flex flex-col font-sans">
+      <SkipLink />
       <header className="sticky top-0 z-20 bg-dark-blue border-b border-white/10">
         <div className="w-full px-4 h-[64px] flex items-center justify-between">
 <div className="bg-white rounded-lg px-3.5 py-1.5 flex items-center shadow-xs">
@@ -14,7 +16,8 @@ function PortalSelect() {
         </div>
       </header>
 
-      <main className="flex-1 flex flex-col items-center justify-center p-[3%]">
+      <main id="main-content" tabIndex={-1}
+        className="flex-1 flex flex-col items-center justify-center p-[3%]">
         <div className="w-full">
           <div className="text-center max-w-xl mx-auto mb-10 md:mb-12">
             <p className="font-mono text-[11px] tracking-[0.2em] text-primary uppercase font-semibold">PORTAL SELECTION</p>

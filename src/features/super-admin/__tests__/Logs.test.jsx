@@ -48,6 +48,17 @@ describe('Audit log viewer', () => {
     expect(within(dialog).getByText('Jane Owner')).toBeInTheDocument()
   })
 
+  it('user profile modal: Escape closes it and it is a labelled aria-modal dialog', async () => {
+    render(<Logs />)
+    fireEvent.click(await screen.findByRole('button', { name: 'jane@acme.test' }))
+    const dialog = await screen.findByRole('dialog')
+    expect(dialog).toHaveAttribute('aria-modal', 'true')
+    expect(dialog).toHaveAttribute('aria-labelledby', 'logs-user-title')
+
+    fireEvent.keyDown(document, { key: 'Escape' })
+    expect(screen.queryByRole('dialog')).toBeNull()
+  })
+
   it('applies the Login History shortcut filter', async () => {
     render(<Logs />)
     await screen.findByRole('table')

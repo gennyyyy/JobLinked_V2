@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 import { listAuditLogs, listUsers } from "../../shared/services/admin";
 import LoadingScreen from "../../shared/components/LoadingScreen";
+import useDialog from "../../shared/hooks/useDialog";
 
 const ACTIVITY_TYPES = [
   "auth.login",
@@ -82,6 +83,7 @@ function InfoRow({ label, value }) {
 function UserModal({ email, onClose }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const panelRef = useDialog(onClose);
 
   useEffect(() => {
     if (!email) return;
@@ -94,11 +96,11 @@ function UserModal({ email, onClose }) {
   if (!email) return null;
   return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" onClick={onClose}>
-      <div className="bg-white w-full max-w-md max-h-[90vh] overflow-y-auto border border-primary rounded-lg shadow-xl p-5" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true">
+      <div ref={panelRef} className="bg-white w-full max-w-md max-h-[90vh] overflow-y-auto border border-primary rounded-lg shadow-xl p-5" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="logs-user-title">
         <div className="flex items-start justify-between gap-3 pb-4 border-b border-gray-200">
           <div>
             <span className="font-mono text-[10px] tracking-widest text-primary uppercase">USER PROFILE</span>
-            <h2 className="mt-1 text-xl font-bold text-gray-900 uppercase">{loading ? email : user?.full_name || email}</h2>
+            <h2 id="logs-user-title" className="mt-1 text-xl font-bold text-gray-900 uppercase">{loading ? email : user?.full_name || email}</h2>
             {user?.role && <span className="mt-2 inline-block px-2 py-1 rounded-lg bg-gray-100 text-gray-600 text-xs capitalize">{user.role.replace("-", " ")}</span>}
           </div>
           <button type="button" onClick={onClose} className="p-1 rounded-lg text-gray-500 hover:text-gray-900 hover:bg-gray-100 transition-colors cursor-pointer" aria-label="Close"><X className="w-4 h-4" aria-hidden="true" /></button>

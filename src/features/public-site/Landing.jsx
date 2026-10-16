@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import heroImage from "../../assets/pic.jpg";
 import TextBasedLogo from "../../assets/TextBased Logo.png";
+import SkipLink from "../../shared/components/SkipLink";
 
 const featureCards = [
   {
@@ -62,6 +63,7 @@ function Landing() {
 
   return (
     <div className="min-h-screen bg-white text-gray-900 font-sans">
+      <SkipLink />
       <header className="sticky top-0 z-20 bg-dark-blue border-b border-white/10">
         <div className="w-full px-4 h-[64px] flex items-center justify-between">
           <div className="flex items-center gap-10">
@@ -76,6 +78,7 @@ function Landing() {
         </div>
       </header>
 
+      <main id="main-content" tabIndex={-1} className="w-full">
       <section className="relative overflow-hidden bg-gradient-to-br from-gray-50 to-white">
         <div className="w-full px-[3%] pt-12 md:pt-20 pb-16 md:pb-24 grid md:grid-cols-[1.1fr_0.9fr] gap-10 items-center">
           <div className="relative z-10">
@@ -85,7 +88,7 @@ function Landing() {
               <span className="text-accent relative">BRIGHTER</span><br />
               TOMORROWS.
             </h1>
-            <p className="mt-6 max-w-[42ch] text-[16px] leading-[1.7] text-gray-500">
+            <p className="mt-6 max-w-[42ch] text-[16px] leading-[1.7] text-gray-600">
               JobLinked connects job seekers and employers in Santa Maria. Discover opportunities, build your future, and be part of a stronger community.
             </p>
 
@@ -95,18 +98,18 @@ function Landing() {
             </div>
 
             <form onSubmit={handleQuickSearch} className="mt-6 flex flex-col sm:flex-row gap-3 bg-white rounded-lg p-3 border border-gray-200">
-              <div className="flex items-center gap-2 flex-1 px-3">
+              <div className="flex items-center gap-2 flex-1 px-3 rounded-md focus-within:ring-2 focus-within:ring-primary/40 focus-within:bg-gray-50">
                 <svg className="w-5 h-5 text-gray-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
                 </svg>
-                <input id="q" value={keyword} onChange={(e) => setKeyword(e.target.value)} placeholder="Job title, skills, or company" className="flex-1 min-h-[44px] text-sm bg-transparent border-none text-gray-900 placeholder:text-gray-500 focus:outline-none" />
+                <input id="q" value={keyword} onChange={(e) => setKeyword(e.target.value)} placeholder="Job title, skills, or company" className="flex-1 min-h-[44px] text-sm bg-transparent border-none text-gray-900 placeholder:text-gray-600 focus:outline-none" />
               </div>
-              <div className="flex items-center gap-2 px-3 border-t sm:border-t-0 sm:border-l border-gray-200 pt-3 sm:pt-0">
+              <div className="flex items-center gap-2 px-3 rounded-md focus-within:ring-2 focus-within:ring-primary/40 focus-within:bg-gray-50 border-t sm:border-t-0 sm:border-l border-gray-200 pt-3 sm:pt-0">
                 <svg className="w-5 h-5 text-gray-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
                   <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
                 </svg>
-                <input id="loc" value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Barangay or municipality" className="min-h-[44px] w-44 text-sm bg-transparent border-none text-gray-700 placeholder:text-gray-500 focus:outline-none" />
+                <input id="loc" value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Barangay or municipality" className="min-h-[44px] w-44 text-sm bg-transparent border-none text-gray-700 placeholder:text-gray-600 focus:outline-none" />
               </div>
               <button type="submit" className="min-h-[44px] px-8 rounded-xl bg-primary text-white text-sm font-bold hover:bg-primary-hover active:scale-[0.98] transition-all shadow-md flex items-center justify-center gap-2">
                 Search Jobs
@@ -139,7 +142,7 @@ function Landing() {
               <div className={`w-12 h-12 ${card.color} rounded-xl flex items-center justify-center text-white mb-4 group-hover:scale-110 transition-transform`}>
                 {card.icon}
               </div>
-              <h3 className="text-sm font-bold text-dark-blue">{card.title}</h3>
+              <h2 className="text-sm font-bold text-dark-blue">{card.title}</h2>
               <p className="mt-1 text-xs text-gray-500 leading-relaxed">{card.desc}</p>
               <div className="mt-3 flex items-center gap-1 text-primary text-xs font-semibold opacity-0 group-hover:opacity-100 transition-opacity">
                 Learn more
@@ -159,13 +162,14 @@ function Landing() {
           <div className="absolute top-0 left-0 w-full h-full bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4xIj48cGF0aCBkPSJNMCAyMDBoMjAwVjBIMHYyMDB6Ii8+PC9nPjwvZz48L3N2Zz4=')] opacity-20" />
         </div>
         <div className="relative w-full px-[3%] py-8 md:py-20 text-center">
-          <p className="text-white/80 text-sm font-medium mb-2">Connecting People.</p>
+          <p className="text-white text-sm font-medium mb-2">Connecting People.</p>
           <h2 className="font-sans text-2xl md:text-3xl font-black text-white leading-tight">
             Building a Brighter Santa Maria<br />for a Better Tomorrow.
           </h2>
         </div>
         <div className="h-2 bg-accent" />
       </section>
+      </main>
 
       <footer className="bg-dark-blue text-white">
         <div className="w-full px-4 py-3">

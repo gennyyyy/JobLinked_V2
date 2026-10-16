@@ -135,7 +135,7 @@ function Jobs() {
   }
 
   const inputClass =
-    "min-h-[44px] px-4 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 placeholder:text-gray-500 focus:outline-none focus:border-primary focus:bg-white transition-all w-full";
+    "min-h-[44px] px-4 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 placeholder:text-gray-600 focus:outline-none focus:border-primary focus:bg-white transition-all w-full";
 
   const filtersRef = useDialog(() => setFiltersOpen(false), filtersOpen && Boolean(filterDraft));
 
@@ -181,7 +181,7 @@ function Jobs() {
                 value={keyword}
                 onChange={(e) => { setKeyword(e.target.value); setPage(1); }}
                 placeholder="Search by job title..."
-                className="w-full min-h-[44px] pl-10 pr-4 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 placeholder:text-gray-500 focus:outline-none focus:border-primary focus:bg-white transition-all"
+                className="w-full min-h-[44px] pl-10 pr-4 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 placeholder:text-gray-600 focus:outline-none focus:border-primary focus:bg-white transition-all"
               />
             </div>
             <button

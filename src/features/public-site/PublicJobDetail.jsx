@@ -4,6 +4,7 @@ import { getJob } from "../../shared/services/jobs";
 import TextBasedLogo from "../../assets/TextBased Logo.png";
 import LoadingScreen from "../../shared/components/LoadingScreen";
 import { titleCase } from "../../shared/utils/titleCase";
+import SkipLink from "../../shared/components/SkipLink";
 
 function PublicJobDetail() {
   const { jobId } = useParams();
@@ -27,19 +28,21 @@ function PublicJobDetail() {
 
   return (
     <div className="min-h-screen bg-gray-50 text-gray-900 flex flex-col font-sans">
+      <SkipLink />
       <header className="sticky top-0 z-20 bg-dark-blue/90 backdrop-blur border-b border-white/10">
         <div className="w-full px-4 h-[56px] flex items-center justify-between">
           <div className="bg-white rounded-lg px-3.5 py-1.5 flex items-center shadow-xs">
             <Link to="/"><img src={TextBasedLogo} alt="JobLinked" width={480} height={160} className="h-6" /></Link>
           </div>
           <div className="flex items-center gap-3">
-            <Link to="/register" className="text-xs text-gray-500 hover:text-gray-900 transition-colors">Register</Link>
+            <Link to="/register" className="text-xs text-gray-300 hover:text-white transition-colors">Register</Link>
             <Link to="/portals" className="min-h-[36px] inline-flex items-center px-4 rounded-xl bg-primary text-white text-xs font-medium hover:bg-primary-hover transition-colors">Log In</Link>
           </div>
         </div>
       </header>
 
-      <main className="flex-1 w-full p-[3%]">
+      <main id="main-content" tabIndex={-1}
+        className="flex-1 w-full p-[3%]">
         <Link to="/jobs" className="inline-flex items-center text-xs text-gray-500 hover:text-gray-900 transition-colors mb-6">← Back to all postings</Link>
 
         <article className="bg-white border border-primary rounded-lg p-6 md:p-10">
@@ -77,7 +80,7 @@ function PublicJobDetail() {
             </div>
             <div>
               <p className="font-mono text-[10px] tracking-widest uppercase text-gray-500">PESO Verification</p>
-              <p className="mt-1 text-sm text-emerald-600 font-medium flex items-center gap-1.5">
+              <p className="mt-1 text-sm text-emerald-700 font-medium flex items-center gap-1.5">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />Verified Active
               </p>
             </div>
@@ -139,9 +142,9 @@ function PublicJobDetail() {
         </article>
       </main>
 
-      <footer className="border-t border-gray-200 bg-dark-blue text-white/30">
+      <footer className="border-t border-gray-200 bg-dark-blue text-white/70">
         <div className="w-full px-4 py-3 flex flex-col sm:flex-row justify-between gap-2 text-xs font-mono">
-          <span className="text-white/60 font-medium">Job<span className="text-[#0057B8]">Linked</span> <span className="text-white/40">PESO</span></span>
+          <span className="text-white/70 font-medium">Job<span className="text-accent">Linked</span> <span className="text-white/70">PESO</span></span>
           <span>Santa Maria Municipal Hall · hello@joblinked.ph</span>
           <span>© 2026</span>
         </div>

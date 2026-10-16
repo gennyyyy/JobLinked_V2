@@ -314,7 +314,7 @@ function Accreditation() {
                         onChange={(e) => { setRequestNote(e.target.value); setRequestError(""); }}
                         rows={2}
                         placeholder="List the missing or deficient documents…"
-                        className="w-full px-3 py-2 text-xs bg-gray-50 border border-amber-300 rounded-xl text-gray-900 placeholder:text-gray-400 focus:outline-none"
+                        className="w-full px-3 py-2 text-xs bg-gray-50 border border-amber-300 rounded-xl text-gray-900 placeholder:text-gray-600 focus:outline-none"
                       />
                       {requestError && <p className="text-[11px] text-danger">{requestError}</p>}
                       <div className="flex gap-2">
@@ -331,7 +331,7 @@ function Accreditation() {
                         onChange={(e) => { setRejectNote(e.target.value); setRejectError(false); }}
                         rows={2}
                         placeholder="Reason for rejection or required changes..."
-                        className="w-full px-3 py-2 text-xs bg-gray-50 border border-danger/40 rounded-xl text-gray-900 placeholder:text-gray-400 focus:outline-none"
+                        className="w-full px-3 py-2 text-xs bg-gray-50 border border-danger/40 rounded-xl text-gray-900 placeholder:text-gray-600 focus:outline-none"
                       />
                       {rejectError && <p className="text-[11px] text-danger">Please enter a rejection reason.</p>}
                       <div className="flex gap-2">

@@ -201,7 +201,7 @@ function Applicants() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search by candidate name..."
-              className="w-full pl-10 pr-4 py-2 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-primary focus:bg-white transition-all"
+              className="w-full pl-10 pr-4 py-2 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 placeholder:text-gray-600 focus:outline-none focus:border-primary focus:bg-white transition-all"
             />
           </div>
 
@@ -410,7 +410,7 @@ function Applicants() {
                             value={interviewLocation}
                             onChange={(e) => setInterviewLocation(e.target.value)}
                             placeholder="Company address or meeting venue"
-                            className="w-full min-h-[40px] px-3 rounded-xl text-sm bg-white border border-gray-200 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all"
+                            className="w-full min-h-[40px] px-3 rounded-xl text-sm bg-white border border-gray-200 text-gray-900 placeholder:text-gray-600 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all"
                           />
                         </div>
                         <div className="flex flex-col md:flex-row md:items-end gap-3">
@@ -433,7 +433,7 @@ function Applicants() {
                             value={interviewNotes}
                             onChange={(e) => setInterviewNotes(e.target.value)}
                             placeholder="Meeting link, address, or any other note…"
-                            className="w-full min-h-[40px] px-3 rounded-xl text-sm bg-white border border-gray-200 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all"
+                            className="w-full min-h-[40px] px-3 rounded-xl text-sm bg-white border border-gray-200 text-gray-900 placeholder:text-gray-600 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all"
                           />
                         </div>
                         <div className="flex-1 min-w-0">
@@ -444,7 +444,7 @@ function Applicants() {
                             onChange={(e) => setInterviewEmployerNotes(e.target.value)}
                             placeholder="Private notes — only you see these…"
                             rows={1}
-                            className="w-full min-h-[40px] px-3 py-2 rounded-xl text-sm bg-white border border-gray-200 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all"
+                            className="w-full min-h-[40px] px-3 py-2 rounded-xl text-sm bg-white border border-gray-200 text-gray-900 placeholder:text-gray-600 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all"
                           />
                         </div>
                         <div className="flex gap-2">

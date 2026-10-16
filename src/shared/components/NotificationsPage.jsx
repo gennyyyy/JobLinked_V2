@@ -355,7 +355,7 @@ export default function NotificationsPage({ title = "Notifications", subtitle = 
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search notifications..."
               aria-label="Search notifications"
-              className="w-full pl-10 pr-4 py-2 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-primary focus:bg-white transition-all"
+              className="w-full pl-10 pr-4 py-2 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 placeholder:text-gray-600 focus:outline-none focus:border-primary focus:bg-white transition-all"
             />
           </div>
 
