@@ -37,6 +37,7 @@ All fixes root-cause level (shared layout/theme), JSX/CSS only. Fix stance: toke
 | 9 | High | all pages | WCAG 2.4.1 — no skip-to-content link anywhere | Missing | New `src/shared/components/SkipLink.jsx` (sr-only → visible fixed badge on focus), inserted as the first focusable on: Landing, PublicJobs, PublicJobDetail, PortalSelect, all auth pages (both variants of the dual-state pages), PortalLayout (all 3 portals); targets `<main id="main-content" tabIndex={-1}>` |
 | 10 | High | PortalLayout (all 3 portals) | Mobile nav drawer lacks Esc/outside-click close; nav `aria-expanded`/`aria-controls` state | — | Already fixed in code since phase-1 audit (`aria-expanded`, `aria-controls="portal-mobile-nav"`, outside-click overlay) — verified in code, jsdom covered |
 | 11 | High | super-admin Logs | User-profile modal: raw dialog — no Escape, no focus trap, no focus return, no label | Not using the shared `useDialog` | Switched to `useDialog` + `aria-modal` + `aria-labelledby="logs-user-title"` — `Logs.jsx`; regression test added (`Logs.test.jsx`: Escape closes, labelled dialog) |
+| 12 | **Serious** | `/` | WCAG 2.4.7 — hero search inputs `#q`/`#loc` had `focus:outline-none` with **no replacement** → keyboard focus completely invisible | `outline-none` applied for aesthetics, never focused with a keyboard | `focus-within` treatment on the padding wrappers: `focus-within:ring-2 focus-within:ring-primary/40 focus-within:bg-gray-50`, matching the repo `inputClass` focus pattern — `Landing.jsx`; verified live (computed 2px primary ring + bg change on both inputs when focused; screenshot `landing-focus-q.png`) |
 
 ### Manually verified `incomplete` (not violations)
 
@@ -92,7 +93,15 @@ tab order measured above.
 
 - Re-scan after fixes: **0 zero violations on all 13 public routes** (≥2 runs each; late-paint check clean).
 - Skip-link probe (live): first Tab stop is "Skip to main content", hidden until focused, Enter moves focus into `<main id="main-content">` on `/`, `/jobs`, `/portals`, `/job-seeker/login`, `/register/employer`.
-- `npm run lint` clean; `npm test` 126 files / **806 tests passed** (includes new `SkipLink.test.jsx` and extended `Logs.test.jsx`).
+- `npm run lint` clean; `npm test` 126 files / 806 tests passed (includes new `SkipLink.test.jsx` and extended `Logs.test.jsx`).
+- **Final joint confirmation pass**: re-ran the full axe scan on all 12 reachable routes at
+  1366×900 → **0 violation rules on every route**; `npm run build` ✓; `npm test` **807/807** ✓
+  (2 tests added by the concurrent agent); `npm run lint` clean. Landing focus evidence:
+  `landing-focus-scan.json` + `landing-focus-q.png` (wrapper ring/background computed on both
+  `#q` and `#loc` while focused). Raw scan/audit JSON + screenshots in
+  `%LOCALAPPDATA%\Temp\opencode\a11y\` (not committed). Note: the repo-root scratch scanner
+  `a11y-scan.tmp.mjs` now holds the 1366×900 harness (it replaced a functionally identical
+  scratch copy during cleanup — both agents used it for their final scans).
 
 ## What remains open
 
@@ -102,3 +111,4 @@ tab order measured above.
 4. `text-accent` "BRIGHTER" on the Landing h1 passes large-text AA at 3.12:1 with thin margin; if the token is ever lightened, this is the first place to re-check.
 5. `/employer/status`, `/accept-invite`, `/auth/callback` (transport-only states) were not in the required route list; they received the same component fixes where they share the patched layouts, but no dedicated axe run was performed.
 6. A concurrent fixer agent was active on the same files during this session; every shared file was re-linted and re-tested at the end, and the final scans above ran against the joint result.
+7. Minor: on the login pages, submitting the form appeared to leave focus on `<body>` in one keyboard run (error alert is still announced via `role="alert"`); consider moving focus to the alert container. TermsModal's initial focus lands on the dialog wrapper `div` rather than the close button — harmless (aria-modal + labelled heading) but could be tightened.
