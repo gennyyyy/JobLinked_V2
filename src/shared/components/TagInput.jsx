@@ -55,7 +55,7 @@ export function TagInput({ value, onChange, placeholder, id, className = "" }) {
         <input
           ref={inputRef}
           id={id}
-          aria-label={placeholder || "Tags input"}
+          aria-label={id ? undefined : placeholder || "Tags input"}
           value={draft}
           onChange={(e) => {
             const v = e.target.value;

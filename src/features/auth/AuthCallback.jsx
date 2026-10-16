@@ -4,6 +4,7 @@ import { supabase } from '../../shared/lib/supabase';
 import { getProfile, provision } from '../../shared/services/auth';
 import useAuth from '../../shared/hooks/useAuth';
 import LoadingScreen from '../../shared/components/LoadingScreen';
+import { PORTALS } from '../../shared/constants';
 
 export default function AuthCallback() {
   const navigate = useNavigate();
@@ -24,9 +25,12 @@ export default function AuthCallback() {
         await provision({ ...meta, email: session.user.email });
         profile = await getProfile(session.user.id);
       }
-      if (profile?.role !== 'job-seeker') throw new Error('This account is not a jobseeker account.');
+      // Email confirmation is shared by every portal's signup, so the resolved
+      // role — not the link — decides the destination. Never hardcode one path.
+      const homePath = PORTALS.find((p) => p.key === profile?.role)?.homePath;
+      if (!homePath) throw new Error('Your account role could not be determined. Please sign in.');
       await refreshUser(session.user);
-      if (active) navigate('/job-seeker', { replace: true });
+      if (active) navigate(homePath, { replace: true });
     })().catch((err) => active && setError(err.message || 'Email verification failed.'));
     return () => { active = false; };
   }, [navigate, refreshUser]);

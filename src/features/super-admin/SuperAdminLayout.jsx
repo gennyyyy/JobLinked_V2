@@ -9,6 +9,7 @@ const navItems = [
   { to: '/super-admin/logs', label: 'Logs' },
   { to: '/super-admin/notifications', label: 'Notifications' },
   { to: '/super-admin/settings', label: 'Settings' },
+  { to: '/super-admin/broadcast', label: 'Broadcast' },
   { to: '/super-admin/reports', label: 'Reports' },
 ]
 

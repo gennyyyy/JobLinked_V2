@@ -66,7 +66,7 @@ function Landing() {
         <div className="w-full px-4 h-[64px] flex items-center justify-between">
           <div className="flex items-center gap-10">
             <div className="bg-white rounded-lg px-3.5 py-1.5 flex items-center shadow-xs">
-              <Link to="/"><img src={TextBasedLogo} alt="JobLinked" className="h-10" /></Link>
+              <Link to="/"><img src={TextBasedLogo} alt="JobLinked" width={480} height={160} className="h-10" /></Link>
             </div>
           </div>
           <div className="flex items-center gap-3">
@@ -90,23 +90,23 @@ function Landing() {
             </p>
 
             <div className="mt-8 flex gap-1 border-b border-gray-200">
-              <button onClick={() => setActiveTab("seeker")} className={`px-5 py-3 text-sm font-semibold border-b-2 -mb-px transition-colors ${activeTab === "seeker" ? "text-primary border-primary" : "text-gray-400 border-transparent hover:text-gray-600"}`}>Find a Job</button>
-              <button onClick={() => setActiveTab("employer")} className={`px-5 py-3 text-sm font-semibold border-b-2 -mb-px transition-colors ${activeTab === "employer" ? "text-primary border-primary" : "text-gray-400 border-transparent hover:text-gray-600"}`}>For Employers</button>
+              <button onClick={() => setActiveTab("seeker")} className={`px-5 py-3 text-sm font-semibold border-b-2 -mb-px transition-colors ${activeTab === "seeker" ? "text-primary border-primary" : "text-gray-500 border-transparent hover:text-gray-600"}`}>Find a Job</button>
+              <button onClick={() => setActiveTab("employer")} className={`px-5 py-3 text-sm font-semibold border-b-2 -mb-px transition-colors ${activeTab === "employer" ? "text-primary border-primary" : "text-gray-500 border-transparent hover:text-gray-600"}`}>For Employers</button>
             </div>
 
             <form onSubmit={handleQuickSearch} className="mt-6 flex flex-col sm:flex-row gap-3 bg-white rounded-lg p-3 border border-gray-200">
               <div className="flex items-center gap-2 flex-1 px-3">
-                <svg className="w-5 h-5 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                <svg className="w-5 h-5 text-gray-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
                 </svg>
-                <input id="q" value={keyword} onChange={(e) => setKeyword(e.target.value)} placeholder="Job title, skills, or company" className="flex-1 min-h-[44px] text-sm bg-transparent border-none text-gray-900 placeholder:text-gray-400 focus:outline-none" />
+                <input id="q" value={keyword} onChange={(e) => setKeyword(e.target.value)} placeholder="Job title, skills, or company" className="flex-1 min-h-[44px] text-sm bg-transparent border-none text-gray-900 placeholder:text-gray-500 focus:outline-none" />
               </div>
               <div className="flex items-center gap-2 px-3 border-t sm:border-t-0 sm:border-l border-gray-200 pt-3 sm:pt-0">
-                <svg className="w-5 h-5 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                <svg className="w-5 h-5 text-gray-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
                   <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
                 </svg>
-                <input id="loc" value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Barangay or municipality" className="min-h-[44px] w-44 text-sm bg-transparent border-none text-gray-700 placeholder:text-gray-400 focus:outline-none" />
+                <input id="loc" value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Barangay or municipality" className="min-h-[44px] w-44 text-sm bg-transparent border-none text-gray-700 placeholder:text-gray-500 focus:outline-none" />
               </div>
               <button type="submit" className="min-h-[44px] px-8 rounded-xl bg-primary text-white text-sm font-bold hover:bg-primary-hover active:scale-[0.98] transition-all shadow-md flex items-center justify-center gap-2">
                 Search Jobs

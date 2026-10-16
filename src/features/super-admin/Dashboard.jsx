@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { getStats, listAllAccreditations } from "../../shared/services/admin";
 import LoadingScreen from "../../shared/components/LoadingScreen";
 import { Users, Clock, Building2, Briefcase, FileText, Globe, BadgeCheck, ClipboardList, UserCheck } from "lucide-react";
-import { PageHeader, StatCard, SectionCard } from "../../shared/components/dashboard";
+import { PageHeader, StatCard, SectionCard, InlineError } from "../../shared/components/dashboard";
 
 function Dashboard() {
   const [stats, setStats] = useState(null);
@@ -15,14 +15,14 @@ function Dashboard() {
     Promise.all([getStats(), listAllAccreditations()])
       .then(([statsData, accs]) => {
         setStats(statsData);
-        setRecentAccreditations(accs.slice(0, 5));
+        setRecentAccreditations(accs.data.slice(0, 5));
       })
       .catch((err) => setError(err.message || "Failed to load dashboard"))
       .finally(() => setLoading(false));
   }, []);
 
   if (loading) return <LoadingScreen />;
-  if (error) return <div className="py-8 text-center text-sm text-danger">{error}</div>;
+  if (error) return <InlineError message={error} />;
   if (!stats) return null;
 
   const statCards = [
@@ -62,7 +62,7 @@ function Dashboard() {
       >
 
         {recentAccreditations.length === 0 ? (
-          <div className="py-8 text-center text-sm text-gray-400">No employer applications submitted yet.</div>
+          <div className="py-8 text-center text-sm text-gray-500">No employer applications submitted yet.</div>
         ) : (
           <div className="divide-y divide-gray-100">
             {recentAccreditations.map((acc) => (

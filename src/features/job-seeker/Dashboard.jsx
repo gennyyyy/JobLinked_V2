@@ -5,7 +5,8 @@ import { listBySeeker } from "../../shared/services/applications";
 import { listJobs } from "../../shared/services/jobs";
 import LoadingScreen from "../../shared/components/LoadingScreen";
 import { FileText, XCircle, TrendingUp, CheckCircle } from "lucide-react";
-import { PageHeader, StatCard, SectionCard } from "../../shared/components/dashboard";
+import { PageHeader, StatCard, SectionCard, InlineError } from "../../shared/components/dashboard";
+import { titleCase } from "../../shared/utils/titleCase";
 
 function splitPref(value) {
   const list = Array.isArray(value) ? value : String(value || "").split(",");
@@ -64,7 +65,7 @@ function Dashboard() {
   }, [user]);
 
   if (loading) return <LoadingScreen />;
-  if (error) return <div className="py-8 text-center text-sm text-danger">{error}</div>;
+  if (error) return <InlineError message={error} />;
 
   const activeApplications = applications.length;
   const rejected = applications.filter((app) => app.status === "Rejected").length;
@@ -136,7 +137,7 @@ function Dashboard() {
               >
                 <span className="font-mono text-[10px] tracking-widest text-gray-400 uppercase">{job.location} · {job.employment_type}</span>
                 <h3 className="mt-1.5 text-sm font-semibold text-gray-900 group-hover:text-primary transition-colors line-clamp-2">{job.title}</h3>
-                <p className="mt-1 text-xs text-gray-500 uppercase">{job.employers?.company_name}</p>
+                <p className="mt-1 text-xs text-gray-500">{titleCase(job.employers?.company_name)}</p>
                 <span className="inline-block mt-3 px-2.5 py-1 rounded-full bg-primary/10 border border-primary/25 font-mono text-xs text-primary">
                   {job.salary_min ? `₱${job.salary_min}${job.salary_max ? `–₱${job.salary_max}` : ""}` : "Negotiable"}
                 </span>
@@ -159,7 +160,7 @@ function Dashboard() {
               <div key={item.id} className="py-4 first:pt-0 last:pb-0 flex items-center justify-between gap-3">
                 <div className="min-w-0">
                   <p className="text-sm font-medium text-gray-900 truncate">{item.job?.title}</p>
-                  <p className="mt-1 text-xs text-gray-500 truncate uppercase">{item.job?.employers?.company_name}</p>
+                  <p className="mt-1 text-xs text-gray-500 truncate">{titleCase(item.job?.employers?.company_name)}</p>
                   <p className="mt-1 font-mono text-[11px] text-gray-500">
                     Applied on {new Date(item.applied_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                   </p>

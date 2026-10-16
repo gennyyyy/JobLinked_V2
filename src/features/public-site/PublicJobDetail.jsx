@@ -3,6 +3,7 @@ import { Link, Navigate, useParams } from "react-router-dom";
 import { getJob } from "../../shared/services/jobs";
 import TextBasedLogo from "../../assets/TextBased Logo.png";
 import LoadingScreen from "../../shared/components/LoadingScreen";
+import { titleCase } from "../../shared/utils/titleCase";
 
 function PublicJobDetail() {
   const { jobId } = useParams();
@@ -29,7 +30,7 @@ function PublicJobDetail() {
       <header className="sticky top-0 z-20 bg-dark-blue/90 backdrop-blur border-b border-white/10">
         <div className="w-full px-4 h-[56px] flex items-center justify-between">
           <div className="bg-white rounded-lg px-3.5 py-1.5 flex items-center shadow-xs">
-            <Link to="/"><img src={TextBasedLogo} alt="JobLinked" className="h-6" /></Link>
+            <Link to="/"><img src={TextBasedLogo} alt="JobLinked" width={480} height={160} className="h-6" /></Link>
           </div>
           <div className="flex items-center gap-3">
             <Link to="/register" className="text-xs text-gray-500 hover:text-gray-900 transition-colors">Register</Link>
@@ -46,7 +47,7 @@ function PublicJobDetail() {
             <div>
               <span className="font-mono text-[10px] tracking-widest uppercase px-2.5 py-1 rounded-full bg-primary/10 border border-primary/25 text-primary">{job.location} · {job.employment_type}</span>
               <h1 className="mt-3 text-xl md:text-2xl font-bold tracking-tight text-dark-blue">{job.title}</h1>
-              <p className="mt-1 text-sm text-gray-500 font-medium uppercase">{job.employers?.company_name}</p>
+              <p className="mt-1 text-sm text-gray-500 font-medium">{titleCase(job.employers?.company_name)}</p>
             </div>
             <span className="inline-flex px-3.5 py-1.5 rounded-full bg-primary/10 border border-primary/25 font-mono text-sm text-primary font-semibold self-start">
               {job.salary_min ? `₱${job.salary_min}${job.salary_max ? `–₱${job.salary_max}` : ""}` : "Negotiable"}
@@ -55,27 +56,27 @@ function PublicJobDetail() {
 
           <div className="mt-8 grid grid-cols-1 gap-3 p-5 rounded-xl bg-gray-50 border border-gray-200">
             <div>
-              <p className="font-mono text-[10px] tracking-widest uppercase text-gray-400">Compensation</p>
+              <p className="font-mono text-[10px] tracking-widest uppercase text-gray-500">Compensation</p>
               <p className="mt-1 font-mono text-sm text-gray-900 font-medium">{job.salary_min ? `₱${job.salary_min}${job.salary_max ? `–₱${job.salary_max}` : ""}` : "—"}</p>
             </div>
             <div>
-              <p className="font-mono text-[10px] tracking-widest uppercase text-gray-400">Location</p>
+              <p className="font-mono text-[10px] tracking-widest uppercase text-gray-500">Location</p>
               <p className="mt-1 text-sm text-gray-900 font-medium">Brgy. {job.location}</p>
             </div>
             <div>
-              <p className="font-mono text-[10px] tracking-widest uppercase text-gray-400">Vacancies</p>
+              <p className="font-mono text-[10px] tracking-widest uppercase text-gray-500">Vacancies</p>
               <p className="mt-1 text-sm text-gray-900 font-medium">{job.vacancies ?? "—"}</p>
             </div>
             <div>
-              <p className="font-mono text-[10px] tracking-widest uppercase text-gray-400">Application Deadline</p>
+              <p className="font-mono text-[10px] tracking-widest uppercase text-gray-500">Application Deadline</p>
               <p className="mt-1 text-sm text-gray-600">{job.deadline ? new Date(job.deadline).toLocaleDateString() : "No deadline"}</p>
             </div>
             <div>
-              <p className="font-mono text-[10px] tracking-widest uppercase text-gray-400">Date Posted</p>
+              <p className="font-mono text-[10px] tracking-widest uppercase text-gray-500">Date Posted</p>
               <p className="mt-1 text-sm text-gray-600">{job.published_at ? new Date(job.published_at).toLocaleDateString() : "—"}</p>
             </div>
             <div>
-              <p className="font-mono text-[10px] tracking-widest uppercase text-gray-400">PESO Verification</p>
+              <p className="font-mono text-[10px] tracking-widest uppercase text-gray-500">PESO Verification</p>
               <p className="mt-1 text-sm text-emerald-600 font-medium flex items-center gap-1.5">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />Verified Active
               </p>
@@ -129,7 +130,7 @@ function PublicJobDetail() {
           <div className="mt-10 pt-8 border-t border-gray-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
             <div>
               <p className="text-sm font-medium text-gray-900">Interested in this position?</p>
-              <p className="text-xs text-gray-400 mt-0.5">Apply online through your PESO Job Seeker account.</p>
+              <p className="text-xs text-gray-500 mt-0.5">Apply online through your PESO Job Seeker account.</p>
             </div>
             <Link to="/job-seeker/login" className="min-h-[44px] inline-flex items-center px-7 rounded-xl bg-primary text-white text-sm font-medium hover:bg-primary-hover active:scale-[0.98] transition-all">
               Log in to Apply →

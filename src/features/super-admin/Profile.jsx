@@ -8,14 +8,14 @@ function Profile() {
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
-  const [form, setForm] = useState({ firstName: user?.first_name || "", lastName: user?.last_name || "", phone: user?.phone || "" });
+  const [form, setForm] = useState({ firstName: user?.first_name || "", lastName: user?.last_name || "" });
 
   async function handleSubmit(event) {
     event.preventDefault();
     setSaving(true);
     setError("");
     try {
-      await updateProfile(user.id, { first_name: form.firstName, last_name: form.lastName, full_name: `${form.firstName} ${form.lastName}`.trim(), phone: form.phone });
+      await updateProfile(user.id, { first_name: form.firstName, last_name: form.lastName, full_name: `${form.firstName} ${form.lastName}`.trim() });
       await refreshUser(user);
       setEditing(false);
     } catch (err) {
@@ -46,11 +46,11 @@ function Profile() {
 
         <dl className="mt-7 grid grid-cols-1 gap-5 p-5 rounded-xl bg-gray-50 border border-gray-200">
           <div>
-            <dt className="font-mono text-[10px] tracking-widest uppercase text-gray-400">Role</dt>
+            <dt className="font-mono text-[10px] tracking-widest uppercase text-gray-500">Role</dt>
             <dd className="mt-1 text-sm text-gray-700">Super Administrator</dd>
           </div>
           <div>
-            <dt className="font-mono text-[10px] tracking-widest uppercase text-gray-400">Account Status</dt>
+            <dt className="font-mono text-[10px] tracking-widest uppercase text-gray-500">Account Status</dt>
             <dd className="mt-1 text-sm text-emerald-700 capitalize">{user?.status || "Active"}</dd>
           </div>
         </dl>
@@ -59,7 +59,6 @@ function Profile() {
           <form onSubmit={handleSubmit} className="mt-6 space-y-4">
             <input value={form.firstName} onChange={(e) => setForm({ ...form, firstName: e.target.value })} placeholder="First name" className="w-full min-h-[44px] px-4 rounded-xl text-sm bg-gray-50 border border-gray-200" />
             <input value={form.lastName} onChange={(e) => setForm({ ...form, lastName: e.target.value })} placeholder="Last name" className="w-full min-h-[44px] px-4 rounded-xl text-sm bg-gray-50 border border-gray-200" />
-            <input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} placeholder="Phone number" className="w-full min-h-[44px] px-4 rounded-xl text-sm bg-gray-50 border border-gray-200" />
             <div className="flex gap-3">
               <button type="submit" disabled={saving} className="px-5 py-2.5 rounded-xl bg-primary text-white text-xs font-semibold disabled:opacity-60">{saving ? "Saving..." : "Save Profile"}</button>
               <button type="button" onClick={() => setEditing(false)} className="px-5 py-2.5 rounded-xl border border-gray-300 text-xs font-semibold">Cancel</button>

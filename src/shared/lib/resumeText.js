@@ -1,17 +1,16 @@
-import * as pdfjsLib from "pdfjs-dist";
-import workerSrc from "pdfjs-dist/build/pdf.worker.min.mjs?url";
-import mammoth from "mammoth";
-
-pdfjsLib.GlobalWorkerOptions.workerSrc = workerSrc;
-
 // Client-only resume text extraction. No network, no token — runs on the
 // picked File via arrayBuffer. Throws "couldn't read this format" for
 // anything that isn't PDF or DOCX.
+//
+// pdfjs and mammoth are dynamically imported inside their branch so a DOCX
+// autofill never downloads pdfjs (and vice versa); both callers already reach
+// this module through a dynamic import.
 export async function extractResumeText(file) {
   const ext = (file.name.split(".").pop() || "").toLowerCase();
   const buf = await file.arrayBuffer();
   if (ext === "pdf") return extractPdf(buf);
   if (ext === "docx") {
+    const { default: mammoth } = await import("mammoth");
     const { value } = await mammoth.extractRawText({ arrayBuffer: buf });
     return value || "";
   }
@@ -51,6 +50,11 @@ export function joinPdfItems(items) {
 }
 
 async function extractPdf(buf) {
+  const [{ default: pdfjsLib }, workerMod] = await Promise.all([
+    import("pdfjs-dist"),
+    import("pdfjs-dist/build/pdf.worker.min.mjs?url"),
+  ]);
+  pdfjsLib.GlobalWorkerOptions.workerSrc = workerMod.default;
   const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
   let out = "";
   for (let i = 1; i <= pdf.numPages; i++) {

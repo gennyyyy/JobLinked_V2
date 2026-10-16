@@ -36,7 +36,7 @@ describe('mapResumeText', () => {
       middleName: '',
       lastName: 'Dela Cruz',
       email: 'juan.delacruz@example.com',
-      mobileNumber: '09171234567',
+      mobileNumber: '+639171234567',
       birthdate: '1990-05-04',
       streetAddress: 'Norzagaray-Santa Maria Road',
       cityMunicipality: 'Santa Maria',
@@ -51,7 +51,7 @@ describe('mapResumeText', () => {
 
   it('normalizes +63 mobiles and Month D, YYYY birthdates', () => {
     const out = mapResumeText('Contact: +639171234567\nBorn: January 5, 1990')
-    expect(out.mobileNumber).toBe('09171234567')
+    expect(out.mobileNumber).toBe('+639171234567')
     expect(out.birthdate).toBe('1990-01-05')
   })
 

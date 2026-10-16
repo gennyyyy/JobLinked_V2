@@ -1,11 +1,20 @@
 import { createPortal } from "react-dom";
+import useDialog from "../hooks/useDialog";
 
-function ConfirmationModal({ message, onConfirm, onCancel, confirmLabel = "Confirm", cancelLabel = "Cancel", danger = false }) {
+function ConfirmationModal({ message, onConfirm, onCancel, confirmLabel = "Confirm", cancelLabel = "Cancel", danger = false, children }) {
+  const panelRef = useDialog(onCancel);
   if (typeof document === "undefined") return null;
   return createPortal(
     <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
-      <div role="dialog" aria-modal="true" className="bg-white border border-primary rounded-lg p-5 w-full max-w-md shadow-2xl">
-        <p className="text-sm text-gray-700 mb-6">{message}</p>
+      <div
+        ref={panelRef}
+        role="dialog"
+        aria-modal="true"
+        aria-describedby="confirmation-message"
+        className="bg-white border border-primary rounded-lg p-5 w-full max-w-md shadow-2xl"
+      >
+        <p id="confirmation-message" className="text-sm text-gray-700 mb-6">{message}</p>
+        {children}
         <div className="flex gap-3 justify-end">
           <button
             onClick={onCancel}

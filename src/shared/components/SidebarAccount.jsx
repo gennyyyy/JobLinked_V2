@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { LogOut } from "lucide-react";
+import { titleCase } from "../utils/titleCase";
 
 function SidebarAccount({ user, profileTo, roleLabel, onNavigate, onLogout }) {
   const name = user?.full_name || user?.name || user?.email || roleLabel;
@@ -20,7 +21,7 @@ function SidebarAccount({ user, profileTo, roleLabel, onNavigate, onLogout }) {
             {initials || "U"}
           </span>
           <span className="min-w-0">
-            <span className="block truncate text-xs font-semibold text-white uppercase">{name}</span>
+            <span className="block truncate text-xs font-semibold text-white">{titleCase(name)}</span>
             <span className="block truncate mt-0.5 text-[10px] text-white/50 uppercase tracking-wider">{roleLabel}</span>
           </span>
         </Link>

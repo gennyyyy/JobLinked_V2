@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
-import { Shield, Plus, Pencil, Trash2, Lock, Users } from "lucide-react";
-import { listRoles, createRole, updateRole, deleteRole, ROLE_PERMISSIONS } from "../../shared/services/admin";
+import { Shield, Plus, Pencil, Trash2, Lock, Users, X } from "lucide-react";
+import { listRoles, createRole, updateRole, deleteRole, listPermissions } from "../../shared/services/admin";
 import ConfirmationModal from "../../shared/components/ConfirmationModal";
 import LoadingScreen from "../../shared/components/LoadingScreen";
 
@@ -12,7 +12,7 @@ const SYSTEM_ROLES = [
     key: "super-admin",
     label: "Super Admin",
     description: "Full system access: manage employers, accreditations, jobs, users, and settings.",
-    capabilities: ["Everything below, plus Users, Roles, Reports, Logs, Settings"],
+    capabilities: ["Users", "Roles", "Reports", "Logs", "Settings"],
   },
   {
     key: "employer",
@@ -34,6 +34,7 @@ const emptyForm = { name: "", description: "", base_role: "super-admin", permiss
 
 function RoleManagement() {
   const [customRoles, setCustomRoles] = useState([]);
+  const [permissionCatalog, setPermissionCatalog] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [flash, setFlash] = useState("");
@@ -48,9 +49,13 @@ function RoleManagement() {
   // Delete confirm
   const [confirmRole, setConfirmRole] = useState(null);
 
+  // Permission catalog is server-owned (GET /admin/permissions) — one fetch with
+  // the roles so the single loading gate covers both, no second loader.
   const load = useCallback(async () => {
     try {
-      setCustomRoles(await listRoles());
+      const [roles, permissions] = await Promise.all([listRoles(), listPermissions()]);
+      setCustomRoles(roles);
+      setPermissionCatalog(permissions);
       setError("");
     } catch (err) {
       setError(err.message || "Failed to load roles");
@@ -158,14 +163,6 @@ function RoleManagement() {
             Define roles and their permissions — assign them to people from the Users page
           </p>
         </div>
-        <button
-          type="button"
-          onClick={openCreate}
-          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold bg-primary text-white hover:bg-primary-hover active:scale-[0.98] transition-all shadow-xs cursor-pointer shrink-0"
-        >
-          <Plus className="w-4 h-4" />
-          New Role
-        </button>
       </header>
 
       {flash && (
@@ -188,7 +185,7 @@ function RoleManagement() {
         {[
           { label: "System Roles", count: SYSTEM_ROLES.length, icon: Lock },
           { label: "Custom Roles", count: customRoles.length, icon: Shield },
-          { label: "Permission Slots", count: ROLE_PERMISSIONS.length, icon: Users },
+          { label: "Permission Slots", count: permissionCatalog.length, icon: Users },
         ].map((c) => {
           const MetricIcon = c.icon;
           return (
@@ -208,7 +205,6 @@ function RoleManagement() {
         <div className="flex items-center justify-between gap-3 pb-4 border-b border-gray-100">
           <div>
             <h2 className="text-base font-semibold text-gray-900">System Roles</h2>
-            <p className="text-xs text-gray-500 mt-0.5">Locked by the platform — enforced by the API's ownership and role checks</p>
           </div>
           <span className="inline-flex items-center gap-1.5 font-mono text-[10px] tracking-wider px-2.5 py-1 rounded-full uppercase border font-semibold bg-gray-100 border-gray-200 text-gray-500 shrink-0">
             <Lock className="w-3 h-3" />
@@ -264,7 +260,7 @@ function RoleManagement() {
             </div>
             <p className="font-semibold text-gray-900 mb-1">No custom roles yet</p>
             <p className="text-sm text-gray-500 max-w-sm mx-auto">
-              Create a role like "HR Officer" with the permissions you choose, then assign it to users from the Users page.
+              Create a Custom Role with the permissions you choose, then assign it to users from the Users page.
             </p>
             <button
               type="button"
@@ -303,7 +299,7 @@ function RoleManagement() {
                   ) : (
                     role.permissions.map((p) => (
                       <span key={p} className="inline-flex items-center px-2.5 py-1 rounded-full font-mono text-[10px] uppercase tracking-wider bg-emerald-50 border border-emerald-200 text-emerald-700 font-semibold">
-                        {ROLE_PERMISSIONS.find((x) => x.key === p)?.label || p}
+                        {permissionCatalog.find((x) => x.key === p)?.label || p}
                       </span>
                     ))
                   )}
@@ -351,7 +347,7 @@ function RoleManagement() {
                   aria-label="Close"
                   className="p-2 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors cursor-pointer"
                 >
-                  ✕
+                  <X className="w-4 h-4" aria-hidden="true" />
                 </button>
               </div>
 
@@ -409,16 +405,15 @@ function RoleManagement() {
                   Permissions <span className="text-gray-400 font-normal lowercase">({form.permissions.length} selected)</span>
                 </p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  {ROLE_PERMISSIONS.map((perm) => {
+                  {permissionCatalog.map((perm) => {
                     const checked = form.permissions.includes(perm.key);
                     return (
                       <label
                         key={perm.key}
-                        className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl border text-xs font-medium cursor-pointer transition-colors ${
-                          checked
-                            ? "bg-primary/10 border-primary/40 text-primary"
-                            : "bg-gray-50 border-gray-200 text-gray-600 hover:border-gray-300"
-                        }`}
+                        className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl border text-xs font-medium cursor-pointer transition-colors ${checked
+                          ? "bg-primary/10 border-primary/40 text-primary"
+                          : "bg-gray-50 border-gray-200 text-gray-600 hover:border-gray-300"
+                          }`}
                       >
                         <input
                           type="checkbox"

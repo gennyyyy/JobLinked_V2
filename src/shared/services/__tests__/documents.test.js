@@ -37,11 +37,18 @@ describe('validateFile', () => {
       .toBe('Only PDF, DOC, DOCX, PNG, or JPG files are allowed.')
   })
   it('rejects files over 5 MB', () => {
-    expect(validateFile({ name: 'resume.pdf', size: 6 * 1024 * 1024, type: MIME.pdf }))
+    expect(validateFile({ name: 'resume.docx', size: 6 * 1024 * 1024, type: MIME.docx }))
       .toBe('File must be 5 MB or smaller.')
   })
+  it('rejects PDFs over 2 MB', () => {
+    expect(validateFile({ name: 'resume.pdf', size: 3 * 1024 * 1024, type: MIME.pdf }))
+      .toBe('PDF files must be 2 MB or smaller.')
+  })
   it('accepts files exactly at 5 MB', () => {
-    expect(validateFile({ name: 'resume.pdf', size: 5 * 1024 * 1024, type: MIME.pdf })).toBeNull()
+    expect(validateFile({ name: 'resume.docx', size: 5 * 1024 * 1024, type: MIME.docx })).toBeNull()
+  })
+  it('accepts PDFs exactly at 2 MB', () => {
+    expect(validateFile({ name: 'resume.pdf', size: 2 * 1024 * 1024, type: MIME.pdf })).toBeNull()
   })
   it('is case-insensitive for extensions', () => {
     expect(validateFile({ name: 'RESUME.PDF', size: 1024, type: MIME.pdf })).toBeNull()

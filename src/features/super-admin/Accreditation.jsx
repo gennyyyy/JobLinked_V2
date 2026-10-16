@@ -1,10 +1,13 @@
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
+import { X } from "lucide-react";
 import { listAllAccreditations, listCompanies, updateUser, requestDocs } from "../../shared/services/admin";
 import { signedUrl, updateAccreditation, updateDocumentStatus, listCompanyDocuments, latestAccByCompany } from "../../shared/services/documents";
 import LoadingScreen from "../../shared/components/LoadingScreen";
 import ConfirmationModal from "../../shared/components/ConfirmationModal";
+import { Pager } from "../../shared/components/dashboard";
 import { formatFullAddress } from "../../shared/utils/address";
+import { titleCase } from "../../shared/utils/titleCase";
 
 function InfoRow({ label, value }) {
   return (
@@ -18,6 +21,7 @@ function InfoRow({ label, value }) {
 function DetailModal({ accreditation, onClose }) {
   const [docs, setDocs] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     if (!accreditation) return;
@@ -28,18 +32,24 @@ function DetailModal({ accreditation, onClose }) {
   }, [accreditation]);
 
   async function handleViewDoc(doc) {
+    setError("");
     try {
       const url = await signedUrl("documents", doc.file_path);
       window.open(url, "_blank");
-    } catch {
-      // ignore signed URL errors
+    } catch (err) {
+      setError(err.message || "Could not open the document.");
     }
   }
 
   async function handleDocStatus(docId, status) {
-    await updateDocumentStatus(docId, status);
-    const updated = await listCompanyDocuments(accreditation.company_id);
-    setDocs(updated);
+    setError("");
+    try {
+      await updateDocumentStatus(docId, status);
+      const updated = await listCompanyDocuments(accreditation.company_id);
+      setDocs(updated);
+    } catch (err) {
+      setError(err.message || "Failed to update the document status.");
+    }
   }
 
   if (!accreditation) return null;
@@ -51,12 +61,12 @@ function DetailModal({ accreditation, onClose }) {
         <div className="flex items-start justify-between gap-3 pb-4 border-b border-gray-200">
           <div>
             <span className="font-mono text-[10px] tracking-widest text-[#0057B8] uppercase">APPLICATION DOCUMENTS</span>
-            <h2 className="mt-1 text-xl font-bold text-gray-900 uppercase">{company?.company_name}</h2>
+            <h2 className="mt-1 text-xl font-bold text-gray-900">{titleCase(company?.company_name)}</h2>
             <p className="mt-1 text-xs text-gray-500">
               Submitted {new Date(accreditation.submitted_at).toLocaleString("en-PH", { dateStyle: "medium", timeStyle: "short" })}
             </p>
           </div>
-          <button onClick={onClose} className="p-1 rounded-lg text-gray-400 hover:text-gray-900 hover:bg-gray-100 transition-colors" aria-label="Close">✕</button>
+          <button onClick={onClose} className="p-1 rounded-lg text-gray-400 hover:text-gray-900 hover:bg-gray-100 transition-colors" aria-label="Close"><X className="w-4 h-4" aria-hidden="true" /></button>
         </div>
 
         <section className="mt-6">
@@ -102,6 +112,7 @@ function DetailModal({ accreditation, onClose }) {
             )}
           </div>
         </section>
+        {error && <p role="alert" className="mt-2 text-[11px] text-danger">{error}</p>}
 
         <div className="mt-8 pt-5 border-t border-gray-200 flex justify-end">
           <button onClick={onClose} className="px-5 py-2 text-xs font-medium rounded-xl border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors">
@@ -116,7 +127,13 @@ function DetailModal({ accreditation, onClose }) {
 
 function Accreditation() {
   const [accs, setAccs] = useState([]);
+  const [accPage, setAccPage] = useState(1);
+  const [accPageSize, setAccPageSize] = useState(0);
+  const [accTotal, setAccTotal] = useState(0);
   const [companies, setCompanies] = useState([]);
+  const [companyPage, setCompanyPage] = useState(1);
+  const [companyPageSize, setCompanyPageSize] = useState(0);
+  const [companyTotal, setCompanyTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [rejectingId, setRejectingId] = useState(null);
@@ -127,16 +144,23 @@ function Accreditation() {
   const [requestError, setRequestError] = useState("");
   const [viewingId, setViewingId] = useState(null);
   const [revoking, setRevoking] = useState(null);
+  const [actionError, setActionError] = useState("");
 
+  // Both lists arrive as the { data, total, page, pageSize } envelope (C2);
+  // one effect drives both pagers.
   useEffect(() => {
-    Promise.all([listAllAccreditations(), listCompanies()])
+    Promise.all([listAllAccreditations({ page: accPage }), listCompanies({ page: companyPage })])
       .then(([allAccs, comps]) => {
-        setAccs(allAccs);
-        setCompanies(comps);
+        setAccs(allAccs.data);
+        setAccTotal(allAccs.total);
+        setAccPageSize(allAccs.pageSize);
+        setCompanies(comps.data);
+        setCompanyTotal(comps.total);
+        setCompanyPageSize(comps.pageSize);
       })
       .catch((err) => setError(err.message || "Failed to load"))
       .finally(() => setLoading(false));
-  }, []);
+  }, [accPage, companyPage]);
 
   if (loading) return <LoadingScreen />;
   if (error) return <div className="py-8 text-center text-sm text-danger">{error}</div>;
@@ -146,9 +170,14 @@ function Accreditation() {
   const latestByCompany = latestAccByCompany(accs);
 
   async function handleApprove(acc) {
-    await updateAccreditation(acc.id, { status: "approved", remarks: "Account verified and accredited." });
-    setAccs((prev) => prev.map((a) => (a.id === acc.id ? { ...a, status: "approved" } : a)));
-    setCompanies((prev) => prev.map((c) => (c.id === acc.company_id ? { ...c, accreditation_status: "approved" } : c)));
+    setActionError("");
+    try {
+      await updateAccreditation(acc.id, { status: "approved", remarks: "Account verified and accredited." });
+      setAccs((prev) => prev.map((a) => (a.id === acc.id ? { ...a, status: "approved" } : a)));
+      setCompanies((prev) => prev.map((c) => (c.id === acc.company_id ? { ...c, accreditation_status: "approved" } : c)));
+    } catch (err) {
+      setActionError(err.message || "Failed to accredit employer.");
+    }
   }
 
   async function startReject(acc) {
@@ -160,12 +189,17 @@ function Accreditation() {
   async function confirmReject(acc) {
     const note = rejectNote.trim();
     if (!note) { setRejectError(true); return; }
-    await updateAccreditation(acc.id, { status: "rejected", remarks: note });
-    setAccs((prev) => prev.map((a) => (a.id === acc.id ? { ...a, status: "rejected", remarks: note } : a)));
-    setCompanies((prev) => prev.map((c) => (c.id === acc.company_id ? { ...c, accreditation_status: "rejected" } : c)));
-    setRejectingId(null);
-    setRejectNote("");
-    setRejectError(false);
+    setActionError("");
+    try {
+      await updateAccreditation(acc.id, { status: "rejected", remarks: note });
+      setAccs((prev) => prev.map((a) => (a.id === acc.id ? { ...a, status: "rejected", remarks: note } : a)));
+      setCompanies((prev) => prev.map((c) => (c.id === acc.company_id ? { ...c, accreditation_status: "rejected" } : c)));
+      setRejectingId(null);
+      setRejectNote("");
+      setRejectError(false);
+    } catch (err) {
+      setActionError(err.message || "Failed to reject accreditation.");
+    }
   }
 
   // Request-documents resubmission reuses the reject-modal remarks pattern:
@@ -189,25 +223,42 @@ function Accreditation() {
 
   async function toggleCompanyStatus(company) {
     const newStatus = company.status === "suspended" ? "active" : "suspended";
-    await updateUser(company.id, { status: newStatus });
-    const updated = await listCompanies();
-    setCompanies(updated);
+    setActionError("");
+    try {
+      await updateUser(company.id, { status: newStatus });
+      const updated = await listCompanies({ page: companyPage });
+      setCompanies(updated.data);
+      setCompanyTotal(updated.total);
+      setCompanyPageSize(updated.pageSize);
+    } catch (err) {
+      setActionError(err.message || "Failed to update employer status.");
+    }
   }
 
   async function confirmRevoke() {
     const acc = latestByCompany[revoking.id];
     const remarks = "Accreditation revoked by PESO.";
-    await updateAccreditation(acc.id, { status: "revoked", remarks });
-    setAccs((prev) => prev.map((a) => (a.id === acc.id ? { ...a, status: "revoked", remarks } : a)));
-    setCompanies((prev) => prev.map((c) => (c.id === revoking.id ? { ...c, accreditation_status: "revoked" } : c)));
-    setRevoking(null);
+    setActionError("");
+    try {
+      await updateAccreditation(acc.id, { status: "revoked", remarks });
+      setAccs((prev) => prev.map((a) => (a.id === acc.id ? { ...a, status: "revoked", remarks } : a)));
+      setCompanies((prev) => prev.map((c) => (c.id === revoking.id ? { ...c, accreditation_status: "revoked" } : c)));
+      setRevoking(null);
+    } catch (err) {
+      setActionError(err.message || "Failed to revoke accreditation.");
+    }
   }
 
   async function reinstate(acc) {
     const remarks = "Accreditation reinstated by PESO.";
-    await updateAccreditation(acc.id, { status: "approved", remarks });
-    setAccs((prev) => prev.map((a) => (a.id === acc.id ? { ...a, status: "approved", remarks } : a)));
-    setCompanies((prev) => prev.map((c) => (c.id === acc.company_id ? { ...c, accreditation_status: "approved" } : c)));
+    setActionError("");
+    try {
+      await updateAccreditation(acc.id, { status: "approved", remarks });
+      setAccs((prev) => prev.map((a) => (a.id === acc.id ? { ...a, status: "approved", remarks } : a)));
+      setCompanies((prev) => prev.map((c) => (c.id === acc.company_id ? { ...c, accreditation_status: "approved" } : c)));
+    } catch (err) {
+      setActionError(err.message || "Failed to reinstate accreditation.");
+    }
   }
 
   const viewingAcc = viewingId ? pending.find((a) => a.id === viewingId) : null;
@@ -222,6 +273,10 @@ function Accreditation() {
         <h1 className="mt-1 font-sans text-xl md:text-2xl font-bold tracking-tight text-dark-blue">Accreditation Management</h1>
         <p className="mt-2 text-sm text-gray-500">Verify municipal employer applications and manage compliance statuses</p>
       </header>
+
+      {actionError && (
+        <div role="alert" className="text-sm text-danger bg-danger/10 border border-danger/20 px-4 py-3 rounded-lg">{actionError}</div>
+      )}
 
       <section className="bg-white border border-primary rounded-lg p-5">
         <div className="flex items-center gap-3 mb-6 border-l-4 border-primary pl-4">
@@ -240,7 +295,7 @@ function Accreditation() {
             {pending.map((acc) => (
               <div key={acc.id} className="py-5 first:pt-0 last:pb-0 flex flex-col lg:flex-row lg:items-center justify-between gap-3">
                 <div className="min-w-0">
-                  <p className="text-base font-semibold text-gray-900 uppercase">{acc.employers?.company_name}</p>
+                  <p className="text-base font-semibold text-gray-900">{titleCase(acc.employers?.company_name)}</p>
                   <p className="mt-1 text-xs text-gray-500">
                     {formatFullAddress(acc.employers) || "Address not provided"}
                   </p>
@@ -297,11 +352,12 @@ function Accreditation() {
             ))}
           </div>
         )}
+        <Pager page={accPage} pageSize={accPageSize} total={accTotal} onChange={setAccPage} />
       </section>
 
       <section className="bg-white border border-primary rounded-lg p-5">
         <div className="flex items-center gap-3 mb-6 border-l-4 border-primary pl-4">
-          <h2 className="text-lg font-semibold text-dark-blue">Registered Employers ({companies.length})</h2>
+          <h2 className="text-lg font-semibold text-dark-blue">Registered Employers ({companyTotal})</h2>
         </div>
 
         <div className="overflow-x-auto">
@@ -319,8 +375,8 @@ function Accreditation() {
             <tbody className="divide-y divide-gray-100">
               {companies.map((company) => (
                 <tr key={company.id} className="hover:bg-primary/5 transition-colors">
-                  <td className="py-3.5 px-4 text-gray-900 font-medium uppercase">{company.company_name}</td>
-                  <td className="py-3.5 px-4 font-mono text-xs text-gray-500 uppercase">{company.full_name}</td>
+                  <td className="py-3.5 px-4 text-gray-900 font-medium">{titleCase(company.company_name)}</td>
+                  <td className="py-3.5 px-4 font-mono text-xs text-gray-500">{titleCase(company.full_name)}</td>
                   <td className="py-3.5 px-4 font-mono text-xs text-gray-500">{company.email}</td>
                   <td className="py-3.5 px-4">
                     <span className={`font-mono text-[10px] tracking-wider px-2.5 py-0.5 rounded-full uppercase border ${company.status === "active" ? "bg-emerald-50 border-emerald-200 text-emerald-700"
@@ -380,6 +436,7 @@ function Accreditation() {
             </tbody>
           </table>
         </div>
+        <Pager page={companyPage} pageSize={companyPageSize} total={companyTotal} onChange={setCompanyPage} />
       </section>
 
       {viewingAcc && (

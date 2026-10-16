@@ -1,19 +1,52 @@
 import { Link } from "react-router-dom";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { listNotifications } from "../services/notifications";
+import { NOTIFICATIONS_CHANGED } from "../utils/notificationEvents";
 import useAuth from "../hooks/useAuth";
+
+// PortalLayout mounts the bell twice (mobile header + desktop sidebar), so share
+// one fetch and one count across instances. The cache lives only while a fetch
+// is in flight: both bells mount in the same commit and join it, a fresh mount
+// refetches, and the NOTIFICATIONS_CHANGED event always bypasses it.
+let cache = { userId: null, unread: 0, promise: null };
+
+function fetchUnread(userId) {
+  const promise = listNotifications(userId)
+    .then((rows) => {
+      const unread = (rows || []).filter((n) => !n.is_read).length;
+      if (cache.promise === promise) cache = { userId, unread, promise: null };
+      return unread;
+    })
+    .catch(() => {
+      if (cache.promise === promise) cache = { userId, unread: 0, promise: null };
+      return 0;
+    });
+  cache = { userId, unread: 0, promise };
+  return promise;
+}
 
 // Bell is a plain link to the portal's notification history page —
 // the page owns list/filter/mark-read, so no dropdown preview here.
 function NotificationBell({ dark = false }) {
   const { user } = useAuth();
   const [unread, setUnread] = useState(0);
+
+  const refresh = useCallback((force = false) => {
+    if (!user) return;
+    const promise =
+      !force && cache.promise && cache.userId === user.id
+        ? cache.promise
+        : fetchUnread(user.id);
+    promise.then(setUnread);
+  }, [user]);
+
   useEffect(() => {
     if (!user) return;
-    listNotifications(user.id)
-      .then((rows) => setUnread((rows || []).filter((n) => !n.is_read).length))
-      .catch(() => {});
-  }, [user]);
+    refresh();
+    const onChange = () => refresh(true);
+    window.addEventListener(NOTIFICATIONS_CHANGED, onChange);
+    return () => window.removeEventListener(NOTIFICATIONS_CHANGED, onChange);
+  }, [user, refresh]);
 
   if (!user) return null;
 

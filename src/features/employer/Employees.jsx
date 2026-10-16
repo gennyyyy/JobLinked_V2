@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, Fragment } from "react";
 import {
   Users,
   Search,
@@ -8,10 +8,13 @@ import {
   UserMinus,
   UserPlus,
   AlertTriangle,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import useAuth from "../../shared/hooks/useAuth";
 import { listByCompany, updateApplicationStatus } from "../../shared/services/applications";
 import LoadingScreen from "../../shared/components/LoadingScreen";
+import SeekerProfileCard from "../../shared/components/SeekerProfileCard";
 
 const EMPLOYEE_STATUSES = ["Accepted", "Terminated"];
 
@@ -22,6 +25,7 @@ function Employees() {
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [expandedId, setExpandedId] = useState(null);
 
   useEffect(() => {
     if (!user) return;
@@ -49,6 +53,11 @@ function Employees() {
 
   const active = useMemo(() => employees.filter((e) => e.status === "Accepted").length, [employees]);
   const terminated = useMemo(() => employees.filter((e) => e.status === "Terminated").length, [employees]);
+
+  // Credentials are fetched by SeekerProfileCard itself once the row expands.
+  function toggleProfile(employee) {
+    setExpandedId((prev) => (prev === employee.id ? null : employee.id));
+  }
 
   if (loading) return <LoadingScreen />;
 
@@ -137,7 +146,7 @@ function Employees() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search by employee name..."
-              className="w-full pl-10 pr-4 py-2 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-primary focus:bg-white transition-all"
+              className="w-full pl-10 pr-4 py-2 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 placeholder:text-gray-500 focus:outline-none focus:border-primary focus:bg-white transition-all"
             />
           </div>
 
@@ -171,20 +180,29 @@ function Employees() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-200 font-mono text-[10px] tracking-wider text-gray-500 uppercase bg-gray-50/70">
-                <th className="text-left py-3 px-4 font-semibold rounded-l-xl">Employee</th>
-                <th className="text-left py-3 px-4 font-semibold">Position</th>
-                <th className="text-left py-3 px-4 font-semibold">Date Hired</th>
-                <th className="text-left py-3 px-4 font-semibold">Status</th>
-                <th className="text-right py-3 px-4 font-semibold rounded-r-xl">Actions</th>
+                <th scope="col" className="text-left py-3 px-4 font-semibold rounded-l-xl">Employee</th>
+                <th scope="col" className="text-left py-3 px-4 font-semibold">Position</th>
+                <th scope="col" className="text-left py-3 px-4 font-semibold">Date Hired</th>
+                <th scope="col" className="text-left py-3 px-4 font-semibold">Status</th>
+                <th scope="col" className="text-right py-3 px-4 font-semibold rounded-r-xl">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
               {filtered.map((emp) => (
-                <tr key={emp.id} className="hover:bg-gray-50/80 transition-colors group">
-                  <td className="py-4 px-4">
-                    <p className="font-semibold text-gray-900 text-sm line-clamp-1 uppercase">{emp.seeker?.full_name}</p>
-                    <p className="text-[11px] text-gray-500 mt-0.5 break-all">{emp.seeker?.email}</p>
-                  </td>
+                <Fragment key={emp.id}>
+                <tr className="hover:bg-gray-50/80 transition-colors group">
+                  <th scope="row" className="py-4 px-4 text-left font-normal">
+                    <button type="button" onClick={() => toggleProfile(emp)} className="text-left group/btn cursor-pointer">
+                      <span className="block font-semibold text-gray-900 group-hover/btn:text-primary transition-colors text-sm line-clamp-1 uppercase">
+                        {emp.seeker?.full_name}
+                      </span>
+                      <span className="block text-[11px] text-gray-500 mt-0.5 break-all">{emp.seeker?.email}</span>
+                      <span className="inline-flex items-center gap-1 mt-1 text-[11px] text-gray-500 font-medium">
+                        {expandedId === emp.id ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
+                        {expandedId === emp.id ? "Hide profile" : "View profile"}
+                      </span>
+                    </button>
+                  </th>
                   <td className="py-4 px-4 text-gray-600">{emp.job?.title}</td>
                   <td className="py-4 px-4 font-mono text-xs text-gray-500">
                     {new Date(emp.updated_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
@@ -214,6 +232,14 @@ function Employees() {
                     </div>
                   </td>
                 </tr>
+                {expandedId === emp.id && (
+                  <tr className="bg-gray-50/60">
+                    <td colSpan={5} className="py-5 px-4">
+                      <SeekerProfileCard applicant={emp} />
+                    </td>
+                  </tr>
+                )}
+                </Fragment>
               ))}
             </tbody>
           </table>

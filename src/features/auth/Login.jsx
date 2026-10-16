@@ -47,16 +47,16 @@ function Login({ portalKey }) {
       <header className="sticky top-0 z-20 bg-dark-blue border-b border-white/10">
         <div className="w-full px-4 h-[64px] flex items-center justify-between">
 <div className="bg-white rounded-lg px-3.5 py-1.5 flex items-center shadow-xs">
-              <Link to="/"><img src={Logo} alt="JobLinked" className="h-10" /></Link>
+              <Link to="/"><img src={Logo} alt="JobLinked" width={480} height={160} className="h-10" /></Link>
             </div>
-          <span className="hidden sm:block font-mono text-[11px] text-gray-400">PESO · SANTA MARIA</span>
+          <span className="hidden sm:block font-mono text-[11px] text-gray-500">PESO · SANTA MARIA</span>
         </div>
       </header>
 
       <main className="flex-1 flex items-center justify-center p-[3%]">
         <div className="w-full max-w-md bg-white border border-primary rounded-lg p-6 md:p-9 shadow-xl">
           <div className="flex items-center justify-between mb-6">
-            <Link to="/portals" className="text-xs text-gray-400 hover:text-primary transition-colors">
+            <Link to="/portals" className="text-xs text-gray-500 hover:text-primary transition-colors">
               ← Portals
             </Link>
             <span className="font-mono text-[10px] tracking-widest uppercase px-2.5 py-1 rounded-full bg-primary/10 border border-primary/25 text-primary">
@@ -71,7 +71,7 @@ function Login({ portalKey }) {
 
           <form onSubmit={handleSubmit} className="mt-7 space-y-4">
             {error && (
-              <div className="text-sm text-danger bg-danger/10 border border-danger/20 px-4 py-3 rounded-lg">{error}</div>
+              <div role="alert" className="text-sm text-danger bg-danger/10 border border-danger/20 px-4 py-3 rounded-lg">{error}</div>
             )}
 
             <div>
@@ -86,7 +86,7 @@ function Login({ portalKey }) {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full min-h-[44px] px-4 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all"
+                className="w-full min-h-[44px] px-4 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 placeholder:text-gray-500 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all"
               />
             </div>
 
@@ -102,7 +102,7 @@ function Login({ portalKey }) {
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full min-h-[44px] px-4 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all"
+                className="w-full min-h-[44px] px-4 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 placeholder:text-gray-500 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all"
               />
             </div>
 
@@ -116,7 +116,7 @@ function Login({ portalKey }) {
           </form>
 
           {portal.key !== "super-admin" && (
-            <div className="mt-8 pt-6 border-t border-gray-100 flex items-center justify-between text-xs text-gray-400">
+            <div className="mt-8 pt-6 border-t border-gray-100 flex items-center justify-between text-xs text-gray-500">
               <span>Don't have an account?</span>
               <Link to={`/register/${portal.key}`} className="text-primary hover:underline underline-offset-4 font-medium">
                 Register here

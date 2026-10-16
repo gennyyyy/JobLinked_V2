@@ -6,40 +6,41 @@ import {
   Clock,
   Calendar,
   XCircle,
-  FileText,
   Eye,
   EyeOff,
   CheckCircle2,
   AlertTriangle,
-  GraduationCap,
-  Briefcase,
+  RotateCcw,
 } from "lucide-react";
 import useAuth from "../../shared/hooks/useAuth";
 import { listByCompany, updateApplicationStatus } from "../../shared/services/applications";
-import { signedUrl } from "../../shared/services/documents";
-import { listSeekerEducation, listSeekerExperience } from "../../shared/services/seekers";
 import LoadingScreen from "../../shared/components/LoadingScreen";
-
-// Handles both legacy single-string values and comma-separated tag strings.
-function splitPref(value) {
-  const list = Array.isArray(value) ? value : String(value || "").split(",");
-  return list.map((t) => String(t).trim()).filter(Boolean);
-}
+import SeekerProfileCard from "../../shared/components/SeekerProfileCard";
+import { titleCase } from "../../shared/utils/titleCase";
+import { formatFullAddress } from "../../shared/utils/address";
+import { INTERVIEW_ATTIRE, INTERVIEW_BRING } from "../../shared/constants";
 
 function Applicants() {
   const { user } = useAuth();
   const [applicants, setApplicants] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  // Status-change failures are keyed per applicant so one failed action can't
+  // replace the whole list (page-level `error` stays load-failures only).
+  const [actionErrors, setActionErrors] = useState({});
   const [filter, setFilter] = useState("all");
   const [search, setSearch] = useState("");
   const [expandedId, setExpandedId] = useState(null);
-  const [profile, setProfile] = useState({});
   const [interviewingId, setInterviewingId] = useState(null);
   const [interviewAt, setInterviewAt] = useState("");
   const [interviewNotes, setInterviewNotes] = useState("");
   const [interviewEmployerNotes, setInterviewEmployerNotes] = useState("");
   const [interviewMin, setInterviewMin] = useState("");
+  const [interviewAttire, setInterviewAttire] = useState([]);
+  const [interviewBring, setInterviewBring] = useState([]);
+  const [interviewLocation, setInterviewLocation] = useState("");
+
+  const defaultInterviewLocation = useMemo(() => formatFullAddress(user || {}), [user]);
 
   useEffect(() => {
     if (!user) return;
@@ -58,8 +59,13 @@ function Applicants() {
       setApplicants((prev) =>
         prev.map((a) => (a.id === id ? (updated ? { ...a, ...updated } : { ...a, status }) : a))
       );
+      setActionErrors((prev) => {
+        const next = { ...prev };
+        delete next[id];
+        return next;
+      });
     } catch (err) {
-      setError(err.message);
+      setActionErrors((prev) => ({ ...prev, [id]: err.message }));
     }
   }
 
@@ -68,56 +74,40 @@ function Applicants() {
     setInterviewAt("");
     setInterviewNotes("");
     setInterviewEmployerNotes("");
+    setInterviewAttire([]);
+    setInterviewBring([]);
+    setInterviewLocation(defaultInterviewLocation);
     setInterviewMin(new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16));
   }
 
   function confirmInterview(id) {
     if (!interviewAt) return;
-    const extra = { interviewAt, interviewInstructions: interviewNotes.trim() };
+    const parts = [];
+    if (interviewLocation.trim()) parts.push(`Location: ${interviewLocation.trim()}`);
+    if (interviewAttire.length) parts.push(`Attire: ${interviewAttire.join(", ")}`);
+    if (interviewBring.length) parts.push(`Bring: ${interviewBring.join(", ")}`);
+    if (interviewNotes.trim()) parts.push(interviewNotes.trim());
+    const extra = { interviewAt, interviewInstructions: parts.join("\n") };
     // Empty notes send nothing — the key is omitted, not sent as "".
     if (interviewEmployerNotes.trim()) extra.employerNotes = interviewEmployerNotes.trim();
     setStatus(id, "Interview", extra);
     setInterviewingId(null);
   }
 
-  // Candidate credentials are only fetched on first expand. Reads go through
-  // the employer application seeker-children endpoints; any error resolves to
-  // empty credentials instead of hanging on "Loading credentials…".
+  // Candidate credentials are fetched by SeekerProfileCard itself once the row
+  // is expanded.
   function toggleProfile(applicant) {
-    if (expandedId === applicant.id) {
-      setExpandedId(null);
-      return;
-    }
-    setExpandedId(applicant.id);
-    const seekerId = applicant.seeker?.id;
-    if (!seekerId || profile[seekerId]) return;
-    Promise.all([listSeekerEducation(seekerId), listSeekerExperience(seekerId)])
-      .then(([edu, exp]) => {
-        setProfile((prev) => ({ ...prev, [seekerId]: { education: edu || [], experience: exp || [] } }));
-      })
-      .catch(() => {
-        setProfile((prev) => ({ ...prev, [seekerId]: { education: [], experience: [] } }));
-      });
+    setExpandedId((prev) => (prev === applicant.id ? null : applicant.id));
   }
 
-  async function openResume(applicant) {
-    if (!applicant.resume?.file_path) return;
-    try {
-      const url = await signedUrl("resumes", applicant.resume.file_path);
-      window.open(url, "_blank", "noopener");
-    } catch (err) {
-      setError(err.message);
-    }
-  }
-
-  // Accepted/Terminated candidates are employees — they live on /employer/employees
+  // Accepted candidates also appear on /employer/employees; Terminated ones are hidden here.
   const tracked = useMemo(
-    () => applicants.filter((a) => a.status !== "Accepted" && a.status !== "Terminated"),
+    () => applicants.filter((a) => a.status !== "Terminated"),
     [applicants]
   );
 
   const counts = useMemo(() => {
-    const c = { "Under Review": 0, Interview: 0, Rejected: 0 };
+    const c = { "Under Review": 0, Interview: 0, Accepted: 0, Rejected: 0 };
     tracked.forEach((a) => { if (a.status in c) c[a.status] += 1; });
     return c;
   }, [tracked]);
@@ -165,17 +155,18 @@ function Applicants() {
             Applicant Tracking
           </h1>
           <p className="mt-1 text-sm text-gray-500">
-            Review credentials and update recruitment statuses — accepted candidates move to the Employees page
+            Review credentials and update recruitment statuses — accepted candidates also appear on the Employees page
           </p>
         </div>
       </header>
 
       {/* Metric Counters Bar */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
         {[
           { value: "all", label: "Applications", count: tracked.length, icon: null },
           { value: "Under Review", label: "Under Review", count: counts["Under Review"], icon: Clock },
           { value: "Interview", label: "Interview", count: counts.Interview, icon: Calendar },
+          { value: "Accepted", label: "Accepted", count: counts.Accepted, icon: CheckCircle2 },
           { value: "Rejected", label: "Rejected", count: counts.Rejected, icon: XCircle },
         ].map((c) => {
           const MetricIcon = c.icon;
@@ -226,6 +217,7 @@ function Applicants() {
                 <option value="all">All Statuses ({tracked.length})</option>
                 <option value="Under Review">Under Review ({counts["Under Review"]})</option>
                 <option value="Interview">Interview ({counts.Interview})</option>
+                <option value="Accepted">Accepted ({counts.Accepted})</option>
                 <option value="Rejected">Rejected ({counts.Rejected})</option>
               </select>
             </div>
@@ -245,35 +237,37 @@ function Applicants() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-200 font-mono text-[10px] tracking-wider text-gray-500 uppercase bg-gray-50/70">
-                <th className="text-left py-3 px-4 font-semibold rounded-l-xl">Candidate</th>
-                <th className="text-left py-3 px-4 font-semibold">Position Applied For</th>
-                <th className="text-left py-3 px-4 font-semibold">Date Submitted</th>
-                <th className="text-left py-3 px-4 font-semibold">Review Status</th>
-                <th className="text-right py-3 px-4 font-semibold rounded-r-xl">Evaluation Actions</th>
+                <th scope="col" className="text-left py-3 px-4 font-semibold rounded-l-xl">Candidate</th>
+                <th scope="col" className="text-left py-3 px-4 font-semibold">Position Applied For</th>
+                <th scope="col" className="text-left py-3 px-4 font-semibold">Date Submitted</th>
+                <th scope="col" className="text-left py-3 px-4 font-semibold">Review Status</th>
+                <th scope="col" className="text-right py-3 px-4 font-semibold rounded-r-xl">Evaluation Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
               {filtered.map((applicant) => {
                 const statusStyle =
-                  applicant.status === "Interview"
-                    ? "bg-blue-50 text-blue-700 border-blue-200"
-                    : applicant.status === "Rejected"
-                      ? "bg-rose-50 text-rose-700 border-rose-200"
-                      : "bg-amber-50 text-amber-700 border-amber-200";
+                  applicant.status === "Accepted"
+                    ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                    : applicant.status === "Interview"
+                      ? "bg-blue-50 text-blue-700 border-blue-200"
+                      : applicant.status === "Rejected"
+                        ? "bg-rose-50 text-rose-700 border-rose-200"
+                        : "bg-amber-50 text-amber-700 border-amber-200";
                 return (
                 <Fragment key={applicant.id}>
                 <tr className="hover:bg-gray-50/80 transition-colors group">
-                  <td className="py-4 px-4">
+                  <th scope="row" className="py-4 px-4 text-left font-normal">
                     <button type="button" onClick={() => toggleProfile(applicant)} className="text-left group/btn cursor-pointer">
                       <span className="block font-semibold text-gray-900 group-hover/btn:text-primary transition-colors text-sm line-clamp-1">
-                        <span className="uppercase">{applicant.seeker?.full_name}</span>
+                        <span>{titleCase(applicant.seeker?.full_name)}</span>
                       </span>
                       <span className="inline-flex items-center gap-1 mt-1 text-[11px] text-gray-500 font-medium">
                         {expandedId === applicant.id ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
                         {expandedId === applicant.id ? "Hide profile" : "View profile"}
                       </span>
                     </button>
-                  </td>
+                  </th>
                   <td className="py-4 px-4 text-gray-600">{applicant.job?.title}</td>
                   <td className="py-4 px-4 font-mono text-xs text-gray-500">
                     {new Date(applicant.applied_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
@@ -285,22 +279,43 @@ function Applicants() {
                   </td>
                   <td className="py-4 px-4">
                     <div className="flex flex-wrap justify-end gap-1.5">
+                    {applicant.status === "Under Review" && (
+                      <button
+                        type="button"
+                        title="Revert to Applied"
+                        onClick={() => setStatus(applicant.id, "Applied")}
+                        className="inline-flex items-center gap-1.5 p-2 rounded-lg border border-gray-200 bg-gray-50 text-gray-600 hover:bg-gray-100 transition-colors cursor-pointer"
+                      >
+                        <RotateCcw className="w-3.5 h-3.5" />
+                        <span className="text-xs font-medium">Undo Review</span>
+                      </button>
+                    )}
                     {applicant.status !== "Under Review" && (
                       <button type="button" title="Move back to Under Review" onClick={() => setStatus(applicant.id, "Under Review")} className="inline-flex items-center gap-1.5 p-2 rounded-lg border border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100 transition-colors cursor-pointer">
                         <Clock className="w-3.5 h-3.5" />
                         <span className="text-xs font-medium">Review</span>
                       </button>
                     )}
-                    {applicant.status !== "Interview" && (
-                      <button type="button" title="Schedule an interview" onClick={() => handleInterview(applicant)} className="inline-flex items-center gap-1.5 p-2 rounded-lg border border-primary/25 bg-primary/10 text-primary hover:bg-primary/20 transition-colors cursor-pointer">
-                        <Calendar className="w-3.5 h-3.5" />
-                        <span className="text-xs font-medium">Interview</span>
+                    <button
+                      type="button"
+                      aria-pressed={interviewingId === applicant.id}
+                      title={interviewingId === applicant.id ? "Hide interview details" : "Schedule an interview"}
+                      onClick={() => (interviewingId === applicant.id ? setInterviewingId(null) : handleInterview(applicant))}
+                      className={`inline-flex items-center gap-1.5 p-2 rounded-lg border transition-colors cursor-pointer ${
+                        interviewingId === applicant.id
+                          ? "border-primary bg-primary text-white hover:bg-primary-hover"
+                          : "border-primary/25 bg-primary/10 text-primary hover:bg-primary/20"
+                      }`}
+                    >
+                      <Calendar className="w-3.5 h-3.5" />
+                      <span className="text-xs font-medium">Interview</span>
+                    </button>
+                    {applicant.status !== "Accepted" && (
+                      <button type="button" title="Accept candidate" onClick={() => setStatus(applicant.id, "Accepted")} className="inline-flex items-center gap-1.5 p-2 rounded-lg border border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-colors cursor-pointer">
+                        <CheckCircle2 className="w-3.5 h-3.5" />
+                        <span className="text-xs font-medium">Accept</span>
                       </button>
                     )}
-                    <button type="button" title="Accept candidate" onClick={() => setStatus(applicant.id, "Accepted")} className="inline-flex items-center gap-1.5 p-2 rounded-lg border border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-colors cursor-pointer">
-                      <CheckCircle2 className="w-3.5 h-3.5" />
-                      <span className="text-xs font-medium">Accept</span>
-                    </button>
                     {applicant.status !== "Rejected" && applicant.status !== "Placed" && (
                       <button type="button" title="Reject candidate" onClick={() => setStatus(applicant.id, "Rejected")} className="inline-flex items-center gap-1.5 p-2 rounded-lg border border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100 transition-colors cursor-pointer">
                         <XCircle className="w-3.5 h-3.5" />
@@ -308,84 +323,16 @@ function Applicants() {
                       </button>
                     )}
                     </div>
+                    {actionErrors[applicant.id] && (
+                      <p role="alert" className="mt-1.5 text-right text-[11px] text-danger">{actionErrors[applicant.id]}</p>
+                    )}
                   </td>
                 </tr>
                 {expandedId === applicant.id && (
                   <tr className="bg-gray-50/60">
                     <td colSpan={5} className="py-5 px-4">
                       {/* Credential Detail Card */}
-                      <div className="bg-white border border-gray-200 rounded-xl p-4 md:p-5 shadow-xs space-y-4">
-                        <div className="flex items-center gap-2">
-                          <div className="w-7 h-7 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
-                            <FileText className="w-3.5 h-3.5 text-primary" />
-                          </div>
-                          <div>
-                            <p className="text-sm font-semibold text-gray-900">Credentials — <span className="uppercase">{applicant.seeker?.full_name}</span></p>
-                            <p className="text-[11px] text-gray-500">Contact, preferences, education & work history</p>
-                          </div>
-                        </div>
-
-                        <div>
-                          <p className="font-mono text-[10px] uppercase tracking-widest text-gray-400 mb-2">Contact & Preferences</p>
-                          <dl className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
-                            <div className="p-3 rounded-xl bg-gray-50 border border-gray-100"><dt className="font-mono text-[10px] tracking-widest uppercase text-gray-400">Email</dt><dd className="mt-1 text-xs text-gray-700 break-all">{applicant.seeker?.email || "—"}</dd></div>
-                            <div className="p-3 rounded-xl bg-gray-50 border border-gray-100"><dt className="font-mono text-[10px] tracking-widest uppercase text-gray-400">Phone</dt><dd className="mt-1 text-xs text-gray-700">{applicant.seeker?.phone || "—"}</dd></div>
-                            <div className="p-3 rounded-xl bg-gray-50 border border-gray-100"><dt className="font-mono text-[10px] tracking-widest uppercase text-gray-400">Barangay</dt><dd className="mt-1 text-xs text-gray-700 uppercase">{applicant.seeker?.barangay_district || "—"}</dd></div>
-                            <div className="p-3 rounded-xl bg-gray-50 border border-gray-100"><dt className="font-mono text-[10px] tracking-widest uppercase text-gray-400">Employment Status</dt><dd className="mt-1 text-xs text-gray-700">{applicant.seeker?.employment_status || "—"}</dd></div>
-                            <div className="p-3 rounded-xl bg-gray-50 border border-gray-100"><dt className="font-mono text-[10px] tracking-widest uppercase text-gray-400">Preferred Jobs</dt><dd className="mt-1 text-xs text-gray-700">{splitPref(applicant.seeker?.preferred_position).join(", ") || "—"}</dd></div>
-                            <div className="p-3 rounded-xl bg-gray-50 border border-gray-100"><dt className="font-mono text-[10px] tracking-widest uppercase text-gray-400">Preferred Locations</dt><dd className="mt-1 text-xs text-gray-700">{splitPref(applicant.seeker?.preferred_location).join(", ") || "—"}</dd></div>
-                          </dl>
-                          <div className="mt-2.5">
-                            <p className="font-mono text-[10px] uppercase tracking-widest text-gray-400 mb-1.5">Skills</p>
-                            {applicant.seeker?.skills?.length ? (
-                              <div className="flex flex-wrap gap-1.5">
-                                {applicant.seeker.skills.map((skill) => (
-                                  <span key={skill} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-medium bg-primary/10 border border-primary/20 text-primary uppercase">{skill}</span>
-                                ))}
-                              </div>
-                            ) : <p className="text-xs text-gray-400">No skills listed.</p>}
-                          </div>
-                          {applicant.resume?.file_path && (
-                            <button type="button" onClick={() => openResume(applicant)} className="mt-2.5 inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium bg-primary/10 border border-primary/25 text-primary hover:bg-primary/20 transition-colors cursor-pointer">
-                              <FileText className="w-3.5 h-3.5" />
-                              View Resume ({applicant.resume.file_name})
-                            </button>
-                          )}
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
-                          <div className="p-3 rounded-xl bg-gray-50 border border-gray-100">
-                            <p className="font-mono text-[10px] tracking-widest uppercase text-gray-400 mb-2 flex items-center gap-1.5">
-                              <GraduationCap className="w-3.5 h-3.5" /> Education
-                            </p>
-                            {!profile[applicant.seeker?.id] && <p className="text-xs text-gray-400">Loading credentials…</p>}
-                            {profile[applicant.seeker?.id] && (
-                              profile[applicant.seeker.id].education.length ? (
-                                <ul className="space-y-1.5">
-                                  {profile[applicant.seeker.id].education.map((edu) => (
-                                    <li key={edu.id} className="text-xs text-gray-700 uppercase">{edu.level} — {edu.school}{edu.field ? `, ${edu.field}` : ""} <span className="text-gray-400">({edu.end_year || "present"})</span></li>
-                                  ))}
-                                </ul>
-                              ) : <p className="text-xs text-gray-400">No education recorded.</p>
-                            )}
-                          </div>
-                          <div className="p-3 rounded-xl bg-gray-50 border border-gray-100">
-                            <p className="font-mono text-[10px] tracking-widest uppercase text-gray-400 mb-2 flex items-center gap-1.5">
-                              <Briefcase className="w-3.5 h-3.5" /> Work Experience
-                            </p>
-                            {!profile[applicant.seeker?.id] && <p className="text-xs text-gray-400">Loading credentials…</p>}
-                            {profile[applicant.seeker?.id] && (
-                              profile[applicant.seeker.id].experience.length ? (
-                                <ul className="space-y-1.5">
-                                  {profile[applicant.seeker.id].experience.map((exp) => (
-                                    <li key={exp.id} className="text-xs text-gray-700">{exp.position} — {exp.company} <span className="text-gray-400">({exp.start_date || "?"} → {exp.end_date || "present"})</span></li>
-                                  ))}
-                                </ul>
-                              ) : <p className="text-xs text-gray-400">No work experience recorded.</p>
-                            )}
-                          </div>
-                        </div>
-                      </div>
+                      <SeekerProfileCard applicant={applicant} />
                     </td>
                 </tr>
                 )}
@@ -399,9 +346,72 @@ function Applicants() {
                             <Calendar className="w-3.5 h-3.5 text-primary" />
                           </div>
                           <div>
-                            <p className="text-sm font-semibold text-gray-900">Schedule Interview — <span className="uppercase">{applicant.seeker?.full_name}</span></p>
+                            <p className="text-sm font-semibold text-gray-900">Schedule Interview — <span>{titleCase(applicant.seeker?.full_name)}</span></p>
                             <p className="text-[11px] text-gray-500">Pick a date & time and add instructions for the candidate</p>
                           </div>
+                        </div>
+                        <div className="space-y-3 mb-4">
+                          <div>
+                            <p className="font-mono text-[10px] uppercase tracking-widest text-gray-500 mb-1.5">
+                              Attire <span className="text-gray-400 normal-case tracking-normal">(optional, click to toggle)</span>
+                            </p>
+                            <div className="flex flex-wrap gap-2">
+                              {INTERVIEW_ATTIRE.map((opt) => {
+                                const selected = interviewAttire.includes(opt);
+                                return (
+                                  <button
+                                    key={opt}
+                                    type="button"
+                                    onClick={() =>
+                                      setInterviewAttire((prev) => (selected ? prev.filter((x) => x !== opt) : [...prev, opt]))
+                                    }
+                                    className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors cursor-pointer ${
+                                      selected ? "bg-primary text-white border-primary" : "bg-gray-50 text-gray-600 border-gray-200 hover:border-primary/40"
+                                    }`}
+                                  >
+                                    {opt}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                          <div>
+                            <p className="font-mono text-[10px] uppercase tracking-widest text-gray-500 mb-1.5">
+                              What to Bring <span className="text-gray-400 normal-case tracking-normal">(optional, click to toggle)</span>
+                            </p>
+                            <div className="flex flex-wrap gap-2">
+                              {INTERVIEW_BRING.map((opt) => {
+                                const selected = interviewBring.includes(opt);
+                                return (
+                                  <button
+                                    key={opt}
+                                    type="button"
+                                    onClick={() =>
+                                      setInterviewBring((prev) => (selected ? prev.filter((x) => x !== opt) : [...prev, opt]))
+                                    }
+                                    className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors cursor-pointer ${
+                                      selected ? "bg-primary text-white border-primary" : "bg-gray-50 text-gray-600 border-gray-200 hover:border-primary/40"
+                                    }`}
+                                  >
+                                    {opt}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="mb-4">
+                          <label htmlFor={`ivloc-${applicant.id}`} className="block font-mono text-[10px] uppercase tracking-widest text-gray-500 mb-1.5">
+                            Meeting Location
+                          </label>
+                          <input
+                            id={`ivloc-${applicant.id}`}
+                            type="text"
+                            value={interviewLocation}
+                            onChange={(e) => setInterviewLocation(e.target.value)}
+                            placeholder="Company address or meeting venue"
+                            className="w-full min-h-[40px] px-3 rounded-xl text-sm bg-white border border-gray-200 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all"
+                          />
                         </div>
                         <div className="flex flex-col md:flex-row md:items-end gap-3">
                         <div>
@@ -422,7 +432,7 @@ function Applicants() {
                             type="text"
                             value={interviewNotes}
                             onChange={(e) => setInterviewNotes(e.target.value)}
-                            placeholder="Meeting link, address, what to bring…"
+                            placeholder="Meeting link, address, or any other note…"
                             className="w-full min-h-[40px] px-3 rounded-xl text-sm bg-white border border-gray-200 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all"
                           />
                         </div>

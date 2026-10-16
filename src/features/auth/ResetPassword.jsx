@@ -38,7 +38,7 @@ function ResetPassword() {
       <header className="sticky top-0 z-20 bg-dark-blue border-b border-white/10">
         <div className="w-full px-4 h-[64px] flex items-center justify-between">
           <div className="bg-white rounded-lg px-3.5 py-1.5 flex items-center shadow-xs">
-            <Link to="/"><img src={Logo} alt="JobLinked" className="h-10" /></Link>
+            <Link to="/"><img src={Logo} alt="JobLinked" width={480} height={160} className="h-10" /></Link>
           </div>
           <span className="hidden sm:block font-mono text-[11px] text-gray-400">PESO · SANTA MARIA</span>
         </div>

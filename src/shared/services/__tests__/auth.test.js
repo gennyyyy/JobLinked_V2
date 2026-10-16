@@ -18,9 +18,48 @@ vi.mock('../../../shared/lib/supabase', () => ({
 
 import { api } from '../../../shared/lib/api'
 import { supabase } from '../../../shared/lib/supabase'
-import { signIn, signUp, getProfile, changePassword, resetPassword } from '../auth'
+import { signIn, signUp, getProfile, changePassword, resetPassword, updateProfile } from '../auth'
 
 beforeEach(() => vi.clearAllMocks())
+
+// api.js throws Error(message) with .status — mirror that shape.
+const apiError = (status, message) => Object.assign(new Error(message), { status })
+
+describe('updateProfile', () => {
+  beforeEach(() => { api.get.mockReset(); api.patch.mockReset(); })
+
+  it('returns the patched row', async () => {
+    api.get.mockResolvedValueOnce({ id: 'u1', role: 'job-seeker' })
+    api.patch.mockResolvedValueOnce({ id: 'u1', first_name: 'ana' })
+    await expect(updateProfile('u1', { first_name: 'Ana' })).resolves.toEqual({ id: 'u1', first_name: 'ana' })
+  })
+
+  // An empty patch makes Object.entries(patch).every(...) vacuously true, so
+  // the re-read used to confirm the failure as success.
+  it('throws on an empty patch instead of reporting success', async () => {
+    api.get.mockResolvedValueOnce({ id: 'u1', role: 'job-seeker' })
+    api.patch.mockRejectedValueOnce(apiError(400, 'Nothing to update'))
+    await expect(updateProfile('u1', {})).rejects.toThrow('Nothing to update')
+    // no confirmation re-read is attempted
+    expect(api.get).toHaveBeenCalledTimes(1)
+  })
+
+  // A 4xx is a refusal the server made before writing; a matching re-read
+  // must not turn it into success.
+  it('throws on a rejected PATCH even when the re-read matches', async () => {
+    api.get.mockResolvedValueOnce({ id: 'u1', role: 'job-seeker' })
+    api.patch.mockRejectedValueOnce(apiError(409, 'Duplicate company email'))
+    api.get.mockResolvedValueOnce({ id: 'u1', first_name: 'ana' })
+    await expect(updateProfile('u1', { first_name: 'Ana' })).rejects.toThrow('Duplicate company email')
+  })
+
+  it('confirms success when the write landed but the response was lost', async () => {
+    api.get.mockResolvedValueOnce({ id: 'u1', role: 'job-seeker' })
+    api.patch.mockRejectedValueOnce(apiError(500, 'upstream died after commit'))
+    api.get.mockResolvedValueOnce({ id: 'u1', first_name: 'ana' })
+    await expect(updateProfile('u1', { first_name: 'Ana' })).resolves.toEqual({ id: 'u1', first_name: 'ana' })
+  })
+})
 
 describe('signIn', () => {
   it('returns user with profile on successful login', async () => {

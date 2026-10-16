@@ -4,16 +4,16 @@ export async function getStats() {
   return api.get('admin/stats');
 }
 
-export async function listUsers({ role = null, search = '', status = null } = {}) {
-  return api.get('admin/users', { role, search, status });
+export async function listUsers({ role = null, search = '', status = null, page = 1, pageSize = 25 } = {}) {
+  return api.get('admin/users', { role, search, status, page, pageSize });
 }
 
 export async function updateUser(userId, patch) {
   return api.patch(`admin/users/${userId}`, patch);
 }
 
-export async function listCompanies({ status = null } = {}) {
-  return api.get('admin/companies', { status });
+export async function listCompanies({ status = null, page = 1, pageSize = 25 } = {}) {
+  return api.get('admin/companies', { status, page, pageSize });
 }
 
 export async function listAuditLogs({ limit = 500, userId = '', action = '', from = '', to = '' } = {}) {
@@ -32,24 +32,19 @@ export async function removeReferenceData(id) {
   return api.del(`admin/reference/${id}`);
 }
 
-export async function listAllApplications({ status = null, search = '' } = {}) {
-  return api.get('admin/applications', { status, search });
+export async function listAllApplications({ status = null, search = '', page = 1, pageSize = 25 } = {}) {
+  return api.get('admin/applications', { status, search, page, pageSize });
 }
 
-export async function listAllJobs({ status = null } = {}) {
-  return api.get('admin/jobs', { status });
+export async function listAllJobs({ status = null, page = 1, pageSize = 25 } = {}) {
+  return api.get('admin/jobs', { status, page, pageSize });
 }
 
-export async function listAllEmployees() {
-  return api.get('admin/employees');
-}
-
-export async function listReferrals() {
-  return api.get('admin/referrals');
-}
-
-export async function listAllAccreditations() {
-  return api.get('admin/accreditations');
+// Default pageSize 100: the newest-first accreditation list doubles as the
+// per-company "latest accreditation" lookup (badges, revoke/reinstate), so it
+// needs a fuller page than the row-per-record tables.
+export async function listAllAccreditations({ page = 1, pageSize = 100 } = {}) {
+  return api.get('admin/accreditations', { page, pageSize });
 }
 
 // Admin job edit (PATCH admin/jobs/:id) + publish/unpublish toggles.
@@ -77,19 +72,11 @@ export async function assignRole(id, role) {
 }
 
 // ─── Super-admin custom roles (catalog: Roles page; assignment: Users page) ──
-// Permission keys are the UI gate keys — keep in sync with ROLE_PERMISSIONS
-// in server/src/routes/admin.js.
-export const ROLE_PERMISSIONS = [
-  { key: "dashboard.view", label: "View Dashboard" },
-  { key: "accreditation.manage", label: "Manage Accreditations" },
-  { key: "jobs.manage", label: "Manage Job Posts" },
-  { key: "users.manage", label: "Manage Users" },
-  { key: "roles.manage", label: "Manage Roles" },
-  { key: "reports.view", label: "View Reports" },
-  { key: "logs.view", label: "View Audit Logs" },
-  { key: "notifications.send", label: "Send System Notifications" },
-  { key: "settings.manage", label: "Manage Settings" },
-];
+// The permission catalog is server-owned: GET /admin/permissions, below as
+// listPermissions. No client copy.
+export async function listPermissions() {
+  return api.get('admin/permissions');
+}
 
 export async function listRoles() {
   return api.get('admin/roles');
@@ -120,10 +107,4 @@ export async function inviteUser(payload) {
 
 export async function sendSystemNotification({ title, message, link = null, expires_at = null }) {
   return api.post('admin/system-notifications', { title, message, link, expires_at });
-}
-
-// Server-rendered export (CSV/Excel/PDF). 404 = backend item missing → the
-// Reports page falls back to its client-side CSV builder.
-export async function exportReport(type, format) {
-  return api.blob(`admin/reports/${type}/export?format=${format}`);
 }

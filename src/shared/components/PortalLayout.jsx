@@ -1,17 +1,25 @@
 import { useState, useCallback } from 'react'
-import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom'
+import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
+import { X } from 'lucide-react'
 import useAuth from '../hooks/useAuth'
 import useAFKTimer from '../hooks/useAFKTimer'
+import useDialog from '../hooks/useDialog'
 import TextBasedLogo from '../../assets/TextBased Logo.png'
 import SidebarAccount from './SidebarAccount'
 import NotificationBell from './NotificationBell'
+import { titleCase } from '../utils/titleCase'
 
-export default function PortalLayout({ navItems, badge, eyebrow, subhead, profileTo, roleLabel, homeTo = '/' }) {
+export default function PortalLayout({ navItems, badge, eyebrow, subhead, profileTo, roleLabel, homeTo }) {
   const navigate = useNavigate()
+  const location = useLocation()
+  // Keep the logo inside the current portal; a portal layout always mounts
+  // under /employer, /super-admin, or /job-seeker, so reuse that prefix.
+  const home = homeTo ?? `/${location.pathname.split('/')[1] || ''}`
   const { logout, user } = useAuth()
   const [mobileOpen, setMobileOpen] = useState(false)
   const [showWarning, setShowWarning] = useState(false)
   const handleWarning = useCallback(() => setShowWarning(true), [])
+  const afkRef = useDialog(() => setShowWarning(false), showWarning)
   useAFKTimer(true, handleWarning)
 
   function handleLogout() {
@@ -26,7 +34,7 @@ export default function PortalLayout({ navItems, badge, eyebrow, subhead, profil
       <header className="md:hidden sticky top-0 z-30 bg-dark-blue border-b border-white/10 px-4 h-14 flex items-center justify-between shrink-0">
         <div className="flex items-center gap-2.5">
           <div className="bg-white rounded-lg px-3.5 py-1.5 flex items-center shadow-xs">
-            <Link to={homeTo}><img src={TextBasedLogo} alt="JobLinked" className="h-6 w-auto object-contain" /></Link>
+            <Link to={home}><img src={TextBasedLogo} alt="JobLinked" width={480} height={160} className="h-6 w-auto object-contain" /></Link>
           </div>
           <span className="font-mono text-[10px] tracking-wider px-2 py-0.5 rounded-full bg-primary/10 border border-primary/25 text-primary">
             {badge}
@@ -38,6 +46,8 @@ export default function PortalLayout({ navItems, badge, eyebrow, subhead, profil
             onClick={() => setMobileOpen(!mobileOpen)}
             className="p-2 rounded-lg text-gray-600 hover:text-gray-900 hover:bg-gray-100 border border-gray-200 cursor-pointer"
             aria-label="Toggle navigation"
+            aria-expanded={mobileOpen}
+            aria-controls="portal-mobile-nav"
           >
             <svg className="w-4 h-4 fill-none stroke-current" viewBox="0 0 24 24">
               {mobileOpen ? (
@@ -57,9 +67,9 @@ export default function PortalLayout({ navItems, badge, eyebrow, subhead, profil
       >
         <div className="h-16 shrink-0 sticky top-0 flex items-center justify-between px-4 border-b border-white/10 bg-dark-blue">
           <div className="flex items-center gap-2.5">
-            <Link to={homeTo} className="flex items-center">
+            <Link to={home} className="flex items-center">
               <div className="bg-white rounded-lg px-3.5 py-1.5 flex items-center shadow-xs">
-                <img src={TextBasedLogo} alt="JobLinked" className="h-5 w-auto object-contain" />
+                <img src={TextBasedLogo} alt="JobLinked" width={480} height={160} className="h-5 w-auto object-contain" />
               </div>
             </Link>
             <span className="font-mono text-[10px] tracking-wider text-accent rounded-full border border-accent/25 px-2 py-0.5 flex items-center">
@@ -74,7 +84,7 @@ export default function PortalLayout({ navItems, badge, eyebrow, subhead, profil
                 className="md:hidden text-white/60 hover:text-white p-1 text-sm cursor-pointer"
                 aria-label="Close navigation"
               >
-                ✕
+                <X className="w-4 h-4" aria-hidden="true" />
               </button>
             )}
           </div>
@@ -83,11 +93,11 @@ export default function PortalLayout({ navItems, badge, eyebrow, subhead, profil
         <div className="px-4 pt-5 pb-3 shrink-0">
           <div className="px-3.5">
             <p className="font-mono text-[10px] tracking-[0.2em] text-white/50">{eyebrow}</p>
-            <p className="mt-0.5 text-xs text-white/70 truncate font-medium uppercase">{subheadText}</p>
+            <p className="mt-0.5 text-xs text-white/70 truncate font-medium">{titleCase(subheadText)}</p>
           </div>
         </div>
 
-        <nav className="flex-1 py-3 px-4 space-y-1.5 overflow-y-auto min-h-0">
+        <nav id="portal-mobile-nav" aria-label="Portal navigation" className="flex-1 py-3 px-4 space-y-1.5 overflow-y-auto min-h-0">
           {navItems.map((item) => (
             <NavLink
               key={item.to}
@@ -131,23 +141,29 @@ export default function PortalLayout({ navItems, badge, eyebrow, subhead, profil
 
       {showWarning && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
-          <div className="bg-white border border-primary rounded-lg p-5 max-w-sm mx-4 shadow-xl">
-            <h3 className="text-lg font-bold text-gray-900 mb-2">Session Expiring</h3>
+          <div
+            ref={afkRef}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="afk-title"
+            className="bg-white border border-primary rounded-lg p-5 max-w-sm mx-4 shadow-xl"
+          >
+            <h3 id="afk-title" className="text-lg font-bold text-gray-900 mb-2">Session Expiring</h3>
             <p className="text-sm text-gray-600 mb-6">
               You will be logged out in 1 minute due to inactivity. Move your mouse or press a key to stay signed in.
             </p>
             <div className="flex gap-2">
               <button
-                onClick={() => setShowWarning(false)}
-                className="flex-1 px-4 py-2.5 text-sm font-medium text-white bg-primary hover:bg-primary-hover rounded-lg active:scale-[0.98] transition-colors"
-              >
-                Stay Signed In
-              </button>
-              <button
                 onClick={handleLogout}
                 className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-600 hover:text-gray-900 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-lg transition-colors"
               >
                 Sign Out
+              </button>
+              <button
+                onClick={() => setShowWarning(false)}
+                className="flex-1 px-4 py-2.5 text-sm font-medium text-white bg-primary hover:bg-primary-hover rounded-lg active:scale-[0.98] transition-colors"
+              >
+                Stay Signed In
               </button>
             </div>
           </div>

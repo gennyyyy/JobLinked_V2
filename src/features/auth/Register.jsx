@@ -26,9 +26,9 @@ function Register() {
       <header className="sticky top-0 z-20 bg-dark-blue border-b border-white/10">
         <div className="w-full px-4 h-[64px] flex items-center justify-between">
 <div className="bg-white rounded-lg px-3.5 py-1.5 flex items-center shadow-xs">
-              <Link to="/"><img src={Logo} alt="JobLinked" className="h-10" /></Link>
+              <Link to="/"><img src={Logo} alt="JobLinked" width={480} height={160} className="h-10" /></Link>
             </div>
-          <span className="hidden sm:block font-mono text-[11px] text-gray-400">PESO · SANTA MARIA</span>
+          <span className="hidden sm:block font-mono text-[11px] text-gray-500">PESO · SANTA MARIA</span>
         </div>
       </header>
 
@@ -76,7 +76,7 @@ function Register() {
             ))}
           </div>
 
-          <p className="mt-10 text-center text-xs text-gray-400">
+          <p className="mt-10 text-center text-xs text-gray-500">
             Already have an account?{" "}
             <Link to="/portals" className="text-primary hover:underline underline-offset-4 font-medium">
               Log in to your portal

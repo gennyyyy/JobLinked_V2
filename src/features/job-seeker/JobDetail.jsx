@@ -1,11 +1,13 @@
 import { useState, useEffect } from "react";
 import { Link, Navigate, useParams } from "react-router-dom";
+import { CheckCircle2 } from "lucide-react";
 import useAuth from "../../shared/hooks/useAuth";
 import { getJob } from "../../shared/services/jobs";
 import { applyToJob, listBySeeker } from "../../shared/services/applications";
 import { listResumes, uploadResume, validateFile } from "../../shared/services/documents";
 import LoadingScreen from "../../shared/components/LoadingScreen";
 import { SectionCard } from "../../shared/components/dashboard";
+import { titleCase } from "../../shared/utils/titleCase";
 
 function JobDetail() {
   const { jobId } = useParams();
@@ -20,23 +22,29 @@ function JobDetail() {
   const [selectedResume, setSelectedResume] = useState("");
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState("");
+  // Snapshot once per mount (same convention as the employer job list) so the
+  // deadline comparison stays pure.
+  const [today] = useState(() => Date.now());
 
   useEffect(() => {
     if (!user) return;
+    let cancelled = false;
     Promise.all([
       getJob(jobId),
       listBySeeker(user.id),
       listResumes(user.id),
     ])
       .then(([jobData, apps, resumeList]) => {
+        if (cancelled) return;
         setJob(jobData);
         setAlreadyApplied(apps.some((a) => a.job_id === jobId));
         setResumes(resumeList);
         const active = resumeList.find((r) => r.is_active) || resumeList[0];
         setSelectedResume(active?.id || "");
       })
-      .catch((err) => setError(err.message || "Failed to load job"))
-      .finally(() => setLoading(false));
+      .catch((err) => { if (!cancelled) setError(err.message || "Failed to load job"); })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
   }, [jobId, user]);
 
   if (loading) return <LoadingScreen />;
@@ -80,6 +88,13 @@ function JobDetail() {
   const requirements = job.requirements ? job.requirements.split("\n").filter(Boolean) : [];
   const tags = Array.isArray(job.tags) ? job.tags.filter(Boolean) : [];
 
+  // Same cutoff convention as the employer list: the deadline day itself still
+  // accepts applications; only a fully elapsed day closes the listing.
+  // Date-time without a zone suffix parses as local time — the true end of day.
+  const deadlinePassed = job.deadline
+    ? new Date(`${String(job.deadline).slice(0, 10)}T23:59:59.999`).getTime() < today
+    : false;
+
   return (
     <div className="w-full space-y-6">
       <Link to="/job-seeker/jobs" className="inline-flex items-center text-xs text-gray-500 hover:text-gray-900 transition-colors">
@@ -89,7 +104,7 @@ function JobDetail() {
       <SectionCard
         titleAs="h1"
         title={job.title}
-        subtitle={job.employers?.company_name?.toUpperCase()}
+        subtitle={titleCase(job.employers?.company_name)}
         action={
           <span className="inline-flex px-3.5 py-1.5 rounded-full bg-primary/10 border border-primary/25 font-mono text-sm text-primary font-semibold shrink-0">
             {job.salary_min ? `₱${job.salary_min}${job.salary_max ? `–₱${job.salary_max}` : ""}` : "Negotiable"}
@@ -129,8 +144,9 @@ function JobDetail() {
           </div>
           <div>
             <p className="font-mono text-[10px] tracking-widest uppercase text-gray-400">Listing Status</p>
-            <p className="mt-1 text-sm text-emerald-600 font-medium flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />Verified Open
+            <p className={`mt-1 text-sm font-medium flex items-center gap-1.5 ${deadlinePassed ? "text-gray-600" : "text-emerald-600"}`}>
+              <span className={`w-1.5 h-1.5 rounded-full ${deadlinePassed ? "bg-gray-400" : "bg-emerald-500"}`} />
+              {deadlinePassed ? "Closed — application deadline passed" : "Verified Open"}
             </p>
           </div>
         </div>
@@ -183,7 +199,7 @@ function JobDetail() {
           <div>
             {alreadyApplied ? (
               <span className="font-mono text-xs text-emerald-600 font-medium flex items-center gap-1.5">
-                ✓ Application submitted — track updates in "My Applications"
+                <CheckCircle2 className="w-3.5 h-3.5 shrink-0" aria-hidden="true" /> Application submitted — track updates in "My Applications"
               </span>
             ) : (
               <p className="text-xs text-gray-400">Submitting forwards your registered JobLinked profile to the employer.</p>
@@ -210,9 +226,12 @@ function JobDetail() {
                 {uploading ? "Uploading…" : "Upload New Resume"}
               </label>
               <p className="mt-2 text-xs text-gray-400">PDF up to 2 MB; DOC or DOCX up to 5 MB.</p>
+              {deadlinePassed && (
+                <p className="text-xs text-danger">Applications are closed — the deadline has passed.</p>
+              )}
               <button
                 onClick={handleApply}
-                disabled={applying}
+                disabled={applying || deadlinePassed}
                 className="min-h-[44px] px-8 rounded-xl bg-primary text-white text-sm font-medium hover:bg-primary-hover active:scale-[0.98] transition-all shadow-md disabled:opacity-60"
               >
                 {applying ? "Submitting…" : "Submit Application"}

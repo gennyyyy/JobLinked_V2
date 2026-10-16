@@ -2,8 +2,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 
 vi.mock('../../../shared/services/admin', () => ({
-  listUsers: async () => [],
-  listAllAccreditations: async () => [],
+  listUsers: async () => ({ data: [], total: 0, page: 1, pageSize: 25 }),
+  listAllAccreditations: async () => ({ data: [], total: 0, page: 1, pageSize: 100 }),
   listRoles: async () => [{ id: 7, name: 'HR Officer', base_role: 'employer' }],
   inviteUser: vi.fn(),
   updateUser: vi.fn(),

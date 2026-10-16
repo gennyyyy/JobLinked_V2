@@ -1,4 +1,5 @@
 import PortalLayout from '../../shared/components/PortalLayout'
+import HelpChat from './HelpChat'
 
 const navItems = [
   { to: '/job-seeker', label: 'Dashboard', end: true },
@@ -10,14 +11,17 @@ const navItems = [
 
 export default function JobSeekerLayout() {
   return (
-    <PortalLayout
-      navItems={navItems}
-      badge="SEEKER"
-      eyebrow="PESO · SANTA MARIA"
-      subhead={(user) => user?.name || 'Job Seeker'}
-      profileTo="/job-seeker/profile"
-      roleLabel="Job Seeker"
-      homeTo="/job-seeker"
-    />
+    <>
+      <PortalLayout
+        navItems={navItems}
+        badge="SEEKER"
+        eyebrow="PESO · SANTA MARIA"
+        subhead={(user) => user?.name || 'Job Seeker'}
+        profileTo="/job-seeker/profile"
+        roleLabel="Job Seeker"
+        homeTo="/job-seeker"
+      />
+      <HelpChat />
+    </>
   )
 }

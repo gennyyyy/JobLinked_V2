@@ -11,6 +11,7 @@ vi.mock('../../services/notifications', () => ({
 
 import useAuth from '../../hooks/useAuth'
 import { listNotifications } from '../../services/notifications'
+import { NOTIFICATIONS_CHANGED } from '../../utils/notificationEvents'
 import NotificationBell from '../NotificationBell'
 
 const fixture = [{ id: '1', title: 'Hello', message: 'World', type: 'info', is_read: false, created_at: '2026-01-01' }]
@@ -95,6 +96,18 @@ describe('NotificationBell states', () => {
     await waitFor(() => expect(listNotifications).toHaveBeenCalled())
     const link = await screen.findByRole('link', { name: 'Notifications (12 unread)' })
     expect(link).toHaveTextContent('9+')
+  })
+
+  it('refreshes the badge when a notification change event fires', async () => {
+    useAuth.mockReturnValue({ user: { id: 'u1', role: 'employer' } })
+    listNotifications.mockResolvedValue(fixture)
+    render(<MemoryRouter><NotificationBell /></MemoryRouter>)
+    await screen.findByRole('link', { name: 'Notifications (1 unread)' })
+    listNotifications.mockResolvedValue([{ ...fixture[0], is_read: true }])
+    window.dispatchEvent(new Event(NOTIFICATIONS_CHANGED))
+    await waitFor(() => expect(listNotifications).toHaveBeenCalledTimes(2))
+    const link = await screen.findByRole('link', { name: 'Notifications' })
+    expect(link).toHaveAttribute('href', '/employer/notifications')
   })
 
   it('counts only unread notifications', async () => {

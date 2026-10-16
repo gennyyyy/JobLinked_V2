@@ -1,57 +1,51 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import useAuth from "../../shared/hooks/useAuth";
-import { listEmployerJobs } from "../../shared/services/jobs";
-import { listByCompany } from "../../shared/services/applications";
+import { getEmployerDashboard } from "../../shared/services/applications";
 import { getEmployer } from "../../shared/services/auth";
 import LoadingScreen from "../../shared/components/LoadingScreen";
 import { Briefcase, Layers, Users, TrendingUp } from "lucide-react";
-import { PageHeader, StatCard, SectionCard } from "../../shared/components/dashboard";
+import { PageHeader, StatCard, SectionCard, InlineError } from "../../shared/components/dashboard";
+import { titleCase } from "../../shared/utils/titleCase";
 
 function Dashboard() {
   const { user } = useAuth();
   const [jobs, setJobs] = useState([]);
-  const [applicants, setApplicants] = useState([]);
+  const [summaryStats, setSummaryStats] = useState({});
+  const [recent, setRecent] = useState([]);
   const [company, setCompany] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [today] = useState(() => Date.now());
 
   useEffect(() => {
     if (!user) return;
-    // user.id IS the employers row id — no separate lookup needed
+    // user.id IS the employers row id — the summary endpoint scopes everything to it server-side.
     getEmployer()
       .then((data) => {
         setCompany(data);
-        return Promise.all([listEmployerJobs(user.id), listByCompany(user.id)]);
+        return getEmployerDashboard();
       })
-      .then(([jobList, applicantList]) => {
-        setJobs(jobList);
-        setApplicants(applicantList);
+      .then((summary) => {
+        setJobs(summary.jobs || []);
+        setSummaryStats(summary.stats || {});
+        setRecent(summary.recent || []);
       })
       .catch((err) => setError(err.message || "Failed to load dashboard"))
       .finally(() => setLoading(false));
   }, [user]);
 
   if (loading) return <LoadingScreen />;
-  if (error) return <div className="py-8 text-center text-sm text-danger">{error}</div>;
+  if (error) return <InlineError message={error} />;
 
-  const openPosts = jobs.filter((job) => job.status === "published");
-  const newThisWeek = applicants.filter((app) => {
-    const days = (today - new Date(app.applied_at).getTime()) / 86400000;
-    return days <= 7;
-  }).length;
+  const totalCandidates = summaryStats.total_candidates || 0;
+  const newThisWeek = summaryStats.new_this_week || 0;
 
   const stats = [
-    { label: "Active Listings", value: openPosts.length, highlight: false, icon: <Briefcase size={18} /> },
+    { label: "Active Listings", value: jobs.filter((job) => job.status === "published").length, highlight: false, icon: <Briefcase size={18} /> },
     { label: "Total Jobs", value: jobs.length, highlight: false, icon: <Layers size={18} /> },
-    { label: "Total Candidates", value: applicants.length, highlight: false, icon: <Users size={18} /> },
+    { label: "Total Candidates", value: totalCandidates, highlight: false, icon: <Users size={18} /> },
     { label: "New This Week", value: newThisWeek, highlight: newThisWeek > 0, icon: <TrendingUp size={18} /> },
   ];
-
-  const recentApplicants = [...applicants]
-    .sort((a, b) => new Date(b.applied_at) - new Date(a.applied_at))
-    .slice(0, 5);
 
   return (
     <div className="space-y-6 bg-gray-50">
@@ -69,19 +63,19 @@ function Dashboard() {
 
       <SectionCard title="Recent Candidate Applications" subtitle="Latest job seekers who applied to your verified listings">
 
-        {recentApplicants.length === 0 ? (
+        {recent.length === 0 ? (
           <div className="py-8 text-center text-sm text-gray-500">
             No applicant submissions received yet.{" "}
             <Link to="/employer/job-posts" className="text-primary hover:underline">Post a job →</Link>
           </div>
         ) : (
           <div className="divide-y divide-gray-100">
-            {recentApplicants.map((item) => (
+            {recent.map((item) => (
               <div key={item.id} className="py-4 first:pt-0 last:pb-0 flex items-center justify-between gap-3">
                 <div className="min-w-0">
-                  <p className="text-sm font-medium text-gray-900 truncate uppercase">{item.seeker?.full_name}</p>
+                  <p className="text-sm font-medium text-gray-900 truncate">{titleCase(item.seeker_full_name)}</p>
                   <p className="mt-1 text-xs text-gray-500 truncate">
-                    Applied for <span className="text-gray-600">{item.job?.title}</span>
+                    Applied for <span className="text-gray-600">{item.job_title}</span>
                   </p>
                 </div>
                 <div className="text-right shrink-0">

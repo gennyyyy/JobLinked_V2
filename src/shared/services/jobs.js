@@ -8,8 +8,8 @@ export async function getJob(id) {
   return api.get(`jobs/${id}`);
 }
 
-export async function listEmployerJobs(companyId, { status = null } = {}) {
-  return api.get(`employers/${companyId}/jobs`, { status });
+export async function listEmployerJobs(companyId, { status = null, page = 1, pageSize = 25 } = {}) {
+  return api.get(`employers/${companyId}/jobs`, { status, page, pageSize });
 }
 
 // company_id is taken from the session token server-side, never the body.
@@ -28,4 +28,8 @@ export async function changeJobStatus(id, status, remarks = null) {
 
 export async function duplicateJob(id) {
   return api.post(`jobs/${id}/duplicate`);
+}
+
+export async function deleteJob(id) {
+  return api.del(`jobs/${id}`);
 }

@@ -1,9 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { signUp } from "../../shared/services/auth";
-import { EMPLOYMENT_STATUSES, SANTA_MARIA_BARANGAYS } from "../../shared/constants";
-import { extractResumeText } from "../../shared/lib/resumeText";
+import { EMPLOYMENT_STATUSES, BULACAN_MUNICIPALITIES, SANTA_MARIA_BARANGAYS } from "../../shared/constants";
 import { mapResumeText } from "../../shared/utils/resumeAutofill";
+import { normalizePhone, isValidPhone, withPrefix } from "../../shared/utils/phone";
 import { TagInput } from "../../shared/components/TagInput";
 import TermsModal from "../../shared/components/TermsModal";
 import Logo from "../../assets/TextBased Logo.png";
@@ -27,6 +27,9 @@ const EMPTY_FORM = {
   streetAddress: "",
   subdivisionBuilding: "",
   barangayDistrict: "",
+  cityMunicipality: "",
+  provinceState: "",
+  postalCode: "",
   employmentStatus: "",
   skills: "",
   agree: false,
@@ -47,6 +50,8 @@ function JobSeekerRegister() {
   const [submittedEmail, setSubmittedEmail] = useState("");
   const [busy, setBusy] = useState(false);
   const [termsOpen, setTermsOpen] = useState(false);
+  const [termsRead, setTermsRead] = useState(false);
+  const formRef = useRef(null);
   const navigate = useNavigate();
   useEffect(() => {
     if (submitted && !needsConfirmation) {
@@ -68,13 +73,17 @@ function JobSeekerRegister() {
     if (!values.email?.trim()) e.email = "Email is required";
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email)) e.email = "Invalid email address";
     if (!values.mobileNumber?.trim()) e.mobileNumber = "Mobile number is required";
+    else if (!isValidPhone(values.mobileNumber)) e.mobileNumber = "Enter a valid number (e.g. 917 123 4567)";
     if (!values.birthdate) e.birthdate = "Birthday is required";
     if (!values.streetAddress?.trim()) e.streetAddress = "Street address is required";
-    if (!values.barangayDistrict) e.barangayDistrict = "Barangay is required";
+    if (!values.cityMunicipality?.trim()) e.cityMunicipality = "City / Municipality is required";
+    if (!values.provinceState?.trim()) e.provinceState = "Province is required";
+    if (values.postalCode?.trim() && !/^\d{4}$/.test(values.postalCode.trim())) e.postalCode = "Postal code must be 4 digits";
     if (!values.password) e.password = "Password is required";
     else if (values.password.length < 8) e.password = "Password must be at least 8 characters";
     if (!values.confirmPassword) e.confirmPassword = "Please confirm your password";
     else if (values.password !== values.confirmPassword) e.confirmPassword = "Passwords do not match";
+    if (!values.employmentStatus) e.employmentStatus = "Employment status is required";
     if (!values.agree) e.agree = "You must agree to the terms";
     if (!values.confirmAccurate) e.confirmAccurate = "Please confirm your information is true and correct";
     return e;
@@ -111,6 +120,8 @@ function JobSeekerRegister() {
     }
     setAutofillStatus("Reading your resume…");
     try {
+      // pdfjs + mammoth are ~850 kB: load them only when a resume is picked.
+      const { extractResumeText } = await import("../../shared/lib/resumeText");
       const mapped = mapResumeText(await extractResumeText(file));
       const skills = Array.isArray(mapped.skills) ? mapped.skills : [];
       const filled = {};
@@ -173,6 +184,7 @@ function JobSeekerRegister() {
     if (Object.keys(validationErrors).length > 0 || eduValidationError) {
       setErrors(validationErrors);
       setEduError(eduValidationError);
+      focusFirstError(firstErrorKey(validationErrors, eduValidationError ? "educationLevel" : null));
       return;
     }
     setErrors({});
@@ -189,13 +201,17 @@ function JobSeekerRegister() {
         lastName: form.lastName.trim(),
         suffix: form.suffix?.trim() || "",
         extra: {
-          phone: form.mobileNumber.trim(),
+          phone: normalizePhone(form.mobileNumber),
           birthdate: form.birthdate,
           lot: form.lot.trim(),
           block: form.block.trim(),
           streetAddress: form.streetAddress.trim(),
           subdivisionBuilding: form.subdivisionBuilding?.trim() || "",
-          barangayDistrict: form.barangayDistrict,
+          barangayDistrict: form.barangayDistrict?.trim() || "",
+          cityMunicipality: form.cityMunicipality.trim(),
+          provinceState: form.provinceState.trim(),
+          postalCode: form.postalCode?.trim() || "",
+          country: "Philippines",
           employmentStatus: form.employmentStatus || "",
           skills: form.skills.split(",").map((s) => s.trim()).filter(Boolean),
           education: education.level.trim() && education.school.trim() ? {
@@ -216,8 +232,32 @@ function JobSeekerRegister() {
     }
   }
 
-  const inputClass = "w-full min-h-[44px] px-4 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all";
+  const inputClass = "w-full min-h-[44px] px-4 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 placeholder:text-gray-500 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all";
   const labelClass = "block font-mono text-[11px] tracking-wider text-gray-500 uppercase mb-1.5";
+  const reqMark = <span className="text-danger" aria-hidden="true"> *</span>;
+
+  function focusFirstError(key) {
+    if (!key) return;
+    requestAnimationFrame(() => {
+      const el = document.getElementById(key);
+      if (!el) return;
+      el.style.scrollMarginTop = "";
+      el.scrollIntoView?.({ behavior: "smooth", block: "center" });
+      el.focus({ preventScroll: true });
+    });
+  }
+
+  // First error in visual (DOM) order, so scroll never jumps past an
+  // empty field above to a later one (e.g. birthday skipped for email).
+  function firstErrorKey(errors, fallbackKey) {
+    const formEl = formRef.current;
+    if (formEl) {
+      for (const el of formEl.querySelectorAll("[id]")) {
+        if (errors[el.id]) return el.id;
+      }
+    }
+    return Object.keys(errors)[0] ?? fallbackKey ?? null;
+  }
 
   if (submitted) {
     return (
@@ -225,9 +265,9 @@ function JobSeekerRegister() {
         <header className="sticky top-0 z-20 bg-dark-blue border-b border-white/10">
           <div className="w-full px-4 h-[64px] flex items-center justify-between">
             <div className="bg-white rounded-lg px-3.5 py-1.5 flex items-center shadow-xs">
-              <Link to="/"><img src={Logo} alt="JobLinked" className="h-10" /></Link>
+              <Link to="/"><img src={Logo} alt="JobLinked" width={480} height={160} className="h-10" /></Link>
             </div>
-            <span className="hidden sm:block font-mono text-[11px] text-gray-400">PESO · SANTA MARIA</span>
+            <span className="hidden sm:block font-mono text-[11px] text-gray-500">PESO · SANTA MARIA</span>
           </div>
         </header>
 
@@ -259,16 +299,16 @@ function JobSeekerRegister() {
       <header className="sticky top-0 z-20 bg-dark-blue border-b border-white/10">
         <div className="w-full px-4 h-[64px] flex items-center justify-between">
           <div className="bg-white rounded-lg px-3.5 py-1.5 flex items-center shadow-xs">
-            <Link to="/"><img src={Logo} alt="JobLinked" className="h-10" /></Link>
+            <Link to="/"><img src={Logo} alt="JobLinked" width={480} height={160} className="h-10" /></Link>
           </div>
-          <span className="hidden sm:block font-mono text-[11px] text-gray-400">PESO · SANTA MARIA</span>
+          <span className="hidden sm:block font-mono text-[11px] text-gray-500">PESO · SANTA MARIA</span>
         </div>
       </header>
 
       <main className="flex-1 flex items-center justify-center p-[3%]">
-        <div className="w-full max-w-xl bg-white border border-primary rounded-lg p-6 md:p-9 shadow-xl">
+        <div className="w-full max-w-4xl bg-white border border-primary rounded-lg p-6 md:p-10 shadow-xl">
           <div className="flex items-center justify-between mb-4">
-            <Link to="/register" className="text-xs text-gray-400 hover:text-primary transition-colors">
+            <Link to="/register" className="text-xs text-gray-500 hover:text-primary transition-colors">
               ← Back to roles
             </Link>
             <span className="font-mono text-[10px] tracking-widest uppercase px-2.5 py-1 rounded-full bg-primary/10 border border-primary/25 text-primary font-semibold">
@@ -281,7 +321,10 @@ function JobSeekerRegister() {
             <p className="mt-2 text-sm text-gray-500">Fill in your details to create your verified municipal applicant account</p>
           </header>
 
-          <form onSubmit={handleSubmit} noValidate className="space-y-4">
+          <form ref={formRef} onSubmit={handleSubmit} noValidate className="space-y-6 register-form">
+            <section className="bg-gray-50 border border-primary rounded-lg p-5">
+              <p className="font-mono text-[11px] tracking-[0.2em] text-primary uppercase mb-4 font-semibold">Step 1 — Personal Details</p>
+              <div className="space-y-4">
             <section className="rounded-xl border border-dashed border-primary/40 bg-primary/5 p-4">
               <label htmlFor="resumeAutofill" className={`${labelClass} text-primary`}>Autofill from resume (PDF or DOCX only)</label>
               <input
@@ -291,7 +334,7 @@ function JobSeekerRegister() {
                 onChange={handleResumeChange}
                 className="block w-full text-xs text-gray-500 file:mr-3 file:min-h-[40px] file:px-4 file:rounded-xl file:border-0 file:bg-primary file:text-white file:text-xs file:font-semibold hover:file:bg-primary-hover file:cursor-pointer cursor-pointer"
               />
-              <p className="mt-2 text-xs text-gray-400">PDF up to 2 MB or DOCX up to 5 MB. We'll fill in details below; review and edit them before continuing.</p>
+              <p className="mt-2 text-xs text-gray-500">PDF up to 2 MB or DOCX up to 5 MB. We'll fill in details below; review and edit them before continuing.</p>
               {autofillStatus && (
                 <p role="status" aria-live="polite" className="mt-2 text-xs font-medium text-primary">{autofillStatus}</p>
               )}
@@ -299,27 +342,27 @@ function JobSeekerRegister() {
 
             <div className="grid grid-cols-1 gap-3">
               <div>
-                <label htmlFor="firstName" className={labelClass}>First Name</label>
+                <label htmlFor="firstName" className={labelClass}>First Name{reqMark}</label>
                 <input id="firstName" name="firstName" type="text" placeholder="Juan" value={form.firstName} onChange={(e) => set("firstName", e.target.value)} className={inputClass} />
                 {errors.firstName && <p className="text-danger text-xs mt-1">{errors.firstName}</p>}
               </div>
               <div>
-                <label htmlFor="middleName" className={labelClass}>Middle Name <span className="text-gray-400 font-normal">(optional)</span></label>
+                <label htmlFor="middleName" className={labelClass}>Middle Name <span className="text-gray-500 font-normal">(optional)</span></label>
                 <input id="middleName" name="middleName" type="text" placeholder="Santos" value={form.middleName} onChange={(e) => set("middleName", e.target.value)} className={inputClass} />
               </div>
               <div>
-                <label htmlFor="lastName" className={labelClass}>Last Name</label>
+                <label htmlFor="lastName" className={labelClass}>Last Name{reqMark}</label>
                 <input id="lastName" name="lastName" type="text" placeholder="Dela Cruz" value={form.lastName} onChange={(e) => set("lastName", e.target.value)} className={inputClass} />
                 {errors.lastName && <p className="text-danger text-xs mt-1">{errors.lastName}</p>}
               </div>
             </div>
             <div className="grid grid-cols-1 gap-3">
               <div>
-                <label htmlFor="suffix" className={labelClass}>Suffix <span className="text-gray-400 font-normal">(optional)</span></label>
+                <label htmlFor="suffix" className={labelClass}>Suffix <span className="text-gray-500 font-normal">(optional)</span></label>
                 <input id="suffix" name="suffix" type="text" placeholder="Jr., Sr., III" value={form.suffix} onChange={(e) => set("suffix", e.target.value)} className={inputClass} />
               </div>
               <div>
-                <label htmlFor="birthdate" className={labelClass}>Birthday</label>
+                <label htmlFor="birthdate" className={labelClass}>Birthday{reqMark}</label>
                 <input id="birthdate" name="birthdate" type="date" max={new Date().toISOString().slice(0, 10)} value={form.birthdate} onChange={(e) => set("birthdate", e.target.value)} className={inputClass} />
                 {errors.birthdate && <p className="text-danger text-xs mt-1">{errors.birthdate}</p>}
               </div>
@@ -327,81 +370,115 @@ function JobSeekerRegister() {
 
             <div className="grid grid-cols-1 gap-3">
               <div>
-                <label htmlFor="mobileNumber" className={labelClass}>Mobile Number</label>
-                <input id="mobileNumber" name="mobileNumber" type="tel" placeholder="0917 123 4567" value={form.mobileNumber} onChange={(e) => set("mobileNumber", e.target.value)} className={inputClass} />
+                <label htmlFor="mobileNumber" className={labelClass}>Mobile Number{reqMark}</label>
+                <div className="relative">
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm text-gray-500 select-none">+63</span>
+                  <input id="mobileNumber" name="mobileNumber" type="tel" inputMode="numeric" maxLength={10} placeholder="917 123 4567" value={form.mobileNumber.replace(/^\+63/, "")} onChange={(e) => set("mobileNumber", withPrefix(e.target.value))} onBlur={(e) => set("mobileNumber", normalizePhone(e.target.value))} className={`${inputClass} pl-12`} />
+                </div>
                 {errors.mobileNumber && <p className="text-danger text-xs mt-1">{errors.mobileNumber}</p>}
               </div>
             </div>
 
             <div>
-              <label htmlFor="email" className={labelClass}>Email Address</label>
+              <label htmlFor="email" className={labelClass}>Email Address{reqMark}</label>
               <input id="email" name="email" type="email" placeholder="juan.delacruz@example.com" value={form.email} onChange={(e) => set("email", e.target.value)} className={inputClass} />
               {errors.email && <p className="text-danger text-xs mt-1">{errors.email}</p>}
             </div>
 
             <div className="grid grid-cols-1 gap-3">
               <div>
-                <label htmlFor="password" className={labelClass}>Password</label>
+                <label htmlFor="password" className={labelClass}>Password{reqMark}</label>
                 <input id="password" name="password" type="password" placeholder="Min. 8 characters" value={form.password} onChange={(e) => set("password", e.target.value)} className={inputClass} />
                 {errors.password && <p className="text-danger text-xs mt-1">{errors.password}</p>}
               </div>
               <div>
-                <label htmlFor="confirmPassword" className={labelClass}>Confirm Password</label>
+                <label htmlFor="confirmPassword" className={labelClass}>Confirm Password{reqMark}</label>
                 <input id="confirmPassword" name="confirmPassword" type="password" placeholder="Re-enter password" value={form.confirmPassword} onChange={(e) => set("confirmPassword", e.target.value)} className={inputClass} />
                 {errors.confirmPassword && <p className="text-danger text-xs mt-1">{errors.confirmPassword}</p>}
               </div>
             </div>
 
             <div>
-              <label htmlFor="employmentStatus" className={labelClass}>Employment Status <span className="text-gray-400 font-normal">(optional)</span></label>
+              <label htmlFor="employmentStatus" className={labelClass}>Employment Status{reqMark}</label>
               <select id="employmentStatus" name="employmentStatus" value={form.employmentStatus} onChange={(e) => set("employmentStatus", e.target.value)} className={inputClass}>
                 <option value="">Select status</option>
                 {EMPLOYMENT_STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
               </select>
+              {errors.employmentStatus && <p className="text-danger text-xs mt-1">{errors.employmentStatus}</p>}
             </div>
+              </div>
+            </section>
 
-            <section className="border-t border-gray-100 pt-4">
-              <p className="font-mono text-[11px] tracking-[0.2em] text-primary uppercase mb-4 font-semibold">Address Information</p>
+            <section className="bg-gray-50 border border-primary rounded-lg p-5">
+              <p className="font-mono text-[11px] tracking-[0.2em] text-primary uppercase mb-4 font-semibold">Step 2 — Address Information</p>
+              <div className="space-y-4">
               <div className="grid grid-cols-1 gap-3">
                 <div>
-                  <label htmlFor="block" className={labelClass}>Block <span className="text-gray-400 font-normal">(optional)</span></label>
-                  <input id="block" name="block" type="text" placeholder="e.g. 4" value={form.block} onChange={(e) => set("block", e.target.value)} className={inputClass} />
-                </div>
-                <div>
-                  <label htmlFor="lot" className={labelClass}>Lot <span className="text-gray-400 font-normal">(optional)</span></label>
+                  <label htmlFor="lot" className={labelClass}>Lot <span className="text-gray-500 font-normal">(optional)</span></label>
                   <input id="lot" name="lot" type="text" placeholder="e.g. 12" value={form.lot} onChange={(e) => set("lot", e.target.value)} className={inputClass} />
                 </div>
                 <div>
-                  <label htmlFor="streetAddress" className={labelClass}>Street Address</label>
+                  <label htmlFor="block" className={labelClass}>Block <span className="text-gray-500 font-normal">(optional)</span></label>
+                  <input id="block" name="block" type="text" placeholder="e.g. 4" value={form.block} onChange={(e) => set("block", e.target.value)} className={inputClass} />
+                </div>
+                <div>
+                  <label htmlFor="streetAddress" className={labelClass}>Street Address{reqMark}</label>
                   <input id="streetAddress" name="streetAddress" type="text" placeholder="e.g. Norzagaray-Santa Maria Road" value={form.streetAddress} onChange={(e) => set("streetAddress", e.target.value)} className={inputClass} />
                   {errors.streetAddress && <p className="text-danger text-xs mt-1">{errors.streetAddress}</p>}
                 </div>
                 <div>
-                  <label htmlFor="subdivisionBuilding" className={labelClass}>Subdivision / Village / Building Name <span className="text-gray-400 font-normal">(optional)</span></label>
+                  <label htmlFor="subdivisionBuilding" className={labelClass}>Subdivision / Village / Building Name <span className="text-gray-500 font-normal">(optional)</span></label>
                   <input id="subdivisionBuilding" name="subdivisionBuilding" type="text" placeholder="e.g. Greenview Heights" value={form.subdivisionBuilding} onChange={(e) => set("subdivisionBuilding", e.target.value)} className={inputClass} />
                 </div>
                 <div>
-                  <label htmlFor="barangayDistrict" className={labelClass}>Barangay / District</label>
+                  <label htmlFor="barangayDistrict" className={labelClass}>Barangay / District <span className="text-gray-500 font-normal">(optional)</span></label>
                   <select id="barangayDistrict" name="barangayDistrict" value={form.barangayDistrict} onChange={(e) => set("barangayDistrict", e.target.value)} className={inputClass}>
                     <option value="">Select barangay</option>
-                    {SANTA_MARIA_BARANGAYS.map((barangay) => <option key={barangay} value={barangay}>{barangay}</option>)}
+                    {form.barangayDistrict && !SANTA_MARIA_BARANGAYS.includes(form.barangayDistrict) && (
+                      <option value={form.barangayDistrict}>{form.barangayDistrict}</option>
+                    )}
+                    {SANTA_MARIA_BARANGAYS.map((b) => <option key={b} value={b}>{b}</option>)}
                   </select>
-                  {errors.barangayDistrict && <p className="text-danger text-xs mt-1">{errors.barangayDistrict}</p>}
                 </div>
+                <div>
+                  <label htmlFor="cityMunicipality" className={labelClass}>City / Municipality{reqMark}</label>
+                  <select id="cityMunicipality" name="cityMunicipality" value={form.cityMunicipality} onChange={(e) => set("cityMunicipality", e.target.value)} className={inputClass}>
+                    <option value="">Select city / municipality</option>
+                    {BULACAN_MUNICIPALITIES.map((m) => <option key={m} value={m}>{m}</option>)}
+                  </select>
+                  {errors.cityMunicipality && <p className="text-danger text-xs mt-1">{errors.cityMunicipality}</p>}
+                </div>
+                <div>
+                  <label htmlFor="provinceState" className={labelClass}>Province / State{reqMark}</label>
+                  <select id="provinceState" name="provinceState" value={form.provinceState} onChange={(e) => set("provinceState", e.target.value)} className={inputClass}>
+                    <option value="">Select province</option>
+                    <option value="Bulacan">Bulacan</option>
+                  </select>
+                  {errors.provinceState && <p className="text-danger text-xs mt-1">{errors.provinceState}</p>}
+                </div>
+                <div>
+                  <label htmlFor="postalCode" className={labelClass}>Postal Code <span className="text-gray-500 font-normal">(optional)</span></label>
+                  <input id="postalCode" name="postalCode" type="text" inputMode="numeric" maxLength={4} placeholder="e.g. 3022" value={form.postalCode} onChange={(e) => set("postalCode", e.target.value)} className={inputClass} />
+                  {errors.postalCode && <p className="text-danger text-xs mt-1">{errors.postalCode}</p>}
+                </div>
+              </div>
               </div>
             </section>
 
-            <section className="border-t border-gray-100 pt-4">
+            <section className="bg-gray-50 border border-primary rounded-lg p-5">
+              <p className="font-mono text-[11px] tracking-[0.2em] text-primary uppercase mb-4 font-semibold">Step 3 — Background & Consent</p>
+              <div className="space-y-4">
+              <div>
               <p className="font-mono text-[11px] tracking-[0.2em] text-primary uppercase mb-4 font-semibold">Education History</p>
               <div className="grid grid-cols-1 gap-3">
-                <select aria-label="Education level" value={education.level} onChange={(e) => setEducation({ ...education, level: e.target.value })} className="px-4 py-2.5 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 focus:outline-none focus:border-primary/60 transition-all">
+                <select aria-label="Education level" id="educationLevel" value={education.level} onChange={(e) => setEducation({ ...education, level: e.target.value })} className="px-4 py-2.5 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 focus:outline-none focus:border-primary/60 transition-all">
                   <option value="">Education level</option>
                   {EDUCATION_LEVELS.map((l) => <option key={l} value={l}>{l}</option>)}
                 </select>
-                <input placeholder="School name" value={education.school} onChange={(e) => setEducation({ ...education, school: e.target.value })} className="px-4 py-2.5 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-primary/60 transition-all" />
+                <input aria-label="School name" placeholder="School name" value={education.school} onChange={(e) => setEducation({ ...education, school: e.target.value })} className="px-4 py-2.5 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 placeholder:text-gray-500 focus:outline-none focus:border-primary/60 transition-all" />
                 <div className="flex gap-2">
-                  <input placeholder="Course / field" value={education.field} onChange={(e) => setEducation({ ...education, field: e.target.value })} className="flex-1 px-4 py-2.5 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-primary/60 transition-all" />
-                  <input placeholder="Year" inputMode="numeric" disabled={education.studying} value={education.year} onChange={(e) => setEducation({ ...education, year: e.target.value })} className="w-20 px-3 py-2.5 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-primary/60 transition-all disabled:opacity-50" />
+                  <input aria-label="Course / field of study" placeholder="Course / field" value={education.field} onChange={(e) => setEducation({ ...education, field: e.target.value })} className="flex-1 px-4 py-2.5 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 placeholder:text-gray-500 focus:outline-none focus:border-primary/60 transition-all" />
+                  <input aria-label="Graduation year" placeholder="Year" inputMode="numeric" disabled={education.studying} value={education.year} onChange={(e) => setEducation({ ...education, year: e.target.value })} className="w-20 px-3 py-2.5 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 placeholder:text-gray-500 focus:outline-none focus:border-primary/60 transition-all disabled:opacity-50" />
                 </div>
               </div>
               <label className="mt-2 flex items-center gap-2 text-xs text-gray-500 select-none cursor-pointer">
@@ -409,46 +486,53 @@ function JobSeekerRegister() {
                 Currently studying here
               </label>
               {eduError && <p className="mt-2 text-xs text-danger">{eduError}</p>}
-            </section>
+              </div>
 
-            <section className="border-t border-gray-100 pt-4">
-              <label htmlFor="skills" className={labelClass}>Skills <span className="text-gray-400 font-normal">(optional)</span></label>
+              <div>
+              <label htmlFor="skills" className={labelClass}>Skills <span className="text-gray-500 font-normal">(optional)</span></label>
               <TagInput id="skills" value={form.skills} onChange={(v) => set("skills", v)} placeholder="Type a skill and press Enter" />
-            </section>
+              </div>
 
-            <section className="border-t border-gray-100 pt-4">
+              <div>
               <div className="space-y-3">
+                <div>
                 <div className="flex items-start gap-2.5 text-xs text-gray-500 pt-2">
-                  <input id="agree" type="checkbox" name="agree" checked={form.agree} onChange={(e) => set("agree", e.target.checked)} className="mt-0.5 accent-primary shrink-0" />
+                  <input id="agree" type="checkbox" name="agree" checked={form.agree} disabled={!termsRead} onChange={(e) => set("agree", e.target.checked)} className="mt-0.5 accent-primary shrink-0 disabled:opacity-50 disabled:cursor-not-allowed" />
                   <div>
-                    <label htmlFor="agree" className="cursor-pointer">I agree to the municipal data collection terms and PESO privacy policies.</label>
+                    <label htmlFor="agree" className={!termsRead ? "cursor-not-allowed opacity-70" : "cursor-pointer"}>I agree to the municipal data collection terms and PESO privacy policies.{reqMark}</label>
                     <button type="button" onClick={() => setTermsOpen(true)} className="ml-1 whitespace-nowrap text-primary hover:underline underline-offset-4">View terms</button>
+                    {!termsRead && <p className="mt-1 text-gray-500">Please open and read the terms before agreeing.</p>}
                   </div>
                 </div>
                 {errors.agree && <p className="text-danger text-xs mt-1">{errors.agree}</p>}
+                </div>
 
+                <div>
                 <label className="flex items-start gap-2.5 text-xs text-gray-500 select-none cursor-pointer">
-                  <input type="checkbox" name="confirmAccurate" checked={form.confirmAccurate} onChange={(e) => set("confirmAccurate", e.target.checked)} className="mt-0.5 accent-primary" />
-                  <span>I confirm that all the information I provided is true and correct to the best of my knowledge.</span>
+                  <input type="checkbox" id="confirmAccurate" name="confirmAccurate" checked={form.confirmAccurate} onChange={(e) => set("confirmAccurate", e.target.checked)} className="mt-0.5 accent-primary" />
+                  <span>I confirm that all the information I provided is true and correct to the best of my knowledge.{reqMark}</span>
                 </label>
                 {errors.confirmAccurate && <p className="text-danger text-xs mt-1">{errors.confirmAccurate}</p>}
+                </div>
+              </div>
+              </div>
               </div>
             </section>
 
             {error && (
-              <div className="p-3.5 rounded-xl bg-danger/10 border border-danger/20 text-danger text-xs font-medium">{error}</div>
+              <div role="alert" className="p-3.5 rounded-xl bg-danger/10 border border-danger/20 text-danger text-xs font-medium">{error}</div>
             )}
 
             <button
               type="submit"
               disabled={busy}
-              className="w-full mt-6 min-h-[44px] px-6 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-primary-hover active:scale-[0.98] transition-all shadow-md disabled:opacity-60"
+              className="w-full min-h-[44px] px-6 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-primary-hover active:scale-[0.98] transition-all shadow-md disabled:opacity-60"
             >
               {busy ? "Creating account…" : "Create Account"}
             </button>
           </form>
 
-          <p className="mt-7 text-center text-xs text-gray-400">
+          <p className="mt-8 text-center text-xs text-gray-500">
             Already registered?{" "}
             <Link to="/job-seeker/login" className="text-primary hover:underline underline-offset-4 font-medium">
               Log in here
@@ -466,7 +550,7 @@ function JobSeekerRegister() {
           <span className="text-white/50">© 2026</span>
         </div>
       </footer>
-      <TermsModal open={termsOpen} onClose={() => setTermsOpen(false)} />
+      <TermsModal open={termsOpen} onClose={() => setTermsOpen(false)} onRead={() => setTermsRead(true)} />
     </div>
   );
 }

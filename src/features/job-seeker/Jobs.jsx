@@ -12,19 +12,20 @@ import {
   ChevronLeft,
   ChevronRight,
   SearchX,
-  CircleAlert,
 } from "lucide-react";
 import { listJobs } from "../../shared/services/jobs";
 import useAuth from "../../shared/hooks/useAuth";
 import { SANTA_MARIA_BARANGAYS } from "../../shared/constants";
 import AiMatchModal from "./AiMatchModal";
-import LoadingScreen from "../../shared/components/LoadingScreen";
-import { StatCard } from "../../shared/components/dashboard";
+import { PageHeader, StatCard, InlineError } from "../../shared/components/dashboard";
 import { TagInput } from "../../shared/components/TagInput";
+import useDialog from "../../shared/hooks/useDialog";
+import { titleCase } from "../../shared/utils/titleCase";
 
 function Jobs() {
   const { user } = useAuth();
-  const [search, setSearch] = useState("");
+  const [keyword, setKeyword] = useState("");
+  const [query, setQuery] = useState("");
   const [location, setLocation] = useState("");
   const [employmentType, setEmploymentType] = useState("");
   const [workArrangement, setWorkArrangement] = useState("");
@@ -47,7 +48,10 @@ function Jobs() {
     if (!user || profileSkillsInitialized.current) return;
     profileSkillsInitialized.current = true;
     const profileSkills = Array.isArray(user.skills) ? user.skills.join(", ") : "";
-    if (profileSkills) setSkills(profileSkills);
+    if (profileSkills) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- one-time sync of async profile value into local filter state
+      setSkills(profileSkills);
+    }
   }, [user]);
 
   useEffect(() => {
@@ -56,7 +60,7 @@ function Jobs() {
       setLoading(true);
       setError("");
       try {
-        const result = await listJobs({ search, location, employmentType, workArrangement, employer, skills, salaryMin: salaryMin ? Number(salaryMin) : null, order, page, pageSize });
+        const result = await listJobs({ search: query, location, employmentType, workArrangement, employer, skills, salaryMin: salaryMin ? Number(salaryMin) : null, order, page, pageSize });
         if (!cancelled) { setJobs(result.jobs); setTotal(result.total); }
       } catch (err) {
         if (!cancelled) setError(err.message || "Failed to load jobs");
@@ -66,7 +70,13 @@ function Jobs() {
     }
     fetchJobs();
     return () => { cancelled = true; };
-  }, [search, location, employmentType, workArrangement, employer, skills, salaryMin, order, page]);
+  }, [query, location, employmentType, workArrangement, employer, skills, salaryMin, order, page]);
+
+  // Fetch from the debounced copy of the keyword so each keystroke doesn't hit the API.
+  useEffect(() => {
+    const t = setTimeout(() => setQuery(keyword), 350);
+    return () => clearTimeout(t);
+  }, [keyword]);
 
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
   // Always offer every Santa Maria barangay, even when the current page of
@@ -81,8 +91,15 @@ function Jobs() {
     [jobs]
   );
 
+  // The jobs API returns a total but no per-barangay count, so any barangay
+  // figure below is scoped to the page actually rendered — label it that way.
+  const barangaysOnPage = useMemo(
+    () => new Set(jobs.map((j) => j.location).filter(Boolean)).size,
+    [jobs]
+  );
+
   const hasActiveFilters =
-    search.trim() !== "" ||
+    keyword.trim() !== "" ||
     location !== "" ||
     employmentType !== "" ||
     workArrangement !== "" ||
@@ -93,7 +110,7 @@ function Jobs() {
   const activeFilterCount = [location, employmentType, workArrangement, employer.trim(), skills.trim(), salaryMin].filter(Boolean).length;
 
   function resetFilters() {
-    setSearch(""); setLocation(""); setEmploymentType(""); setWorkArrangement(""); setEmployer(""); setSkills(""); setSalaryMin(""); setOrder("created_at.desc"); setPage(1);
+    setKeyword(""); setLocation(""); setEmploymentType(""); setWorkArrangement(""); setEmployer(""); setSkills(""); setSalaryMin(""); setOrder("created_at.desc"); setPage(1);
   }
 
   function openFilters() {
@@ -118,29 +135,24 @@ function Jobs() {
   }
 
   const inputClass =
-    "min-h-[44px] px-4 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-primary focus:bg-white transition-all w-full";
+    "min-h-[44px] px-4 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 placeholder:text-gray-500 focus:outline-none focus:border-primary focus:bg-white transition-all w-full";
+
+  const filtersRef = useDialog(() => setFiltersOpen(false), filtersOpen && Boolean(filterDraft));
 
   return (
     <div className="space-y-6 pb-12">
-      {/* Header Section */}
-      <header className="rounded-lg bg-dark-blue p-5 md:p-6 text-white flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <p className="font-mono text-[11px] tracking-[0.2em] uppercase text-accent">OPPORTUNITIES IN SANTA MARIA</p>
-          <h1 className="mt-1 font-sans text-xl md:text-2xl font-bold tracking-tight">
-            Browse Verified Openings
-          </h1>
-          <p className="mt-2 text-sm text-white/80 max-w-2xl">
-            {total} active position{total === 1 ? "" : "s"} available across 24 barangays
-          </p>
-        </div>
-      </header>
+      <PageHeader
+        eyebrow="OPPORTUNITIES IN SANTA MARIA"
+        title="Browse Verified Openings"
+        subtitle={<>{total} active position{total === 1 ? "" : "s"} available in Santa Maria</>}
+      />
 
       {/* Metric Counters Bar */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full">
         {[
           { label: "Openings", count: total, icon: Briefcase },
-          { label: "Barangays Listed", count: locations.length, icon: MapPin },
-          { label: "Full-time On This Page", count: fullTimeCount, icon: Clock },
+          { label: "Barangays on This Page", count: barangaysOnPage, icon: MapPin },
+          { label: "Full-time on This Page", count: fullTimeCount, icon: Clock },
         ].map((c) => {
           const MetricIcon = c.icon;
           return <StatCard key={c.label} label={c.label} value={c.count} icon={<MetricIcon className="w-4 h-4" />} />;
@@ -162,13 +174,14 @@ function Jobs() {
               <span className="text-xs font-bold tracking-wide">AI</span>
             </button>
             <div className="relative min-w-0 flex-1">
-              <Search className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <Search className="w-4 h-4 text-gray-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
-                value={search}
-                onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+                aria-label="Search jobs by title"
+                value={keyword}
+                onChange={(e) => { setKeyword(e.target.value); setPage(1); }}
                 placeholder="Search by job title..."
-                className="w-full min-h-[44px] pl-10 pr-4 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-primary focus:bg-white transition-all"
+                className="w-full min-h-[44px] pl-10 pr-4 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 placeholder:text-gray-500 focus:outline-none focus:border-primary focus:bg-white transition-all"
               />
             </div>
             <button
@@ -186,17 +199,12 @@ function Jobs() {
         </form>
 
       {loading ? (
-        <LoadingScreen />
-      ) : error ? (
-        <div className="bg-white border border-rose-100 rounded-2xl p-5 flex items-start gap-3 shadow-[0_2px_16px_-8px_rgba(16,24,40,0.08)]">
-          <div className="shrink-0 mt-0.5 w-8 h-8 rounded-lg bg-rose-50 border border-rose-100 flex items-center justify-center">
-            <CircleAlert className="w-4 h-4 text-rose-500" strokeWidth={2} />
-          </div>
-          <div className="min-w-0">
-            <p className="text-sm font-semibold text-gray-900">Couldn't load openings</p>
-            <p className="text-sm text-rose-600 mt-0.5">{error}</p>
-          </div>
+        <div className="flex min-h-[320px] items-center justify-center gap-3 text-sm text-gray-500">
+          <span className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" aria-hidden="true" />
+          Loading jobs…
         </div>
+      ) : error ? (
+        <InlineError message={error} />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {jobs.map((job) => (
@@ -217,7 +225,7 @@ function Jobs() {
                       {job.title}
                     </Link>
                     <p className="text-xs text-gray-500 mt-0.5 line-clamp-1">
-                      <span className="uppercase">{job.employers?.company_name || "Accredited Employer"}</span>
+                      <span>{titleCase(job.employers?.company_name || "Accredited Employer")}</span>
                     </p>
                   </div>
                 </div>
@@ -243,7 +251,7 @@ function Jobs() {
                 </span>
               </div>
               <div className="flex items-center justify-between gap-3 pt-4 mt-4 border-t border-gray-100">
-                <span className="font-mono text-[10px] tracking-widest text-gray-400 uppercase">
+                <span className="font-mono text-[10px] tracking-widest text-gray-500 uppercase">
                   {job.vacancies ?? 1} slot{(job.vacancies ?? 1) === 1 ? "" : "s"}
                 </span>
                 <Link
@@ -313,6 +321,7 @@ function Jobs() {
           onMouseDown={(event) => { if (event.target === event.currentTarget) setFiltersOpen(false); }}
         >
           <section
+            ref={filtersRef}
             role="dialog"
             aria-modal="true"
             aria-labelledby="job-filters-title"
@@ -327,7 +336,7 @@ function Jobs() {
                 type="button"
                 onClick={() => setFiltersOpen(false)}
                 aria-label="Close filters"
-                className="grid place-items-center w-9 h-9 rounded-lg text-gray-400 hover:text-gray-900 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-primary/30"
+                className="grid place-items-center w-9 h-9 rounded-lg text-gray-500 hover:text-gray-900 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-primary/30"
               >
                 <X className="w-4 h-4" />
               </button>

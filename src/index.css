@@ -43,6 +43,14 @@
   box-shadow: 0 0 0 2px rgba(0, 87, 184, 0.15);
 }
 
+/* Empty required registration fields: highlight the box whose inline error is showing. Clears itself when the error does. */
+.register-form div:has(> p.text-danger.text-xs) :is(input, select) {
+  border-color: var(--color-danger);
+  background-color: var(--color-danger-subtle);
+  box-shadow: 0 0 0 1px var(--color-danger);
+  accent-color: var(--color-danger);
+}
+
 @media print {
   nav, aside, header button, .no-print {
     display: none !important;
@@ -58,4 +66,18 @@
     box-shadow: none !important;
   }
 
+}
+
+/* WCAG 2.3.4 / 1.4.10 — honour the OS "reduce motion" setting. All motion in
+   the app is decorative (CSS transitions + animate-spin/pulse/fadeIn), so a
+   single global clamp disables it without touching any component. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

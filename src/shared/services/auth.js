@@ -34,8 +34,44 @@ export async function provision(payload) {
 
 export async function updateProfile(userId, patch) {
   const me = await api.get('auth/me');
-  if (me.role === 'super-admin') return api.patch(`admin/users/${userId}`, patch);
-  return api.patch(me.role === 'employer' ? 'employers/me' : 'seekers/me', patch);
+  const path = me.role === 'super-admin'
+    ? `admin/users/${userId}`
+    : me.role === 'employer' ? 'employers/me' : 'seekers/me';
+  try {
+    return await api.patch(path, patch);
+  } catch (error) {
+    // A response can fail after the database has committed the update. Verify
+    // the requested values before reporting failure to the profile form — but
+    // only for a lost response (5xx / unreachable). A 4xx is a refusal the
+    // server made *before* writing (400 "Nothing to update", 403, 409), so
+    // nothing was committed and a matching re-read must not be reported as
+    // success; an empty patch has nothing to confirm either.
+    const refused = error?.status >= 400 && error?.status < 500;
+    if (!refused && Object.keys(patch || {}).length) {
+      try {
+        const saved = me.role === 'super-admin'
+          ? await api.get('auth/me')
+          : await api.get(path);
+        const matches = Object.entries(patch).every(([key, value]) => {
+          const actual = saved?.[key];
+          if (Array.isArray(value)) {
+            return Array.isArray(actual)
+              && actual.length === value.length
+              && actual.every((item, index) => String(item).trim().toLowerCase() === String(value[index]).trim().toLowerCase());
+          }
+          if (value == null || value === '') return actual == null || actual === '';
+          if (typeof value === 'string' && typeof actual === 'string') {
+            return actual.trim().toLowerCase() === value.trim().toLowerCase();
+          }
+          return actual === value;
+        });
+        if (matches) return saved;
+      } catch {
+        // Keep the original update error when confirmation is unavailable.
+      }
+    }
+    throw error;
+  }
 }
 
 export async function signIn(email, password) {
@@ -89,7 +125,6 @@ export async function signUp({ email, password, role, firstName, middleName = ''
     } : null,
     company_name: lower(extra.companyName) || null,
     industry: extra.industry || null,
-    company_phone: extra.companyPhone || null,
     company_email: extra.companyEmail || null,
     representative_email: extra.representativeEmail || null,
     representative_position: extra.representativePosition || null,

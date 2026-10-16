@@ -16,6 +16,10 @@ export async function listByCompany(companyId) {
   return api.get(`applications/company/${companyId}`);
 }
 
+export async function getEmployerDashboard() {
+  return api.get('applications/employers/me/dashboard');
+}
+
 export async function updateApplicationStatus(id, status, { remarks = null, employerNotes = null, interviewAt = null, interviewInstructions = null } = {}) {
   return api.post(`applications/${id}/status`, { status, remarks, employerNotes, interviewAt, interviewInstructions });
 }

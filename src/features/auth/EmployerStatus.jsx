@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import Logo from "../../assets/TextBased Logo.png";
 import { getEmployer } from "../../shared/services/auth";import LoadingScreen from "../../shared/components/LoadingScreen";
+import { titleCase } from "../../shared/utils/titleCase";
 import useAuth from "../../shared/hooks/useAuth";
 
 function StatusNode({ done, rejected, label, sub }) {
@@ -19,7 +20,7 @@ function StatusNode({ done, rejected, label, sub }) {
         )}
       </div>
       <div>
-        <p className={`text-sm font-medium ${done ? "text-gray-900" : "text-gray-400"}`}>{label}</p>
+        <p className={`text-sm font-medium ${done ? "text-gray-900" : "text-gray-500"}`}>{label}</p>
         {sub && <div className="mt-1">{sub}</div>}
       </div>
     </li>
@@ -46,7 +47,7 @@ function EmployerStatus() {
 
   const headerLogo = (
     <div className="bg-white rounded-lg px-3.5 py-1.5 flex items-center shadow-xs">
-      <Link to="/"><img src={Logo} alt="JobLinked" className="h-10" /></Link>
+      <Link to="/"><img src={Logo} alt="JobLinked" width={480} height={160} className="h-10" /></Link>
     </div>
   );
 
@@ -106,7 +107,7 @@ function EmployerStatus() {
           <div className="flex items-start justify-between gap-3 pb-6 border-b border-gray-100">
             <div>
               <span className="font-mono text-[10px] tracking-widest uppercase text-primary font-semibold">ACCREDITATION STATUS</span>
-              <h1 className="mt-1 text-2xl font-bold text-dark-blue uppercase">{employer.company_name}</h1>
+              <h1 className="mt-1 text-2xl font-bold text-dark-blue">{titleCase(employer.company_name)}</h1>
             </div>
             <span className={`shrink-0 font-mono text-[11px] tracking-wider px-3 py-1 rounded-full uppercase border font-semibold ${
               isApproved ? "bg-emerald-50 border-emerald-200 text-emerald-600"
@@ -119,8 +120,8 @@ function EmployerStatus() {
 
           <ol className="mt-7 relative">
             <span className="absolute left-[9px] top-3 bottom-4 w-px bg-gray-200" aria-hidden="true" />
-            <StatusNode done label="Application Submitted" sub={<p className="text-xs text-gray-400">Credentials and documents successfully received.</p>} />
-            <StatusNode done label="Under PESO Review" sub={<p className="text-xs text-gray-400">Santa Maria PESO officers are evaluating business credentials and permit compliance.</p>} />
+            <StatusNode done label="Application Submitted" sub={<p className="text-xs text-gray-500">Credentials and documents successfully received.</p>} />
+            <StatusNode done label="Under PESO Review" sub={<p className="text-xs text-gray-500">Santa Maria PESO officers are evaluating business credentials and permit compliance.</p>} />
             {!isRejected && !isRevoked && (
               <StatusNode done={isApproved} label="Municipal Accreditation Approved" sub={isApproved ? <p className="text-xs text-emerald-600">Accreditation granted. Your employer portal is active and you can now post verified job openings.</p> : undefined} />
             )}
@@ -140,7 +141,7 @@ function EmployerStatus() {
                 Re-submit Documents
               </Link>
             )}
-            <Link to="/" className="text-center text-xs text-gray-400 hover:text-primary transition-colors">Back to Home</Link>
+            <Link to="/" className="text-center text-xs text-gray-500 hover:text-primary transition-colors">Back to Home</Link>
           </div>
         </div>
       </main>

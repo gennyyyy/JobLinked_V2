@@ -4,6 +4,7 @@ import { listAllJobs, editJob, publishJob, unpublishJob } from "../../shared/ser
 import { changeJobStatus } from "../../shared/services/jobs";
 import ConfirmationModal from "../../shared/components/ConfirmationModal";
 import LoadingScreen from "../../shared/components/LoadingScreen";
+import { Pager } from "../../shared/components/dashboard";
 
 // Minimal admin edit modal (prefill → PATCH admin/jobs/:id). The employer
 // JobForm lives inside the employer page and can't be imported without
@@ -40,7 +41,7 @@ function EditModal({ job, onClose, onSaved }) {
     }
   }
 
-  const inputClass = "w-full min-h-[38px] px-3.5 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all";
+  const inputClass = "w-full min-h-[38px] px-3.5 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-800 placeholder:text-gray-500 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all";
 
   return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
@@ -86,6 +87,9 @@ function EditModal({ job, onClose, onSaved }) {
 
 function JobPosts() {
   const [jobs, setJobs] = useState([]);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(0);
+  const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -94,12 +98,13 @@ function JobPosts() {
   const [editing, setEditing] = useState(null);
   const [actionError, setActionError] = useState("");
 
+  // Jobs arrive as the { data, total, page, pageSize } envelope (C2).
   useEffect(() => {
-    listAllJobs()
-      .then(setJobs)
+    listAllJobs({ page })
+      .then((res) => { setJobs(res.data); setTotal(res.total); setPageSize(res.pageSize); })
       .catch((err) => setError(err.message || "Failed to load jobs"))
       .finally(() => setLoading(false));
-  }, []);
+  }, [page]);
 
   if (loading) return <LoadingScreen />;
   if (error) return <div className="py-8 text-center text-sm text-danger">{error}</div>;
@@ -193,10 +198,10 @@ function JobPosts() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search by title or company…"
-              className="w-full min-h-[38px] px-3.5 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all"
+              className="w-full min-h-[38px] px-3.5 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-800 placeholder:text-gray-500 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all"
             />
           </div>
-          <span className="self-center ml-auto text-xs text-gray-400 font-medium whitespace-nowrap">{filtered.length} records</span>
+          <span className="self-center ml-auto text-xs text-gray-500 font-medium whitespace-nowrap">{filtered.length} records</span>
         </div>
 
         {/* Table */}
@@ -210,7 +215,7 @@ function JobPosts() {
               <col style={{ width: "110px" }} />
             </colgroup>
             <thead>
-              <tr className="border-b border-gray-200 font-mono text-[10px] tracking-widest text-gray-400 uppercase">
+              <tr className="border-b border-gray-200 font-mono text-[10px] tracking-widest text-gray-500 uppercase">
                 <th className="text-left py-3 pl-5 pr-3 font-medium">Job Title</th>
                 <th className="text-left py-3 px-3 font-medium">Company</th>
                 <th className="text-left py-3 px-3 font-medium">Location</th>
@@ -221,7 +226,7 @@ function JobPosts() {
             <tbody>
               {filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="py-8 text-center text-sm text-gray-400">No job posts found.</td>
+                  <td colSpan={5} className="py-8 text-center text-sm text-gray-500">No job posts found.</td>
                 </tr>
               ) : filtered.map((post) => (
                 <tr key={post.id} className="border-t border-gray-100 hover:bg-gray-50/60 transition-colors">
@@ -250,6 +255,8 @@ function JobPosts() {
           </table>
         </div>
       </section>
+
+      <Pager page={page} pageSize={pageSize} total={total} onChange={setPage} />
 
       {editing && (
         <EditModal

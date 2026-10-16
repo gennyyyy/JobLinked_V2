@@ -1,7 +1,8 @@
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import useDialog from "../hooks/useDialog";
 
-export const TERMS_PLACEHOLDER = `JOBLINKED EMPLOYEE / JOB SEEKER SIGN-UP
+const TERMS_PLACEHOLDER = `JOBLINKED EMPLOYEE / JOB SEEKER SIGN-UP
 Municipal Data Collection Terms and PESO Privacy Policy
 JobLinked collects and processes information you provide to create your account and support job matching, employment applications, and application tracking through the Public Employment Service Office (PESO).
 
@@ -43,18 +44,32 @@ Information will be processed in accordance with Republic Act No. 10173, or the 
 Processing required for government functions or legal obligations will be identified accordingly. Specific consent will be requested where consent is the applicable legal basis.
 Material policy changes will be communicated through JobLinked. New purposes requiring consent will be presented separately.`;
 
-function TermsModal({ open, onClose, title = "Data Collection Terms & Privacy Policy", body = TERMS_PLACEHOLDER }) {
-  const closeRef = useRef(null);
+function TermsModal({ open, onClose, onRead, title = "Data Collection Terms & Privacy Policy", body = TERMS_PLACEHOLDER }) {
+  const bodyRef = useRef(null);
+  const readRef = useRef(false);
+  const [read, setRead] = useState(false);
+
+  const markRead = useCallback(() => {
+    if (readRef.current) return;
+    readRef.current = true;
+    setRead(true);
+    onRead?.();
+  }, [onRead]);
+
+  // Read = scrolled to the bottom (24px grace). Short content that
+  // doesn't scroll counts as read as soon as it's shown.
+  function handleScroll(e) {
+    const el = e.currentTarget;
+    if (el.scrollHeight - el.scrollTop - el.clientHeight < 24) markRead();
+  }
+
+  const panelRef = useDialog(onClose, open);
 
   useEffect(() => {
     if (!open) return;
-    closeRef.current?.focus();
-    function onKey(e) {
-      if (e.key === "Escape") onClose?.();
-    }
-    document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
-  }, [open, onClose]);
+    const el = bodyRef.current;
+    if (el && el.scrollHeight - el.clientHeight < 24) markRead();
+  }, [open, markRead]);
 
   if (!open) return null;
   if (typeof document === "undefined") return null;
@@ -67,6 +82,7 @@ function TermsModal({ open, onClose, title = "Data Collection Terms & Privacy Po
       }}
     >
       <div
+        ref={panelRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="terms-title"
@@ -75,12 +91,14 @@ function TermsModal({ open, onClose, title = "Data Collection Terms & Privacy Po
         <h2 id="terms-title" className="text-base font-bold text-dark-blue mb-3">
           {title}
         </h2>
-        <div tabIndex={0} role="document" aria-labelledby="terms-title" className="text-sm text-gray-700 whitespace-pre-line overflow-y-auto flex-1 mb-6">
+        <div ref={bodyRef} onScroll={handleScroll} tabIndex={0} role="document" aria-labelledby="terms-title" className="text-sm text-gray-700 whitespace-pre-line overflow-y-auto flex-1 mb-6">
           {body}
         </div>
-        <div className="flex gap-3 justify-end">
+        <div className="flex gap-3 items-center justify-end">
+          {onRead && !read && (
+            <span className="mr-auto text-xs text-gray-500">Scroll to the bottom to enable agreement.</span>
+          )}
           <button
-            ref={closeRef}
             type="button"
             onClick={onClose}
             className="px-4 py-2 text-sm font-medium text-white rounded-xl bg-primary hover:bg-primary-hover transition-colors cursor-pointer"

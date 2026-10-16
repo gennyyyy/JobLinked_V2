@@ -3,6 +3,7 @@
 // for the user to fill in.
 // ponytail: labeled-line/first-lines heuristics + curated skills gazetteer;
 // per-field confidence scores or NLP if autofill hit-rate ever matters.
+import { normalizePhone, isValidPhone } from "./phone";
 const FIELDS = [
   "firstName",
   "middleName",
@@ -399,8 +400,8 @@ export function mapResumeText(input) {
 
   const phone = text.match(PHONE_RE);
   if (phone) {
-    const digits = phone[0].replace(/\D/g, "");
-    out.mobileNumber = digits.startsWith("63") ? `0${digits.slice(2)}` : digits;
+    const normalized = normalizePhone(phone[0]);
+    if (isValidPhone(normalized)) out.mobileNumber = normalized;
   }
 
   out.birthdate = mapBirthdate(text);

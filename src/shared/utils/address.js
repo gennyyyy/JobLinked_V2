@@ -1,3 +1,5 @@
+import { titleCase } from "./titleCase";
+
 export function formatFullAddress(address = {}) {
   const parts = [
     address.block,
@@ -10,5 +12,5 @@ export function formatFullAddress(address = {}) {
     address.province_state,
     address.postal_code,
   ].filter(Boolean);
-  return parts.length ? [...parts, address.country].filter(Boolean).join(", ").toUpperCase() : "";
+  return parts.length ? titleCase([...parts, address.country].filter(Boolean).join(", ")) : "";
 }

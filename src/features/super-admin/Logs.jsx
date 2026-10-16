@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
+import { X } from "lucide-react";
 import { listAuditLogs, listUsers } from "../../shared/services/admin";
 import LoadingScreen from "../../shared/components/LoadingScreen";
 
@@ -85,7 +86,7 @@ function UserModal({ email, onClose }) {
   useEffect(() => {
     if (!email) return;
     listUsers({ search: email })
-      .then((rows) => setUser((rows || []).find((u) => u.email?.toLowerCase() === email.toLowerCase()) || null))
+      .then((res) => setUser((res.data || []).find((u) => u.email?.toLowerCase() === email.toLowerCase()) || null))
       .catch(() => setUser(null))
       .finally(() => setLoading(false));
   }, [email]);
@@ -100,11 +101,11 @@ function UserModal({ email, onClose }) {
             <h2 className="mt-1 text-xl font-bold text-gray-900 uppercase">{loading ? email : user?.full_name || email}</h2>
             {user?.role && <span className="mt-2 inline-block px-2 py-1 rounded-lg bg-gray-100 text-gray-600 text-xs capitalize">{user.role.replace("-", " ")}</span>}
           </div>
-          <button type="button" onClick={onClose} className="p-1 rounded-lg text-gray-400 hover:text-gray-900 hover:bg-gray-100 transition-colors cursor-pointer" aria-label="Close">✕</button>
+          <button type="button" onClick={onClose} className="p-1 rounded-lg text-gray-500 hover:text-gray-900 hover:bg-gray-100 transition-colors cursor-pointer" aria-label="Close"><X className="w-4 h-4" aria-hidden="true" /></button>
         </div>
         <div className="mt-4 grid grid-cols-1 gap-3 p-4 rounded-xl bg-gray-50 border border-gray-200">
           {loading ? (
-            <p className="text-xs text-gray-400">Loading profile…</p>
+            <p className="text-xs text-gray-500">Loading profile…</p>
           ) : !user ? (
             <p className="text-sm text-gray-500">No profile found for this email.</p>
           ) : (
@@ -152,9 +153,12 @@ function Logs() {
   }
 
   useEffect(() => {
-    Promise.all([listUsers(), listAuditLogs()])
+    // ponytail: the user filter dropdown aggregates every account, so ask for the
+    // 500-row server max (same client-side-aggregation rationale as Reports'
+    // stat cards). Move to a search-keyed dropdown if accounts outgrow 500.
+    Promise.all([listUsers({ pageSize: 500 }), listAuditLogs()])
       .then(([userRows, logRows]) => {
-        setUsers(userRows);
+        setUsers(userRows.data);
         setLogs(logRows);
       })
       .catch((err) => setError(err.message || "Failed to load activity logs"))
@@ -244,7 +248,7 @@ function Logs() {
           >
             Clear
           </button>
-          <span className="self-center ml-auto text-xs text-gray-400 font-medium whitespace-nowrap">{logs.length} records</span>
+          <span className="self-center ml-auto text-xs text-gray-500 font-medium whitespace-nowrap">{logs.length} records</span>
         </div>
         {/* Table */}
         <div className="overflow-auto min-h-0 flex-1 md:max-h-[calc(100vh-320px)]">
@@ -255,16 +259,16 @@ function Logs() {
               <col style={{ width: "190px" }} />
             </colgroup>
             <thead>
-              <tr className="sticky top-0 bg-white z-10 border-b border-gray-200 font-mono text-[10px] tracking-widest text-gray-400 uppercase">
-                <th className="text-left py-3 pl-5 pr-3 font-medium">Date</th>
-                <th className="text-left py-3 px-3 font-medium">User</th>
-                <th className="text-left py-3 px-3 pr-5 font-medium">Activity</th>
+              <tr className="sticky top-0 bg-white z-10 border-b border-gray-200 font-mono text-[10px] tracking-widest text-gray-500 uppercase">
+                <th scope="col" className="text-left py-3 pl-5 pr-3 font-medium">Date</th>
+                <th scope="col" className="text-left py-3 px-3 font-medium">User</th>
+                <th scope="col" className="text-left py-3 px-3 pr-5 font-medium">Activity</th>
               </tr>
             </thead>
             <tbody>
               {logs.map((log) => (
                 <tr key={log.id} className="border-t border-gray-100 hover:bg-gray-50/60 transition-colors align-top">
-                  <td className="py-3 pl-5 pr-3 whitespace-nowrap text-xs text-gray-500">{formatDate(log.created_at)}</td>
+                  <th scope="row" className="py-3 pl-5 pr-3 text-left whitespace-nowrap text-xs text-gray-500">{formatDate(log.created_at)}</th>
                   <td className="py-3 px-3 text-xs">
                     {log.actor_email ? (
                       <button
@@ -275,7 +279,7 @@ function Logs() {
                         {log.actor_email}
                       </button>
                     ) : (
-                      <span className="text-gray-400">{log.actor_name || "—"}</span>
+                      <span className="text-gray-500">{log.actor_name || "—"}</span>
                     )}
                   </td>
                   <td className="py-3 px-3 pr-5">
@@ -285,7 +289,7 @@ function Logs() {
               ))}
             </tbody>
           </table>
-          {logs.length === 0 && <div className="py-8 text-center text-sm text-gray-400">No activity logs match these filters.</div>}
+          {logs.length === 0 && <div className="py-8 text-center text-sm text-gray-500">No activity logs match these filters.</div>}
         </div>
       </section>
       {selectedEmail && <UserModal email={selectedEmail} onClose={() => setSelectedEmail("")} />}

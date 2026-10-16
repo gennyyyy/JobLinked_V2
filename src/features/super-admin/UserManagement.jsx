@@ -1,9 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { X } from "lucide-react";
 import { listUsers, updateUser, listAllAccreditations, listRoles, assignRole, assignCustomRole, inviteUser } from "../../shared/services/admin";
 import { latestAccByCompany } from "../../shared/services/documents";
 import useAuth from "../../shared/hooks/useAuth";
 import LoadingScreen from "../../shared/components/LoadingScreen";
+import { InlineError, Pager } from "../../shared/components/dashboard";
+import useDialog from "../../shared/hooks/useDialog";
 import { titleCase } from "../../shared/utils/titleCase";
 
 const SYSTEM_ROLE_LABELS = { "super-admin": "Super Admin", employer: "Employer", "job-seeker": "Job Seeker" };
@@ -13,11 +15,14 @@ const EMPTY_INVITE = {
   suffix: "", phone: "", company_name: "",
 };
 
-const INVITE_INPUT_CLASS = "w-full min-h-[38px] px-3.5 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all";
+const INVITE_INPUT_CLASS = "w-full min-h-[38px] px-3.5 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-800 placeholder:text-gray-500 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all";
 
 function UserManagement() {
   const { user: currentUser } = useAuth();
   const [users, setUsers] = useState([]);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(0);
+  const [total, setTotal] = useState(0);
   const [accreditations, setAccreditations] = useState([]);
   const [customRoles, setCustomRoles] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -27,15 +32,42 @@ function UserManagement() {
   const [savingId, setSavingId] = useState(null);
   const [filterRole, setFilterRole] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [showInvite, setShowInvite] = useState(false);
   const [inviteForm, setInviteForm] = useState(EMPTY_INVITE);
   const [inviting, setInviting] = useState(false);
 
+  const inviteRef = useDialog(() => setShowInvite(false), showInvite);
+
+  // Users arrive as the { data, total, page, pageSize } envelope (C2). Role and
+  // search are filtered server-side (GET /admin/users accepts role/search/status)
+  // so a query isn't trapped inside the current 25-row page.
+  const loadReqRef = useRef(0);
+  const loadUsers = useCallback((p) => {
+    const params = { page: p };
+    if (filterRole !== "all") params.role = filterRole;
+    if (debouncedSearch) params.search = debouncedSearch;
+    const req = ++loadReqRef.current;
+    return listUsers(params).then((res) => {
+      if (req !== loadReqRef.current) return; // drop a superseded fetch
+      setUsers(res.data);
+      setTotal(res.total);
+      setPageSize(res.pageSize);
+    });
+  }, [filterRole, debouncedSearch]);
+
+  useEffect(() => { loadUsers(page).catch((err) => setError(err.message || "Failed to load users")); }, [loadUsers, page]);
+
+  // Debounce the search box (mirrors Jobs/JobPosts) so each keystroke doesn't refetch.
   useEffect(() => {
-    Promise.all([listUsers(), listAllAccreditations(), listRoles().catch(() => [])])
-      .then(([u, accs, roles]) => {
-        setUsers(u);
-        setAccreditations(accs);
+    const t = setTimeout(() => setDebouncedSearch(searchTerm), 350);
+    return () => clearTimeout(t);
+  }, [searchTerm]);
+
+  useEffect(() => {
+    Promise.all([listAllAccreditations(), listRoles().catch(() => [])])
+      .then(([accs, roles]) => {
+        setAccreditations(accs.data);
         setCustomRoles(roles || []);
       })
       .catch((err) => setError(err.message || "Failed to load users"))
@@ -43,7 +75,7 @@ function UserManagement() {
   }, []);
 
   if (loading) return <LoadingScreen />;
-  if (error) return <div className="py-8 text-center text-sm text-danger">{error}</div>;
+  if (error) return <InlineError message={error} />;
 
   // accreditations ordered submitted_at desc → first row per company is its latest
   const latestByCompany = latestAccByCompany(accreditations);
@@ -73,8 +105,7 @@ function UserManagement() {
         await assignCustomRole(user.id, null);
         setSuccess(`Custom role cleared for ${user.full_name || user.email}.`);
       }
-      const updated = await listUsers();
-      setUsers(updated);
+      await loadUsers(page);
       setTimeout(() => setSuccess(""), 4000);
     } catch (err) {
       setActionError(err.message || "Failed to assign role");
@@ -134,12 +165,6 @@ function UserManagement() {
     }
   }
 
-  const filteredUsers = users.filter((u) => {
-    const matchesRole = filterRole === "all" || u.role === filterRole;
-    const matchesSearch = !searchTerm || u.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) || u.email?.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesRole && matchesSearch;
-  });
-
   const roleOptions = [
     { value: "all", label: "All Roles" },
     { value: "super-admin", label: "Super Admin" },
@@ -162,7 +187,7 @@ function UserManagement() {
         <div className="text-sm text-emerald-700 bg-emerald-50 border border-emerald-200 px-4 py-3 rounded-xl">{success}</div>
       )}
       {actionError && (
-        <div className="text-sm text-rose-600 bg-rose-50 border border-rose-200 px-4 py-3 rounded-xl">{actionError}</div>
+        <div role="alert" className="text-sm text-rose-600 bg-rose-50 border border-rose-200 px-4 py-3 rounded-xl">{actionError}</div>
       )}
 
       <section className="bg-white border border-primary rounded-lg shadow-xs">
@@ -172,7 +197,7 @@ function UserManagement() {
             <select
               id="role-filter"
               value={filterRole}
-              onChange={(e) => setFilterRole(e.target.value)}
+              onChange={(e) => { setFilterRole(e.target.value); setPage(1); }}
               aria-label="Filter by role"
               className="w-full min-h-[38px] px-3.5 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-800 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all cursor-pointer"
             >
@@ -184,13 +209,14 @@ function UserManagement() {
           <div className="flex-1 min-w-[200px]">
             <input
               type="text"
+              aria-label="Search users by name or email"
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={(e) => { setSearchTerm(e.target.value); setPage(1); }}
               placeholder="Search by name or email…"
-              className="w-full min-h-[38px] px-3.5 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all"
+              className="w-full min-h-[38px] px-3.5 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-800 placeholder:text-gray-500 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all"
             />
           </div>
-          <span className="self-center ml-auto text-xs text-gray-400 font-medium whitespace-nowrap">{filteredUsers.length} records</span>
+          <span className="self-center ml-auto text-xs text-gray-500 font-medium whitespace-nowrap">{total} records</span>
           <button
             type="button"
             onClick={() => { setActionError(""); setShowInvite(true); }}
@@ -213,7 +239,7 @@ function UserManagement() {
               <col style={{ width: "100px" }} />
             </colgroup>
             <thead>
-              <tr className="border-b border-gray-200 font-mono text-[10px] tracking-widest text-gray-400 uppercase">
+              <tr className="border-b border-gray-200 font-mono text-[10px] tracking-widest text-gray-500 uppercase">
                 <th className="text-left py-3 pl-5 pr-3 font-medium">Name</th>
                 <th className="text-left py-3 px-3 font-medium">Email</th>
                 <th className="text-left py-3 px-3 font-medium">Role</th>
@@ -224,11 +250,11 @@ function UserManagement() {
               </tr>
             </thead>
             <tbody>
-              {filteredUsers.length === 0 ? (
+              {users.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="py-8 text-center text-sm text-gray-400">No users found.</td>
+                  <td colSpan={7} className="py-8 text-center text-sm text-gray-500">No users found.</td>
                 </tr>
-              ) : filteredUsers.map((user) => (
+              ) : users.map((user) => (
                 <tr key={user.id} className="border-t border-gray-100 hover:bg-gray-50/60 transition-colors">
                   <td className="py-3 pl-5 pr-3 text-gray-900 font-medium text-xs">{titleCase(user.full_name)}</td>
                   <td className="py-3 px-3 text-xs text-gray-500 break-all">{user.email}</td>
@@ -243,7 +269,7 @@ function UserManagement() {
                             {customRoles.find((r) => String(r.id) === String(user.custom_role_id))?.name || "Custom role"}
                           </span>
                         )}
-                        <span className="block font-mono text-[9px] uppercase tracking-wider text-gray-400">You — role locked</span>
+                        <span className="block font-mono text-[9px] uppercase tracking-wider text-gray-500">You — role locked</span>
                       </div>
                     ) : (
                       <div className="space-y-1">
@@ -271,7 +297,7 @@ function UserManagement() {
                             <option value="clear-custom">Clear custom role…</option>
                           )}
                         </select>
-                        {savingId === user.id && <span className="block text-[10px] text-gray-400">Saving…</span>}
+                        {savingId === user.id && <span className="block text-[10px] text-gray-500">Saving…</span>}
                       </div>
                     )}
                   </td>
@@ -286,7 +312,10 @@ function UserManagement() {
                   </td>
                   <td className="py-3 px-3">
                     {user.role === "employer" ? (() => {
-                      const status = latestByCompany[user.id]?.status || "not applied";
+                      // accreditations is a capped page (C2) — fall back to the
+                      // denormalized employers.accreditation_status (kept in
+                      // sync by trigger) when this company's latest row aged out.
+                      const status = latestByCompany[user.id]?.status || user.accreditation_status || "not applied";
                       const styles = status === "approved"
                         ? "bg-emerald-50 border-emerald-200 text-emerald-700"
                         : status === "pending"
@@ -295,7 +324,7 @@ function UserManagement() {
                             ? "bg-danger/10 border-danger/20 text-danger"
                             : "bg-gray-100 border-gray-200 text-gray-500";
                       return <span className={`inline-block px-2 py-1 rounded-full font-medium text-[10px] uppercase border ${styles}`}>{status}</span>;
-                    })() : <span className="text-gray-400 text-xs">—</span>}
+                    })() : <span className="text-gray-500 text-xs">—</span>}
                   </td>
                   <td className="py-3 px-3 text-xs text-gray-500">
                     {new Date(user.created_at).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })}
@@ -310,11 +339,13 @@ function UserManagement() {
             </tbody>
           </table>
         </div>
+        <Pager page={page} pageSize={pageSize} total={total} onChange={setPage} />
       </section>
 
       {showInvite && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" onClick={() => setShowInvite(false)}>
           <form
+            ref={inviteRef}
             onSubmit={handleInvite}
             onClick={(e) => e.stopPropagation()}
             role="dialog"
@@ -328,7 +359,7 @@ function UserManagement() {
                 <h2 id="invite-title" className="mt-1 text-xl font-bold text-gray-900">Add user</h2>
                 <p className="mt-1 text-xs text-gray-500">Send an invitation email to onboard a new municipal user or partner.</p>
               </div>
-              <button type="button" onClick={() => setShowInvite(false)} className="p-1 rounded-lg text-gray-400 hover:text-gray-900 hover:bg-gray-100 transition-colors cursor-pointer" aria-label="Close">
+              <button type="button" onClick={() => setShowInvite(false)} className="p-1 rounded-lg text-gray-500 hover:text-gray-900 hover:bg-gray-100 transition-colors cursor-pointer" aria-label="Close">
                 <X className="w-4 h-4" aria-hidden="true" />
               </button>
             </div>

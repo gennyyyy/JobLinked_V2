@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { ClipboardList } from "lucide-react";
 import useAuth from "../../shared/hooks/useAuth";
 import { getEmployer } from "../../shared/services/auth";
 import { listAccreditations, createAccreditation, listCompanyDocuments, uploadDocument, validateFile, signedUrl } from "../../shared/services/documents";
@@ -119,7 +120,7 @@ function EmployerAccreditation() {
 
         <div className="bg-white border border-primary rounded-lg p-6 md:p-10 text-center space-y-4">
           <div className="w-14 h-14 mx-auto rounded-full bg-primary/10 flex items-center justify-center">
-            <span className="text-primary text-2xl">📋</span>
+            <ClipboardList className="w-6 h-6 text-primary" aria-hidden="true" />
           </div>
           <h2 className="text-lg font-semibold text-gray-900">Start Your Accreditation</h2>
           <p className="text-sm text-gray-500 max-w-sm mx-auto">
