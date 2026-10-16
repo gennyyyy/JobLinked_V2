@@ -255,7 +255,8 @@ create table if not exists public.education (
   school    text not null,
   field     text,
   start_year int,
-  end_year   int
+  end_year   int,
+  constraint education_years_order_chk check (end_year is null or start_year is null or end_year >= start_year)
 );
 
 create table if not exists public.work_experience (
@@ -265,12 +266,13 @@ create table if not exists public.work_experience (
   position    text not null,
   start_date  date,
   end_date    date,
-  description text
+  description text,
+  constraint work_experience_dates_order_chk check (end_date is null or start_date is null or end_date >= start_date)
 );
 
 create table if not exists public.employment_history (
   id uuid primary key default gen_random_uuid(),
-  application_id uuid references public.job_applications(id) on delete cascade,
+  application_id uuid references public.job_applications(id) on delete set null,
   seeker_id uuid not null references public.job_seekers(id) on delete cascade,
   employer_name text not null,
   position text not null,
@@ -381,9 +383,17 @@ create trigger trg_sync_accreditation_status
 -- ---------------------------------------------------------------------------
 create index if not exists job_vacancies_company_idx on public.job_vacancies(company_id);
 create index if not exists job_vacancies_status_created_idx on public.job_vacancies(status, created_at desc);
+-- admin.js:25 stats `deadline < current_date` (expired-jobs counter, every
+-- dashboard load). The applications deadline guard (applications.js:66-69)
+-- filters `id = $1` and needs only the PK.
+create index if not exists job_vacancies_deadline_idx on public.job_vacancies(deadline);
 create index if not exists job_applications_job_idx on public.job_applications(job_id);
 create index if not exists job_applications_seeker_idx on public.job_applications(seeker_id);
 create index if not exists job_applications_referred_idx on public.job_applications(referred_by) where referred_by is not null;
+-- Unfiltered `order by a.applied_at desc` (admin.js /admin/applications:226,
+-- /admin/referrals:248, reports.js applicants:25) — the filtered seeker/job
+-- lists keep using the seeker/job indexes above plus a sort.
+create index if not exists job_applications_applied_idx on public.job_applications(applied_at desc);
 create index if not exists job_status_history_job_idx on public.job_status_history(job_id);
 create index if not exists application_status_history_app_idx on public.application_status_history(application_id);
 create index if not exists resumes_seeker_idx on public.resumes(seeker_id);
@@ -394,9 +404,43 @@ create index if not exists work_experience_seeker_idx on public.work_experience(
 create index if not exists employment_history_seeker_idx on public.employment_history(seeker_id);
 create index if not exists employer_accreditations_company_idx on public.employer_accreditations(company_id);
 create index if not exists employer_accreditations_status_idx on public.employer_accreditations(status) where status = 'pending';
+-- One pending accreditation per company (auth/provision + resubmit both insert).
+create unique index if not exists employer_accreditations_one_pending_uidx on public.employer_accreditations(company_id) where status = 'pending';
 create index if not exists employer_documents_company_idx on public.employer_documents(company_id);
 create index if not exists employer_documents_path_idx on public.employer_documents(file_path);
 create index if not exists notifications_user_created_idx on public.notifications(user_id, created_at desc);
+
+-- Search-pattern indexes (db/migrations/007_query_indexes.sql upgrades
+-- existing DBs; keep this block in sync). The skills GIN backs the array
+-- overlap that runs on every job publish; the trigram GINs are the only way
+-- to serve ILIKE '%…%', which btree cannot. Guarded on pg_trgm so a host
+-- without the extension still applies everything else.
+create index if not exists job_seekers_skills_gin on public.job_seekers using gin (skills);
+do $$
+begin
+  create extension if not exists pg_trgm;
+exception when others then
+  raise notice 'pg_trgm unavailable — skipping trigram search indexes';
+end $$;
+do $$
+declare has_trgm boolean;
+begin
+  select exists (select 1 from pg_extension where extname = 'pg_trgm') into has_trgm;
+  if not has_trgm then
+    raise notice 'trigram search indexes skipped (no pg_trgm)';
+    return;
+  end if;
+  create index if not exists job_vacancies_title_trgm on public.job_vacancies using gin (title gin_trgm_ops);
+  create index if not exists job_vacancies_desc_trgm on public.job_vacancies using gin (description gin_trgm_ops);
+  create index if not exists job_vacancies_location_trgm on public.job_vacancies using gin (location gin_trgm_ops);
+  create index if not exists employers_company_name_trgm on public.employers using gin (company_name gin_trgm_ops);
+  create index if not exists job_seekers_full_name_trgm on public.job_seekers using gin (full_name gin_trgm_ops);
+  create index if not exists job_seekers_email_trgm on public.job_seekers using gin (email gin_trgm_ops);
+  create index if not exists employers_full_name_trgm on public.employers using gin (full_name gin_trgm_ops);
+  create index if not exists employers_email_trgm on public.employers using gin (email gin_trgm_ops);
+  create index if not exists super_admins_full_name_trgm on public.super_admins using gin (full_name gin_trgm_ops);
+  create index if not exists super_admins_email_trgm on public.super_admins using gin (email gin_trgm_ops);
+end $$;
 
 -- ---------------------------------------------------------------------------
 -- ADR-041 ACID gaps (db/migrations/002_acid_gaps.sql upgrades existing DBs;
@@ -428,6 +472,19 @@ begin
     raise notice 'skipping employers email unique index: duplicate emails present';
   else
     execute 'create unique index if not exists employers_email_uidx on public.employers(email)';
+  end if;
+end $$;
+
+do $$
+begin
+  if exists (
+    select 1 from (
+      select email from public.super_admins group by email having count(*) > 1
+    ) d
+  ) then
+    raise notice 'skipping super_admins email unique index: duplicate emails present';
+  else
+    execute 'create unique index if not exists super_admins_email_uidx on public.super_admins(email)';
   end if;
 end $$;
 
