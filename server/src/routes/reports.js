@@ -90,7 +90,14 @@ async function loadReport(type, pg) {
 // Same builder as the frontend buildCSV (comma-join, quoted cells). B9: RFC 4180
 // — embedded quotes are doubled so a cell cannot shift the columns after it;
 // commas and newlines stay contained by the surrounding quotes.
-const toCSV = (headers, rows) => [headers, ...rows].map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
+// B17 (live pentest): CSV formula injection — a cell starting with =, +, -, @,
+// tab, or CR executes as a formula/COMMAND when an admin opens the export in
+// Excel (DDE). Excel's leading apostrophe convention marks the cell as text.
+export const toCSV = (headers, rows) => [headers, ...rows].map((r) => r.map((c) => {
+  let v = String(c);
+  if (/^[=+\-@\t\r]/.test(v)) v = `'${v}`;
+  return `"${v.replace(/"/g, '""')}"`;
+}).join(',')).join('\n');
 
 const TYPES = ['applicants', 'vacancies', 'placements', 'employers', 'barangay', 'monthly', 'applications', 'jobs', 'seekers'];
 

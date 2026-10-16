@@ -40,6 +40,12 @@ router.post('/auth/provision', tokenAuth, ah(async (req, res) => {
     const value = b[k] ?? (k === 'country' ? 'Philippines' : null);
     person[k] = LOWERCASE_PERSON.has(k) && typeof value === 'string' ? value.trim().toLowerCase() : value;
   }
+  // first/middle/last/suffix are `not null default ''` in all three role tables
+  // (schema.sql). An omitted field inserted as an explicit NULL raises 23502 and
+  // 500s the provision — the schema default only applies to ABSENT columns, and
+  // the column list here is always full. '' is also what the UI sends for blank
+  // fields, so absent === blank for every caller.
+  for (const k of ['first_name', 'middle_name', 'last_name', 'suffix']) person[k] ??= '';
   if (!person.full_name) {
     person.full_name = buildFullName(person.first_name, person.middle_name, person.last_name, person.suffix);
   }
