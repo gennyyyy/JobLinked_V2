@@ -68,7 +68,7 @@ function EmployerStatus() {
           </div>
         </header>
         <main id="main-content" tabIndex={-1}
-          className="flex-1 flex items-center justify-center p-[3%]">
+          className="flex-1 flex items-center justify-center p-[5%]">
           <div className="max-w-md w-full text-center bg-white border border-primary rounded-lg p-6 shadow-xl">
             <h1 className="text-xl font-bold text-dark-blue">No Application Found</h1>
             <p className="mt-3 text-sm text-gray-500">You haven&apos;t submitted an employer accreditation application yet.</p>
@@ -99,7 +99,7 @@ function EmployerStatus() {
         </div>
       </header>
 
-      <main id="main-content" tabIndex={-1} className="flex-1 flex items-center justify-center p-[3%]">
+      <main id="main-content" tabIndex={-1} className="flex-1 flex items-center justify-center p-[5%]">
         <div className="w-full max-w-lg bg-white border border-primary rounded-lg p-6 md:p-9 shadow-xl">
           {(isRejected || isRevoked) && remarks && (
             <div className="mb-6 p-4 rounded-xl border border-danger/20 bg-danger/5">

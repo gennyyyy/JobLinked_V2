@@ -5,18 +5,18 @@
 }
 
 @theme {
-  --color-primary: #123C63;
-  --color-primary-hover: #0E3151;
-  --color-primary-subtle: rgba(18, 60, 99, 0.08);
-  --color-primary-border: rgba(18, 60, 99, 0.22);
-  --color-accent: #B8860B;
-  --color-accent-subtle: rgba(184, 134, 11, 0.12);
-  --color-danger: #C62828;
-  --color-danger-subtle: rgba(198, 40, 40, 0.09);
+  --color-primary: #0038A8;
+  --color-primary-hover: #002D8A;
+  --color-primary-subtle: rgba(0, 56, 168, 0.08);
+  --color-primary-border: rgba(0, 56, 168, 0.22);
+  --color-accent: #FCD116;
+  --color-accent-subtle: rgba(252, 209, 22, 0.12);
+  --color-danger: #CE1126;
+  --color-danger-subtle: rgba(206, 17, 38, 0.09);
   --color-dark-blue: #0A2540;
-  --color-dark: #272727;
-  --color-dark-surface: #f8f9fa;
-  --color-dark-card: #ffffff;
+  --color-dark: #1A1A2E;
+  --color-dark-surface: #F8F9FA;
+  --color-dark-card: #FFFFFF;
   --color-dark-footer: #0A2540;
 }
 

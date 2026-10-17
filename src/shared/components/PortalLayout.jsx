@@ -135,7 +135,7 @@ export default function PortalLayout({ navItems, badge, eyebrow, subhead, profil
       )}
 
       <main id="main-content" tabIndex={-1}
-        className="flex-1 min-h-0 w-full max-w-full overflow-hidden p-[3%] flex flex-col md:h-screen md:overflow-y-auto md:overflow-x-hidden min-h-[calc(100vh-56px)]">
+        className="flex-1 min-h-0 w-full max-w-full overflow-hidden p-[5%] flex flex-col md:h-screen md:overflow-y-auto md:overflow-x-hidden min-h-[calc(100vh-56px)]">
         <div className="w-full flex-1 min-h-0 flex flex-col gap-6">
           <Outlet />
           <footer aria-hidden="true" className="mt-auto h-6 shrink-0" />

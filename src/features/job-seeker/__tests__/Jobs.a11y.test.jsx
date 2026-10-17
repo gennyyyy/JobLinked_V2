@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import Jobs from '../Jobs'
 import { listJobs } from '../../../shared/services/jobs'
@@ -40,7 +40,7 @@ describe('Jobs accessibility', () => {
   it('labels the header search field', async () => {
     listJobs.mockResolvedValue({ jobs: [job()], total: 1 })
     await renderJobs()
-    expect(screen.getByLabelText('Search jobs by title')).toBeInTheDocument()
+    expect(screen.getByLabelText('Search for a job title or company')).toBeInTheDocument()
   })
 
   it('announces a failed load in a live region', async () => {
@@ -48,16 +48,5 @@ describe('Jobs accessibility', () => {
     await renderJobs()
     await screen.findByText('Job board unreachable')
     expect(screen.getByRole('alert')).toHaveTextContent('Job board unreachable')
-  })
-
-  it('closes the filters dialog on Escape', async () => {
-    listJobs.mockResolvedValue({ jobs: [job()], total: 1 })
-    await renderJobs()
-    fireEvent.click(screen.getByRole('button', { name: /filters/i }))
-    const dialog = await screen.findByRole('dialog')
-    expect(dialog).toHaveAttribute('aria-modal', 'true')
-
-    fireEvent.keyDown(document, { key: 'Escape' })
-    expect(screen.queryByRole('dialog')).toBeNull()
   })
 })

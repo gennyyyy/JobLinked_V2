@@ -9,8 +9,9 @@ export function splitTags(value) {
 
 // Minimal tag input — type + Enter/comma to add, Backspace or × to remove.
 // Reused for preferred jobs + preferred locations; values stay comma-separated
-// strings so the existing text columns need no migration.
-export function TagInput({ value, onChange, placeholder, id, className = "" }) {
+// strings so the existing text columns need no migration. `max` caps how many
+// tags may be committed (undefined = unlimited).
+export function TagInput({ value, onChange, placeholder, id, className = "", max }) {
   const [draft, setDraft] = useState("");
   const inputRef = useRef(null);
   const tags = splitTags(value);
@@ -20,6 +21,7 @@ export function TagInput({ value, onChange, placeholder, id, className = "" }) {
     if (!parts.length) return;
     const next = [...tags];
     for (const part of parts) {
+      if (max && next.length >= max) break;
       if (!next.some((t) => t.toLowerCase() === part.toLowerCase())) next.push(part);
     }
     onChange(next.join(", "));

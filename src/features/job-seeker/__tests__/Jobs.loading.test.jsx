@@ -29,6 +29,6 @@ describe('Jobs inline loading state (U2/F1)', () => {
     expect(await screen.findByText(/loading jobs/i)).toBeInTheDocument()
     expect(screen.queryByText(/loading database/i)).not.toBeInTheDocument()
     // Jobs keeps its filters/search mounted instead of doing an early return.
-    expect(screen.getByPlaceholderText(/search by job title/i)).toBeInTheDocument()
+    expect(screen.getByPlaceholderText(/search for a job title or company/i)).toBeInTheDocument()
   })
 })
