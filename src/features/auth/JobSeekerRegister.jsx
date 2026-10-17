@@ -6,8 +6,9 @@ import { mapResumeText } from "../../shared/utils/resumeAutofill";
 import { normalizePhone, isValidPhone, withPrefix } from "../../shared/utils/phone";
 import { TagInput } from "../../shared/components/TagInput";
 import TermsModal from "../../shared/components/TermsModal";
-import Logo from "../../assets/TextBased Logo.png";
 import SkipLink from "../../shared/components/SkipLink";
+import PublicHeader from "../../shared/components/PublicHeader";
+import PublicFooter from "../../shared/components/PublicFooter";
 
 const EDUCATION_LEVELS = ["Elementary", "High School", "Senior High School", "Vocational", "College", "Post-Graduate"];
 const MAX_PDF_SIZE = 2 * 1024 * 1024;
@@ -264,17 +265,10 @@ function JobSeekerRegister() {
     return (
       <div className="min-h-screen bg-gray-50 text-gray-900 flex flex-col font-sans">
         <SkipLink />
-        <header className="sticky top-0 z-20 bg-dark-blue border-b border-white/10">
-          <div className="w-full px-4 h-[64px] flex items-center justify-between">
-            <div className="bg-white rounded-lg px-3.5 py-1.5 flex items-center shadow-xs">
-              <Link to="/"><img src={Logo} alt="JobLinked" width={480} height={160} className="h-10" /></Link>
-            </div>
-            <span className="hidden sm:block font-mono text-[11px] text-gray-400">PESO · SANTA MARIA</span>
-          </div>
-        </header>
+        <PublicHeader />
 
         <main id="main-content" tabIndex={-1}
-          className="flex-1 flex items-center justify-center p-[3%]">
+          className="flex-1 flex items-center justify-center p-[5%]">
           <div className="max-w-md w-full text-center bg-white border border-primary rounded-lg p-6 shadow-xl">
             <span className={`font-mono text-[10px] tracking-widest uppercase px-2.5 py-1 rounded-full border font-semibold ${needsConfirmation ? "bg-amber-50 border-amber-200 text-amber-700" : "bg-emerald-50 border-emerald-200 text-emerald-600"}`}>
               {needsConfirmation ? "VERIFY YOUR EMAIL" : "ACCOUNT READY"}
@@ -293,6 +287,8 @@ function JobSeekerRegister() {
             </Link>
           </div>
         </main>
+
+        <PublicFooter />
       </div>
     );
   }
@@ -300,16 +296,9 @@ function JobSeekerRegister() {
   return (
     <div className="min-h-screen bg-gray-50 text-gray-900 flex flex-col font-sans">
       <SkipLink />
-      <header className="sticky top-0 z-20 bg-dark-blue border-b border-white/10">
-        <div className="w-full px-4 h-[64px] flex items-center justify-between">
-          <div className="bg-white rounded-lg px-3.5 py-1.5 flex items-center shadow-xs">
-            <Link to="/"><img src={Logo} alt="JobLinked" width={480} height={160} className="h-10" /></Link>
-          </div>
-          <span className="hidden sm:block font-mono text-[11px] text-gray-400">PESO · SANTA MARIA</span>
-        </div>
-      </header>
+      <PublicHeader />
 
-      <main id="main-content" tabIndex={-1} className="flex-1 flex items-center justify-center p-[3%]">
+      <main id="main-content" tabIndex={-1} className="flex-1 flex items-center justify-center p-[5%]">
         <div className="w-full max-w-4xl bg-white border border-primary rounded-lg p-6 md:p-10 shadow-xl">
           <div className="flex items-center justify-between mb-4">
             <Link to="/register" className="text-xs text-gray-500 hover:text-primary transition-colors">
@@ -545,15 +534,7 @@ function JobSeekerRegister() {
         </div>
       </main>
 
-      <footer className="bg-dark-blue text-white">
-        <div className="w-full px-4 py-3 flex flex-col sm:flex-row justify-between gap-2 text-xs font-mono">
-          <span className="text-white/80 font-medium">
-            Job<span className="text-accent">Linked</span> <span className="text-white/50">PESO</span>
-          </span>
-          <span className="text-white/50">Santa Maria Municipal Hall · hello@joblinked.ph</span>
-          <span className="text-white/50">© 2026</span>
-        </div>
-      </footer>
+      <PublicFooter />
       <TermsModal open={termsOpen} onClose={() => setTermsOpen(false)} onRead={() => setTermsRead(true)} />
     </div>
   );

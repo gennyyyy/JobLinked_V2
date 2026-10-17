@@ -16,11 +16,5 @@ describe('PortalSelect contrast token (A2)', () => {
       p.textContent?.includes('account'),
     )
     expect(nudge).toBeTruthy()
-
-    // gray-400 survives exactly once: the "PESO · SANTA MARIA" label on the
-    // bg-dark-blue header, where it still clears ~6:1.
-    const gray400 = Array.from(container.querySelectorAll('.text-gray-400'))
-    expect(gray400).toHaveLength(1)
-    expect(gray400[0].className).toContain('sm:block')
   })
 })

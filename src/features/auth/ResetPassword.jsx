@@ -1,8 +1,9 @@
 import { useState } from "react";
-import Logo from "../../assets/TextBased Logo.png";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "../../shared/lib/supabase";
 import SkipLink from "../../shared/components/SkipLink";
+import PublicHeader from "../../shared/components/PublicHeader";
+import PublicFooter from "../../shared/components/PublicFooter";
 
 function ResetPassword() {
   const navigate = useNavigate();
@@ -37,17 +38,10 @@ function ResetPassword() {
   return (
     <div className="min-h-screen bg-gray-50 text-gray-900 flex flex-col font-sans">
       <SkipLink />
-      <header className="sticky top-0 z-20 bg-dark-blue border-b border-white/10">
-        <div className="w-full px-4 h-[64px] flex items-center justify-between">
-          <div className="bg-white rounded-lg px-3.5 py-1.5 flex items-center shadow-xs">
-            <Link to="/"><img src={Logo} alt="JobLinked" width={480} height={160} className="h-10" /></Link>
-          </div>
-          <span className="hidden sm:block font-mono text-[11px] text-gray-400">PESO · SANTA MARIA</span>
-        </div>
-      </header>
+      <PublicHeader />
 
       <main id="main-content" tabIndex={-1}
-        className="flex-1 flex items-center justify-center p-[3%]">
+        className="flex-1 flex items-center justify-center p-[5%]">
         <div className="w-full max-w-md bg-white border border-primary rounded-lg p-6 md:p-9 shadow-xl">
           <div className="flex items-center justify-between mb-6">
             <Link to="/portals" className="text-xs text-gray-600 hover:text-primary transition-colors">
@@ -111,15 +105,7 @@ function ResetPassword() {
         </div>
       </main>
 
-      <footer className="bg-dark-blue text-white">
-        <div className="w-full px-4 py-3 flex flex-col sm:flex-row justify-between gap-2 text-xs font-mono">
-          <span className="text-white/80 font-medium">
-            Job<span className="text-accent">Linked</span> <span className="text-white/50">PESO</span>
-          </span>
-          <span className="text-white/50">Santa Maria Municipal Hall · hello@joblinked.ph</span>
-          <span className="text-white/50">© 2026</span>
-        </div>
-      </footer>
+      <PublicFooter />
     </div>
   );
 }

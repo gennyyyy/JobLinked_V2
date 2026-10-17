@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
 import { Link, Navigate, useParams } from "react-router-dom";
 import { getJob } from "../../shared/services/jobs";
-import TextBasedLogo from "../../assets/TextBased Logo.png";
 import LoadingScreen from "../../shared/components/LoadingScreen";
 import { titleCase } from "../../shared/utils/titleCase";
 import SkipLink from "../../shared/components/SkipLink";
+import PublicHeader from "../../shared/components/PublicHeader";
+import PublicFooter from "../../shared/components/PublicFooter";
 
 function PublicJobDetail() {
   const { jobId } = useParams();
@@ -29,20 +30,10 @@ function PublicJobDetail() {
   return (
     <div className="min-h-screen bg-gray-50 text-gray-900 flex flex-col font-sans">
       <SkipLink />
-      <header className="sticky top-0 z-20 bg-dark-blue/90 backdrop-blur border-b border-white/10">
-        <div className="w-full px-4 h-[56px] flex items-center justify-between">
-          <div className="bg-white rounded-lg px-3.5 py-1.5 flex items-center shadow-xs">
-            <Link to="/"><img src={TextBasedLogo} alt="JobLinked" width={480} height={160} className="h-6" /></Link>
-          </div>
-          <div className="flex items-center gap-3">
-            <Link to="/register" className="text-xs text-gray-300 hover:text-white transition-colors">Register</Link>
-            <Link to="/portals" className="min-h-[36px] inline-flex items-center px-4 rounded-xl bg-primary text-white text-xs font-medium hover:bg-primary-hover transition-colors">Log In</Link>
-          </div>
-        </div>
-      </header>
+      <PublicHeader />
 
       <main id="main-content" tabIndex={-1}
-        className="flex-1 w-full p-[3%]">
+        className="flex-1 w-full p-[5%]">
         <Link to="/jobs" className="inline-flex items-center text-xs text-gray-500 hover:text-gray-900 transition-colors mb-6">← Back to all postings</Link>
 
         <article className="bg-white border border-primary rounded-lg p-6 md:p-10">
@@ -142,13 +133,7 @@ function PublicJobDetail() {
         </article>
       </main>
 
-      <footer className="border-t border-gray-200 bg-dark-blue text-white/70">
-        <div className="w-full px-4 py-3 flex flex-col sm:flex-row justify-between gap-2 text-xs font-mono">
-          <span className="text-white/70 font-medium">Job<span className="text-accent">Linked</span> <span className="text-white/70">PESO</span></span>
-          <span>Santa Maria Municipal Hall · hello@joblinked.ph</span>
-          <span>© 2026</span>
-        </div>
-      </footer>
+      <PublicFooter />
     </div>
   );
 }

@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
-import Logo from "../../assets/TextBased Logo.png";
 import SkipLink from "../../shared/components/SkipLink";
+import PublicHeader from "../../shared/components/PublicHeader";
+import PublicFooter from "../../shared/components/PublicFooter";
 
 const accountTypes = [
   {
@@ -25,17 +26,10 @@ function Register() {
   return (
     <div className="min-h-screen bg-gray-50 text-gray-900 flex flex-col font-sans">
       <SkipLink />
-      <header className="sticky top-0 z-20 bg-dark-blue border-b border-white/10">
-        <div className="w-full px-4 h-[64px] flex items-center justify-between">
-<div className="bg-white rounded-lg px-3.5 py-1.5 flex items-center shadow-xs">
-              <Link to="/"><img src={Logo} alt="JobLinked" width={480} height={160} className="h-10" /></Link>
-            </div>
-          <span className="hidden sm:block font-mono text-[11px] text-gray-400">PESO · SANTA MARIA</span>
-        </div>
-      </header>
+      <PublicHeader />
 
       <main id="main-content" tabIndex={-1}
-        className="flex-1 flex flex-col items-center justify-center p-[3%]">
+        className="flex-1 flex flex-col items-center justify-center p-[5%]">
         <div className="w-full">
           <header className="text-center mb-10 md:mb-12">
             <p className="font-mono text-[11px] tracking-[0.2em] text-primary uppercase font-semibold">
@@ -88,15 +82,7 @@ function Register() {
         </div>
       </main>
 
-      <footer className="bg-dark-blue text-white">
-        <div className="w-full px-4 py-3 flex flex-col sm:flex-row justify-between gap-2 text-xs font-mono">
-          <span className="text-white/80 font-medium">
-            Job<span className="text-accent">Linked</span> <span className="text-white/50">PESO</span>
-          </span>
-          <span className="text-white/50">Santa Maria Municipal Hall · hello@joblinked.ph</span>
-          <span className="text-white/50">© 2026</span>
-        </div>
-      </footer>
+      <PublicFooter />
     </div>
   );
 }
