@@ -1,5 +1,3 @@
-import { readFileSync } from 'node:fs';
-import path from 'node:path';
 import express from 'express';
 import { describe, it, expect, vi, beforeAll, afterAll } from 'vitest';
 
@@ -46,17 +44,9 @@ describe('GET /admin/permissions', () => {
   });
 });
 
-// The whole point of the change: the UI must not keep its own copy.
-const web = (p) => readFileSync(path.join(process.cwd(), 'src', p), 'utf8');
-
+// The whole point of the change: the UI must not keep its own copy of the catalog.
+// Retargeted at the Next app (services/admin.ts → GET /admin/permissions) in Task 8.
 describe('client consumes the server catalog', () => {
-  it('the Roles page no longer declares a local permission constant', () => {
-    const roles = web('features/super-admin/RoleManagement.jsx');
-    expect(roles).not.toMatch(/ROLE_PERMISSIONS/);
-    expect(roles).toContain('listPermissions');
-    expect(roles).toContain('permissionCatalog');
-  });
-  it('the admin service has no second copy of the list', () => {
-    expect(web('shared/services/admin.js')).not.toMatch(/ROLE_PERMISSIONS/);
-  });
+  it.todo('the Roles page renders the catalog fetched from the API');
+  it.todo('the admin service has no second copy of the list');
 });

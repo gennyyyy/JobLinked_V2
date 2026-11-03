@@ -2,9 +2,9 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Replace the current Vite React SPA in `src/` with the Next.js App Router app from `new_frontend/Joblinked/` (moved to `web/`), wire it to the existing Express API and Supabase auth, port the six old-only auth/UX features, and add the four approved backend capabilities — with every old route, screen, and flow still working.
+**Goal:** Replace the current Vite React SPA in `src/` with the Next.js App Router app from `new_frontend/Joblinked/` (moved to the repository root), wire it to the existing Express API and Supabase auth, port the six old-only auth/UX features, and add the four approved backend capabilities — with every old route, screen, and flow still working.
 
-**Architecture:** Next.js 16 App Router at `web/` renders UI only; all data continues to flow browser → Express (`server/`, port 4000) → PostgreSQL, with Supabase used strictly for authentication (same trust model as today: in-memory browser session, bearer token attached by one REST client). The mock/demo data layer (`services/mock`, `demoApi`, `DemoSwitcher`) is deleted and replaced by one typed REST client + mapper layer + per-resource SWR hooks. Staff = a super-admin account with a restricted custom role, enforced by a new `requirePermission()` middleware.
+**Architecture:** Next.js 16 App Router at the repository root renders UI only; all data continues to flow browser → Express (`server/`, port 4000) → PostgreSQL, with Supabase used strictly for authentication (same trust model as today: in-memory browser session, bearer token attached by one REST client). The mock/demo data layer (`services/mock`, `demoApi`, `DemoSwitcher`) is deleted and replaced by one typed REST client + mapper layer + per-resource SWR hooks. Staff = a super-admin account with a restricted custom role, enforced by a new `requirePermission()` middleware.
 
 **Tech Stack:** Next.js 16 / React 19 / TypeScript strict / Tailwind 4 / shadcn UI / SWR / react-hook-form + zod / sonner / Vitest + Testing Library / Playwright. Backend: Express 4 / pg / Supabase Auth / Vitest + supertest.
 
@@ -14,12 +14,12 @@
 
 ## Global Constraints
 
-- Repository layout after migration: `web/` (Next app), `server/` (Express, unchanged structure), `db/`, `docs/`, `plan/`. Root `package.json` is an npm orchestrator only.
-- npm only. No pnpm lockfile, no Vite, no `src/` frontend, no JS frontend files — `web/` is TypeScript strict.
+- Repository layout after migration: the Next app lives directly at the repository root (`app/`, `components/`, `hooks/`, `lib/`, `services/`, `types/`, `public/`, `tests/`), with `server/` (Express, unchanged structure), `db/`, `docs/`, `plan/` as siblings. Root `package.json` is the app package and orchestrates both processes.
+- npm only. No pnpm lockfile, no Vite, no `src/` frontend, no JS frontend files — the frontend is TypeScript strict.
 - All browser data access goes through the Express API. Supabase is used only for `signInWithPassword`, `signUp`, `signOut`, `updateUser`, `resetPasswordForEmail`, `getSession`, `refreshSession`, `onAuthStateChange`. No Supabase `.from/.storage/.rpc`.
 - API base URL comes from `NEXT_PUBLIC_API_URL` (dev fallback `http://localhost:4000`), Supabase from `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY`.
 - Backend roles remain `super-admin | employer | job-seeker`. UI names: `admin | employer | jobseeker` (+ derived `staff` display).
-- Backend enums are the source of truth. UI labels map in **one** file (`web/services/mappers.ts`); no component invents a status string.
+- Backend enums are the source of truth. UI labels map in **one** file (`services/mappers.ts` at the repo root); no component invents a status string.
 - Error envelope from the API is `{ "error": { "code": string, "message": string } }`; the client throws `ApiError(message, status, code)` and pages toast `error.message`.
 - One 401 policy: refresh session once, retry once, then sign out and go to `/login?next=…`. No loops, no recursion.
 - Every new backend route gets a supertest test in the existing `server/src/routes/*.test.js` style; every mapper and the REST client gets a Vitest test; every route and portal flow gets a Playwright spec.
@@ -35,10 +35,10 @@ These are the five ways a user will actually get hurt; each has a named test tha
 
 | # | Failure mode | Expected behavior | Test |
 |---|---|---|---|
-| R1 | Session expires or is revoked mid-action (any portal) | One silent refresh + retry; second 401 signs out and lands on `/login?next=<current>` with a message, never a blank page | `web/services/api/client.test.ts`; e2e `auth.spec.ts` |
-| R2 | User opens a portal URL for the wrong role, or a staff member opens a section their custom role forbids | Session destroyed on wrong portal (ADR-021 parity) → that portal's login; forbidden section renders the "no access" state, no API call storm | `web/hooks/use-auth.test.tsx`; unit `canOpenSection`; e2e `gating.spec.ts`; backend `admin.permissions.test.js` |
-| R3 | Backend sends a status value the UI does not know (enum drift) | Mapper returns the raw value with a neutral label/badge, never `undefined`, never crash | `web/services/mappers.test.ts` (one case per enum value + unknown fallback) |
-| R4 | Resume/document upload exceeds limits or auth expires during upload/preview | Client pre-checks size/type and shows the server's message; preview blob fetch uses auth and revokes the object URL | `web/services/documents.test.ts`; e2e `jobseeker.spec.ts` upload + preview |
+| R1 | Session expires or is revoked mid-action (any portal) | One silent refresh + retry; second 401 signs out and lands on `/login?next=<current>` with a message, never a blank page | `services/api/client.test.ts`; e2e `auth.spec.ts` |
+| R2 | User opens a portal URL for the wrong role, or a staff member opens a section their custom role forbids | Session destroyed on wrong portal (ADR-021 parity) → that portal's login; forbidden section renders the "no access" state, no API call storm | `hooks/use-auth.test.tsx`; unit `canOpenSection`; e2e `gating.spec.ts`; backend `admin.permissions.test.js` |
+| R3 | Backend sends a status value the UI does not know (enum drift) | Mapper returns the raw value with a neutral label/badge, never `undefined`, never crash | `services/mappers.test.ts` (one case per enum value + unknown fallback) |
+| R4 | Resume/document upload exceeds limits or auth expires during upload/preview | Client pre-checks size/type and shows the server's message; preview blob fetch uses auth and revokes the object URL | `services/documents.test.ts`; e2e `jobseeker.spec.ts` upload + preview |
 | R5 | Filters/pagination/date params lose meaning between UI and API | Empty/undefined params omitted; `pageSize` clamped to API caps; deadlines compared by calendar date, not UTC instant | `client.test.ts` query cases; `mappers.test.ts` deadline case |
 
 ---
@@ -60,7 +60,7 @@ The migration keeps the new app's UI/route structure and replaces exactly its da
 | Employment correction requests (UI exists, employment_history is trigger-written) | Add `employment_corrections` table + endpoints |
 | Staff role (UI models it, backend has 3 roles) | **No new role value/table.** Staff = super-admin row with restricted `custom_role_id`; new `requirePermission()` gate on admin routes; UI derives `staff` |
 | Apply cover letter (UI collects ≤3000 chars, no column) | Add `job_applications.cover_letter` column (architect-approved bundle with the above) |
-| Old-only: real forgot/reset password, email-confirm callback, admin invite acceptance, AI help chat, AFK auto-logout, notification bell | Port all six into `web/` |
+| Old-only: real forgot/reset password, email-confirm callback, admin invite acceptance, AI help chat, AFK auto-logout, notification bell | Port all six into the Next app |
 | Demo notification preferences (no backend storage) | Remove the toggles; keep real notification list/actions |
 | Staff "assigned jobs/employees" scoping (`PermissionScope "assigned"`) | Out of scope; staff permission scopes are section-level only (`all` vs `none`) |
 | Employer logo upload | Out of scope (text profile fields only); `logo_path` untouched |
@@ -71,8 +71,8 @@ The migration keeps the new app's UI/route structure and replaces exactly its da
 
 ## §2 Architecture Decisions (write as ADR-035 … ADR-041 in Task 1)
 
-**ADR-035 — Next.js App Router replaces Vite at `web/`.**
-One frontend, one toolchain (npm). Root scripts proxy to `web/` and `server/`. Vercel project root becomes `web/`; root `vercel.json` catch-all rewrite is deleted (it would break App Router). Rejected: keeping Vite and porting UI piecemeal (duplicates two data layers).
+**ADR-035 — Next.js App Router replaces Vite at the repository root.**
+One frontend, one toolchain (npm). The Next app lives directly at the repo root; root scripts run Next and proxy the API to `server/`. Vercel project root is the repository root; the old `vercel.json` catch-all rewrite is deleted (it would break App Router). Rejected: keeping Vite and porting UI piecemeal (duplicates two data layers); nesting the app in `web/` (user-requested old layout is flat).
 
 **ADR-036 — Auth stays browser-side with in-memory session (parity with current app).**
 Supabase `persistSession:false`, `autoRefreshToken:false`; profile fetched from `GET /api/auth/me`. No `middleware.ts` auth checks (the server cannot see an in-memory session, and adding cookie-based SSR auth would change the security model approved for this system). Consequence, documented: a hard reload signs the user out — same as today. Client-side portal guards are the protection layer; the API remains the enforcement layer for every request.
@@ -98,7 +98,37 @@ Mappers own the translation tables in §8.2. UI actions call the backend action 
 
 ```
 E:/code_ni_hans/peso_project
-├─ package.json                 # orchestrator: dev/build/lint/typecheck/test/test:e2e (proxies to web + server)
+├─ package.json                 # app package + orchestrator: dev/build/lint/typecheck/test/test:e2e
+├─ next.config.mjs              # Next config (security headers + legacy redirects)
+├─ tsconfig.json                # strict TS, "@/*" → "./*"
+├─ postcss.config.mjs / components.json / eslint.config.mjs
+├─ .env.example / .env.local    # NEXT_PUBLIC_API_URL, NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY
+├─ app/                         # existing routes; + forgot-password, reset-password, auth/callback, accept-invite
+├─ components/                  # existing; DemoSwitcher deleted; + help-chat.tsx, notification-bell.tsx
+├─ constants/                   # existing; demo constants removed
+├─ hooks/
+│  ├─ use-auth.tsx              # new (port of old AuthProvider semantics)
+│  ├─ use-afk-timer.ts          # new (ported)
+│  ├─ queries.ts                # new SWR hooks, one file
+│  ├─ use-action.ts             # kept (toast + pending)
+│  └─ use-demo.ts               # DELETED
+├─ lib/
+│  ├─ supabase.ts               # new browser client
+│  ├─ permissions.ts            # kept; + announcements/audit tokens; real permission source
+│  └─ …
+├─ services/
+│  ├─ api/client.ts             # new (sole fetch path)
+│  ├─ api/http.ts               # DELETED (superseded)
+│  ├─ api/contracts.ts          # DELETED (interfaces migrate into domain services)
+│  ├─ api/mock/**               # DELETED
+│  ├─ auth.ts jobs.ts applications.ts seekers.ts employers.ts documents.ts
+│  ├─ admin.ts announcements.ts corrections.ts notifications.ts ai.ts
+│  └─ mappers.ts                # new
+├─ types/index.ts               # extended (statuses, permissions, cover letter)
+├─ tests/                       # empty until Task 8 (demo-store spec removed in Task 1)
+├─ vitest.config.ts / playwright.config.ts
+├─ e2e/                         # new specs + helpers
+├─ public/                      # Next static assets
 ├─ AGENTS.md                    # rewritten for new layout
 ├─ plan/2026-11-03-joblinked-frontend-migration.md
 ├─ docs/arch/adr-035…041-*.md
@@ -106,39 +136,15 @@ E:/code_ni_hans/peso_project
 │  ├─ schema.sql                # + saved_jobs, announcements, employment_corrections, cover_letter
 │  ├─ migrations/010_frontend_migration.sql
 │  └─ seed.sql                  # unchanged
-├─ server/
-│  ├─ src/auth.js               # + requirePermission()
-│  ├─ src/routes/auth.js        # /auth/me returns custom_role
-│  ├─ src/routes/saved-jobs.js  # new
-│  ├─ src/routes/announcements.js # new
-│  ├─ src/routes/corrections.js # new
-│  ├─ src/routes/applications.js# + cover_letter
-│  ├─ src/app.js                # mount new routers
-│  └─ scripts/seed-e2e.js       # new (Task 24)
-└─ web/                         # moved from new_frontend/Joblinked (git mv)
-   ├─ app/                      # existing routes; + forgot-password, reset-password, auth/callback, accept-invite
-   ├─ components/               # existing; DemoSwitcher deleted; + help-chat.tsx, notification-bell.tsx
-   ├─ hooks/
-   │  ├─ use-auth.tsx           # new (port of old AuthProvider semantics)
-   │  ├─ use-afk-timer.ts       # new (ported)
-   │  ├─ queries.ts             # new SWR hooks, one file
-   │  ├─ use-action.ts          # kept (toast + pending)
-   │  └─ use-demo.ts            # DELETED
-   ├─ lib/
-   │  ├─ supabase.ts            # new browser client
-   │  ├─ permissions.ts         # kept; + announcements/audit tokens; real permission source
-   │  └─ …
-   ├─ services/
-   │  ├─ api/client.ts          # new (sole fetch path)
-   │  ├─ api/http.ts            # DELETED (superseded)
-   │  ├─ api/contracts.ts       # DELETED (interfaces migrate into domain services)
-   │  ├─ api/mock/**            # DELETED
-   │  ├─ auth.ts jobs.ts applications.ts seekers.ts employers.ts documents.ts
-   │  ├─ admin.ts announcements.ts corrections.ts notifications.ts ai.ts
-   │  └─ mappers.ts             # new
-   ├─ types/index.ts            # extended (statuses, permissions, cover letter)
-   ├─ vitest.config.ts / playwright.config.ts / eslint.config.mjs
-   └─ e2e/                      # new specs + helpers
+└─ server/
+   ├─ src/auth.js               # + requirePermission()
+   ├─ src/routes/auth.js        # /auth/me returns custom_role
+   ├─ src/routes/saved-jobs.js  # new
+   ├─ src/routes/announcements.js # new
+   ├─ src/routes/corrections.js # new
+   ├─ src/routes/applications.js# + cover_letter
+   ├─ src/app.js                # mount new routers
+   └─ scripts/seed-e2e.js       # new (Task 24)
 ```
 
 ---
@@ -151,30 +157,33 @@ Root `package.json`:
 {
   "name": "peso_project",
   "private": true,
+  "version": "0.1.0",
   "scripts": {
     "dev": "concurrently -n web,api -c blue,green \"npm:dev:web\" \"npm:dev:api\"",
-    "dev:web": "npm --prefix web run dev",
+    "dev:web": "next dev",
     "dev:api": "npm --prefix server run dev",
-    "build": "npm --prefix web run build",
-    "start": "npm --prefix web run start",
-    "lint": "npm --prefix web run lint",
-    "typecheck": "npm --prefix web run typecheck",
-    "test": "npm --prefix web run test",
-    "test:e2e": "npm --prefix web run test:e2e"
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:e2e": "playwright test"
   },
-  "devDependencies": { "concurrently": "^10.0.5" }
+  "dependencies": { "…Next app dependencies…” },
+  "devDependencies": { "…Next app devDependencies…", "concurrently": "^10.0.5" }
 }
 ```
 
-`web/package.json` (delta from moved file): remove `packageManager`, add scripts `lint` (`eslint .`), `typecheck` (`tsc --noEmit`), `test` (`vitest run`), `test:e2e` (`playwright test`); add deps `@supabase/supabase-js`, devDeps `vitest jsdom @testing-library/react @testing-library/jest-dom @testing-library/user-event @vitejs/plugin-react eslint eslint-config-next @playwright/test`.
+The moved app's dependencies/devDependencies move into the root `package.json` (no separate app package). Root `package-lock.json` is the only lockfile.
 
-`web/.env.example`:
+`.env.example`:
 ```
 NEXT_PUBLIC_API_URL=http://localhost:4000
 NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
 ```
-The three old `VITE_*` values move into `web/.env.local` (values, not names). Root `.env.local`/`.env.example` frontend entries are removed.
+The three old `VITE_*` values move into `.env.local` (values, not names). Root `.env.local`/`.env.example` frontend entries are removed.
 
 `server/.env.example`: `CORS_ORIGIN=http://localhost:3000,http://localhost:5173` (keep 5173 until Task 25). Default fallback in `server/src/app.js` changes to `http://localhost:3000`.
 
@@ -239,7 +248,7 @@ Admin: `[section]` = `dashboard`, `profile`, `accreditation`, `users`, `role-man
 | AI help chat (old: seeker global) | floating button in jobseeker shell | POST `/ai/help` |
 | AFK auto-logout | `PortalShell` | Supabase signOut + POST `/audit` |
 
-### §5.3 Redirects (`web/next.config.mjs`)
+### §5.3 Redirects (`next.config.mjs`)
 
 ```js
 async redirects() {
@@ -392,13 +401,13 @@ Acceptance: all three tables exist with indexes; second `schema.sql` run is a no
 
 | Layer | Owns |
 |---|---|
-| `web/lib/supabase.ts` | browser auth client (in-memory session) |
-| `web/services/api/client.ts` | base URL, auth header, query building, 204, JSON/FormData, 401 policy, blob downloads |
-| `web/services/*.ts` | endpoint paths + request/response types (one module per domain) |
-| `web/services/mappers.ts` | snake_case → camelCase domain types, enum translation, null/default normalization |
-| `web/hooks/use-auth.tsx` | session listener, profile load (GET `/auth/me`), role mapping, `logout`, `refreshUser`, `customRole`/permissions |
-| `web/hooks/queries.ts` | SWR keys + fetchers + `mutate` helpers |
-| `web/hooks/use-action.ts` | pending flag + success/error toast |
+| `lib/supabase.ts` | browser auth client (in-memory session) |
+| `services/api/client.ts` | base URL, auth header, query building, 204, JSON/FormData, 401 policy, blob downloads |
+| `services/*.ts` | endpoint paths + request/response types (one module per domain) |
+| `services/mappers.ts` | snake_case → camelCase domain types, enum translation, null/default normalization |
+| `hooks/use-auth.tsx` | session listener, profile load (GET `/auth/me`), role mapping, `logout`, `refreshUser`, `customRole`/permissions |
+| `hooks/queries.ts` | SWR keys + fetchers + `mutate` helpers |
+| `hooks/use-action.ts` | pending flag + success/error toast |
 | components | no `fetch`, no path strings, no enum logic |
 
 SWR keys (exact strings): `['me']`, `['jobs', filters]`, `['job', id]`, `['saved-jobs']`, `['applications','mine']`, `['applications','company',companyId]`, `['applications','dashboard']`, `['notifications']`, `['employment']`, `['corrections']`, `['employer','me']`, `['employer','jobs',filters]`, `['accreditations',companyId]`, `['documents',companyId]`, `['admin','stats']`, `['admin','users',filters]`, `['admin','jobs',filters]`, `['admin','applications',filters]`, `['admin','accreditations',filters]`, `['admin','employees']`, `['admin','corrections',status]`, `['admin','audit',filters]`, `['admin','roles']`, `['admin','permissions']`, `['admin','reference',category]`, `['admin','announcements']`, `['announcements']`.
@@ -454,25 +463,26 @@ E2E prerequisites: seeded accounts (Task 24) `e2e.seeker@peso.test`, `e2e.employ
 ### Task 1: Restructure repository, purge Vite, update docs/config
 
 **Files:**
-- Move: `new_frontend/Joblinked/*` → `web/` (git mv, keep history)
-- Delete: `src/`, `index.html`, `vite.config.js`, `dist/`, `eslint.config.js`, root `test_samples.mjs`, stale root `testout2.txt`/`lintout2.txt`/`commitout*.txt`, `web/pnpm-lock.yaml`, `web/pnpm-workspace.yaml`, root `vercel.json`
-- Rewrite: `package.json`, `web/package.json`, `.env.example`, `web/.env.example`, `AGENTS.md`
+- Move: `new_frontend/Joblinked/*` → repository root (`app/`, `components/`, `constants/`, `hooks/`, `lib/`, `public/`, `services/`, `tests/`, `types/`, `components.json`, `next.config.mjs`, `postcss.config.mjs`, `tsconfig.json`) — no containing folder
+- Delete: `src/`, `index.html`, `vite.config.js`, `dist/`, `eslint.config.js`, root `test_samples.mjs`, stale root `testout2.txt`/`lintout2.txt`/`commitout*.txt`, `pnpm-lock.yaml`, `pnpm-workspace.yaml`, root `vercel.json`
+- Rewrite: root `package.json` (app package + orchestrator), `.env.example`, `AGENTS.md`
 - Modify: `server/.env.example`, `server/src/app.js` (CORS default `http://localhost:3000`)
 - Create: `docs/arch/adr-035-nextjs-frontend.md` … `adr-041-legacy-route-redirects.md`
+- Create: root `eslint.config.mjs` (flat, `eslint-config-next/core-web-vitals`), `vitest.config.ts` + `tests/setup.ts` so `npm run lint` / `npm test` / `npm run typecheck` are green from day one; delete the dead `tests/tracking.test.ts` (node:test demo-store spec — its assertions move to the real-API tests in Task 24)
 
-**Produces:** `web/` runnable Next app; root scripts; ADRs.
+**Produces:** runnable Next app at the repo root; merged package/scripts; ADRs.
 
-- [ ] Move the directory with `git mv new_frontend/Joblinked web`, then `git rm -r new_frontend` contents are gone (directory removed at Task 25 after verification).
+- [ ] Move the app contents to the repository root (strip its nested `.git`; no `web/` folder is created).
 - [ ] Delete the Vite surface listed above.
-- [ ] Rewrite root `package.json` exactly as §4; add `lint`/`typecheck`/`test`/`test:e2e` scripts to `web/package.json`; add deps/devDeps from §4.
-- [ ] Remove `"packageManager": "pnpm@…"`; run `npm install` at root and in `web/`; commit `web/package-lock.json`.
-- [ ] Copy the three `VITE_*` secret values into `web/.env.local`; write the new example files.
-- [ ] Update `AGENTS.md` project-structure/build sections to describe `web/` + `server/` and the new commands.
+- [ ] Merge the app's dependencies, devDependencies and Next scripts into the root `package.json` exactly as §4; one `package-lock.json` at root.
+- [ ] Run `npm install` at root only; commit the single `package-lock.json`.
+- [ ] Copy the three `VITE_*` secret values into root `.env.local` as `NEXT_PUBLIC_*`; write the new example file.
+- [ ] Update `AGENTS.md` project-structure/build sections to describe the flat root layout + `server/` and the new commands.
 - [ ] Write ADRs 035–041 (short: context, decision, consequences, alternatives).
 - [ ] Verify: `npm run dev` starts both; `curl http://localhost:4000/api/health` → `{"ok":true,...}`; `http://localhost:3000/` renders the JobLinked home; `git grep -n "VITE_"` returns nothing; `npm run build` succeeds.
-- [ ] Commit: `chore: replace Vite frontend with Next.js app in web/`.
+- [ ] Commit: `chore: replace Vite frontend with Next.js app at repository root`.
 
-**Interfaces:** `web/` `@/*` alias intact; `NEXT_PUBLIC_*` env names available to all later tasks.
+**Interfaces:** `@/*` alias → `./*` intact; `NEXT_PUBLIC_*` env names available to all later tasks.
 
 ---
 
@@ -550,9 +560,9 @@ E2E prerequisites: seeded accounts (Task 24) `e2e.seeker@peso.test`, `e2e.employ
 ### Task 8: Web foundations — auth client, REST client, mappers, provider
 
 **Files:**
-- Create: `web/lib/supabase.ts`, `web/services/api/client.ts`, `web/services/mappers.ts`, `web/services/auth.ts`, `web/hooks/use-auth.tsx`, `web/services/api/client.test.ts`, `web/services/mappers.test.ts`, `web/hooks/use-auth.test.tsx`, `web/vitest.config.ts`, `web/vitest.setup.ts`
-- Modify: `web/components/providers.tsx`, `web/types/index.ts`
-- Delete: `web/services/api/http.ts`, `web/services/api/contracts.ts`, `web/services/mock/**`, `web/hooks/use-demo.ts`
+- Create: `lib/supabase.ts`, `services/api/client.ts`, `services/mappers.ts`, `services/auth.ts`, `hooks/use-auth.tsx`, `services/api/client.test.ts`, `services/mappers.test.ts`, `hooks/use-auth.test.tsx`, `vitest.config.ts`, `vitest.setup.ts`
+- Modify: `components/providers.tsx`, `types/index.ts`
+- Delete: `services/api/http.ts`, `services/api/contracts.ts`, `services/mock/**`, `hooks/use-demo.ts`
 
 **Produces (exact signatures later tasks consume):**
 ```ts
@@ -589,7 +599,7 @@ useAuth(): { user: User|null; role: Role|null; customRole: {id,name,permissions}
 
 ### Task 9: Portal shells — real gating, AFK, notification bell, route redirects
 
-**Files:** Modify `web/components/layout/portal-shell.tsx`, `web/components/layout/public-shell.tsx`, `web/app/layout.tsx`; create `web/components/layout/notification-bell.tsx`, `web/hooks/use-afk-timer.ts`, `web/lib/route-guard.ts`; modify `web/next.config.mjs`.
+**Files:** Modify `components/layout/portal-shell.tsx`, `components/layout/public-shell.tsx`, `app/layout.tsx`; create `components/layout/notification-bell.tsx`, `hooks/use-afk-timer.ts`, `lib/route-guard.ts`; modify `next.config.mjs`.
 
 **Consumes:** `useAuth`, `api`, SWR keys.
 
@@ -608,7 +618,7 @@ useAuth(): { user: User|null; role: Role|null; customRole: {id,name,permissions}
 
 ### Task 10: Auth pages — login, signup, callback, invite, password recovery
 
-**Files:** Replace demo logic in `web/components/forms/auth-pages.tsx`; modify `web/components/forms/registration-form.tsx` + steps; create `web/components/forms/resume-autofill.ts` usage is kept; create `web/app/(public)/auth/callback/page.tsx`, `web/app/(public)/accept-invite/page.tsx`, `web/app/(public)/forgot-password/page.tsx`, `web/app/(public)/reset-password/page.tsx`; remove those slugs from `web/components/public/info-pages.tsx`.
+**Files:** Replace demo logic in `components/forms/auth-pages.tsx`; modify `components/forms/registration-form.tsx` + steps; create `components/forms/resume-autofill.ts` usage is kept; create `app/(public)/auth/callback/page.tsx`, `app/(public)/accept-invite/page.tsx`, `app/(public)/forgot-password/page.tsx`, `app/(public)/reset-password/page.tsx`; remove those slugs from `components/public/info-pages.tsx`.
 
 - [ ] Login: email/password → `useAuth().login` → `router.replace(next || portalHome(role))`; wrong-role `?portal=` handling matches old behavior (session destroyed, message shown); surface suspended/unprovisioned errors.
 - [ ] Signup jobseeker/employer: keep multi-step + zod + resume autofill; on submit call `supabase.auth.signUp` with the same metadata keys the backend `POST /auth/provision` expects (read `server/src/routes/auth.js` allowlist — do not invent names); `emailRedirectTo = ${origin}/auth/callback`; employer success → `/employer/accreditation`, seeker → `/jobseeker/dashboard`; no-session case → "check your email" panel.
@@ -622,7 +632,7 @@ useAuth(): { user: User|null; role: Role|null; customRole: {id,name,permissions}
 
 ### Task 11: Public site — jobs browser/detail + apply entry
 
-**Files:** `web/components/jobs/job-browser.tsx`, `job-details.tsx`, `application-modal.tsx`, `job-card.tsx`; `web/app/(public)/jobs/**`; `web/services/jobs.ts`; `web/hooks/queries.ts`.
+**Files:** `components/jobs/job-browser.tsx`, `job-details.tsx`, `application-modal.tsx`, `job-card.tsx`; `app/(public)/jobs/**`; `services/jobs.ts`; `hooks/queries.ts`.
 
 **Produces:** `services/jobs.ts`: `listJobs(filters)`, `getJob(id)`, `createJob`, `updateJob`, `changeJobStatus`, `duplicateJob`, `deleteJob`, `listEmployerJobs(companyId, params)`, `listSavedJobs`, `saveJob`, `unsaveJob`; hooks `useJobs(filters)`, `useJob(id)`, `useSavedJobs()`.
 
@@ -636,7 +646,7 @@ useAuth(): { user: User|null; role: Role|null; customRole: {id,name,permissions}
 
 ### Task 12: Jobseeker — dashboard, opportunities, saved jobs
 
-**Files:** `web/components/jobseeker/dashboard.tsx`, `opportunities.tsx`, `resumes.tsx` (list only here), `web/app/(portals)/jobseeker/[section]/page.tsx` (wire `recommended`, `saved`).
+**Files:** `components/jobseeker/dashboard.tsx`, `opportunities.tsx`, `resumes.tsx` (list only here), `app/(portals)/jobseeker/[section]/page.tsx` (wire `recommended`, `saved`).
 
 - [ ] Dashboard: profile completion from real seeker fields; application counts by mapped status; recommended jobs = `GET /jobs` scored client-side by skills/preferred position/barangay (port old `scoreJob` logic); no mock data.
 - [ ] Opportunities: browse (reuse public filters) + saved tab (`GET /seekers/me/saved-jobs`), save/unsave toggles calling new endpoints, optimistic `mutate(['saved-jobs'])`.
@@ -646,7 +656,7 @@ useAuth(): { user: User|null; role: Role|null; customRole: {id,name,permissions}
 
 ### Task 13: Jobseeker — applications list/detail
 
-**Files:** `web/components/jobseeker/applications.tsx`, `web/app/(portals)/jobseeker/applications/[id]/page.tsx`.
+**Files:** `components/jobseeker/applications.tsx`, `app/(portals)/jobseeker/applications/[id]/page.tsx`.
 
 - [ ] List `GET /applications/mine`: job embed, status badge (mapped), applied date, deadline; empty state.
 - [ ] Detail: application fields + `history` timeline (from embed), interview details, cover letter, resume name; no withdraw button (constant in plan).
@@ -656,7 +666,7 @@ useAuth(): { user: User|null; role: Role|null; customRole: {id,name,permissions}
 
 ### Task 14: Jobseeker — profile, resumes, education/experience, password
 
-**Files:** `web/components/jobseeker/profile.tsx`, `resumes.tsx`, `web/components/dashboard/account-settings.tsx`, `web/services/seekers.ts`, `web/services/documents.ts`.
+**Files:** `components/jobseeker/profile.tsx`, `resumes.tsx`, `components/dashboard/account-settings.tsx`, `services/seekers.ts`, `services/documents.ts`.
 
 **Produces:** `services/seekers.ts`: `getSeeker`, `updateSeeker`, `listEducation/experience`, `addEducation/experience`, `removeEducation/experience`, `getEmployment`, `requestCorrection`, `listCorrections`; `services/documents.ts`: `listResumes`, `uploadResume`, `activateResume`, `deleteResume`, `listDocuments(companyId)`, `uploadDocument`, `getFileBlob(bucket, path)`, `savedBlobUrl`.
 
@@ -670,7 +680,7 @@ useAuth(): { user: User|null; role: Role|null; customRole: {id,name,permissions}
 
 ### Task 15: Jobseeker — employment tracking, corrections, notifications, help chat
 
-**Files:** `web/components/tracking/employment-tracking.tsx` (jobseeker mode), `web/components/jobseeker/…`; create `web/components/help-chat.tsx`; wire `web/app/(portals)/jobseeker/[section]/page.tsx` for `employment-tracking`, `notifications`, `settings`; `web/services/ai.ts`, `web/services/notifications.ts`.
+**Files:** `components/tracking/employment-tracking.tsx` (jobseeker mode), `components/jobseeker/…`; create `components/help-chat.tsx`; wire `app/(portals)/jobseeker/[section]/page.tsx` for `employment-tracking`, `notifications`, `settings`; `services/ai.ts`, `services/notifications.ts`.
 
 - [ ] Employment list from `GET /seekers/me/employment` (trigger-written): employer, position, start/end, current badge.
 - [ ] Correction request dialog → `POST /seekers/me/employment/:id/corrections`; list own requests with status/resolution.
@@ -682,7 +692,7 @@ useAuth(): { user: User|null; role: Role|null; customRole: {id,name,permissions}
 
 ### Task 16: Employer — dashboard, job management, job form
 
-**Files:** `web/components/employer/dashboard.tsx`, `job-management.tsx`, `job-form.tsx`; `web/app/(portals)/employer/jobs/**`; `web/services/employers.ts`; `web/services/jobs.ts` (employer ops).
+**Files:** `components/employer/dashboard.tsx`, `job-management.tsx`, `job-form.tsx`; `app/(portals)/employer/jobs/**`; `services/employers.ts`; `services/jobs.ts` (employer ops).
 
 - [ ] Dashboard: `GET /applications/employers/me/dashboard` (stats + recent), `GET /employers/me` company card + accreditation status banner.
 - [ ] Job list: `GET /employers/:companyId/jobs` with status filter/page; actions publish/close/reopen/duplicate/delete; publish disabled with reason when accreditation ≠ approved; expired deadline must be fixed before reopen (client pre-check + server 403/400 message).
@@ -693,7 +703,7 @@ useAuth(): { user: User|null; role: Role|null; customRole: {id,name,permissions}
 
 ### Task 17: Employer — applicants and status workflow
 
-**Files:** `web/components/employer/applicants.tsx`, `web/app/(portals)/employer/applicants/[id]/page.tsx`, `web/services/applications.ts`.
+**Files:** `components/employer/applicants.tsx`, `app/(portals)/employer/applicants/[id]/page.tsx`, `services/applications.ts`.
 
 - [ ] List `GET /applications/company/:companyId` (embed seeker/job), filters by job/status.
 - [ ] Detail: seeker profile card, resume preview (authenticated blob), application timeline; actions Review/Interview/Hire/Reject via `POST /applications/:id/status` with remarks, interview date+instructions; employer note via the same endpoint (`employerNotes`).
@@ -704,7 +714,7 @@ useAuth(): { user: User|null; role: Role|null; customRole: {id,name,permissions}
 
 ### Task 18: Employer — accreditation, company profile, employees tracking, notifications
 
-**Files:** `web/components/employer/accreditation.tsx`, `company-profile.tsx`, `web/components/tracking/employment-tracking.tsx` (employer mode), `web/components/dashboard/notifications-page.tsx` usage; `web/app/(portals)/employer/[section]/page.tsx` wiring.
+**Files:** `components/employer/accreditation.tsx`, `company-profile.tsx`, `components/tracking/employment-tracking.tsx` (employer mode), `components/dashboard/notifications-page.tsx` usage; `app/(portals)/employer/[section]/page.tsx` wiring.
 
 - [ ] Accreditation: submit/re-submit with `POST /accreditations` + document upload (`POST /files/documents` with `doc_type` from constants), timeline/history from `GET /accreditations/company/:id`, document statuses and previews; pending banner replaces the old dedicated status page.
 - [ ] Company profile: `GET/PATCH /employers/me` allowlist; barangay/address; website/description.
@@ -716,7 +726,7 @@ useAuth(): { user: User|null; role: Role|null; customRole: {id,name,permissions}
 
 ### Task 19: Admin — dashboard, accreditation review, job moderation
 
-**Files:** `web/components/admin/dashboard.tsx`, `accreditation.tsx`, `vacancies.tsx`, `web/components/dashboard/document-preview.tsx`; `web/services/admin.ts`; `web/app/(portals)/admin/[section]/page.tsx`.
+**Files:** `components/admin/dashboard.tsx`, `accreditation.tsx`, `vacancies.tsx`, `components/dashboard/document-preview.tsx`; `services/admin.ts`; `app/(portals)/admin/[section]/page.tsx`.
 
 **Produces:** `services/admin.ts`: `getStats`, `listUsers`, `patchUser`, `inviteUser`, `setUserRole`, `setCustomRole`, `listCompanies`, `listAdminJobs`, `patchAdminJob`, `publishJob`, `unpublishJob`, `listAdminApplications`, `listEmployees`, `listAdminAccreditations`, `getAuditLogs`, `listReference`, `createReference`, `deleteReference`, `listPermissions`, `listRoles`, `createRole`, `patchRole`, `deleteRole`, `sendSystemNotification`.
 
@@ -729,7 +739,7 @@ useAuth(): { user: User|null; role: Role|null; customRole: {id,name,permissions}
 
 ### Task 20: Admin — users, custom roles, staff permissions
 
-**Files:** `web/components/admin/users.tsx`, `role-management.tsx`, `web/lib/permissions.ts`, `web/app/(portals)/admin/[section]/page.tsx`.
+**Files:** `components/admin/users.tsx`, `role-management.tsx`, `lib/permissions.ts`, `app/(portals)/admin/[section]/page.tsx`.
 
 - [ ] Users: list with role/search/status filters + pagination; edit (name/phone/status), suspend/activate, role change (`POST /admin/users/:id/role`), invite modal (`POST /admin/users/invite`), custom role assignment (`POST /admin/users/:id/custom-role`).
 - [ ] Role management: system roles from `GET /admin/permissions` (read-only), custom roles CRUD with permission checkboxes using the canonical token list (`browse, apply, jobs, employees, accreditation, reports, roles, announcements, audit`), base role selector.
@@ -740,7 +750,7 @@ useAuth(): { user: User|null; role: Role|null; customRole: {id,name,permissions}
 
 ### Task 21: Admin — applications monitoring, reports + CSV
 
-**Files:** `web/components/admin/monitoring.tsx`, `reports.tsx`, `web/lib/format.ts` (existing CSV helper), `web/services/admin.ts`.
+**Files:** `components/admin/monitoring.tsx`, `reports.tsx`, `lib/format.ts` (existing CSV helper), `services/admin.ts`.
 
 - [ ] Monitoring: `GET /admin/applications` (status/search/pagination), seeker+j employer+job display, referral badge (read-only).
 - [ ] Reports: date range validation (≤10 years, from ≤ to), aggregate client-side from `GET /admin/jobs` + `GET /admin/applications` + `GET /admin/users` (seekers) into the existing `Report` shape; barangay/monthly breakdowns; charts from recharts; CSV download via `format.downloadCsv` (includes formula-injection guard).
@@ -750,7 +760,7 @@ useAuth(): { user: User|null; role: Role|null; customRole: {id,name,permissions}
 
 ### Task 22: Admin — announcements, audit log, employment oversight, settings, profile
 
-**Files:** `web/components/admin/announcements.tsx`, `audit-log.tsx`, `tracking/employment-tracking.tsx` (admin mode), `web/components/forms`/settings section, profile; `web/services/announcements.ts`, `corrections.ts`.
+**Files:** `components/admin/announcements.tsx`, `audit-log.tsx`, `tracking/employment-tracking.tsx` (admin mode), `components/forms`/settings section, profile; `services/announcements.ts`, `corrections.ts`.
 
 - [ ] Announcements: list all (`GET /admin/announcements`), create/edit/delete, publish action (fan-out hint in copy); reuse old broadcast expectations (system notification remains available for non-article messages).
 - [ ] Audit: `GET /admin/audit-logs` with user/action/date filters, detail drawer.
@@ -763,7 +773,7 @@ useAuth(): { user: User|null; role: Role|null; customRole: {id,name,permissions}
 
 ### Task 23: Remove the demo layer + shared polish (typecheck hard gate)
 
-**Files:** Delete `web/services/mock/**`, `web/hooks/use-demo.ts`, `web/components/layout/demo-switcher.tsx`, demo constants (`DEMO_ACCOUNTS`, `DEMO_PASSWORD`, `DEMO_QUERY_KEY`), any `useDemo` references; modify `web/constants/index.ts`, `web/lib/permissions.ts`, `web/components/layout/portal-shell.tsx`, `web/components/dashboard/account-settings.tsx`.
+**Files:** Delete `services/mock/**`, `hooks/use-demo.ts`, `components/layout/demo-switcher.tsx`, demo constants (`DEMO_ACCOUNTS`, `DEMO_PASSWORD`, `DEMO_QUERY_KEY`), any `useDemo` references; modify `constants/index.ts`, `lib/permissions.ts`, `components/layout/portal-shell.tsx`, `components/dashboard/account-settings.tsx`.
 
 - [ ] `git grep -n "useDemo\|demoApi\|DemoSwitcher\|DEMO_"` → only docs/history references; remove each consumer.
 - [ ] Remove demo-only UI copy ("demo account", "preview only", "backend not wired yet"), demo password hints, prefilled demo credentials.
@@ -774,7 +784,7 @@ useAuth(): { user: User|null; role: Role|null; customRole: {id,name,permissions}
 
 ### Task 24: E2E harness + full verification loop
 
-**Files:** Create `web/playwright.config.ts`, `web/e2e/helpers/auth.ts`, `web/e2e/{redirects,public,auth,jobseeker,employer,admin,gating}.spec.ts`, `server/scripts/seed-e2e.js`; modify `web/package.json` (`test:e2e`).
+**Files:** Create `playwright.config.ts`, `e2e/helpers/auth.ts`, `e2e/{redirects,public,auth,jobseeker,employer,admin,gating}.spec.ts`, `server/scripts/seed-e2e.js`; modify `package.json` (`test:e2e`).
 
 - [ ] Seed script (idempotent, service role): three confirmed users with `app_metadata.role`, role rows, approved employer (`employer_accreditations` approved + trigger sync), pending employer, two published jobs, one application, one pending accreditation, one custom role `['jobs','employees']` assigned to a fourth `e2e.staff@peso.test`.
 - [ ] Playwright config: `webServer` = root `npm run dev` with `NEXT_PUBLIC_API_URL`/`NEXT_PUBLIC_SUPABASE_*` from env; `baseURL http://localhost:3000`; workers 1; global setup runs the seed script.
@@ -794,9 +804,9 @@ useAuth(): { user: User|null; role: Role|null; customRole: {id,name,permissions}
 
 ### Task 25: Documentation, cleanup, final gate
 
-**Files:** Update `AGENTS.md`, `README.md`, `docs/arch/adr-*`, `web/.env.example`; delete `new_frontend/` (now fully verified); remove temporary root artifacts.
+**Files:** Update `AGENTS.md`, `README.md`, `docs/arch/adr-*`, `.env.example`; delete `new_frontend/` (now fully verified); remove temporary root artifacts.
 
-- [ ] Confirm `web/` has no reference to `new_frontend` or pnpm; delete the directory.
+- [ ] Confirm `` has no reference to `new_frontend` or pnpm; delete the directory.
 - [ ] Document: dev workflow, env vars (three `NEXT_PUBLIC_*` + `CORS_ORIGIN`), DB migration command, test commands, staff/custom-role model, ADR-036 session behavior.
 - [ ] Full gate from a clean shell: `npm --prefix server test && npm run lint && npm run typecheck && npm test && npm run test:e2e`.
 - [ ] Manual smoke: `npm run dev`, log in as all four accounts, reload behavior, files preview, CSV download.
@@ -806,7 +816,7 @@ useAuth(): { user: User|null; role: Role|null; customRole: {id,name,permissions}
 
 ## §11 Cutover / Rollback
 
-- **Cutover:** migration branch contains Tasks 1–25; deployment target (Vercel project root `web/`) uses `NEXT_PUBLIC_API_URL` pointing at the deployed API; API `CORS_ORIGIN` must list the deployed web origin. Keep 5173 in CORS until the new deploy is verified, then drop it.
+- **Cutover:** migration branch contains Tasks 1–25; deployment target is the repository root (Vercel project root = repo root) using `NEXT_PUBLIC_API_URL` pointing at the deployed API; API `CORS_ORIGIN` must list the deployed web origin. Keep 5173 in CORS until the new deploy is verified, then drop it.
 - **Rollback:** the old frontend is recoverable from git (`src/` at the pre-migration commit). Database migration 010 is additive-only (three new tables + one nullable column); rollback SQL (not part of normal flow):
   ```sql
   drop table if exists public.employment_corrections;

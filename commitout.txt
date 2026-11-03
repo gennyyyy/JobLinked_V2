@@ -1,3 +1,0 @@
-﻿[main 06fa62c] docs: add dark mode design spec
- 1 file changed, 189 insertions(+)
- create mode 100644 docs/superpowers/specs/2026-10-18-dark-mode-design.md

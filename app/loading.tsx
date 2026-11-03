@@ -1,0 +1,2 @@
+import { Skeleton } from '@/components/ui/skeleton'
+export default function Loading() { return <main id="main-content" className="page-container py-14" aria-label="Loading page" aria-busy="true"><Skeleton className="mb-5 h-5 w-32" /><Skeleton className="mb-4 h-12 max-w-xl" /><Skeleton className="mb-10 h-5 max-w-md" /><div className="grid gap-5 sm:grid-cols-3">{[1, 2, 3].map(i => <Skeleton key={i} className="h-64 rounded-2xl" />)}</div></main> }

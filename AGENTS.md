@@ -2,27 +2,29 @@
 
 ## Project Structure
 
-- `src/features/` contains the auth, employer, job-seeker, public-site, and super-admin features.
-- `src/shared/` holds reusable components, context, hooks, API clients, services, and constants.
-- `server/` contains the Express API; `db/` contains the portable PostgreSQL schema and SQL.
-- `docs/arch/` holds architecture decisions and API contracts. Tests use Vitest and live alongside source files or in the established test directories.
+- The Next.js 16 App Router frontend lives directly at the repository root, TypeScript strict with Tailwind 4 and shadcn UI: `app/` (routes), `components/`, `hooks/`, `lib/`, `services/`, `types/`, `constants/`, `public/`, `tests/`, `e2e/`.
+- `server/` is the Express API (`server/src/`) and owns all PostgreSQL access.
+- `db/` holds the portable PostgreSQL schema and migrations; `docs/arch/` holds ADRs; `plan/` holds the migration plan.
+- Root `package.json` is both the frontend package and the orchestrator for the two processes.
 
 ## Build, Test, and Development
 
-- `npm run dev` starts the Vite web app and Express API together.
-- `npm run dev:web` or `npm run dev:api` starts one side; API runs on port 4000 by default.
-- `npm run build` creates the production bundle in `dist/`.
-- `npm test` runs Vitest; `npm run test:watch` keeps it running during development.
-- `npm run lint` runs ESLint across the repository. Run it before submitting changes.
-- `npm run preview` serves the production build locally.
+- `npm run dev` starts the Next app (port 3000) and the Express API (port 4000) together.
+- `npm run dev:web` or `npm run dev:api` starts one side; the API runs on port 4000 by default.
+- `npm run build` runs the Next production build; `npm run start` serves it.
+- `npm run typecheck`, `npm run lint`, `npm test` (Vitest) and `npm run test:e2e` (Playwright) run against the root app.
+- `npm --prefix server test` runs the API test suite. Run it in addition to `npm test` when touching `server/`.
+- **npm only.** Do not add a pnpm lockfile, yarn lockfile, or a `packageManager` field.
 
 ## Coding Style
 
-Use JavaScript and JSX; TypeScript is not used. Follow nearby code for formatting and naming. Use PascalCase for React components, camelCase for functions and variables, and keep feature-specific code in its feature folder. Tailwind classes belong in JSX and should use the theme tokens in `src/index.css` (such as `primary`, `accent`, `danger`, and `dark-blue`). Keep API calls in `src/shared/services/` through the shared client in `src/shared/lib/api.js`.
+The frontend is TypeScript strict; no `.jsx` files and no `any` where a real type exists. `server/` stays JavaScript (ESM). Use PascalCase for React components and camelCase for functions and variables. Follow the existing feature folders in `components/`. Tailwind classes belong in JSX and should use the theme tokens in `app/globals.css`.
+
+All browser data access goes through the Express API via `services/api/client.ts` and the per-domain modules in `services/`; components never call `fetch` or build URL paths. Backend enum values are translated in `services/mappers.ts` only.
 
 ## Testing
 
-Tests run with Vitest, jsdom, and Testing Library, with shared setup in `src/test/setup.js`. Name tests `*.test.js` or `*.test.jsx` and place them near the code they cover or in the existing test directory. Add or update focused tests for behavior changes, then run `npm test` and `npm run lint`.
+Frontend tests use Vitest, jsdom, and Testing Library; name them `*.test.ts` / `*.test.tsx` next to the code they cover. End-to-end specs live in `e2e/` and run with Playwright. Server tests use Vitest and supertest alongside the route files (`server/src/**/*.test.js`). Add or update focused tests for behavior changes, then run the relevant command and `npm run lint`.
 
 ## Commits and Pull Requests
 
@@ -30,4 +32,6 @@ Use short, imperative commit subjects that describe the change (for example, `Fi
 
 ## Architecture and Configuration
 
-The browser talks to the Express API, which owns PostgreSQL access. Supabase is for authentication only; do not add browser-side database, storage, or RPC calls. Do not modify `db/schema.sql` without architect approval; schema updates must go through that file and `psql`. Keep service-role keys and `DATABASE_URL` out of client code. Configure frontend variables as described in `.env.example` and API secrets in `server/.env` using `server/.env.example`.
+The browser talks to the Express API, which owns PostgreSQL access. Supabase is for authentication only; do not add browser-side database, storage, or RPC calls. Do not modify `db/schema.sql` without architect approval; schema updates must go through that file and `psql`. Keep service-role keys and `DATABASE_URL` out of client code.
+
+Frontend variables go in `.env.local` at the repo root (copy `.env.example`) and are limited to `NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`. API secrets go in `server/.env` (copy `server/.env.example`). Never put a service-role key or `DATABASE_URL` in a `NEXT_PUBLIC_*` variable.

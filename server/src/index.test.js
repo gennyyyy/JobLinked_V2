@@ -208,8 +208,8 @@ describe('entrypoint hardening (server/src/index.js)', () => {
   });
 
   it('cors fails closed to the dev origin when CORS_ORIGIN is unset', async () => {
-    const allowed = await call(`${base}/api/health`, { headers: { Origin: 'http://localhost:5173' } });
-    expect(allowed.acao).toBe('http://localhost:5173');
+    const allowed = await call(`${base}/api/health`, { headers: { Origin: 'http://localhost:3000' } });
+    expect(allowed.acao).toBe('http://localhost:3000');
     const other = await call(`${base}/api/health`, { headers: { Origin: 'https://evil.example' } });
     expect(other.acao).toBeNull();
   });
