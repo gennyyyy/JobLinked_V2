@@ -3,7 +3,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import useDialog from "../hooks/useDialog";
 
-const TERMS_PLACEHOLDER = `JOBLINKED EMPLOYEE / JOB SEEKER SIGN-UP
+export const TERMS_PLACEHOLDER = `JOBLINKED EMPLOYEE / JOB SEEKER SIGN-UP
 Municipal Data Collection Terms and PESO Privacy Policy
 JobLinked collects and processes information you provide to create your account and support job matching, employment applications, and application tracking through the Public Employment Service Office (PESO).
 

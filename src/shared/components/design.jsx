@@ -13,7 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 export function Logo({ light = false, compact = false, imageSrc = "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/Logo-lDM9L9yQL9F0cRDvGXNMeT2vrETT2m.png", wordmarkSrc = "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/TextBased%20Logo-VbwcOtvFwkjScF5hxpbierATwB6ncj.png", }) {
-    return (<Link href="/" className="inline-flex shrink-0 items-center gap-2.5" aria-label="JobLinked home">
+    return (<Link to="/" className="inline-flex shrink-0 items-center gap-2.5" aria-label="JobLinked home">
       {compact ? (<img src={imageSrc} alt="" width={64} height={64} className="size-9 shrink-0 rounded-full object-cover"/>) : (<>
           <img src={imageSrc} alt="JobLinked logo" width={64} height={64} className="size-11 shrink-0 rounded-full object-cover"/>
           <img src={wordmarkSrc} alt="JobLinked" width={211} height={60} className="h-auto w-[150px] object-contain"/>
@@ -28,7 +28,7 @@ export function Logo({ light = false, compact = false, imageSrc = "https://hebbk
     </Link>);
 }
 export function LinkButton({ href, children, variant = "default", className, ...props }) {
-    return (<Link href={href} className={cn(buttonVariants({ variant }), "min-h-11 gap-2 px-5", className)} {...props}>
+    return (<Link to={href} className={cn(buttonVariants({ variant }), "min-h-11 gap-2 px-5", className)} {...props}>
       {children}
     </Link>);
 }

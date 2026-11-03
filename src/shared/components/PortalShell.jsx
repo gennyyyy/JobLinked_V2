@@ -101,7 +101,7 @@ export function PortalShell({ role, children, }) {
           <p className="mt-2 text-[10px] leading-5 text-muted-foreground">
             One local connection can open a new chapter.
           </p>
-          <Link href="/jobs" className="text-link mt-1 text-[10px]">
+          <Link to="/jobs" className="text-link mt-1 text-[10px]">
             Explore opportunities
             <ArrowUpRight className="size-3"/>
           </Link>
@@ -169,7 +169,7 @@ export function PortalShell({ role, children, }) {
               <Menu />
             </Button>
             <nav aria-label="Breadcrumb" className="hidden items-center gap-2 text-[11px] sm:flex">
-              <Link href={`/${role}/dashboard`} className="text-muted-foreground">
+              <Link to={`/${role}/dashboard`} className="text-muted-foreground">
                 Workspace
               </Link>
               <ChevronRight className="size-3 text-muted-foreground"/>
@@ -184,7 +184,7 @@ export function PortalShell({ role, children, }) {
             <Button className="flex size-11 items-center justify-center text-muted-foreground md:hidden" aria-label="Search workspace" onClick={() => setSearchOpen(true)}>
               <Search className="size-4"/>
             </Button>
-            <Link href={`/${role}/notifications`} aria-label={`Notifications, ${unread} unread`} className="relative flex size-11 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted">
+            <Link to={`/${role}/notifications`} aria-label={`Notifications, ${unread} unread`} className="relative flex size-11 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted">
               <Bell className="size-[18px]"/>
               {unread > 0 && (<span className="absolute right-2.5 top-2 size-1.5 rounded-full bg-primary"/>)}
             </Link>
@@ -239,8 +239,8 @@ export function PortalShell({ role, children, }) {
         <div className="no-print flex flex-wrap items-center justify-between gap-3 px-8 pb-6 text-[10px] text-muted-foreground">
           <span>JobLinked · Santa Maria, Bulacan</span>
           <div className="flex gap-4">
-            <Link href="/privacy">Privacy Notice</Link>
-            <Link href="/terms">Terms</Link>
+            <Link to="/privacy">Privacy Notice</Link>
+            <Link to="/terms">Terms</Link>
           </div>
         </div>
       </div>

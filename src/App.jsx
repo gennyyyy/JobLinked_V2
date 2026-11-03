@@ -12,6 +12,7 @@ const Landing = lazy(() => import('./features/public-site/Landing'))
 const PublicJobs = lazy(() => import('./features/public-site/PublicJobs'))
 const PublicJobDetail = lazy(() => import('./features/public-site/PublicJobDetail'))
 const PortalSelect = lazy(() => import('./features/public-site/PortalSelect'))
+const Legal = lazy(() => import('./features/public-site/Legal'))
 const ForgotPassword = lazy(() => import('./features/auth/ForgotPassword'))
 const ResetPassword = lazy(() => import('./features/auth/ResetPassword'))
 const Login = lazy(() => import('./features/auth/Login'))
@@ -60,6 +61,10 @@ function App() {
             <Route path="/jobs" element={<PublicRoute><PublicJobs /></PublicRoute>} />
             <Route path="/jobs/:jobId" element={<PublicRoute><PublicJobDetail /></PublicRoute>} />
             <Route path="/portals" element={<PublicRoute><PortalSelect /></PublicRoute>} />
+            {/* Legal pages are not PublicRoute: portals link here, and a signed-in
+                user must not be logged out just for reading the notice. */}
+            <Route path="/privacy" element={<Legal title="Privacy notice" />} />
+            <Route path="/terms" element={<Legal title="Demo terms" />} />
             <Route path="/super-admin/login" element={<Login portalKey="super-admin" />} />
             <Route path="/employer/login" element={<Login portalKey="employer" />} />
             <Route path="/job-seeker/login" element={<Login portalKey="job-seeker" />} />
