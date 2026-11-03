@@ -24,7 +24,7 @@ const accountTypes = [
 
 function Register() {
   return (
-    <div className="min-h-screen bg-gray-50 text-gray-900 flex flex-col font-sans">
+    <div className="min-h-screen bg-muted text-foreground flex flex-col font-sans">
       <SkipLink />
       <PublicHeader />
 
@@ -38,7 +38,7 @@ function Register() {
             <h1 className="mt-3 font-sans text-2xl md:text-3xl font-bold tracking-tight text-dark-blue">
               Create your account
             </h1>
-            <p className="mt-3 text-sm md:text-base text-gray-500">
+            <p className="mt-3 text-sm md:text-base text-muted-foreground">
               Select your role to begin registration with the Public Employment Service Office
             </p>
           </header>
@@ -47,7 +47,7 @@ function Register() {
             {accountTypes.map((type) => (
               <div
                 key={type.title}
-                className="bg-white border border-primary rounded-lg p-6 flex flex-col justify-between hover:border-primary/40 transition-all duration-300"
+                className="bg-card border border-primary rounded-lg p-6 flex flex-col justify-between hover:border-primary/40 transition-all duration-300"
               >
                 <div>
                   <span className="font-mono text-[10px] tracking-widest uppercase px-2.5 py-1 rounded-full bg-primary/10 border border-primary/25 text-primary font-semibold">
@@ -56,12 +56,12 @@ function Register() {
                   <h2 className="mt-4 text-2xl font-bold text-dark-blue">
                     {type.title}
                   </h2>
-                  <p className="mt-3 text-sm text-gray-500 leading-relaxed">
+                  <p className="mt-3 text-sm text-muted-foreground leading-relaxed">
                     {type.description}
                   </p>
                 </div>
 
-                <div className="mt-8 pt-6 border-t border-gray-100">
+                <div className="mt-8 pt-6 border-t border-border">
                   <Link
                     to={type.to}
                     className="w-full min-h-[44px] inline-flex items-center justify-center px-6 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-primary-hover active:scale-[0.98] transition-all shadow-md"
@@ -73,7 +73,7 @@ function Register() {
             ))}
           </div>
 
-          <p className="mt-10 text-center text-xs text-gray-500">
+          <p className="mt-10 text-center text-xs text-muted-foreground">
             Already have an account?{" "}
             <Link to="/portals" className="text-primary hover:underline underline-offset-4 font-medium">
               Log in to your portal

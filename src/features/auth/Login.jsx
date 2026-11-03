@@ -45,15 +45,15 @@ function Login({ portalKey }) {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 text-gray-900 flex flex-col font-sans">
+    <div className="min-h-screen bg-muted text-foreground flex flex-col font-sans">
       <SkipLink />
       <PublicHeader />
 
       <main id="main-content" tabIndex={-1}
         className="flex-1 flex items-center justify-center p-[5%]">
-        <div className="w-full max-w-md bg-white border border-primary rounded-lg p-6 md:p-9 shadow-xl">
+        <div className="w-full max-w-md bg-card border border-primary rounded-lg p-6 md:p-9 shadow-xl">
           <div className="flex items-center justify-between mb-6">
-            <Link to="/portals" className="text-xs text-gray-500 hover:text-primary transition-colors">
+            <Link to="/portals" className="text-xs text-muted-foreground hover:text-primary transition-colors">
               ← Portals
             </Link>
             <span className="font-mono text-[10px] tracking-widest uppercase px-2.5 py-1 rounded-full bg-primary/10 border border-primary/25 text-primary">
@@ -63,7 +63,7 @@ function Login({ portalKey }) {
 
           <div>
             <h1 className="text-2xl font-bold tracking-tight text-dark-blue">{portal.name}</h1>
-            <p className="mt-2 text-sm text-gray-500">Sign in with your credentials to access your portal</p>
+            <p className="mt-2 text-sm text-muted-foreground">Sign in with your credentials to access your portal</p>
           </div>
 
           <form onSubmit={handleSubmit} className="mt-7 space-y-4">
@@ -72,7 +72,7 @@ function Login({ portalKey }) {
             )}
 
             <div>
-              <label htmlFor="login-email" className="block font-mono text-[11px] tracking-wider text-gray-500 uppercase mb-1.5">
+              <label htmlFor="login-email" className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase mb-1.5">
                 Email
               </label>
               <input
@@ -83,12 +83,12 @@ function Login({ portalKey }) {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full min-h-[44px] px-4 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 placeholder:text-gray-600 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all"
+                className="w-full min-h-[44px] px-4 rounded-xl text-sm bg-muted border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all"
               />
             </div>
 
             <div>
-              <label htmlFor="login-password" className="block font-mono text-[11px] tracking-wider text-gray-500 uppercase mb-1.5">
+              <label htmlFor="login-password" className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase mb-1.5">
                 Password
               </label>
               <input
@@ -99,7 +99,7 @@ function Login({ portalKey }) {
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full min-h-[44px] px-4 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 placeholder:text-gray-600 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all"
+                className="w-full min-h-[44px] px-4 rounded-xl text-sm bg-muted border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all"
               />
             </div>
 
@@ -113,7 +113,7 @@ function Login({ portalKey }) {
           </form>
 
           {portal.key !== "super-admin" && (
-            <div className="mt-8 pt-6 border-t border-gray-100 flex items-center justify-between text-xs text-gray-500">
+            <div className="mt-8 pt-6 border-t border-border flex items-center justify-between text-xs text-muted-foreground">
               <span>Don't have an account?</span>
               <Link to={`/register/${portal.key}`} className="text-primary hover:underline underline-offset-4 font-medium">
                 Register here

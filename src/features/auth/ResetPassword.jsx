@@ -36,15 +36,15 @@ function ResetPassword() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 text-gray-900 flex flex-col font-sans">
+    <div className="min-h-screen bg-muted text-foreground flex flex-col font-sans">
       <SkipLink />
       <PublicHeader />
 
       <main id="main-content" tabIndex={-1}
         className="flex-1 flex items-center justify-center p-[5%]">
-        <div className="w-full max-w-md bg-white border border-primary rounded-lg p-6 md:p-9 shadow-xl">
+        <div className="w-full max-w-md bg-card border border-primary rounded-lg p-6 md:p-9 shadow-xl">
           <div className="flex items-center justify-between mb-6">
-            <Link to="/portals" className="text-xs text-gray-600 hover:text-primary transition-colors">
+            <Link to="/portals" className="text-xs text-muted-foreground hover:text-primary transition-colors">
               ← Portals
             </Link>
             <span className="font-mono text-[10px] tracking-widest uppercase px-2.5 py-1 rounded-full bg-primary/10 border border-primary/25 text-primary">
@@ -54,7 +54,7 @@ function ResetPassword() {
 
           <div>
             <h1 className="text-2xl font-bold tracking-tight text-dark-blue">Set a New Password</h1>
-            <p className="mt-2 text-sm text-gray-500">Enter your new password below</p>
+            <p className="mt-2 text-sm text-muted-foreground">Enter your new password below</p>
           </div>
 
           <form onSubmit={handleSubmit} className="mt-7 space-y-4">
@@ -63,7 +63,7 @@ function ResetPassword() {
             )}
 
             <div>
-              <label htmlFor="reset-password" className="block font-mono text-[11px] tracking-wider text-gray-500 uppercase mb-1.5">
+              <label htmlFor="reset-password" className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase mb-1.5">
                 New Password
               </label>
               <input
@@ -74,12 +74,12 @@ function ResetPassword() {
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full min-h-[44px] px-4 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 placeholder:text-gray-600 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all"
+                className="w-full min-h-[44px] px-4 rounded-xl text-sm bg-muted border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all"
               />
             </div>
 
             <div>
-              <label htmlFor="reset-confirm" className="block font-mono text-[11px] tracking-wider text-gray-500 uppercase mb-1.5">
+              <label htmlFor="reset-confirm" className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase mb-1.5">
                 Confirm Password
               </label>
               <input
@@ -90,7 +90,7 @@ function ResetPassword() {
                 required
                 value={confirm}
                 onChange={(e) => setConfirm(e.target.value)}
-                className="w-full min-h-[44px] px-4 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 placeholder:text-gray-600 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all"
+                className="w-full min-h-[44px] px-4 rounded-xl text-sm bg-muted border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all"
               />
             </div>
 

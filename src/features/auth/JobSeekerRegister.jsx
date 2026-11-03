@@ -234,8 +234,8 @@ function JobSeekerRegister() {
     }
   }
 
-  const inputClass = "w-full min-h-[44px] px-4 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 placeholder:text-gray-600 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all";
-  const labelClass = "block font-mono text-[11px] tracking-wider text-gray-600 uppercase mb-1.5";
+  const inputClass = "w-full min-h-[44px] px-4 rounded-xl text-sm bg-muted border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all";
+  const labelClass = "block font-mono text-[11px] tracking-wider text-muted-foreground uppercase mb-1.5";
   const reqMark = <span className="text-danger" aria-hidden="true"> *</span>;
 
   function focusFirstError(key) {
@@ -263,18 +263,18 @@ function JobSeekerRegister() {
 
   if (submitted) {
     return (
-      <div className="min-h-screen bg-gray-50 text-gray-900 flex flex-col font-sans">
+      <div className="min-h-screen bg-muted text-foreground flex flex-col font-sans">
         <SkipLink />
         <PublicHeader />
 
         <main id="main-content" tabIndex={-1}
           className="flex-1 flex items-center justify-center p-[5%]">
-          <div className="max-w-md w-full text-center bg-white border border-primary rounded-lg p-6 shadow-xl">
+          <div className="max-w-md w-full text-center bg-card border border-primary rounded-lg p-6 shadow-xl">
             <span className={`font-mono text-[10px] tracking-widest uppercase px-2.5 py-1 rounded-full border font-semibold ${needsConfirmation ? "bg-amber-50 border-amber-200 text-amber-700" : "bg-emerald-50 border-emerald-200 text-emerald-600"}`}>
               {needsConfirmation ? "VERIFY YOUR EMAIL" : "ACCOUNT READY"}
             </span>
             <h1 className="mt-4 text-2xl font-bold text-dark-blue">{needsConfirmation ? "Check Your Email" : "Registration Complete!"}</h1>
-            <p className="mt-3 text-sm text-gray-500 leading-relaxed">
+            <p className="mt-3 text-sm text-muted-foreground leading-relaxed">
               {needsConfirmation
                 ? `We sent a verification link to ${submittedEmail || "your email"}. Open it to activate your account, then sign in to the portal.`
                 : "Your JobLinked applicant account has been created. You can now log in and apply to verified Santa Maria postings."}
@@ -294,14 +294,14 @@ function JobSeekerRegister() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 text-gray-900 flex flex-col font-sans">
+    <div className="min-h-screen bg-muted text-foreground flex flex-col font-sans">
       <SkipLink />
       <PublicHeader />
 
       <main id="main-content" tabIndex={-1} className="flex-1 flex items-center justify-center p-[5%]">
-        <div className="w-full max-w-4xl bg-white border border-primary rounded-lg p-6 md:p-10 shadow-xl">
+        <div className="w-full max-w-4xl bg-card border border-primary rounded-lg p-6 md:p-10 shadow-xl">
           <div className="flex items-center justify-between mb-4">
-            <Link to="/register" className="text-xs text-gray-500 hover:text-primary transition-colors">
+            <Link to="/register" className="text-xs text-muted-foreground hover:text-primary transition-colors">
               ← Back to roles
             </Link>
             <span className="font-mono text-[10px] tracking-widest uppercase px-2.5 py-1 rounded-full bg-primary/10 border border-primary/25 text-primary font-semibold">
@@ -311,11 +311,11 @@ function JobSeekerRegister() {
 
           <header className="mb-8">
             <h1 className="text-2xl font-bold tracking-tight text-dark-blue">Job Seeker Registration</h1>
-            <p className="mt-2 text-sm text-gray-500">Fill in your details to create your verified municipal applicant account</p>
+            <p className="mt-2 text-sm text-muted-foreground">Fill in your details to create your verified municipal applicant account</p>
           </header>
 
           <form ref={formRef} onSubmit={handleSubmit} noValidate className="space-y-6 register-form">
-            <section className="bg-gray-50 border border-primary rounded-lg p-5">
+            <section className="bg-muted border border-primary rounded-lg p-5">
               <p className="font-mono text-[11px] tracking-[0.2em] text-primary uppercase mb-4 font-semibold">Step 1 — Personal Details</p>
               <div className="space-y-4">
             <section className="rounded-xl border border-dashed border-primary/40 bg-primary/5 p-4">
@@ -325,9 +325,9 @@ function JobSeekerRegister() {
                 type="file"
                 accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
                 onChange={handleResumeChange}
-                className="block w-full text-xs text-gray-600 file:mr-3 file:min-h-[40px] file:px-4 file:rounded-xl file:border-0 file:bg-primary file:text-white file:text-xs file:font-semibold hover:file:bg-primary-hover file:cursor-pointer cursor-pointer"
+                className="block w-full text-xs text-muted-foreground file:mr-3 file:min-h-[40px] file:px-4 file:rounded-xl file:border-0 file:bg-primary file:text-white file:text-xs file:font-semibold hover:file:bg-primary-hover file:cursor-pointer cursor-pointer"
               />
-              <p className="mt-2 text-xs text-gray-600">PDF up to 2 MB or DOCX up to 5 MB. We'll fill in details below; review and edit them before continuing.</p>
+              <p className="mt-2 text-xs text-muted-foreground">PDF up to 2 MB or DOCX up to 5 MB. We'll fill in details below; review and edit them before continuing.</p>
               {autofillStatus && (
                 <p role="status" aria-live="polite" className="mt-2 text-xs font-medium text-primary">{autofillStatus}</p>
               )}
@@ -340,7 +340,7 @@ function JobSeekerRegister() {
                 {errors.firstName && <p className="text-danger text-xs mt-1">{errors.firstName}</p>}
               </div>
               <div>
-                <label htmlFor="middleName" className={labelClass}>Middle Name <span className="text-gray-500 font-normal">(optional)</span></label>
+                <label htmlFor="middleName" className={labelClass}>Middle Name <span className="text-muted-foreground font-normal">(optional)</span></label>
                 <input id="middleName" name="middleName" type="text" placeholder="Santos" value={form.middleName} onChange={(e) => set("middleName", e.target.value)} className={inputClass} />
               </div>
               <div>
@@ -351,7 +351,7 @@ function JobSeekerRegister() {
             </div>
             <div className="grid grid-cols-1 gap-3">
               <div>
-                <label htmlFor="suffix" className={labelClass}>Suffix <span className="text-gray-500 font-normal">(optional)</span></label>
+                <label htmlFor="suffix" className={labelClass}>Suffix <span className="text-muted-foreground font-normal">(optional)</span></label>
                 <input id="suffix" name="suffix" type="text" placeholder="Jr., Sr., III" value={form.suffix} onChange={(e) => set("suffix", e.target.value)} className={inputClass} />
               </div>
               <div>
@@ -365,7 +365,7 @@ function JobSeekerRegister() {
               <div>
                 <label htmlFor="mobileNumber" className={labelClass}>Mobile Number{reqMark}</label>
                 <div className="relative">
-                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm text-gray-500 select-none">+63</span>
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm text-muted-foreground select-none">+63</span>
                   <input id="mobileNumber" name="mobileNumber" type="tel" inputMode="numeric" maxLength={10} placeholder="917 123 4567" value={form.mobileNumber.replace(/^\+63/, "")} onChange={(e) => set("mobileNumber", withPrefix(e.target.value))} onBlur={(e) => set("mobileNumber", normalizePhone(e.target.value))} className={`${inputClass} pl-12`} />
                 </div>
                 {errors.mobileNumber && <p className="text-danger text-xs mt-1">{errors.mobileNumber}</p>}
@@ -402,16 +402,16 @@ function JobSeekerRegister() {
               </div>
             </section>
 
-            <section className="bg-gray-50 border border-primary rounded-lg p-5">
+            <section className="bg-muted border border-primary rounded-lg p-5">
               <p className="font-mono text-[11px] tracking-[0.2em] text-primary uppercase mb-4 font-semibold">Step 2 — Address Information</p>
               <div className="space-y-4">
               <div className="grid grid-cols-1 gap-3">
                 <div>
-                  <label htmlFor="lot" className={labelClass}>Lot <span className="text-gray-500 font-normal">(optional)</span></label>
+                  <label htmlFor="lot" className={labelClass}>Lot <span className="text-muted-foreground font-normal">(optional)</span></label>
                   <input id="lot" name="lot" type="text" placeholder="e.g. 12" value={form.lot} onChange={(e) => set("lot", e.target.value)} className={inputClass} />
                 </div>
                 <div>
-                  <label htmlFor="block" className={labelClass}>Block <span className="text-gray-500 font-normal">(optional)</span></label>
+                  <label htmlFor="block" className={labelClass}>Block <span className="text-muted-foreground font-normal">(optional)</span></label>
                   <input id="block" name="block" type="text" placeholder="e.g. 4" value={form.block} onChange={(e) => set("block", e.target.value)} className={inputClass} />
                 </div>
                 <div>
@@ -420,11 +420,11 @@ function JobSeekerRegister() {
                   {errors.streetAddress && <p className="text-danger text-xs mt-1">{errors.streetAddress}</p>}
                 </div>
                 <div>
-                  <label htmlFor="subdivisionBuilding" className={labelClass}>Subdivision / Village / Building Name <span className="text-gray-500 font-normal">(optional)</span></label>
+                  <label htmlFor="subdivisionBuilding" className={labelClass}>Subdivision / Village / Building Name <span className="text-muted-foreground font-normal">(optional)</span></label>
                   <input id="subdivisionBuilding" name="subdivisionBuilding" type="text" placeholder="e.g. Greenview Heights" value={form.subdivisionBuilding} onChange={(e) => set("subdivisionBuilding", e.target.value)} className={inputClass} />
                 </div>
                 <div>
-                  <label htmlFor="barangayDistrict" className={labelClass}>Barangay / District <span className="text-gray-500 font-normal">(optional)</span></label>
+                  <label htmlFor="barangayDistrict" className={labelClass}>Barangay / District <span className="text-muted-foreground font-normal">(optional)</span></label>
                   <select id="barangayDistrict" name="barangayDistrict" value={form.barangayDistrict} onChange={(e) => set("barangayDistrict", e.target.value)} className={inputClass}>
                     <option value="">Select barangay</option>
                     {form.barangayDistrict && !SANTA_MARIA_BARANGAYS.includes(form.barangayDistrict) && (
@@ -450,7 +450,7 @@ function JobSeekerRegister() {
                   {errors.provinceState && <p className="text-danger text-xs mt-1">{errors.provinceState}</p>}
                 </div>
                 <div>
-                  <label htmlFor="postalCode" className={labelClass}>Postal Code <span className="text-gray-500 font-normal">(optional)</span></label>
+                  <label htmlFor="postalCode" className={labelClass}>Postal Code <span className="text-muted-foreground font-normal">(optional)</span></label>
                   <input id="postalCode" name="postalCode" type="text" inputMode="numeric" maxLength={4} placeholder="e.g. 3022" value={form.postalCode} onChange={(e) => set("postalCode", e.target.value)} className={inputClass} />
                   {errors.postalCode && <p className="text-danger text-xs mt-1">{errors.postalCode}</p>}
                 </div>
@@ -458,23 +458,23 @@ function JobSeekerRegister() {
               </div>
             </section>
 
-            <section className="bg-gray-50 border border-primary rounded-lg p-5">
+            <section className="bg-muted border border-primary rounded-lg p-5">
               <p className="font-mono text-[11px] tracking-[0.2em] text-primary uppercase mb-4 font-semibold">Step 3 — Background & Consent</p>
               <div className="space-y-4">
               <div>
               <p className="font-mono text-[11px] tracking-[0.2em] text-primary uppercase mb-4 font-semibold">Education History</p>
               <div className="grid grid-cols-1 gap-3">
-                <select aria-label="Education level" id="educationLevel" value={education.level} onChange={(e) => setEducation({ ...education, level: e.target.value })} className="px-4 py-2.5 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 focus:outline-none focus:border-primary/60 transition-all">
+                <select aria-label="Education level" id="educationLevel" value={education.level} onChange={(e) => setEducation({ ...education, level: e.target.value })} className="px-4 py-2.5 rounded-xl text-sm bg-muted border border-border text-foreground focus:outline-none focus:border-primary/60 transition-all">
                   <option value="">Education level</option>
                   {EDUCATION_LEVELS.map((l) => <option key={l} value={l}>{l}</option>)}
                 </select>
-                <input aria-label="School name" placeholder="School name" value={education.school} onChange={(e) => setEducation({ ...education, school: e.target.value })} className="px-4 py-2.5 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 placeholder:text-gray-600 focus:outline-none focus:border-primary/60 transition-all" />
+                <input aria-label="School name" placeholder="School name" value={education.school} onChange={(e) => setEducation({ ...education, school: e.target.value })} className="px-4 py-2.5 rounded-xl text-sm bg-muted border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/60 transition-all" />
                 <div className="flex gap-2">
-                  <input aria-label="Course / field of study" placeholder="Course / field" value={education.field} onChange={(e) => setEducation({ ...education, field: e.target.value })} className="flex-1 px-4 py-2.5 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 placeholder:text-gray-600 focus:outline-none focus:border-primary/60 transition-all" />
-                  <input aria-label="Graduation year" placeholder="Year" inputMode="numeric" disabled={education.studying} value={education.year} onChange={(e) => setEducation({ ...education, year: e.target.value })} className="w-20 px-3 py-2.5 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 placeholder:text-gray-600 focus:outline-none focus:border-primary/60 transition-all disabled:opacity-50" />
+                  <input aria-label="Course / field of study" placeholder="Course / field" value={education.field} onChange={(e) => setEducation({ ...education, field: e.target.value })} className="flex-1 px-4 py-2.5 rounded-xl text-sm bg-muted border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/60 transition-all" />
+                  <input aria-label="Graduation year" placeholder="Year" inputMode="numeric" disabled={education.studying} value={education.year} onChange={(e) => setEducation({ ...education, year: e.target.value })} className="w-20 px-3 py-2.5 rounded-xl text-sm bg-muted border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/60 transition-all disabled:opacity-50" />
                 </div>
               </div>
-              <label className="mt-2 flex items-center gap-2 text-xs text-gray-500 select-none cursor-pointer">
+              <label className="mt-2 flex items-center gap-2 text-xs text-muted-foreground select-none cursor-pointer">
                 <input type="checkbox" checked={education.studying} onChange={(e) => setEducation({ ...education, studying: e.target.checked })} className="accent-primary" />
                 Currently studying here
               </label>
@@ -482,26 +482,26 @@ function JobSeekerRegister() {
               </div>
 
               <div>
-              <label htmlFor="skills" className={labelClass}>Skills <span className="text-gray-500 font-normal">(optional)</span></label>
+              <label htmlFor="skills" className={labelClass}>Skills <span className="text-muted-foreground font-normal">(optional)</span></label>
               <TagInput id="skills" value={form.skills} onChange={(v) => set("skills", v)} placeholder="Type a skill and press Enter" />
               </div>
 
               <div>
               <div className="space-y-3">
                 <div>
-                <div className="flex items-start gap-2.5 text-xs text-gray-500 pt-2">
+                <div className="flex items-start gap-2.5 text-xs text-muted-foreground pt-2">
                   <input id="agree" type="checkbox" name="agree" checked={form.agree} disabled={!termsRead} onChange={(e) => set("agree", e.target.checked)} className="mt-0.5 accent-primary shrink-0 disabled:opacity-50 disabled:cursor-not-allowed" />
                   <div>
                     <label htmlFor="agree" className={!termsRead ? "cursor-not-allowed opacity-70" : "cursor-pointer"}>I agree to the municipal data collection terms and PESO privacy policies.{reqMark}</label>
                     <button type="button" onClick={() => setTermsOpen(true)} className="ml-1 whitespace-nowrap text-primary hover:underline underline-offset-4">View terms</button>
-                    {!termsRead && <p className="mt-1 text-gray-500">Please open and read the terms before agreeing.</p>}
+                    {!termsRead && <p className="mt-1 text-muted-foreground">Please open and read the terms before agreeing.</p>}
                   </div>
                 </div>
                 {errors.agree && <p className="text-danger text-xs mt-1">{errors.agree}</p>}
                 </div>
 
                 <div>
-                <label className="flex items-start gap-2.5 text-xs text-gray-500 select-none cursor-pointer">
+                <label className="flex items-start gap-2.5 text-xs text-muted-foreground select-none cursor-pointer">
                   <input type="checkbox" id="confirmAccurate" name="confirmAccurate" checked={form.confirmAccurate} onChange={(e) => set("confirmAccurate", e.target.checked)} className="mt-0.5 accent-primary" />
                   <span>I confirm that all the information I provided is true and correct to the best of my knowledge.{reqMark}</span>
                 </label>
@@ -525,7 +525,7 @@ function JobSeekerRegister() {
             </button>
           </form>
 
-          <p className="mt-8 text-center text-xs text-gray-500">
+          <p className="mt-8 text-center text-xs text-muted-foreground">
             Already registered?{" "}
             <Link to="/job-seeker/login" className="text-primary hover:underline underline-offset-4 font-medium">
               Log in here

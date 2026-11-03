@@ -63,10 +63,10 @@ function AcceptInvite() {
 
   if (error && !profile) {
     return (
-      <main className="min-h-screen flex items-center justify-center bg-gray-50 p-6">
-        <div className="max-w-md rounded-lg border border-primary bg-white p-6 text-center shadow-xl">
+      <main className="min-h-screen flex items-center justify-center bg-muted p-6">
+        <div className="max-w-md rounded-lg border border-primary bg-card p-6 text-center shadow-xl">
           <h1 className="text-xl font-bold text-dark-blue">Invite link issue</h1>
-          <p className="mt-3 text-sm text-gray-600">{error}</p>
+          <p className="mt-3 text-sm text-muted-foreground">{error}</p>
           <Link to="/portals" className="mt-6 inline-flex min-h-[44px] items-center rounded-xl bg-primary px-6 text-sm font-semibold text-white">
             Go to sign in
           </Link>
@@ -78,15 +78,15 @@ function AcceptInvite() {
   if (!profile) return <LoadingScreen />;
 
   return (
-    <div className="min-h-screen bg-gray-50 text-gray-900 flex flex-col font-sans">
+    <div className="min-h-screen bg-muted text-foreground flex flex-col font-sans">
       <SkipLink />
       <PublicHeader />
 
       <main id="main-content" tabIndex={-1}
         className="flex-1 flex items-center justify-center p-[5%]">
-        <div className="w-full max-w-md bg-white border border-primary rounded-lg p-6 md:p-9 shadow-xl">
+        <div className="w-full max-w-md bg-card border border-primary rounded-lg p-6 md:p-9 shadow-xl">
           <div className="flex items-center justify-between mb-6">
-            <Link to="/portals" className="text-xs text-gray-500 hover:text-primary transition-colors">
+            <Link to="/portals" className="text-xs text-muted-foreground hover:text-primary transition-colors">
               ← Portals
             </Link>
             <span className="font-mono text-[10px] tracking-widest uppercase px-2.5 py-1 rounded-full bg-primary/10 border border-primary/25 text-primary">
@@ -96,7 +96,7 @@ function AcceptInvite() {
 
           <div>
             <h1 className="text-2xl font-bold tracking-tight text-dark-blue">Set your password</h1>
-            <p className="mt-2 text-sm text-gray-500">
+            <p className="mt-2 text-sm text-muted-foreground">
               Your invite is ready. Choose a password to activate your account.
             </p>
           </div>
@@ -107,7 +107,7 @@ function AcceptInvite() {
             )}
 
             <div>
-              <label htmlFor="invite-password" className="block font-mono text-[11px] tracking-wider text-gray-500 uppercase mb-1.5">
+              <label htmlFor="invite-password" className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase mb-1.5">
                 New Password
               </label>
               <input
@@ -118,12 +118,12 @@ function AcceptInvite() {
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full min-h-[44px] px-4 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 placeholder:text-gray-600 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all"
+                className="w-full min-h-[44px] px-4 rounded-xl text-sm bg-muted border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all"
               />
             </div>
 
             <div>
-              <label htmlFor="invite-confirm" className="block font-mono text-[11px] tracking-wider text-gray-500 uppercase mb-1.5">
+              <label htmlFor="invite-confirm" className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase mb-1.5">
                 Confirm Password
               </label>
               <input
@@ -134,7 +134,7 @@ function AcceptInvite() {
                 required
                 value={confirm}
                 onChange={(e) => setConfirm(e.target.value)}
-                className="w-full min-h-[44px] px-4 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 placeholder:text-gray-600 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all"
+                className="w-full min-h-[44px] px-4 rounded-xl text-sm bg-muted border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all"
               />
             </div>
 

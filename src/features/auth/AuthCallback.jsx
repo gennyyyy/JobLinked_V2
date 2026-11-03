@@ -37,10 +37,10 @@ export default function AuthCallback() {
 
   if (!error) return <LoadingScreen />;
   return (
-    <main className="min-h-screen flex items-center justify-center bg-gray-50 p-6">
-      <div className="max-w-md rounded-lg border border-primary bg-white p-6 text-center shadow-xl">
+    <main className="min-h-screen flex items-center justify-center bg-muted p-6">
+      <div className="max-w-md rounded-lg border border-primary bg-card p-6 text-center shadow-xl">
         <h1 className="text-xl font-bold text-dark-blue">Verification link issue</h1>
-        <p className="mt-3 text-sm text-gray-600">{error}</p>
+        <p className="mt-3 text-sm text-muted-foreground">{error}</p>
         <Link to="/job-seeker/login" className="mt-6 inline-flex min-h-[44px] items-center rounded-xl bg-primary px-6 text-sm font-semibold text-white">Go to sign in</Link>
       </div>
     </main>

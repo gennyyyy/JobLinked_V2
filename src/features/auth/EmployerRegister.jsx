@@ -112,18 +112,18 @@ function EmployerRegister() {
 
   if (submitted) {
     return (
-      <div className="min-h-screen bg-gray-50 text-gray-900 flex flex-col font-sans">
+      <div className="min-h-screen bg-muted text-foreground flex flex-col font-sans">
         <SkipLink />
         <PublicHeader />
 
         <main id="main-content" tabIndex={-1}
           className="flex-1 flex items-center justify-center p-[5%]">
-          <div className="max-w-md w-full text-center bg-white border border-primary rounded-lg p-6 shadow-xl">
+          <div className="max-w-md w-full text-center bg-card border border-primary rounded-lg p-6 shadow-xl">
             <span className="font-mono text-[10px] tracking-widest uppercase px-2.5 py-1 rounded-full bg-accent/20 border border-accent/40 text-dark-blue font-semibold">
               {needsConfirmation ? "VERIFY YOUR EMAIL" : "PENDING VERIFICATION"}
             </span>
             <h1 className="mt-4 text-2xl font-bold text-dark-blue">{needsConfirmation ? "Check Your Email" : "Application Submitted"}</h1>
-            <p className="mt-3 text-sm text-gray-500 leading-relaxed">
+            <p className="mt-3 text-sm text-muted-foreground leading-relaxed">
               {needsConfirmation
                 ? "We sent a verification link to your company email. Confirm it, then sign in — you'll finish setting up your company profile on first login."
                 : "Your business accreditation application is now being reviewed by the Santa Maria PESO staff."}
@@ -135,7 +135,7 @@ function EmployerRegister() {
               >
                 Go to Login →
               </Link>
-              <Link to="/" className="text-xs text-gray-500 hover:text-primary transition-colors">
+              <Link to="/" className="text-xs text-muted-foreground hover:text-primary transition-colors">
                 Return to home
               </Link>
             </div>
@@ -147,8 +147,8 @@ function EmployerRegister() {
     );
   }
 
-  const inputClass = "w-full min-h-[44px] px-4 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 placeholder:text-gray-600 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all";
-  const labelClass = "block font-mono text-[11px] tracking-wider text-gray-600 uppercase mb-1.5";
+  const inputClass = "w-full min-h-[44px] px-4 rounded-xl text-sm bg-muted border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all";
+  const labelClass = "block font-mono text-[11px] tracking-wider text-muted-foreground uppercase mb-1.5";
   const reqMark = <span className="text-danger" aria-hidden="true"> *</span>;
 
   function focusFirstError(key) {
@@ -175,14 +175,14 @@ function EmployerRegister() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 text-gray-900 flex flex-col font-sans">
+    <div className="min-h-screen bg-muted text-foreground flex flex-col font-sans">
       <SkipLink />
       <PublicHeader />
 
       <main id="main-content" tabIndex={-1} className="flex-1 flex items-center justify-center p-[5%]">
-        <div className="w-full max-w-4xl bg-white border border-primary rounded-lg p-6 md:p-10 shadow-xl">
+        <div className="w-full max-w-4xl bg-card border border-primary rounded-lg p-6 md:p-10 shadow-xl">
           <div className="flex items-center justify-between mb-4">
-            <Link to="/register" className="text-xs text-gray-500 hover:text-primary transition-colors">
+            <Link to="/register" className="text-xs text-muted-foreground hover:text-primary transition-colors">
               ← Back to roles
             </Link>
             <span className="font-mono text-[10px] tracking-widest uppercase px-2.5 py-1 rounded-full bg-primary/10 border border-primary/25 text-primary font-semibold">
@@ -192,11 +192,11 @@ function EmployerRegister() {
 
           <header className="mb-8">
             <h1 className="text-2xl font-bold tracking-tight text-dark-blue">Business Registration</h1>
-            <p className="mt-2 text-sm text-gray-500">Submit business details and compliance credentials for Santa Maria PESO accreditation</p>
+            <p className="mt-2 text-sm text-muted-foreground">Submit business details and compliance credentials for Santa Maria PESO accreditation</p>
           </header>
 
           <form ref={formRef} onSubmit={handleSubmit} noValidate className="space-y-6 register-form">
-            <section className="bg-gray-50 border border-primary rounded-lg p-5">
+            <section className="bg-muted border border-primary rounded-lg p-5">
               <p className="font-mono text-[11px] tracking-[0.2em] text-primary uppercase mb-4 font-semibold">Step 1 — Company Details</p>
               <div className="space-y-4">
                 <div>
@@ -213,7 +213,7 @@ function EmployerRegister() {
                   <p className={labelClass}>Address Information</p>
                   <div className="grid grid-cols-1 gap-3">
                     <div>
-                      <label htmlFor="houseNumberUnit" className={labelClass}>House / Building / Unit No. <span className="text-gray-500 font-normal">(optional)</span></label>
+                      <label htmlFor="houseNumberUnit" className={labelClass}>House / Building / Unit No. <span className="text-muted-foreground font-normal">(optional)</span></label>
                       <input id="houseNumberUnit" name="houseNumberUnit" type="text" placeholder="e.g. Unit 402 or Bldg 3" className={inputClass} />
                     </div>
                     <div>
@@ -222,11 +222,11 @@ function EmployerRegister() {
                       {errors.streetAddress && <p className="text-danger text-xs mt-1">{errors.streetAddress}</p>}
                     </div>
                     <div>
-                      <label htmlFor="subdivisionBuilding" className={labelClass}>Subdivision / Village / Building Name <span className="text-gray-500 font-normal">(optional)</span></label>
+                      <label htmlFor="subdivisionBuilding" className={labelClass}>Subdivision / Village / Building Name <span className="text-muted-foreground font-normal">(optional)</span></label>
                       <input id="subdivisionBuilding" name="subdivisionBuilding" type="text" placeholder="e.g. Greenview Heights" className={inputClass} />
                     </div>
                     <div>
-                      <label htmlFor="barangayDistrict" className={labelClass}>Barangay / District <span className="text-gray-500 font-normal">(optional)</span></label>
+                      <label htmlFor="barangayDistrict" className={labelClass}>Barangay / District <span className="text-muted-foreground font-normal">(optional)</span></label>
                       <select id="barangayDistrict" name="barangayDistrict" className={inputClass}>
                         <option value="">Select barangay</option>
                         {SANTA_MARIA_BARANGAYS.map((b) => <option key={b} value={b}>{b}</option>)}
@@ -249,7 +249,7 @@ function EmployerRegister() {
                       {errors.provinceState && <p className="text-danger text-xs mt-1">{errors.provinceState}</p>}
                     </div>
                     <div>
-                      <label htmlFor="postalCode" className={labelClass}>Postal Code <span className="text-gray-500 font-normal">(optional)</span></label>
+                      <label htmlFor="postalCode" className={labelClass}>Postal Code <span className="text-muted-foreground font-normal">(optional)</span></label>
                       <input id="postalCode" name="postalCode" type="text" inputMode="numeric" maxLength={4} placeholder="e.g. 3022" className={inputClass} onChange={() => { if (errors.postalCode) setErrors((prev) => ({ ...prev, postalCode: undefined })); }} />
                       {errors.postalCode && <p className="text-danger text-xs mt-1">{errors.postalCode}</p>}
                     </div>
@@ -259,7 +259,7 @@ function EmployerRegister() {
                   <div>
                     <label htmlFor="contactNumber" className={labelClass}>Company Contact No.{reqMark}</label>
                     <div className="relative">
-                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm text-gray-500 select-none">+63</span>
+                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm text-muted-foreground select-none">+63</span>
                       <input id="contactNumber" name="contactNumber" type="tel" inputMode="numeric" maxLength={10} placeholder="44 000 0000" className={`${inputClass} pl-12`} onBlur={(e) => { e.target.value = toLocalDigits(e.target.value); }} onChange={() => { if (errors.contactNumber) setErrors((prev) => ({ ...prev, contactNumber: undefined })); }} />
                     </div>
                     {errors.contactNumber && <p className="text-danger text-xs mt-1">{errors.contactNumber}</p>}
@@ -285,7 +285,7 @@ function EmployerRegister() {
               </div>
             </section>
 
-            <section className="bg-gray-50 border border-primary rounded-lg p-5">
+            <section className="bg-muted border border-primary rounded-lg p-5">
               <p className="font-mono text-[11px] tracking-[0.2em] text-primary uppercase mb-4 font-semibold">Step 2 — Authorized Representative</p>
               <div className="space-y-4">
                 <div className="grid grid-cols-1 gap-3">
@@ -295,7 +295,7 @@ function EmployerRegister() {
                     {errors.repFirstName && <p className="text-danger text-xs mt-1">{errors.repFirstName}</p>}
                   </div>
                   <div>
-                    <label htmlFor="repMiddleName" className={labelClass}>Middle Name <span className="text-gray-500 font-normal">(optional)</span></label>
+                    <label htmlFor="repMiddleName" className={labelClass}>Middle Name <span className="text-muted-foreground font-normal">(optional)</span></label>
                     <input id="repMiddleName" name="repMiddleName" type="text" placeholder="Santos" className={inputClass} />
                   </div>
                   <div>
@@ -306,7 +306,7 @@ function EmployerRegister() {
                 </div>
                 <div className="grid grid-cols-1 gap-3">
                   <div>
-                    <label htmlFor="repSuffix" className={labelClass}>Suffix <span className="text-gray-500 font-normal">(optional)</span></label>
+                    <label htmlFor="repSuffix" className={labelClass}>Suffix <span className="text-muted-foreground font-normal">(optional)</span></label>
                   <input id="repSuffix" name="repSuffix" type="text" placeholder="Jr., Sr., III" className={inputClass} />
                   </div>
                   <div>
@@ -324,7 +324,7 @@ function EmployerRegister() {
                   <div>
                     <label htmlFor="repMobile" className={labelClass}>Representative Mobile{reqMark}</label>
                     <div className="relative">
-                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm text-gray-500 select-none">+63</span>
+                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm text-muted-foreground select-none">+63</span>
                       <input id="repMobile" name="repMobile" type="tel" inputMode="numeric" maxLength={10} placeholder="917 123 4567" className={`${inputClass} pl-12`} onBlur={(e) => { e.target.value = toLocalDigits(e.target.value); }} onChange={() => { if (errors.repMobile) setErrors((prev) => ({ ...prev, repMobile: undefined })); }} />
                     </div>
                     {errors.repMobile && <p className="text-danger text-xs mt-1">{errors.repMobile}</p>}
@@ -342,12 +342,12 @@ function EmployerRegister() {
               <div role="alert" className="p-3.5 rounded-xl bg-danger/10 border border-danger/20 text-danger text-xs font-medium">{error}</div>
             )}
 
-            <div className="flex items-start gap-2.5 text-xs text-gray-500">
+            <div className="flex items-start gap-2.5 text-xs text-muted-foreground">
               <input id="agree" type="checkbox" name="agree" checked={agree} disabled={!termsRead} onChange={(e) => { setAgree(e.target.checked); if (errors.agree) setErrors((prev) => ({ ...prev, agree: undefined })); }} className="mt-0.5 accent-primary shrink-0 disabled:opacity-50 disabled:cursor-not-allowed" />
               <div>
                 <label htmlFor="agree" className={!termsRead ? "cursor-not-allowed opacity-70" : "cursor-pointer"}>I agree to the municipal data collection terms and PESO privacy policies.{reqMark}</label>
                 <button type="button" onClick={() => setTermsOpen(true)} className="ml-1 whitespace-nowrap text-primary hover:underline underline-offset-4">View terms</button>
-                {!termsRead && <p className="mt-1 text-gray-500">Please open and read the terms before agreeing.</p>}
+                {!termsRead && <p className="mt-1 text-muted-foreground">Please open and read the terms before agreeing.</p>}
                 {errors.agree && <p className="text-danger text-xs mt-1">{errors.agree}</p>}
               </div>
             </div>
@@ -361,7 +361,7 @@ function EmployerRegister() {
             </button>
           </form>
 
-          <p className="mt-8 text-center text-xs text-gray-500">
+          <p className="mt-8 text-center text-xs text-muted-foreground">
             Already verified?{" "}
             <Link to="/employer/login" className="text-primary hover:underline underline-offset-4 font-medium">
               Log in here
