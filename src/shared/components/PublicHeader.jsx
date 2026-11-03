@@ -3,7 +3,6 @@ import { Link } from "react-router-dom";
 import { ChevronDown } from "lucide-react";
 import logoImage from "../../assets/Logo.png";
 import textBasedLogo from "../../assets/TextBased Logo.png";
-import ThemeToggle from "./ThemeToggle";
 
 const howItWorksItems = [
   { label: "Jobseeker", to: "/register/job-seeker" },
@@ -38,7 +37,7 @@ function PublicHeader() {
   }, [open]);
 
   return (
-    <header className="sticky top-0 z-20 bg-white border-b border-gray-100 dark:border-[var(--theme-border)] shadow-sm">
+    <header className="sticky top-0 z-20 bg-white border-b border-border shadow-sm">
       <div className="w-full px-[28px] h-16 flex items-center justify-between">
         <Link to="/" className="flex items-center gap-2">
           <img src={logoImage} alt="JobLinked" className="h-12 w-auto" />
@@ -47,7 +46,6 @@ function PublicHeader() {
           </span>
         </Link>
         <div className="flex items-center gap-3">
-          <ThemeToggle />
           <div className="relative hidden sm:block">
             <button
               type="button"
@@ -55,7 +53,7 @@ function PublicHeader() {
               onClick={() => setOpen((v) => !v)}
               aria-expanded={open}
               aria-controls="how-it-works-menu"
-              className="flex items-center gap-1 min-h-[40px] px-1 rounded-md text-gray-600 text-sm font-medium hover:text-primary transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              className="flex items-center gap-1 min-h-[40px] px-1 rounded-md text-muted-foreground text-sm font-medium hover:text-primary transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
               How It Works
               <ChevronDown className={`w-4 h-4 transition-transform ${open ? "rotate-180" : ""}`} />
@@ -65,14 +63,14 @@ function PublicHeader() {
                 id="how-it-works-menu"
                 ref={menuRef}
                 aria-label="How It Works"
-                className="absolute right-0 top-full mt-2 w-44 rounded-lg border border-gray-100 dark:border-[var(--theme-border)] bg-white shadow-lg py-2 z-20"
+                className="absolute right-0 top-full mt-2 w-44 rounded-lg border border-border bg-white shadow-lg py-2 z-20"
               >
                 {howItWorksItems.map((item) => (
                   <Link
                     key={item.to}
                     to={item.to}
                     onClick={() => setOpen(false)}
-                    className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 dark:hover:bg-[var(--theme-hover)] hover:text-primary transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                    className="block px-4 py-2 text-sm text-muted-foreground hover:bg-muted hover:text-primary transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                   >
                     {item.label}
                   </Link>
@@ -99,3 +97,4 @@ function PublicHeader() {
 }
 
 export default PublicHeader;
+

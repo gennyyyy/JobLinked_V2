@@ -9,7 +9,6 @@ import SidebarAccount from './SidebarAccount'
 import NotificationBell from './NotificationBell'
 import { titleCase } from '../utils/titleCase'
 import SkipLink from './SkipLink'
-import ThemeToggle from './ThemeToggle'
 
 export default function PortalLayout({ navItems, badge, eyebrow, subhead, profileTo, roleLabel, homeTo }) {
   const navigate = useNavigate()
@@ -32,9 +31,9 @@ export default function PortalLayout({ navItems, badge, eyebrow, subhead, profil
   const subheadText = typeof subhead === 'function' ? subhead(user) : subhead
 
   return (
-    <div className="min-h-screen md:h-screen md:overflow-hidden bg-gray-50 text-gray-900 flex flex-col md:flex-row">
+    <div className="min-h-screen md:h-screen md:overflow-hidden bg-background text-foreground flex flex-col md:flex-row">
       <SkipLink />
-      <header className="md:hidden sticky top-0 z-30 bg-dark-blue border-b border-white/10 px-4 h-14 flex items-center justify-between shrink-0">
+      <header className="md:hidden sticky top-0 z-30 bg-card border-b border-border px-4 h-14 flex items-center justify-between shrink-0">
         <div className="flex items-center gap-2.5">
           <div className="brand-mark-surface bg-white rounded-lg px-3.5 py-1.5 flex items-center shadow-xs">
             <Link to={home}><img src={TextBasedLogo} alt="JobLinked" width={480} height={160} className="h-6 w-auto object-contain" /></Link>
@@ -44,7 +43,6 @@ export default function PortalLayout({ navItems, badge, eyebrow, subhead, profil
           </span>
         </div>
         <div className="flex items-center gap-2">
-          <ThemeToggle />
           <NotificationBell />
           <button
             onClick={() => setMobileOpen(!mobileOpen)}
@@ -81,7 +79,6 @@ export default function PortalLayout({ navItems, badge, eyebrow, subhead, profil
             </span>
           </div>
           <div className="flex items-center gap-3">
-            <ThemeToggle />
             <NotificationBell dark align="left" />
             {mobileOpen && (
               <button
