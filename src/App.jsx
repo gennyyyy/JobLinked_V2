@@ -3,7 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import ProtectedRoute from './shared/components/ProtectedRoute'
 import LoadingScreen from './shared/components/LoadingScreen'
 import ErrorBoundary from './shared/components/ErrorBoundary'
-import useAuth from './shared/hooks/useAuth'
+import { Toaster } from './components/ui/sonner'
 import { ThemeProvider } from './shared/context/ThemeProvider'
 
 // Route-level code splitting: each page is its own chunk, so a visitor on the
@@ -55,6 +55,7 @@ function App() {
       <ThemeProvider>
         <BrowserRouter>
           <Suspense fallback={<LoadingScreen />}>
+            <Toaster position="top-center" />
             <Routes>
             <Route path="/" element={<PublicRoute><Landing /></PublicRoute>} />
             <Route path="/jobs" element={<PublicRoute><PublicJobs /></PublicRoute>} />
