@@ -4,8 +4,7 @@ import { getJob } from "../../shared/services/jobs";
 import LoadingScreen from "../../shared/components/LoadingScreen";
 import { titleCase } from "../../shared/utils/titleCase";
 import SkipLink from "../../shared/components/SkipLink";
-import PublicHeader from "../../shared/components/PublicHeader";
-import PublicFooter from "../../shared/components/PublicFooter";
+import PublicShell from "../../shared/components/PublicShell";
 
 function PublicJobDetail() {
   const { jobId } = useParams();
@@ -30,8 +29,7 @@ function PublicJobDetail() {
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col font-sans">
       <SkipLink />
-      <PublicHeader />
-
+<PublicShell>
       <main id="main-content" tabIndex={-1}
         className="flex-1 w-full p-[5%]">
         <Link to="/jobs" className="inline-flex items-center text-xs text-muted-foreground hover:text-foreground transition-colors mb-6">? Back to all postings</Link>
@@ -132,8 +130,7 @@ function PublicJobDetail() {
           </div>
         </article>
       </main>
-
-      <PublicFooter />
+      </PublicShell>
     </div>
   );
 }
