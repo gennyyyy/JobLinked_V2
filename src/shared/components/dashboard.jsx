@@ -1,14 +1,18 @@
 // Shared building blocks for the three portal dashboards so headers, stat
 // cards, and section cards stay visually identical everywhere.
 import { AlertTriangle } from "lucide-react";
+import { displayName, initialsOf } from "../utils/accountName";
 
-export function PageHeader({ eyebrow, title, subtitle, action }) {
+export function PageHeader({ eyebrow, title, subtitle, action, logo, className = "" }) {
   return (
-    <header className="rounded-lg bg-dark-blue p-5 md:p-6 text-white flex flex-col md:flex-row md:items-center justify-between gap-4">
-      <div className="min-w-0">
-        <p className="font-mono text-[11px] tracking-[0.2em] uppercase text-accent">{eyebrow}</p>
-        <h1 className="mt-1 font-sans text-xl md:text-2xl font-bold tracking-tight">{title}</h1>
-        {subtitle ? <p className="mt-2 text-sm text-white/80 max-w-2xl">{subtitle}</p> : null}
+    <header className={`rounded-lg bg-dark-blue p-5 md:p-6 text-white flex flex-col md:flex-row md:items-center justify-between gap-4 ${className}`}>
+      <div className="min-w-0 flex items-center gap-4">
+        {logo ? <div className="shrink-0">{logo}</div> : null}
+        <div className="min-w-0">
+          <p className="font-mono text-[11px] tracking-[0.2em] uppercase text-accent">{eyebrow}</p>
+          <h1 className="mt-1 font-sans text-xl md:text-2xl font-bold tracking-tight">{title}</h1>
+          {subtitle ? <p className="mt-2 text-sm text-white/80 max-w-2xl">{subtitle}</p> : null}
+        </div>
       </div>
       {action}
     </header>
@@ -35,30 +39,63 @@ export function InlineError({ message, onRetry }) {
   );
 }
 
-export function StatCard({ label, value, highlight, icon, valueClassName = "text-primary" }) {
+// Optional semantic tone (ADR-033 §1). Leaving `tone` unset renders the plain
+// white card exactly as before, so the employer and super-admin portals are
+// unaffected.
+const STAT_TONES = {
+  info: { card: "bg-primary/10 border border-primary", text: "text-primary" },
+  success: { card: "bg-emerald-50 border border-emerald-300", text: "text-emerald-700" },
+  danger: { card: "bg-danger/10 border border-danger/20", text: "text-danger" },
+  warn: { card: "bg-amber-50 border border-amber-300", text: "text-amber-700" },
+};
+
+export function StatCard({ label, value, highlight, icon, valueClassName = "text-primary", tone }) {
+  const themed = STAT_TONES[tone];
+  const valueText = themed ? themed.text : valueClassName;
+  const iconText = themed ? themed.text : "text-primary";
   return (
-    <div className="bg-white border border-primary rounded-lg p-4">
+    <div className={`${themed ? themed.card : "bg-white border border-primary"} dark:border-[var(--theme-border)] rounded-lg p-4`}>
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className={`font-sans text-2xl md:text-3xl font-bold leading-none ${valueClassName}`}>{value}</p>
+          <p className={`font-sans text-2xl md:text-3xl font-bold leading-none ${valueText}`}>{value}</p>
           <p className="mt-3 font-mono text-[10px] md:text-[11px] tracking-widest text-gray-500 uppercase">{label}</p>
         </div>
-        {icon ? <span className="grid place-items-center w-10 h-10 rounded-lg bg-primary-subtle text-primary">{icon}</span> : null}
+        {icon ? <span className={`grid place-items-center w-10 h-10 rounded-lg bg-primary-subtle ${iconText}`}>{icon}</span> : null}
       </div>
       {highlight ? <span className="inline-block mt-3 w-2 h-2 rounded-full bg-amber-400" /> : null}
     </div>
   );
 }
 
+// Time-based greeting banner with an initials avatar (ADR-033 §2, ADR-032 §5:
+// the avatar is initials because no avatar column exists and browser-side
+// storage is prohibited).
+export function DashboardHero({ user, fallback = "Job Seeker", initialsFallback = "U", subtitle }) {
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? "Good Morning!" : hour < 18 ? "Good Afternoon!" : "Good Evening!";
+  return (
+    <section className="flex items-center gap-4 rounded-xl bg-dark-blue p-5 md:p-6 shadow-md">
+      <div className="grid h-16 w-16 shrink-0 place-items-center rounded-full border-4 border-white bg-white shadow-md md:h-20 md:w-20">
+        <span className="text-2xl font-bold text-primary">{initialsOf(user, initialsFallback)}</span>
+      </div>
+      <div className="min-w-0">
+        <p className="text-sm md:text-base font-semibold text-white/85">{greeting}</p>
+        <h2 className="truncate text-xl md:text-2xl font-bold text-white uppercase">{displayName(user, fallback).toUpperCase()}</h2>
+        {subtitle ? <p className="mt-1 text-xs text-white/70">{subtitle}</p> : null}
+      </div>
+    </section>
+  );
+}
+
 export function SectionCard({ title, subtitle, action, children, className = "", titleAs = "h2" }) {
   const TitleTag = titleAs;
   return (
-    <section className={`bg-white border border-primary rounded-lg overflow-hidden ${className}`}>
-      <div className="flex items-center justify-between gap-3 px-5 py-3 bg-gray-50 border-b border-gray-100">
+    <section className={`bg-white border border-primary dark:border-[var(--theme-border)] rounded-lg overflow-hidden ${className}`}>
+      <div className="flex items-center justify-between gap-3 px-5 py-3 bg-gray-50 border-b border-gray-100 dark:border-[var(--theme-border)]">
         <div className="flex items-center gap-3 min-w-0">
           <span className="w-1 h-6 bg-primary rounded-full shrink-0" />
           <div className="min-w-0">
-            <TitleTag className="text-base font-semibold text-dark-blue truncate">{title}</TitleTag>
+            <TitleTag className="text-base font-semibold text-dark-blue dark:text-gray-200 truncate">{title}</TitleTag>
             {subtitle ? <p className="text-xs text-gray-500 mt-0.5">{subtitle}</p> : null}
           </div>
         </div>

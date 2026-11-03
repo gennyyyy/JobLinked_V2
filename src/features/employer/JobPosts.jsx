@@ -4,16 +4,12 @@ import { Link } from "react-router-dom";
 import {
   Briefcase,
   Plus,
-  Search,
   Edit3,
-  Copy,
+  Eye,
   Send,
-  Archive,
   Trash2,
   AlertTriangle,
   CheckCircle2,
-  MapPin,
-  Calendar,
   Users,
   Building,
   X,
@@ -21,13 +17,14 @@ import {
 } from "lucide-react";
 import useAuth from "../../shared/hooks/useAuth";
 import { JOB_TAGS, JOB_BENEFITS, JOB_EDUCATION_LEVELS, JOB_EXPERIENCE_PRESETS, SANTA_MARIA_BARANGAYS } from "../../shared/constants";
-import { listEmployerJobs, createJob, updateJob, changeJobStatus, duplicateJob, deleteJob } from "../../shared/services/jobs";
+import { listEmployerJobs, createJob, updateJob, changeJobStatus, deleteJob } from "../../shared/services/jobs";
 import { getEmployer } from "../../shared/services/auth";
 import ConfirmationModal from "../../shared/components/ConfirmationModal";
 import LoadingScreen from "../../shared/components/LoadingScreen";
 import { Pager } from "../../shared/components/dashboard";
 import useDialog from "../../shared/hooks/useDialog";
-import { PageHeader, StatCard, InlineError } from "../../shared/components/dashboard";
+import { InlineError } from "../../shared/components/dashboard";
+import ApplicantsShell from "../../shared/components/ApplicantsShell";
 
 const initialForm = {
   title: "",
@@ -89,6 +86,10 @@ export default function JobPosts() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(0);
   const [total, setTotal] = useState(0);
+  // null = Total (no status filter). Counts come from the API's company-wide
+  // `counts` object so the tiles stay stable while paging/filtering.
+  const [statusFilter, setStatusFilter] = useState(null);
+  const [statusCounts, setStatusCounts] = useState(null);
 
   // Feedback notifications
   const [actionError, setActionError] = useState("");
@@ -125,7 +126,6 @@ export default function JobPosts() {
   // Filter & Search states
   const [searchTerm, setSearchTerm] = useState("");
   const [sortBy, setSortBy] = useState("newest");
-  const [today] = useState(() => Date.now());
 
   // Escape / Tab-trap / focus-return for the two job modals (shared useDialog).
   // Escape inside the form goes through the discard guard so typing isn't lost,
@@ -164,10 +164,11 @@ export default function JobPosts() {
         }
         // The { data, total, page, pageSize } envelope (M1) — one screen at a
         // time, paged with the footer below.
-        const res = await listEmployerJobs(companyData.id, { page });
+        const res = await listEmployerJobs(companyData.id, { page, status: statusFilter });
         setJobs(res.data);
         setTotal(res.total);
         setPageSize(res.pageSize);
+        setStatusCounts(res.counts || null);
       } else {
         setAccreditationStatus("none");
         setJobs([]);
@@ -178,7 +179,7 @@ export default function JobPosts() {
     } finally {
       setLoading(false);
     }
-  }, [page]);
+  }, [page, statusFilter]);
 
   useEffect(() => {
     if (!user) return;
@@ -213,10 +214,11 @@ export default function JobPosts() {
   async function refreshJobs() {
     if (!company) return;
     try {
-      const res = await listEmployerJobs(company.id, { page });
+      const res = await listEmployerJobs(company.id, { page, status: statusFilter });
       setJobs(res.data);
       setTotal(res.total);
       setPageSize(res.pageSize);
+      setStatusCounts(res.counts || null);
     } catch (err) {
       setActionError(err.message || "Failed to refresh jobs");
     }
@@ -272,16 +274,6 @@ export default function JobPosts() {
     setFormSnapshot(null);
   }
 
-  async function handleOpenDuplicate(job) {
-    setActionError("");
-    try {
-      await duplicateJob(job.id);
-      setActionSuccess(`"${job.title}" duplicated as draft.`);
-      await refreshJobs();
-    } catch (err) {
-      setActionError(err.message || "Failed to duplicate job");
-    }
-  }
 
   function validate() {
     const errs = {};
@@ -463,34 +455,22 @@ export default function JobPosts() {
     return `Up to ₱${Number(max).toLocaleString()}`;
   };
 
-  const isDeadlinePassed = (deadline) => {
-    if (!deadline) return false;
-    return new Date(deadline).setHours(23, 59, 59, 999) < today;
-  };
+  // Counts come from the API (`counts` ignores status + paging); fall back to
+  // the current page when an older API/response omits them.
+  const sidebarTiles = [
+    { id: null,        label: "Total",     value: statusCounts?.total ?? total, tone: "bg-blue-50 border-blue-300 text-blue-700", title: "Show all job postings" },
+    { id: "published", label: "Published", value: statusCounts?.published ?? jobs.filter((j) => j.status === "published").length, tone: "bg-emerald-50 border-emerald-300 text-emerald-700", title: "Show published job postings" },
+    { id: "closed",    label: "Closed",    value: statusCounts?.closed ?? jobs.filter((j) => j.status === "closed").length, tone: "bg-amber-50 border-amber-300 text-amber-700", title: "Show closed job postings" },
+    { id: "draft",     label: "Draft",     value: statusCounts?.draft ?? jobs.filter((j) => j.status === "draft").length, tone: "bg-gray-50 border-gray-300 text-gray-700", title: "Show draft job postings" },
+  ];
+
 
   if (loading) return <LoadingScreen />;
 
   if (loadError) return <InlineError message={loadError} onRetry={loadData} />;
 
   return (
-    <div className="space-y-6 pb-12">
-      <PageHeader
-        eyebrow="RECRUITMENT BULLETINS"
-        title="Job Vacancy Postings"
-        subtitle="Publish municipal job openings and manage your vacancies"
-        action={
-          <button
-            type="button"
-            onClick={handleOpenCreate}
-            disabled={!company}
-            className="inline-flex items-center justify-center gap-2 min-h-[44px] px-6 rounded-xl bg-white text-dark-blue text-sm font-semibold hover:bg-white/90 active:scale-[0.98] transition-all shadow-md disabled:opacity-50 disabled:cursor-not-allowed self-start md:self-auto cursor-pointer"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Post a Vacancy</span>
-          </button>
-        }
-      />
-
+    <>
       {/* Action feedback notifications */}
       {actionSuccess && (
         <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm flex items-center justify-between shadow-xs">
@@ -543,264 +523,201 @@ export default function JobPosts() {
         </div>
       )}
 
-      {/* Metric Counter */}
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-        <StatCard label="Total Posts" value={jobs.length} icon={<Briefcase size={18} />} valueClassName="text-gray-900" />
-      </div>
+      <ApplicantsShell
+        title="Job Vacancy Postings"
+        subtitle="Publish municipal job openings and manage your vacancies"
+        controlAction={
+          <button
+            type="button"
+            onClick={handleOpenCreate}
+            disabled={!company}
+            className="inline-flex items-center justify-center gap-2 min-h-[44px] px-6 rounded-lg bg-primary text-white text-sm font-semibold hover:bg-primary-hover active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed shrink-0 cursor-pointer"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Post a Job</span>
+          </button>
+        }
+        sidebar={
+          <>
+            <div className="space-y-3">
+              {sidebarTiles.map((tile) => (
+                <button
+                  key={tile.label}
+                  type="button"
+                  data-tone={tile.id === "published" ? "success" : tile.id === "closed" ? "warning" : tile.id === "draft" ? "neutral" : "info"}
+                  title={tile.title}
+                  aria-pressed={statusFilter === tile.id}
+                  onClick={() => { setStatusFilter((prev) => (prev === tile.id ? null : tile.id)); setPage(1); }}
+                  className={`w-full text-left rounded-lg border px-4 py-3 cursor-pointer transition-all ${tile.tone} ${statusFilter === tile.id ? "ring-1 ring-offset-0 ring-current" : ""}`}
+                >
+                  <p className="text-2xl font-bold">{tile.value}</p>
+                  <p className="mt-0.5 text-[10px] font-semibold uppercase tracking-wider">{tile.label}</p>
+                </button>
+              ))}
+            </div>
+          </>
+        }
+        footer={<Pager page={page} pageSize={pageSize} total={total} onChange={setPage} />}
+        sort={sortBy}
+        onSortChange={setSortBy}
+        sortOptions={[
+          { value: "newest", label: "Newest First" },
+          { value: "oldest", label: "Oldest First" },
+          { value: "title", label: "Title (A-Z)" },
+          { value: "applicants", label: "Most Candidates" },
+          { value: "deadline", label: "Deadline Soonest" },
+        ]}
+        sortLabel="Sort:"
+        sortAriaLabel="Sort job postings"
+        search={searchTerm}
+        onSearchChange={setSearchTerm}
+        searchPlaceholder="Search by job title, department, or barangay..."
+        searchAriaLabel="Search job postings by title, department, or barangay"
+      >
 
-      {/* Main Container: Search, Filter Tabs & Listings Table */}
-      <div className="bg-white border border-primary rounded-lg p-5 md:p-5 shadow-xs space-y-5">
-        {/* Controls: Search, Status Tabs & Sorting */}
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 pb-4 border-b border-gray-100">
-          {/* Search Box */}
-          <div className="relative flex-1 max-w-md">
-            <Search className="w-4 h-4 text-gray-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              aria-label="Search job postings by title, department, or barangay"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Search by job title, department, or barangay..."
-              className="w-full pl-10 pr-4 py-2 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 placeholder:text-gray-600 focus:outline-none focus:border-primary focus:bg-white transition-all"
-            />
-            {searchTerm && (
+          {/* Listings grid */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          {filteredJobs.map((post) => (
+            <div key={post.id} className="rounded-lg border border-primary bg-white p-4 shadow-xs">
+              {/* Top row */}
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <button
+                    type="button"
+                    onClick={() => setViewingJob(post)}
+                    className="text-left font-bold text-base text-gray-900 hover:text-primary transition-colors cursor-pointer"
+                  >
+                    {post.title}
+                  </button>
+                  <p className="mt-1 text-[11px] text-gray-500">
+                    Posted on {new Date(post.created_at).toLocaleDateString("en-PH", { year: "numeric", month: "long", day: "numeric" })}
+                  </p>
+                </div>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => handleOpenEdit(post)}
+                    data-action-hover="info"
+                    className="p-1.5 rounded-lg text-gray-500 hover:text-primary hover:bg-blue-50 transition-colors cursor-pointer"
+                    title="Edit Job"
+                  >
+                    <Edit3 className="w-4 h-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setViewingJob(post)}
+                    data-action-hover="info"
+                    className="p-1.5 rounded-lg text-gray-500 hover:text-primary hover:bg-blue-50 transition-colors cursor-pointer"
+                    title="View job details"
+                  >
+                    <Eye className="w-4 h-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setConfirmDeleteJob(post)}
+                    data-action-hover="danger"
+                    className="p-1.5 rounded-lg text-gray-500 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
+                    title="Delete posting permanently"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                  {(post.status === "published" || post.status === "closed") && (
+                    <button
+                      type="button"
+                      onClick={() => handleToggleClose(post)}
+                      data-action-tone={post.status === "published" ? "warning" : "success"}
+                      className={`px-2.5 py-1 rounded-lg text-xs font-medium border transition-colors cursor-pointer ${
+                        post.status === "published"
+                          ? "text-amber-800 bg-amber-50 hover:bg-amber-100 border-amber-200"
+                          : "text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border-emerald-200"
+                      }`}
+                      title={post.status === "published" ? "Close recruitment" : "Reopen listing"}
+                    >
+                      {post.status === "published" ? "Close" : "Reopen"}
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Body label/value pairs */}
+              <div className="grid grid-cols-2 gap-x-4 gap-y-3 text-xs mt-4">
+                <div>
+                  <p className="text-[10px] font-mono uppercase tracking-wider text-gray-500">Department</p>
+                  <p className="text-xs font-semibold text-gray-900">{post.office}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] font-mono uppercase tracking-wider text-gray-500">Location</p>
+                  <p className="text-xs font-semibold text-gray-900">{`Brgy. ${post.location}, Santa Maria, Bulacan`}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] font-mono uppercase tracking-wider text-gray-500">Employment Type</p>
+                  <p className="text-xs font-semibold text-gray-900">{post.employment_type}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] font-mono uppercase tracking-wider text-gray-500">Salary</p>
+                  <p className="text-xs font-semibold text-gray-900">{formatSalary(post.salary_min, post.salary_max)}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] font-mono uppercase tracking-wider text-gray-500">Vacancy</p>
+                  <p className="text-xs font-semibold text-gray-900">{post.vacancies}</p>
+                </div>
+              </div>
+
+              {/* Bottom-right applicants link */}
+              <div className="flex justify-end mt-4">
+                <Link
+                  to="/employer/applicants"
+                  data-action-tone="info"
+                  className="inline-flex items-center gap-1.5 font-mono text-xs px-2.5 py-1 rounded-full bg-blue-50/70 border border-blue-200/80 text-primary hover:bg-blue-100 transition-colors"
+                >
+                  <Users className="w-3 h-3 text-primary" />
+                  <span className="font-bold">{post.applicant_count || 0}</span>
+                  <span>Applied</span>
+                </Link>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {filteredJobs.length === 0 && (
+          <div className="py-8 text-center space-y-3">
+            <div className="w-12 h-12 rounded-full bg-gray-100 text-gray-500 flex items-center justify-center mx-auto">
+              <Briefcase className="w-6 h-6" />
+            </div>
+            <h3 className="text-sm font-bold text-gray-900">No job listings found</h3>
+            <p className="text-xs text-gray-500 max-w-sm mx-auto">
+              {searchTerm
+                ? "Try adjusting your search criteria to locate the postings you're looking for."
+                : statusFilter
+                  ? "No job postings with this status."
+                  : accreditationStatus === "approved"
+                    ? "You haven't posted any job vacancies yet. Click '+ Post a Job' to recruit Santa Maria talent."
+                    : "To post job vacancies, your company must first be accredited by PESO."}
+            </p>
+            {searchTerm || statusFilter ? (
               <button
                 type="button"
-                onClick={() => setSearchTerm("")}
-                aria-label="Clear search"
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-900 p-1"
+                onClick={() => {
+                  setSearchTerm("");
+                  setStatusFilter(null);
+                  setPage(1);
+                }}
+                className="inline-flex items-center gap-1.5 text-xs text-primary font-semibold hover:underline pt-2 cursor-pointer"
               >
-                <X className="w-3.5 h-3.5" />
+                <RotateCcw className="w-3 h-3" />
+                <span>Reset filters</span>
               </button>
-            )}
-          </div>
-
-          {/* Sort Controls */}
-          <div className="flex flex-wrap items-center gap-3">
-            <div className="flex items-center gap-2">
-              <label htmlFor="job-sort" className="text-xs text-gray-500 font-mono">Sort:</label>
-              <select
-                id="job-sort"
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
-                className="px-3 py-2 rounded-xl text-xs bg-gray-50 border border-gray-200 text-gray-700 font-medium focus:outline-none focus:border-primary transition-all cursor-pointer"
+            ) : accreditationStatus !== "approved" ? (
+              <Link
+                to="/employer/accreditation"
+                className="inline-block text-xs text-primary font-semibold hover:underline pt-2"
               >
-                <option value="newest">Newest First</option>
-                <option value="oldest">Oldest First</option>
-                <option value="title">Title (A-Z)</option>
-                <option value="applicants">Most Candidates</option>
-                <option value="deadline">Deadline Soonest</option>
-              </select>
-            </div>
+                View accreditation →
+              </Link>
+            ) : null}
           </div>
-        </div>
-
-        {/* Listings Table */}
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-gray-200 font-mono text-[10px] tracking-wider text-gray-500 uppercase bg-gray-50/70">
-                <th className="text-left py-3 px-4 font-semibold rounded-l-xl">Job Bulletin</th>
-                <th className="text-left py-3 px-4 font-semibold">Location</th>
-                <th className="text-left py-3 px-4 font-semibold">Vacancies & Salary</th>
-                <th className="text-left py-3 px-4 font-semibold">Deadline</th>
-                <th className="text-left py-3 px-4 font-semibold">Candidates</th>
-                <th className="text-right py-3 px-4 font-semibold rounded-r-xl">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {filteredJobs.map((post) => {
-                const expired = isDeadlinePassed(post.deadline);
-
-                return (
-                  <tr key={post.id} className="hover:bg-gray-50/80 transition-colors">
-                    {/* Job Title & Office */}
-                    <td className="py-4 px-4">
-                      <div>
-                        <div className="flex items-center gap-2">
-                        <button
-                          type="button"
-                          onClick={() => setViewingJob(post)}
-                          className="text-left font-semibold text-gray-900 hover:text-primary transition-colors text-sm line-clamp-1 cursor-pointer"
-                        >
-                          {post.title}
-                        </button>
-                        </div>
-
-                        <div className="flex flex-wrap items-center gap-2 mt-1">
-                          {post.office && (
-                            <span className="text-[11px] text-gray-500 font-medium">
-                              Dept: {post.office}
-                            </span>
-                          )}
-                          <span className="font-mono text-[10px] px-2 py-0.5 rounded-md bg-gray-100 text-gray-600 border border-gray-200">
-                            {post.employment_type}
-                          </span>
-                          <span className="font-mono text-[10px] px-2 py-0.5 rounded-md bg-violet-50 text-violet-700 border border-violet-200">
-                            {post.work_arrangement || "On-site"}
-                          </span>
-                        </div>
-                      </div>
-                    </td>
-
-                    {/* Location */}
-                    <td className="py-4 px-4 text-xs text-gray-600">
-                      <div className="flex items-center gap-1.5">
-                        <MapPin className="w-3.5 h-3.5 text-gray-500 shrink-0" />
-                        <span>Brgy. {post.location}</span>
-                      </div>
-                    </td>
-
-                    {/* Vacancies & Salary */}
-                    <td className="py-4 px-4">
-                      <div className="text-xs">
-                        <span className="font-semibold text-gray-900">{post.vacancies}</span>
-                        <span className="text-gray-500"> {post.vacancies === 1 ? "vacancy" : "vacancies"}</span>
-                      </div>
-                      <p className="text-[11px] text-gray-500 font-mono mt-0.5">
-                        {formatSalary(post.salary_min, post.salary_max)}
-                      </p>
-                    </td>
-
-                    {/* Deadline */}
-                    <td className="py-4 px-4">
-                      {post.deadline ? (
-                        <div className="flex items-center gap-1.5 text-xs">
-                          <Calendar className="w-3.5 h-3.5 text-gray-500 shrink-0" />
-                          <span className={expired ? "text-rose-600 font-semibold" : "text-gray-600"}>
-                            {new Date(post.deadline).toLocaleDateString("en-PH", {
-                              month: "short",
-                              day: "numeric",
-                              year: "numeric",
-                            })}
-                          </span>
-                          {expired && (
-                            <span className="font-mono text-[9px] px-1.5 py-0.2 rounded-sm bg-rose-100 text-rose-700 font-bold uppercase">
-                              Passed
-                            </span>
-                          )}
-                        </div>
-                      ) : (
-                        <span className="text-xs text-gray-500 italic">No deadline</span>
-                      )}
-                    </td>
-
-                    {/* Candidates applied */}
-                    <td className="py-4 px-4">
-                      <Link
-                        to="/employer/applicants"
-                        className="inline-flex items-center gap-1.5 font-mono text-xs px-2.5 py-1 rounded-full bg-blue-50/70 border border-blue-200/80 text-primary hover:bg-blue-100 transition-colors"
-                        title="Click to view applicants"
-                      >
-                        <Users className="w-3 h-3 text-primary" />
-                        <span className="font-bold">{post.applicant_count || 0}</span>
-                        <span className="text-gray-500">applied</span>
-                      </Link>
-                    </td>
-
-                    {/* Actions */}
-                    <td className="py-4 px-4 text-right">
-                      <div className="flex items-center justify-end gap-1.5">
-                        {/* Edit Job */}
-                        <button
-                          type="button"
-                          onClick={() => handleOpenEdit(post)}
-                          className="p-1.5 rounded-lg text-gray-500 hover:text-primary hover:bg-blue-50 transition-colors cursor-pointer"
-                          title="Edit Job"
-                        >
-                          <Edit3 className="w-4 h-4" />
-                        </button>
-
-                        {/* Duplicate Job */}
-                        <button
-                          type="button"
-                          onClick={() => handleOpenDuplicate(post)}
-                          className="p-1.5 rounded-lg text-gray-500 hover:text-gray-900 hover:bg-gray-100 transition-colors cursor-pointer"
-                          title="Duplicate as new draft"
-                        >
-                          <Copy className="w-4 h-4" />
-                        </button>
-
-                        {/* Archive */}
-                        <button
-                          type="button"
-                          onClick={() => setConfirmArchiveId(post.id)}
-                          className="p-1.5 rounded-lg text-gray-500 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
-                          title="Archive Listing"
-                        >
-                          <Archive className="w-4 h-4" />
-                        </button>
-
-                        {/* Delete */}
-                        <button
-                          type="button"
-                          onClick={() => setConfirmDeleteJob(post)}
-                          className="p-1.5 rounded-lg text-gray-500 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
-                          title="Delete posting permanently"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-
-                        {/* Close / Reopen */}
-                        {(post.status === "published" || post.status === "closed") && (
-                          <button
-                            type="button"
-                            onClick={() => handleToggleClose(post)}
-                            className={`px-2.5 py-1 rounded-lg text-xs font-medium border transition-colors cursor-pointer ${
-                              post.status === "published"
-                                ? "text-amber-800 bg-amber-50 hover:bg-amber-100 border-amber-200"
-                                : "text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border-emerald-200"
-                            }`}
-                            title={post.status === "published" ? "Close recruitment" : "Reopen listing"}
-                          >
-                            {post.status === "published" ? "Close" : "Reopen"}
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-
-          {filteredJobs.length === 0 && (
-            <div className="py-8 text-center space-y-3">
-              <div className="w-12 h-12 rounded-full bg-gray-100 text-gray-500 flex items-center justify-center mx-auto">
-                <Briefcase className="w-6 h-6" />
-              </div>
-              <h3 className="text-sm font-bold text-gray-900">No job listings found</h3>
-              <p className="text-xs text-gray-500 max-w-sm mx-auto">
-                {searchTerm
-                  ? "Try adjusting your search criteria to locate the postings you're looking for."
-                  : accreditationStatus === "approved"
-                    ? "You haven't posted any job vacancies yet. Click '+ Post a Vacancy' to recruit Santa Maria talent."
-                    : "To post job vacancies, your company must first be accredited by PESO."}
-              </p>
-              {searchTerm ? (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSearchTerm("");
-                  }}
-                  className="inline-flex items-center gap-1.5 text-xs text-primary font-semibold hover:underline pt-2 cursor-pointer"
-                >
-                  <RotateCcw className="w-3 h-3" />
-                  <span>Reset filters</span>
-                </button>
-              ) : accreditationStatus !== "approved" ? (
-                <Link
-                  to="/employer/accreditation"
-                  className="inline-block text-xs text-primary font-semibold hover:underline pt-2"
-                >
-                  View accreditation →
-                </Link>
-              ) : null}
-            </div>
-          )}
-        </div>
-        <Pager page={page} pageSize={pageSize} total={total} onChange={setPage} />
-      </div>
+        )}
+      </ApplicantsShell>
 
       {/* ========================================================================= */}
       {/* Post / Edit Job Modal Form                                                */}
@@ -1504,6 +1421,6 @@ export default function JobPosts() {
           danger
         />
       )}
-    </div>
+    </>
   );
 }

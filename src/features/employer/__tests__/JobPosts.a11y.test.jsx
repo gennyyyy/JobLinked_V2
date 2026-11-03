@@ -63,7 +63,7 @@ async function renderJobPosts(posts = [job()]) {
 
 async function openForm() {
   await renderJobPosts([])
-  fireEvent.click(await screen.findByRole('button', { name: /post a vacancy/i }))
+  fireEvent.click(await screen.findByRole('button', { name: /post a job/i }))
   return screen.findByRole('heading', { name: /post a municipal vacancy/i })
 }
 

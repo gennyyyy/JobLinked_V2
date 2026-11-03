@@ -1,13 +1,11 @@
 import { Link } from "react-router-dom";
 import { LogOut } from "lucide-react";
 import { titleCase } from "../utils/titleCase";
+import { displayName, initialsOf } from "../utils/accountName";
 
 function SidebarAccount({ user, profileTo, roleLabel, onNavigate, onLogout }) {
-  const name = user?.full_name || user?.name || user?.email || roleLabel;
-  const nameParts = name.split(/\s+/).filter(Boolean);
-  const initials = user?.first_name || user?.last_name
-    ? `${user.first_name?.[0] || ""}${user.last_name?.[0] || ""}`.toUpperCase()
-    : (nameParts.length > 1 ? `${nameParts[0][0]}${nameParts.at(-1)[0]}` : nameParts[0]?.[0] || "").toUpperCase();
+  const name = displayName(user, roleLabel);
+  const initials = initialsOf(user, roleLabel);
 
   return (
     <div className="p-4 border-t border-white/10 bg-dark-blue">

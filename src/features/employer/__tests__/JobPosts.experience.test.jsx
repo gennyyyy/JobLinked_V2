@@ -54,7 +54,7 @@ function renderJobPosts() {
 async function openCreateForm() {
   listEmployerJobs.mockResolvedValue({ data: [], total: [].length, page: 1, pageSize: 25 })
   renderJobPosts()
-  const openBtn = await screen.findByRole('button', { name: /post a vacancy/i })
+  const openBtn = await screen.findByRole('button', { name: /post a job/i })
   await waitFor(() => expect(openBtn).toBeEnabled())
   fireEvent.click(openBtn)
 }

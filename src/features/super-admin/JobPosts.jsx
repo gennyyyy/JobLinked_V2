@@ -212,7 +212,7 @@ function JobPosts() {
               <col style={{ width: "180px" }} />
               <col style={{ width: "150px" }} />
               <col style={{ width: "110px" }} />
-              <col style={{ width: "110px" }} />
+              <col style={{ width: "140px" }} />
             </colgroup>
             <thead>
               <tr className="border-b border-gray-200 font-mono text-[10px] tracking-widest text-gray-500 uppercase">
@@ -238,16 +238,16 @@ function JobPosts() {
                       {statusLabel(post.status)}
                     </span>
                   </td>
-                  <td className="py-3 px-3 pr-5 text-right space-x-3">
+                  <td className="py-3 px-3 pr-5">
+                    <div className="flex items-center justify-end gap-2 whitespace-nowrap">
                     {post.status === "published" ? (
-                      <button onClick={() => handlePublishToggle(post)} className="text-xs text-amber-700 hover:underline cursor-pointer">Unpublish</button>
+                      <button onClick={() => handlePublishToggle(post)} className="rounded-lg border border-rose-300 px-2.5 py-1.5 text-xs font-medium text-rose-700 hover:bg-rose-50 dark:border-rose-500/50 dark:bg-rose-500/10 dark:text-rose-300 dark:hover:bg-rose-500/20 cursor-pointer">Unpublish</button>
                     ) : (
                       post.status !== "archived" && (
-                        <button onClick={() => handlePublishToggle(post)} className="text-xs font-semibold text-emerald-700 hover:underline cursor-pointer">Publish</button>
+                        <button onClick={() => handlePublishToggle(post)} className="rounded-lg border border-emerald-300 px-2.5 py-1.5 text-xs font-medium text-emerald-700 hover:bg-emerald-50 dark:border-emerald-500/50 dark:bg-emerald-500/10 dark:text-emerald-300 dark:hover:bg-emerald-500/20 cursor-pointer">Publish</button>
                       )
                     )}
-                    <button onClick={() => setEditing(post)} className="text-xs text-gray-600 hover:underline cursor-pointer">Edit</button>
-                    <button onClick={() => setConfirmArchiveId(post.id)} className="text-xs font-mono text-danger hover:text-danger/80 cursor-pointer transition-colors">Archive</button>
+                    </div>
                   </td>
                 </tr>
               ))}

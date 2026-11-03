@@ -51,7 +51,12 @@ describe('Employer Dashboard summary', () => {
     expect(statValue('Total Jobs')).toBe('3')
     expect(statValue('Total Candidates')).toBe('12')
     expect(statValue('New This Week')).toBe('4')
-    expect(screen.getByText('Overview for Santa Maria Trading')).toBeInTheDocument()
+    expect(screen.getByText('Santa Maria Trading')).toBeInTheDocument()
+  })
+
+  it('greets the employer by time of day', async () => {
+    await renderDashboard()
+    expect(screen.getByText(/Good (Morning|Afternoon|Evening)!/)).toBeInTheDocument()
   })
 
   it('renders recent applicants from the snake_case summary fields', async () => {

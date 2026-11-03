@@ -177,7 +177,7 @@ function Logs() {
   if (error) return <div className="py-8 text-center text-sm text-danger">{error}</div>;
 
   return (
-    <div className="space-y-6 md:h-[calc(100vh-3rem)] md:flex md:flex-col md:overflow-hidden">
+    <div className="h-full min-h-0 flex flex-col gap-4 overflow-hidden">
       <header className="shrink-0">
         <div className="flex items-center gap-2.5">
           <div className="w-1 h-5 bg-primary rounded-full" />
@@ -253,7 +253,7 @@ function Logs() {
           <span className="self-center ml-auto text-xs text-gray-500 font-medium whitespace-nowrap">{logs.length} records</span>
         </div>
         {/* Table */}
-        <div className="overflow-auto min-h-0 flex-1 md:max-h-[calc(100vh-320px)]">
+        <div className="overflow-auto min-h-0 flex-1">
           <table className="w-full text-sm table-fixed">
             <colgroup>
               <col style={{ width: "160px" }} />

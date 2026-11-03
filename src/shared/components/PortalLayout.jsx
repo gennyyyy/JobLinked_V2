@@ -9,6 +9,7 @@ import SidebarAccount from './SidebarAccount'
 import NotificationBell from './NotificationBell'
 import { titleCase } from '../utils/titleCase'
 import SkipLink from './SkipLink'
+import ThemeToggle from './ThemeToggle'
 
 export default function PortalLayout({ navItems, badge, eyebrow, subhead, profileTo, roleLabel, homeTo }) {
   const navigate = useNavigate()
@@ -35,7 +36,7 @@ export default function PortalLayout({ navItems, badge, eyebrow, subhead, profil
       <SkipLink />
       <header className="md:hidden sticky top-0 z-30 bg-dark-blue border-b border-white/10 px-4 h-14 flex items-center justify-between shrink-0">
         <div className="flex items-center gap-2.5">
-          <div className="bg-white rounded-lg px-3.5 py-1.5 flex items-center shadow-xs">
+          <div className="brand-mark-surface bg-white rounded-lg px-3.5 py-1.5 flex items-center shadow-xs">
             <Link to={home}><img src={TextBasedLogo} alt="JobLinked" width={480} height={160} className="h-6 w-auto object-contain" /></Link>
           </div>
           <span className="font-mono text-[10px] tracking-wider px-2 py-0.5 rounded-full bg-primary/10 border border-primary/25 text-primary">
@@ -43,6 +44,7 @@ export default function PortalLayout({ navItems, badge, eyebrow, subhead, profil
           </span>
         </div>
         <div className="flex items-center gap-2">
+          <ThemeToggle />
           <NotificationBell />
           <button
             onClick={() => setMobileOpen(!mobileOpen)}
@@ -70,7 +72,7 @@ export default function PortalLayout({ navItems, badge, eyebrow, subhead, profil
         <div className="h-16 shrink-0 sticky top-0 flex items-center justify-between px-4 border-b border-white/10 bg-dark-blue">
           <div className="flex items-center gap-2.5">
             <Link to={home} className="flex items-center">
-              <div className="bg-white rounded-lg px-3.5 py-1.5 flex items-center shadow-xs">
+              <div className="brand-mark-surface bg-white rounded-lg px-3.5 py-1.5 flex items-center shadow-xs">
                 <img src={TextBasedLogo} alt="JobLinked" width={480} height={160} className="h-5 w-auto object-contain" />
               </div>
             </Link>
@@ -79,7 +81,8 @@ export default function PortalLayout({ navItems, badge, eyebrow, subhead, profil
             </span>
           </div>
           <div className="flex items-center gap-3">
-            <NotificationBell dark />
+            <ThemeToggle />
+            <NotificationBell dark align="left" />
             {mobileOpen && (
               <button
                 onClick={() => setMobileOpen(false)}

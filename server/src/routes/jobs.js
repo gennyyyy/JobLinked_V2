@@ -148,8 +148,16 @@ router.get('/employers/:employerId/jobs', auth, ah(async (req, res) => {
        (select count(*)::int from job_applications a where a.job_id = j.id) as applicant_count ${base}
       order by j.created_at desc limit $${vals.length + 1} offset $${vals.length + 2}`,
     [...vals, pg.pageSize, (pg.page - 1) * pg.pageSize]);
+  // Sidebar counts are company-wide: the ?status= filter and pagination bound
+  // the list only, so the four numbers never change while paging/filtering.
+  const counts = (await pool.query(
+    `select count(*)::int total,
+       count(*) filter (where status = 'published')::int published,
+       count(*) filter (where status = 'closed')::int closed,
+       count(*) filter (where status = 'draft')::int draft
+     from job_vacancies where company_id = $1`, [req.params.employerId])).rows[0];
   void audit(req.user.id, 'job.list.view', 'job_vacancies', null, { companyId: req.params.employerId });
-  res.json({ data: rows.map(embed), total, page: pg.page, pageSize: pg.pageSize });
+  res.json({ data: rows.map(embed), total, page: pg.page, pageSize: pg.pageSize, counts });
 }));
 
 const JOB_COLS = ['title', 'office', 'location', 'employment_type', 'work_arrangement', 'salary_min', 'salary_max',

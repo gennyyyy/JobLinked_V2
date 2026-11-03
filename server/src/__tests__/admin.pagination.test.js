@@ -164,10 +164,27 @@ describe('M1 — GET /employers/:employerId/jobs is paginated', () => {
 
   it('page past the end → empty data with the true total', async () => {
     on(/select count\(\*\)::int c from job_vacancies j left join employers/, () => ({ rows: [{ c: 9 }] }));
+    on(/count\(\*\) filter \(where status =/, () => ({ rows: [{ total: 9, published: 9, closed: 0, draft: 0 }] }));
     on(/applicant_count/, () => ({ rows: [] }));
     const res = await request(app).get(`/api/employers/${EMPLOYER}/jobs?page=5`).set('Authorization', as(EMPLOYER, 'employer'));
-    expect(res.body).toEqual({ data: [], total: 9, page: 5, pageSize: 25 });
+    expect(res.body).toEqual({ data: [], total: 9, page: 5, pageSize: 25, counts: { total: 9, published: 9, closed: 0, draft: 0 } });
     expect(callsOf(/applicant_count/)[0].params).toEqual([EMPLOYER, 25, 100]);
+  });
+
+  it('sidebar counts cover the whole company and ignore ?status= (filter/paging do not move them)', async () => {
+    on(/select count\(\*\)::int c from job_vacancies j left join employers/, () => ({ rows: [{ c: 2 }] }));
+    on(/count\(\*\) filter \(where status =/, () => ({ rows: [{ total: 12, published: 7, closed: 3, draft: 2 }] }));
+    on(/applicant_count/, () => ({ rows: [] }));
+    const res = await request(app).get(`/api/employers/${EMPLOYER}/jobs?status=draft&page=3`)
+      .set('Authorization', as(EMPLOYER, 'employer'));
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ data: [], total: 2, page: 3, pageSize: 25, counts: { total: 12, published: 7, closed: 3, draft: 2 } });
+    // The list count carries the status filter; the counts SQL must not.
+    expect(callsOf(/select count\(\*\)::int c from job_vacancies j left join employers/)[0].params).toEqual([EMPLOYER, 'draft']);
+    const counts = callsOf(/count\(\*\) filter \(where status =/)[0];
+    expect(counts.sql).toContain('company_id = $1');
+    expect(counts.sql).not.toContain('j.status');
+    expect(counts.params).toEqual([EMPLOYER]);
   });
 
   it('junk page params → 400 with no query', async () => {

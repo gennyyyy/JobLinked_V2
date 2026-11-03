@@ -4,8 +4,7 @@ import useAuth from "../../shared/hooks/useAuth";
 import { listBySeeker } from "../../shared/services/applications";
 import { listJobs } from "../../shared/services/jobs";
 import LoadingScreen from "../../shared/components/LoadingScreen";
-import { FileText, XCircle, TrendingUp, CheckCircle } from "lucide-react";
-import { PageHeader, StatCard, SectionCard, InlineError } from "../../shared/components/dashboard";
+import { InlineError, DashboardHero } from "../../shared/components/dashboard";
 import { titleCase } from "../../shared/utils/titleCase";
 
 function splitPref(value) {
@@ -76,10 +75,10 @@ function Dashboard() {
   }).length;
 
   const stats = [
-    { label: "Active Applications", value: activeApplications, highlight: false, icon: <FileText size={18} /> },
-    { label: "Accepted", value: accepted, highlight: accepted > 0, icon: <CheckCircle size={18} /> },
-    { label: "Rejected", value: rejected, highlight: false, icon: <XCircle size={18} /> },
-    { label: "New This Week", value: newThisWeek, highlight: newThisWeek > 0, icon: <TrendingUp size={18} /> },
+    { label: "Active Applications", value: activeApplications },
+    { label: "Accepted", value: accepted },
+    { label: "Rejected", value: rejected },
+    { label: "New This Week", value: newThisWeek },
   ];
 
   const recentApps = [...applications]
@@ -89,25 +88,30 @@ function Dashboard() {
   const completion = profileCompletion(user);
 
   return (
-    <>
-      <PageHeader
-        eyebrow="JOB SEEKER DASHBOARD"
-        title="My Dashboard"
-        subtitle="Track your applications and recruitment activity"
-      />
+    <div className="space-y-6">
+      <h1 className="text-xl md:text-2xl font-bold text-dark-blue">Dashboard</h1>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+      <DashboardHero user={user} />
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
         {stats.map((stat) => (
-          <StatCard key={stat.label} label={stat.label} value={stat.value} highlight={stat.highlight} icon={stat.icon} />
+          <div key={stat.label} className="rounded-lg border border-primary/40 bg-primary/5 px-4 py-5">
+            <p className="text-3xl font-bold text-primary">{stat.value}</p>
+            <p className="mt-2 text-[11px] font-semibold uppercase tracking-wider text-primary">{stat.label}</p>
+          </div>
         ))}
       </div>
 
-      <SectionCard
-        title="Profile Completion"
-        subtitle="Complete profiles get seen by more employers"
-        action={<span className="font-mono text-2xl font-bold text-primary">{completion}%</span>}
-      >
-        <div className="h-2 rounded-full bg-gray-100 overflow-hidden">
+      <section className="rounded-lg border border-primary/40 bg-white p-5">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <h2 className="text-sm font-bold text-dark-blue">Profile Completion</h2>
+            <p className="mt-0.5 text-xs italic text-gray-500">Complete profiles get seen by more employers</p>
+          </div>
+          <span className="shrink-0 font-mono text-2xl font-bold text-primary">{completion}%</span>
+        </div>
+
+        <div className="mt-4 h-2 rounded-full bg-gray-100 overflow-hidden">
           <div className="h-full bg-primary transition-all" style={{ width: `${completion}%` }} />
         </div>
         {completion < 100 && (
@@ -115,39 +119,11 @@ function Dashboard() {
             Complete my profile →
           </Link>
         )}
-      </SectionCard>
+      </section>
 
-      <SectionCard
-        title="Recommended For You"
-        subtitle="Matched against your skills, preferred jobs, and location"
-        action={<Link to="/job-seeker/jobs" className="text-xs font-medium text-primary hover:underline shrink-0">View all →</Link>}
-      >
-        {recommended.length === 0 ? (
-          <div className="py-8 text-center text-sm text-gray-400">
-            No recommendations yet.{" "}
-            <Link to="/job-seeker/profile" className="text-primary hover:underline">Add skills and preferences →</Link>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            {recommended.map((job) => (
-              <Link
-                key={job.id}
-                to={`/job-seeker/jobs/${job.id}`}
-                className="group border border-gray-200 rounded-xl p-4 hover:border-primary/40 transition-all"
-              >
-                <span className="font-mono text-[10px] tracking-widest text-gray-400 uppercase">{job.location} · {job.employment_type}</span>
-                <h3 className="mt-1.5 text-sm font-semibold text-gray-900 group-hover:text-primary transition-colors line-clamp-2">{job.title}</h3>
-                <p className="mt-1 text-xs text-gray-500">{titleCase(job.employers?.company_name)}</p>
-                <span className="inline-block mt-3 px-2.5 py-1 rounded-full bg-primary/10 border border-primary/25 font-mono text-xs text-primary">
-                  {job.salary_min ? `₱${job.salary_min}${job.salary_max ? `–₱${job.salary_max}` : ""}` : "Negotiable"}
-                </span>
-              </Link>
-            ))}
-          </div>
-        )}
-      </SectionCard>
-
-      <SectionCard title="Recent Applications" subtitle="Latest jobs you've applied to with Santa Maria employers">
+      <section className="rounded-lg border border-primary/40 bg-white p-5">
+        <h2 className="text-sm font-bold text-dark-blue">Recent Applications</h2>
+        <p className="mt-0.5 text-xs italic text-gray-500">Latest jobs you've applied to with Santa Maria employers</p>
 
         {recentApps.length === 0 ? (
           <div className="py-8 text-center text-sm text-gray-400">
@@ -155,33 +131,63 @@ function Dashboard() {
             <Link to="/job-seeker/jobs" className="text-primary hover:underline">Browse openings →</Link>
           </div>
         ) : (
-          <div className="divide-y divide-gray-100">
-            {recentApps.map((item) => (
-              <div key={item.id} className="py-4 first:pt-0 last:pb-0 flex items-center justify-between gap-3">
-                <div className="min-w-0">
-                  <p className="text-sm font-medium text-gray-900 truncate">{item.job?.title}</p>
-                  <p className="mt-1 text-xs text-gray-500 truncate">{titleCase(item.job?.employers?.company_name)}</p>
-                  <p className="mt-1 font-mono text-[11px] text-gray-500">
-                    Applied on {new Date(item.applied_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+          <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {recentApps.map((item) => {
+              const statusPill =
+                item.status === "Rejected" || item.status === "Terminated"
+                  ? "bg-danger/10 border-danger/20 text-danger"
+                  : "bg-amber-50 border-amber-200 text-amber-700";
+              return (
+                <div key={item.id} className="rounded-lg border border-primary/40 bg-white px-4 py-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <p className="min-w-0 text-sm font-bold text-dark-blue truncate">{item.job?.title}</p>
+                    <span className={`shrink-0 font-mono text-[10px] tracking-wider px-2 py-0.5 rounded-full uppercase border ${statusPill}`}>{item.status}</span>
+                  </div>
+                  <p className="mt-1 text-xs italic text-gray-500 truncate">{titleCase(item.job?.employers?.company_name)}</p>
+                  <p className="mt-0.5 text-[11px] text-gray-400">
+                    Applied on {new Date(item.applied_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
                   </p>
                 </div>
-                <div className="flex items-center gap-3 shrink-0">
-                  <span
-                    className={`font-mono text-[10px] tracking-wider px-3 py-1 rounded-full uppercase border ${
-                      item.status === "Rejected" || item.status === "Terminated"
-                          ? "bg-danger/10 border-danger/20 text-danger"
-                          : "bg-amber-50 border-amber-200 text-amber-700"
-                    }`}
-                  >
-                    {item.status}
-                  </span>
-                </div>
-              </div>
+              );
+            })}
+          </div>
+        )}
+      </section>
+
+      <section className="rounded-lg border border-primary/40 bg-white p-5">
+        <div className="flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <h2 className="text-sm font-bold text-dark-blue">Recommended For You</h2>
+            <p className="mt-0.5 text-xs italic text-gray-500">Matched against your skills, preferred jobs, and location</p>
+          </div>
+          <Link to="/job-seeker/jobs" className="text-xs font-medium text-primary hover:underline shrink-0">View all →</Link>
+        </div>
+
+        {recommended.length === 0 ? (
+          <div className="py-8 text-center text-sm text-gray-400">
+            No recommendations yet.{" "}
+            <Link to="/job-seeker/profile" className="text-primary hover:underline">Add skills and preferences →</Link>
+          </div>
+        ) : (
+          <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-3">
+            {recommended.map((job) => (
+              <Link
+                key={job.id}
+                to={`/job-seeker/jobs/${job.id}`}
+                className="group rounded-lg border border-primary/40 bg-white p-4 hover:border-primary transition-all"
+              >
+                <span className="font-mono text-[10px] tracking-widest text-gray-400 uppercase">{job.location} · {job.employment_type}</span>
+                <h3 className="mt-1.5 text-sm font-semibold text-dark-blue group-hover:text-primary transition-colors line-clamp-2">{job.title}</h3>
+                <p className="mt-1 text-xs italic text-gray-500">{titleCase(job.employers?.company_name)}</p>
+                <span className="inline-block mt-3 px-2.5 py-1 rounded-full bg-primary/10 border border-primary/25 font-mono text-xs text-primary">
+                  {job.salary_min ? `₱${job.salary_min}${job.salary_max ? `–₱${job.salary_max}` : ""}` : "Negotiable"}
+                </span>
+              </Link>
             ))}
           </div>
         )}
-      </SectionCard>
-    </>
+      </section>
+    </div>
   );
 }
 

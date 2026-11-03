@@ -1,0 +1,9 @@
+﻿
+ RUN  v4.1.11 E:/code_ni_hans/peso_project
+
+
+ Test Files  20 passed (20)
+      Tests  112 passed (112)
+   Start at  03:28:27
+   Duration  11.79s (transform 1.66s, setup 6.89s, import 12.75s, tests 20.64s, environment 56.78s)
+

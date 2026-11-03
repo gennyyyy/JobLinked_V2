@@ -32,46 +32,51 @@ function ChangePassword() {
   }
 
   return (
-    <section className="bg-white border border-primary rounded-lg p-6 md:p-9">
-      <div className="border-l-4 border-primary pl-4 mb-6">
-        <h2 className="text-lg font-semibold text-gray-900">Change Password</h2>
-        <p className="text-xs text-gray-500 mt-1">Use a new password with at least 8 characters.</p>
+    <details className="group profile-panel bg-white border border-primary rounded-lg p-5 md:p-6">
+      <summary className="flex cursor-pointer list-none items-center justify-between gap-4 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 [&::-webkit-details-marker]:hidden">
+        <span className="border-l-4 border-primary pl-4">
+          <span className="block text-lg font-semibold text-gray-900">Change Password</span>
+          <span className="mt-1 block text-xs text-gray-500">Use a new password with at least 8 characters.</span>
+        </span>
+        <span aria-hidden="true" className="text-xl leading-none text-primary transition-transform group-open:rotate-45">+</span>
+      </summary>
+      <div className="mt-5 border-t border-gray-200 pt-5">
+        {message && <p className="mb-4 p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-medium">{message}</p>}
+        {error && <p className="mb-4 p-3 rounded-xl bg-danger/10 border border-danger/20 text-danger text-xs font-medium">{error}</p>}
+        <form onSubmit={handleSubmit} className="space-y-4 max-w-xl">
+          <input
+            type="password"
+            required
+            value={form.current}
+            onChange={(e) => setForm({ ...form, current: e.target.value })}
+            placeholder="Current password"
+            aria-label="Current password"
+            className="w-full min-h-[44px] px-4 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30"
+          />
+          <input
+            type="password"
+            required
+            value={form.next}
+            onChange={(e) => setForm({ ...form, next: e.target.value })}
+            placeholder="New password"
+            aria-label="New password"
+            className="w-full min-h-[44px] px-4 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30"
+          />
+          <input
+            type="password"
+            required
+            value={form.confirm}
+            onChange={(e) => setForm({ ...form, confirm: e.target.value })}
+            placeholder="Confirm new password"
+            aria-label="Confirm new password"
+            className="w-full min-h-[44px] px-4 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30"
+          />
+          <button type="submit" disabled={saving} className="min-h-[42px] px-5 rounded-xl bg-primary text-white text-xs font-semibold hover:bg-primary-hover transition-colors disabled:opacity-60">
+            {saving ? "Updating..." : "Update Password"}
+          </button>
+        </form>
       </div>
-      {message && <p className="mb-4 p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-medium">{message}</p>}
-      {error && <p className="mb-4 p-3 rounded-xl bg-danger/10 border border-danger/20 text-danger text-xs font-medium">{error}</p>}
-      <form onSubmit={handleSubmit} className="space-y-4 max-w-xl">
-        <input
-          type="password"
-          required
-          value={form.current}
-          onChange={(e) => setForm({ ...form, current: e.target.value })}
-          placeholder="Current password"
-          aria-label="Current password"
-          className="w-full min-h-[44px] px-4 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30"
-        />
-        <input
-          type="password"
-          required
-          value={form.next}
-          onChange={(e) => setForm({ ...form, next: e.target.value })}
-          placeholder="New password"
-          aria-label="New password"
-          className="w-full min-h-[44px] px-4 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30"
-        />
-        <input
-          type="password"
-          required
-          value={form.confirm}
-          onChange={(e) => setForm({ ...form, confirm: e.target.value })}
-          placeholder="Confirm new password"
-          aria-label="Confirm new password"
-          className="w-full min-h-[44px] px-4 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30"
-        />
-        <button type="submit" disabled={saving} className="min-h-[42px] px-5 rounded-xl bg-primary text-white text-xs font-semibold hover:bg-primary-hover transition-colors disabled:opacity-60">
-          {saving ? "Updating..." : "Update Password"}
-        </button>
-      </form>
-    </section>
+    </details>
   );
 }
 

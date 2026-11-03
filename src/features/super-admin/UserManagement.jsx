@@ -173,8 +173,8 @@ function UserManagement() {
   ];
 
   return (
-    <div className="space-y-6">
-      <header>
+    <div className="h-full min-h-0 flex flex-col gap-4 overflow-hidden">
+      <header className="shrink-0">
         <div className="flex items-center gap-2.5">
           <div className="w-1 h-5 bg-primary rounded-full" />
           <p className="font-mono text-[11px] tracking-[0.2em] text-primary uppercase font-medium">SYSTEM ADMINISTRATION</p>
@@ -184,15 +184,15 @@ function UserManagement() {
       </header>
 
       {success && (
-        <div className="text-sm text-emerald-700 bg-emerald-50 border border-emerald-200 px-4 py-3 rounded-xl">{success}</div>
+        <div className="shrink-0 text-sm text-emerald-700 bg-emerald-50 border border-emerald-200 px-4 py-3 rounded-xl">{success}</div>
       )}
       {actionError && (
-        <div role="alert" className="text-sm text-rose-600 bg-rose-50 border border-rose-200 px-4 py-3 rounded-xl">{actionError}</div>
+        <div role="alert" className="shrink-0 text-sm text-rose-600 bg-rose-50 border border-rose-200 px-4 py-3 rounded-xl">{actionError}</div>
       )}
 
-      <section className="bg-white border border-primary rounded-lg shadow-xs">
+      <section className="bg-white border border-primary rounded-lg shadow-xs min-h-0 flex-1 flex flex-col overflow-hidden">
         {/* Filter bar */}
-        <div className="px-5 py-4 flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-3 border-b border-gray-100">
+        <div className="shrink-0 px-5 py-4 flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-3 border-b border-gray-100">
           <div className="flex-1 min-w-[160px]">
             <select
               id="role-filter"
@@ -227,7 +227,7 @@ function UserManagement() {
         </div>
 
         {/* Table */}
-        <div className="overflow-x-auto">
+        <div className="min-h-0 flex-1 overflow-auto">
           <table className="w-full text-sm table-fixed">
             <colgroup>
               <col style={{ width: "160px" }} />
@@ -239,7 +239,7 @@ function UserManagement() {
               <col style={{ width: "100px" }} />
             </colgroup>
             <thead>
-              <tr className="border-b border-gray-200 font-mono text-[10px] tracking-widest text-gray-500 uppercase">
+              <tr className="sticky top-0 z-10 bg-white border-b border-gray-200 font-mono text-[10px] tracking-widest text-gray-500 uppercase">
                 <th className="text-left py-3 pl-5 pr-3 font-medium">Name</th>
                 <th className="text-left py-3 px-3 font-medium">Email</th>
                 <th className="text-left py-3 px-3 font-medium">Role</th>
@@ -329,8 +329,14 @@ function UserManagement() {
                   <td className="py-3 px-3 text-xs text-gray-500">
                     {new Date(user.created_at).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })}
                   </td>
-                  <td className="py-3 px-3 pr-5 text-right space-x-3">
-                    <button onClick={() => handleToggleStatus(user)} className="text-xs text-gray-600 hover:text-gray-900 cursor-pointer transition-colors">
+                  <td className="py-3 px-3 pr-5 text-right">
+                    <button
+                      onClick={() => handleToggleStatus(user)}
+                      className={`inline-flex items-center rounded-lg border px-2.5 py-1.5 text-xs font-medium cursor-pointer transition-colors ${user.status === "active"
+                        ? "border-rose-300 bg-rose-50 text-rose-700 hover:bg-rose-100 dark:border-rose-500/50 dark:bg-rose-500/10 dark:text-rose-300 dark:hover:bg-rose-500/20"
+                        : "border-emerald-300 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 dark:border-emerald-500/50 dark:bg-emerald-500/10 dark:text-emerald-300 dark:hover:bg-emerald-500/20"
+                      }`}
+                    >
                       {user.status === "active" ? "Suspend" : "Activate"}
                     </button>
                   </td>
@@ -339,7 +345,7 @@ function UserManagement() {
             </tbody>
           </table>
         </div>
-        <Pager page={page} pageSize={pageSize} total={total} onChange={setPage} />
+        <div className="shrink-0 px-5"><Pager page={page} pageSize={pageSize} total={total} onChange={setPage} /></div>
       </section>
 
       {showInvite && (

@@ -101,15 +101,15 @@ describe('Employees roster', () => {
     expect(screen.getByText('maria santos')).toBeInTheDocument()
   })
 
-  it('filters the roster to a single status via the status select', async () => {
+  it('sorts the roster via the sort select', async () => {
     listByCompany.mockResolvedValue([ACCEPTED, TERMINATED])
     render(<Employees />)
     const select = await screen.findByRole('combobox')
 
-    fireEvent.change(select, { target: { value: 'terminated' } })
+    fireEvent.change(select, { target: { value: 'oldest' } })
 
-    expect(select).toHaveValue('terminated')
-    expect(screen.queryByText('juan dela cruz')).not.toBeInTheDocument()
+    expect(select).toHaveValue('oldest')
+    expect(screen.getByText('juan dela cruz')).toBeInTheDocument()
     expect(screen.getByText('maria santos')).toBeInTheDocument()
   })
 

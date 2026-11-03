@@ -264,7 +264,7 @@ function Accreditation() {
   const viewingAcc = viewingId ? pending.find((a) => a.id === viewingId) : null;
 
   return (
-    <div className="space-y-6 bg-gray-50">
+    <div className="accreditation-page space-y-6 bg-gray-50">
       <header>
         <div className="flex items-center gap-3">
           <div className="w-1 h-6 bg-primary rounded-full" />

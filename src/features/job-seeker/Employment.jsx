@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 import useAuth from "../../shared/hooks/useAuth";
 import LoadingScreen from "../../shared/components/LoadingScreen";
 import { listEmployment } from "../../shared/services/seekers";
-import { PageHeader, SectionCard } from "../../shared/components/dashboard";
+import { SectionCard } from "../../shared/components/dashboard";
+import ApplicantsShell from "../../shared/components/ApplicantsShell";
 
 function Employment() {
   const { user } = useAuth();
@@ -10,6 +11,8 @@ function Employment() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [search, setSearch] = useState("");
+  const [sortBy, setSortBy] = useState("newest");
 
   useEffect(() => {
     if (!user) return;
@@ -25,32 +28,50 @@ function Employment() {
   const currentCount = employments.filter((e) => e.is_current).length;
   const toggleFilter = (next) => setStatusFilter((prev) => (prev === next ? "all" : next));
   const filtered = employments.filter((e) =>
-    statusFilter === "all" || (statusFilter === "current" ? e.is_current : !e.is_current)
-  );
+    (statusFilter === "all" || (statusFilter === "current" ? e.is_current : !e.is_current)) &&
+    (!search || (e.employer_name || "").toLowerCase().includes(search.toLowerCase()) ||
+      (e.position || "").toLowerCase().includes(search.toLowerCase()))
+  ).sort((a, b) => {
+    if (sortBy === "oldest") return new Date(a.updated_at || a.start_date) - new Date(b.updated_at || b.start_date);
+    if (sortBy === "name") return (a.employer_name || "").localeCompare(b.employer_name || "");
+    return new Date(b.updated_at || b.start_date) - new Date(a.updated_at || a.start_date);
+  });
+
+  const summaryTiles = [
+    { id: "all", label: "Total", value: employments.length, hint: "All employment records", title: "Show all employment records", tone: "bg-primary/5 border-primary/40 text-primary" },
+    { id: "current", label: "Current", value: currentCount, hint: "Currently employed", title: "Show current employment", tone: "bg-emerald-100 border-emerald-400 text-emerald-900" },
+    { id: "past", label: "Past", value: employments.length - currentCount, hint: "Past employment", title: "Show past employment", tone: "bg-purple-100 border-purple-400 text-purple-900" },
+  ];
 
   return (
-    <div className="space-y-6">
-      <PageHeader
-        eyebrow="EMPLOYMENT RECORD"
-        title="Employment"
-        subtitle="Your current and past employment records"
-      />
-
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        {[
-          { id: "all", label: "Total", value: employments.length, hint: "All employment records", title: "Show all employment records" },
-          { id: "current", label: "Current", value: currentCount, hint: "Currently employed", title: "Show current employment" },
-          { id: "past", label: "Past", value: employments.length - currentCount, hint: "Past employment", title: "Show past employment" },
-        ].map((tile) => (
-          <button key={tile.id} type="button" onClick={() => toggleFilter(tile.id)} aria-pressed={statusFilter === tile.id} title={tile.title}
-            className={`rounded-lg p-4 text-left cursor-pointer transition-all hover: active:scale-[0.99] bg-white border ${statusFilter === tile.id ? "border-primary ring-1 ring-primary/30" : "border-primary hover:border-primary/60"}`}>
-            <p className="font-sans text-2xl md:text-3xl font-bold text-primary leading-none">{tile.value}</p>
-            <p className="mt-3 font-mono text-[10px] md:text-[11px] tracking-widest text-gray-500 uppercase">{tile.label}</p>
-            <p className="mt-3 text-xs text-gray-400">{tile.hint}</p>
-          </button>
-        ))}
-      </div>
-
+    <ApplicantsShell
+      title="Employment"
+      subtitle="Your current and past employment records"
+      search={search}
+      onSearchChange={setSearch}
+      searchPlaceholder="Search by employer or position..."
+      searchAriaLabel="Search employment"
+      sort={sortBy}
+      onSortChange={setSortBy}
+      sortOptions={[
+        { value: "newest", label: "Newest First" },
+        { value: "oldest", label: "Oldest First" },
+        { value: "name", label: "Name (A-Z)" },
+      ]}
+      sortAriaLabel="Sort employment"
+      sidebar={
+        <div className="space-y-3">
+          {summaryTiles.map((tile) => (
+            <button key={tile.id} type="button" data-tone={tile.id === "current" ? "success" : tile.id === "past" ? "purple" : "info"} onClick={() => toggleFilter(tile.id)} aria-pressed={statusFilter === tile.id} title={tile.title}
+              className={`w-full text-left rounded-lg border px-4 py-3 cursor-pointer transition-all ${tile.tone} ${statusFilter === tile.id ? "ring-1 ring-offset-0 ring-current" : ""}`}>
+              <p className="text-2xl md:text-3xl font-bold leading-none">{tile.value}</p>
+              <p className="mt-2 font-mono text-[11px] tracking-widest uppercase font-bold">{tile.label}</p>
+              <p className="mt-1 text-xs italic opacity-80">{tile.hint}</p>
+            </button>
+          ))}
+        </div>
+      }
+    >
       {employments.length === 0 ? (
         <SectionCard title="Employment Record" subtitle="Accepted applications and employment records will appear here">
           <div className="py-8 text-center">
@@ -65,7 +86,7 @@ function Employment() {
           </div>
         </SectionCard>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div className="space-y-3">
           {filtered.map((employment) => (
             <SectionCard
               key={employment.id}
@@ -79,15 +100,15 @@ function Employment() {
                 </span>
               }
             >
-              <div className="space-y-2 text-xs text-gray-500">
-                {employment.start_date && <p>Started: {new Date(employment.start_date).toLocaleDateString()}</p>}
-                {employment.end_date && <p>Ended: {new Date(employment.end_date).toLocaleDateString()}</p>}
+              <div className="space-y-2 text-xs text-gray-500 italic">
+                {employment.start_date && <p>Started on {new Date(employment.start_date).toLocaleDateString(undefined, { month: "long", day: "numeric", year: "numeric" })}</p>}
+                {employment.end_date && <p>Ended on {new Date(employment.end_date).toLocaleDateString(undefined, { month: "long", day: "numeric", year: "numeric" })}</p>}
               </div>
             </SectionCard>
           ))}
         </div>
       )}
-    </div>
+    </ApplicantsShell>
   );
 }
 

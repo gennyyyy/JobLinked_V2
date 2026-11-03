@@ -32,22 +32,22 @@ describe('NotificationsPage delete', () => {
     deleteNotification.mockResolvedValue({ deleted: true })
   })
 
-  it('select checkbox enables Delete selected', async () => {
+  it('select checkbox enables Delete Selected', async () => {
     renderPage()
     await screen.findByText('First')
-    const bulk = screen.getByRole('button', { name: /Delete selected \(0\)/ })
+    const bulk = screen.getByRole('button', { name: 'Delete Selected' })
     expect(bulk).toBeDisabled()
     await userEvent.click(screen.getByRole('checkbox', { name: 'Select notification First' }))
-    expect(screen.getByRole('button', { name: /Delete selected \(1\)/ })).toBeEnabled()
+    expect(screen.getByRole('button', { name: 'Delete Selected' })).toBeEnabled()
   })
 
-  it('Select all selects every row and enables Delete selected', async () => {
+  it('Select all selects every row and enables Delete Selected', async () => {
     renderPage()
     await screen.findByText('First')
     await userEvent.click(screen.getByRole('checkbox', { name: 'Select all notifications' }))
     expect(screen.getByRole('checkbox', { name: 'Select notification First' })).toBeChecked()
     expect(screen.getByRole('checkbox', { name: 'Select notification Second' })).toBeChecked()
-    expect(screen.getByRole('button', { name: /Delete selected \(2\)/ })).toBeEnabled()
+    expect(screen.getByRole('button', { name: 'Delete Selected' })).toBeEnabled()
   })
 
   it('Select all again clears the selection', async () => {
@@ -57,7 +57,7 @@ describe('NotificationsPage delete', () => {
     await userEvent.click(all)
     await userEvent.click(all)
     expect(screen.getByRole('checkbox', { name: 'Select notification First' })).not.toBeChecked()
-    expect(screen.getByRole('button', { name: /Delete selected \(0\)/ })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Delete Selected' })).toBeDisabled()
   })
 
   it('Select all is indeterminate when only some rows are selected', async () => {
@@ -69,15 +69,14 @@ describe('NotificationsPage delete', () => {
     expect(all.indeterminate).toBe(true)
   })
 
-  it('per-row Delete removes row', async () => {
+  it('row shows its type label and no message body', async () => {
+    listNotifications.mockResolvedValue([
+      { id: 'n9', title: 'Placed', message: 'Hello', type: 'application', is_read: false, created_at: '2026-01-01' },
+    ])
     renderPage()
-    await screen.findByText('First')
-    const dels = screen.getAllByRole('button', { name: 'Delete' })
-    await userEvent.click(dels[0])
-    await waitFor(() => expect(deleteNotification).toHaveBeenCalledWith('n1'))
-    expect(screen.queryByText('First')).toBeNull()
-    expect(screen.getByText('Second')).toBeTruthy()
-    expect(await screen.findByText('Notification deleted.')).toBeTruthy()
+    await screen.findByText('Placed')
+    expect(screen.getByText('Application')).toBeTruthy()
+    expect(screen.queryByText('Hello')).toBeNull()
   })
 
   it('bulk delete removes selected', async () => {
@@ -85,7 +84,7 @@ describe('NotificationsPage delete', () => {
     await screen.findByText('First')
     await userEvent.click(screen.getByRole('checkbox', { name: 'Select notification First' }))
     await userEvent.click(screen.getByRole('checkbox', { name: 'Select notification Second' }))
-    await userEvent.click(screen.getByRole('button', { name: /Delete selected \(2\)/ }))
+    await userEvent.click(screen.getByRole('button', { name: 'Delete Selected' }))
     await userEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Delete' }))
     await waitFor(() => expect(deleteNotification).toHaveBeenCalledTimes(2))
     expect(screen.queryByText('First')).toBeNull()
@@ -101,13 +100,13 @@ describe('NotificationsPage delete', () => {
     await screen.findByText('First')
     await userEvent.click(screen.getByRole('checkbox', { name: 'Select notification First' }))
     await userEvent.click(screen.getByRole('checkbox', { name: 'Select notification Second' }))
-    await userEvent.click(screen.getByRole('button', { name: /Delete selected \(2\)/ }))
+    await userEvent.click(screen.getByRole('button', { name: 'Delete Selected' }))
     await userEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Delete' }))
     await waitFor(() => expect(deleteNotification).toHaveBeenCalledTimes(2))
     expect(screen.queryByText('First')).toBeNull()
     expect(screen.getByText('Second')).toBeTruthy()
     expect(await screen.findByText('Deleted 1 of 2, 1 failed')).toBeTruthy()
-    expect(screen.getByRole('button', { name: /Delete selected \(1\)/ })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Delete Selected' })).toBeEnabled()
   })
 
   it('Select all then uncheck one row is indeterminate', async () => {
@@ -117,16 +116,6 @@ describe('NotificationsPage delete', () => {
     await userEvent.click(all)
     await userEvent.click(screen.getByRole('checkbox', { name: 'Select notification First' }))
     expect(all.indeterminate).toBe(true)
-  })
-
-  it('per-row delete after Select all keeps remaining rows checked', async () => {
-    renderPage()
-    await screen.findByText('First')
-    await userEvent.click(screen.getByRole('checkbox', { name: 'Select all notifications' }))
-    await userEvent.click(screen.getAllByRole('button', { name: 'Delete' })[0])
-    await waitFor(() => expect(screen.queryByText('First')).toBeNull())
-    expect(screen.getByRole('checkbox', { name: 'Select notification Second' })).toBeChecked()
-    expect(screen.getByRole('button', { name: /Delete selected \(1\)/ })).toBeEnabled()
   })
 
   it('unreadOnly filter prunes selection to visible rows', async () => {
@@ -142,11 +131,10 @@ describe('NotificationsPage delete', () => {
     renderPage()
     await screen.findByText('Unread A')
     await userEvent.click(screen.getByRole('checkbox', { name: 'Select all notifications' }))
-    expect(screen.getByRole('button', { name: /Delete selected \(4\)/ })).toBeEnabled()
-    await userEvent.click(screen.getByRole('button', { name: 'Unread only' }))
+    expect(screen.getByRole('button', { name: 'Delete Selected' })).toBeEnabled()
+    await userEvent.click(screen.getByRole('button', { name: 'Unread' }))
     await waitFor(() => expect(screen.queryByText('Read A')).toBeNull())
-    expect(screen.getByRole('button', { name: /Delete selected \(2\)/ })).toBeEnabled()
-    await userEvent.click(screen.getByRole('button', { name: /Delete selected \(2\)/ }))
+    await userEvent.click(screen.getByRole('button', { name: 'Delete Selected' }))
     await userEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Delete' }))
     await waitFor(() => expect(deleteNotification).toHaveBeenCalledTimes(2))
     expect(deleteNotification).toHaveBeenCalledWith('u1')
@@ -162,21 +150,12 @@ describe('NotificationsPage delete', () => {
     expect(screen.getByRole('checkbox', { name: 'Select all notifications' })).toBeDisabled()
   })
 
-  it('Clear selection clears a partial selection', async () => {
-    renderPage()
-    await screen.findByText('First')
-    await userEvent.click(screen.getByRole('checkbox', { name: 'Select notification First' }))
-    await userEvent.click(screen.getByRole('button', { name: 'Clear selection' }))
-    expect(screen.getByRole('checkbox', { name: 'Select notification First' })).not.toBeChecked()
-    expect(screen.getByRole('button', { name: /Delete selected \(0\)/ })).toBeDisabled()
-  })
-
   it('View details renders an SPA link to the stored destination', async () => {
     listNotifications.mockResolvedValue([
       { id: 'n9', title: 'Placed', message: 'ok', type: 'application', is_read: false, created_at: '2026-01-01', link: '/job-seeker/applications' },
     ])
     renderPage()
-    const link = await screen.findByRole('link', { name: /View details/ })
+    const link = await screen.findByRole('link', { name: /view details/i })
     expect(link).toHaveAttribute('href', '/job-seeker/applications')
   })
 
@@ -186,7 +165,7 @@ describe('NotificationsPage delete', () => {
       { id: 'n9', title: 'Placed', message: 'ok', type: 'application', is_read: false, created_at: '2026-01-01', link: '/job-seeker/applications' },
     ])
     renderPage()
-    await userEvent.click(await screen.findByRole('link', { name: /View details/ }))
+    await userEvent.click(await screen.findByRole('link', { name: /view details/i }))
     await waitFor(() => expect(markRead).toHaveBeenCalledWith('n9'))
   })
 
@@ -197,7 +176,7 @@ describe('NotificationsPage delete', () => {
     ])
     renderPage()
     await screen.findByText('Bad')
-    expect(screen.queryByRole('link', { name: /View details/ })).toBeNull()
+    expect(screen.queryByRole('link', { name: /view details/i })).toBeNull()
   })
 })
 

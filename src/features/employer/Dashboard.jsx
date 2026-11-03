@@ -4,8 +4,7 @@ import useAuth from "../../shared/hooks/useAuth";
 import { getEmployerDashboard } from "../../shared/services/applications";
 import { getEmployer } from "../../shared/services/auth";
 import LoadingScreen from "../../shared/components/LoadingScreen";
-import { Briefcase, Layers, Users, TrendingUp } from "lucide-react";
-import { PageHeader, StatCard, SectionCard, InlineError } from "../../shared/components/dashboard";
+import { InlineError } from "../../shared/components/dashboard";
 import { titleCase } from "../../shared/utils/titleCase";
 
 function Dashboard() {
@@ -16,6 +15,7 @@ function Dashboard() {
   const [company, setCompany] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [logoFailed, setLogoFailed] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -41,27 +41,56 @@ function Dashboard() {
   const newThisWeek = summaryStats.new_this_week || 0;
 
   const stats = [
-    { label: "Active Listings", value: jobs.filter((job) => job.status === "published").length, highlight: false, icon: <Briefcase size={18} /> },
-    { label: "Total Jobs", value: jobs.length, highlight: false, icon: <Layers size={18} /> },
-    { label: "Total Candidates", value: totalCandidates, highlight: false, icon: <Users size={18} /> },
-    { label: "New This Week", value: newThisWeek, highlight: newThisWeek > 0, icon: <TrendingUp size={18} /> },
+    { label: "Active Listings", value: jobs.filter((job) => job.status === "published").length },
+    { label: "Total Jobs", value: jobs.length },
+    { label: "Total Candidates", value: totalCandidates },
+    { label: "New This Week", value: newThisWeek },
   ];
+
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? "Good Morning!" : hour < 18 ? "Good Afternoon!" : "Good Evening!";
+
+  const companyName = company?.company_name || "My Company";
+  const monogram =
+    companyName
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((word) => word[0])
+      .join("")
+      .toUpperCase() || "?";
+  const logo = !logoFailed && typeof company?.logo_path === "string" && company.logo_path ? company.logo_path : null;
 
   return (
     <div className="space-y-6 bg-gray-50">
-      <PageHeader
-        eyebrow="EMPLOYER DASHBOARD"
-        title={`Overview for ${company?.company_name || "My Company"}`}
-        subtitle="Real-time recruitment metrics and applicant tracking"
-      />
+      <h1 className="text-xl md:text-2xl font-bold text-dark-blue">Dashboard</h1>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+      <section className="flex items-center gap-4 rounded-xl bg-dark-blue p-5 md:p-6 shadow-md">
+        <div className="grid h-16 w-16 shrink-0 place-items-center overflow-hidden rounded-full border-4 border-white bg-white shadow-md md:h-20 md:w-20">
+          {logo ? (
+            <img src={logo} alt="" className="w-full h-full object-cover" onError={() => setLogoFailed(true)} />
+          ) : (
+            <span className="text-2xl font-bold text-primary">{monogram}</span>
+          )}
+        </div>
+        <div className="min-w-0">
+          <p className="text-sm md:text-base font-semibold text-white/85">{greeting}</p>
+          <h2 className="truncate text-xl md:text-2xl font-bold text-white">{companyName}</h2>
+        </div>
+      </section>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
         {stats.map((stat) => (
-          <StatCard key={stat.label} label={stat.label} value={stat.value} highlight={false} icon={stat.icon} valueClassName="text-gray-900" />
+          <div key={stat.label} className="rounded-lg border border-primary/40 bg-primary/5 px-4 py-5">
+            <p className="text-3xl font-bold text-primary">{stat.value}</p>
+            <p className="mt-2 text-[11px] font-semibold uppercase tracking-wider text-primary">{stat.label}</p>
+          </div>
         ))}
       </div>
 
-      <SectionCard title="Recent Candidate Applications" subtitle="Latest job seekers who applied to your verified listings">
+      <section className="rounded-lg border border-primary/40 bg-white p-5">
+        <h2 className="text-sm font-bold text-dark-blue">Recent Candidate Applications</h2>
+        <p className="mt-0.5 text-xs italic text-gray-500">Latest job seekers who applied to your verified listings</p>
 
         {recent.length === 0 ? (
           <div className="py-8 text-center text-sm text-gray-500">
@@ -69,25 +98,21 @@ function Dashboard() {
             <Link to="/employer/job-posts" className="text-primary hover:underline">Post a job →</Link>
           </div>
         ) : (
-          <div className="divide-y divide-gray-100">
+          <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {recent.map((item) => (
-              <div key={item.id} className="py-4 first:pt-0 last:pb-0 flex items-center justify-between gap-3">
-                <div className="min-w-0">
-                  <p className="text-sm font-medium text-gray-900 truncate">{titleCase(item.seeker_full_name)}</p>
-                  <p className="mt-1 text-xs text-gray-500 truncate">
-                    Applied for <span className="text-gray-600">{item.job_title}</span>
-                  </p>
-                </div>
-                <div className="text-right shrink-0">
-                  <span className="font-mono text-xs text-gray-500">
-                    {new Date(item.applied_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                  </span>
-                </div>
+              <div key={item.id} className="rounded-lg border border-primary/40 bg-white px-4 py-3">
+                <p className="text-sm font-bold text-dark-blue truncate">{titleCase(item.seeker_full_name)}</p>
+                <p className="mt-1 text-xs italic text-gray-500 truncate">
+                  Applied for <span className="text-gray-700">{item.job_title}</span>
+                </p>
+                <p className="mt-0.5 text-[11px] text-gray-400">
+                  Applied on {new Date(item.applied_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+                </p>
               </div>
             ))}
           </div>
         )}
-      </SectionCard>
+      </section>
     </div>
   );
 }

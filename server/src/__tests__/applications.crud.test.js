@@ -147,3 +147,22 @@ describe('POST /api/applications/:id/status', () => {
     expect(res.body.error.code).toBe('FORBIDDEN');
   });
 });
+
+describe('GET /api/applications/mine', () => {
+  const history = [
+    { status: 'Applied', changed_at: '2026-01-01T00:00:00.000Z' },
+    { status: 'Under Review', changed_at: '2026-01-03T00:00:00.000Z' },
+  ];
+
+  it('embeds each application\'s status history and passes the row through', async () => {
+    const token = loginAs({ id: SEEKER, role: 'job-seeker' });
+    on((sql) => /where a\.seeker_id = \$1/.test(sql), () => ({ rows: [{ ...appRow, history }] }));
+    const res = await request(app).get('/api/applications/mine')
+      .set('Authorization', `Bearer ${token}`);
+    expect(res.status).toBe(200);
+    const mine = callsOf(/application_status_history h where h\.application_id = a\.id/)[0];
+    expect(mine.sql).toMatch(/from job_applications a/);
+    expect(mine.params).toEqual([SEEKER]); // seeker_id from the token, not the client
+    expect(res.body[0].history).toEqual(history);
+  });
+});

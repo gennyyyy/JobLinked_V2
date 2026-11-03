@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { signUp } from "../../shared/services/auth";
 import { normalizePhone, isValidPhone, toLocalDigits } from "../../shared/utils/phone";
 import { BULACAN_MUNICIPALITIES, SANTA_MARIA_BARANGAYS } from "../../shared/constants";
+import TermsModal from "../../shared/components/TermsModal";
 import SkipLink from "../../shared/components/SkipLink";
 import PublicHeader from "../../shared/components/PublicHeader";
 import PublicFooter from "../../shared/components/PublicFooter";
@@ -13,6 +14,9 @@ function EmployerRegister() {
   const [submitted, setSubmitted] = useState(false);
   const [busy, setBusy] = useState(false);
   const [needsConfirmation, setNeedsConfirmation] = useState(false);
+  const [termsOpen, setTermsOpen] = useState(false);
+  const [termsRead, setTermsRead] = useState(false);
+  const [agree, setAgree] = useState(false);
   const formRef = useRef(null);
   const navigate = useNavigate();
   useEffect(() => {
@@ -46,6 +50,7 @@ function EmployerRegister() {
     else if (values.password.length < 8) e.password = "Password must be at least 8 characters";
     if (!values.confirmPassword) e.confirmPassword = "Please confirm your password";
     else if (values.password !== values.confirmPassword) e.confirmPassword = "Passwords do not match";
+    if (!values.agree) e.agree = "You must agree to the terms";
     return e;
   }
 
@@ -337,6 +342,16 @@ function EmployerRegister() {
               <div role="alert" className="p-3.5 rounded-xl bg-danger/10 border border-danger/20 text-danger text-xs font-medium">{error}</div>
             )}
 
+            <div className="flex items-start gap-2.5 text-xs text-gray-500">
+              <input id="agree" type="checkbox" name="agree" checked={agree} disabled={!termsRead} onChange={(e) => { setAgree(e.target.checked); if (errors.agree) setErrors((prev) => ({ ...prev, agree: undefined })); }} className="mt-0.5 accent-primary shrink-0 disabled:opacity-50 disabled:cursor-not-allowed" />
+              <div>
+                <label htmlFor="agree" className={!termsRead ? "cursor-not-allowed opacity-70" : "cursor-pointer"}>I agree to the municipal data collection terms and PESO privacy policies.{reqMark}</label>
+                <button type="button" onClick={() => setTermsOpen(true)} className="ml-1 whitespace-nowrap text-primary hover:underline underline-offset-4">View terms</button>
+                {!termsRead && <p className="mt-1 text-gray-500">Please open and read the terms before agreeing.</p>}
+                {errors.agree && <p className="text-danger text-xs mt-1">{errors.agree}</p>}
+              </div>
+            </div>
+
             <button
               type="submit"
               disabled={busy}
@@ -356,6 +371,7 @@ function EmployerRegister() {
       </main>
 
       <PublicFooter />
+      <TermsModal open={termsOpen} onClose={() => setTermsOpen(false)} onRead={() => setTermsRead(true)} />
     </div>
   );
 }

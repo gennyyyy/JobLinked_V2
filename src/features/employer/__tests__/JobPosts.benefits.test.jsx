@@ -33,7 +33,7 @@ async function openCreateForm() {
     </MemoryRouter>
   )
 
-  const openBtn = await screen.findByRole('button', { name: /post a vacancy/i })
+  const openBtn = await screen.findByRole('button', { name: /post a job/i })
   await waitFor(() => expect(openBtn).toBeEnabled())
   fireEvent.click(openBtn)
 }

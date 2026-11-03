@@ -38,10 +38,12 @@ function PublicFooter() {
       <div className="w-full px-[42px] py-4">
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-6 gap-8">
           {footerColumns.map((col) => (
-            <div key={col.heading} className={col.wide ? "sm:col-span-2" : ""}>
-              <h3 className={`text-base font-bold text-primary mb-1 ${col.wide ? "sm:text-center" : ""}`}>
-                {col.heading}
-              </h3>
+            <details key={col.heading} className={col.wide ? "sm:col-span-2 group" : "group"}>
+              <summary className={`flex items-center justify-between gap-2 text-base font-bold text-primary cursor-pointer list-none [&::-webkit-details-marker]:hidden ${col.wide ? "sm:justify-center" : ""}`}>
+                <span role="heading" aria-level="3" className={col.wide ? "sm:text-center" : ""}>{col.heading}</span>
+                <svg className="w-4 h-4 shrink-0 transition-transform group-open:rotate-180 sm:ml-2" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fillRule="evenodd" d="M5.22 7.47a.75.75 0 0 1 1.06 0L10 11.19l3.72-3.72a.75.75 0 1 1 1.06 1.06l-4.25 4.25a.75.75 0 0 1-1.06 0L5.22 8.53a.75.75 0 0 1 0-1.06Z" clipRule="evenodd" /></svg>
+              </summary>
+              <div className="pt-1">
               {col.social ? (
                 <a href="https://www.facebook.com/people/PESO-Santa-Maria-Official/100082490811894/" className="flex items-center gap-2 text-gray-800 hover:text-primary transition-colors" aria-label="Facebook" target="_blank" rel="noopener noreferrer">
                   <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" /></svg>
@@ -58,7 +60,8 @@ function PublicFooter() {
                   ))}
                 </ul>
               )}
-            </div>
+              </div>
+            </details>
           ))}
         </div>
         <p className="mt-1 text-center text-sm text-primary/70">

@@ -38,7 +38,7 @@ describe('JobPosts empty state (U5)', () => {
     expect(await screen.findByText(/must first be accredited by PESO/i)).toBeInTheDocument()
     expect(screen.getByRole('link', { name: /view accreditation/i })).toHaveAttribute('href', '/employer/accreditation')
     // The old dead-end "+ Post a Vacancy" advice must not appear.
-    expect(screen.queryByText(/Click '\+ Post a Vacancy'/)).not.toBeInTheDocument()
+    expect(screen.queryByText(/Click '\+ Post a Job'/)).not.toBeInTheDocument()
   })
 
   it('keeps the original create-advice for approved employers with no posts', async () => {

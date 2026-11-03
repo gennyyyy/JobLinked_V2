@@ -145,9 +145,9 @@ function RoleManagement() {
   if (loading) return <LoadingScreen />;
 
   return (
-    <div className="space-y-6 pb-12">
+    <div className="h-full min-h-0 flex flex-col gap-4 overflow-hidden">
       {/* Header Section */}
-      <header className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+      <header className="shrink-0 flex flex-col md:flex-row md:items-center justify-between gap-3">
         <div>
           <div className="flex items-center gap-2">
             <span className="font-mono text-[11px] tracking-[0.2em] text-primary uppercase font-semibold">
@@ -166,10 +166,10 @@ function RoleManagement() {
       </header>
 
       {flash && (
-        <div className="text-sm text-emerald-700 bg-emerald-50 border border-emerald-200 px-4 py-3 rounded-xl">{flash}</div>
+        <div className="shrink-0 text-sm text-emerald-700 bg-emerald-50 border border-emerald-200 px-4 py-3 rounded-xl">{flash}</div>
       )}
       {error && (
-        <div className="bg-white border border-rose-100 rounded-2xl p-5 flex items-start gap-3 shadow-[0_2px_16px_-8px_rgba(16,24,40,0.08)]">
+        <div className="shrink-0 bg-white border border-rose-100 rounded-2xl p-5 flex items-start gap-3 shadow-[0_2px_16px_-8px_rgba(16,24,40,0.08)]">
           <div className="shrink-0 mt-0.5 w-8 h-8 rounded-lg bg-rose-50 border border-rose-100 flex items-center justify-center">
             <Lock className="w-4 h-4 text-rose-500" strokeWidth={2} />
           </div>
@@ -181,7 +181,7 @@ function RoleManagement() {
       )}
 
       {/* Metric Counters Bar */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full">
+      <div className="shrink-0 grid grid-cols-1 sm:grid-cols-3 gap-3 w-full">
         {[
           { label: "System Roles", count: SYSTEM_ROLES.length, icon: Lock },
           { label: "Custom Roles", count: customRoles.length, icon: Shield },
@@ -200,9 +200,10 @@ function RoleManagement() {
         })}
       </div>
 
-      {/* System Roles — fixed by auth, read-only */}
-      <section className="bg-white border border-primary rounded-lg p-5 md:p-5 shadow-xs space-y-5">
-        <div className="flex items-center justify-between gap-3 pb-4 border-b border-gray-100">
+      <section className="min-h-0 flex-1 flex flex-col overflow-y-auto bg-white border border-primary rounded-lg p-4 shadow-xs">
+        {/* System Roles — fixed by auth, read-only */}
+        <div className="shrink-0 space-y-3 pb-4">
+          <div className="flex items-center justify-between gap-3 pb-3 border-b border-gray-100">
           <div>
             <h2 className="text-base font-semibold text-gray-900">System Roles</h2>
           </div>
@@ -211,9 +212,9 @@ function RoleManagement() {
             Read-only
           </span>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
           {SYSTEM_ROLES.map((role) => (
-            <div key={role.key} className="bg-gray-50 border border-gray-200 rounded-xl p-5">
+            <div key={role.key} className="bg-gray-50 border border-gray-200 rounded-xl p-3">
               <div className="flex items-center gap-2.5">
                 <div className="w-8 h-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
                   <Shield className="w-4 h-4 text-primary" />
@@ -223,8 +224,8 @@ function RoleManagement() {
                   <p className="font-mono text-[10px] tracking-wider text-gray-400 uppercase">{role.key}</p>
                 </div>
               </div>
-              <p className="text-xs text-gray-500 mt-3 leading-relaxed">{role.description}</p>
-              <div className="flex flex-wrap gap-1.5 mt-3">
+              <p className="text-xs text-gray-500 mt-2 leading-relaxed">{role.description}</p>
+              <div className="flex flex-wrap gap-1.5 mt-2">
                 {role.capabilities.map((cap) => (
                   <span key={cap} className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-medium bg-white border border-gray-200 text-gray-600">
                     {cap}
@@ -233,12 +234,12 @@ function RoleManagement() {
               </div>
             </div>
           ))}
+          </div>
         </div>
-      </section>
 
-      {/* Custom Roles — the super-admin's catalog (assign from Users page) */}
-      <section className="bg-white border border-primary rounded-lg p-5 md:p-5 shadow-xs space-y-5">
-        <div className="flex items-center justify-between gap-3 pb-4 border-b border-gray-100">
+        {/* Custom Roles — the super-admin's catalog (assign from Users page) */}
+        <div className="shrink-0 flex flex-col gap-5 border-t border-gray-100 pt-4">
+        <div className="shrink-0 flex items-center justify-between gap-3 pb-4 border-b border-gray-100">
           <div>
             <h2 className="text-base font-semibold text-gray-900">Custom Roles ({customRoles.length})</h2>
             <p className="text-xs text-gray-500 mt-0.5">Roles you define — pick a base portal and the permissions it gets</p>
@@ -271,7 +272,7 @@ function RoleManagement() {
             </button>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 content-start gap-3">
             {customRoles.map((role) => (
               <article
                 key={role.id}
@@ -326,6 +327,7 @@ function RoleManagement() {
             ))}
           </div>
         )}
+        </div>
       </section>
       {/* Create / Edit modal */}
       {formOpen && (

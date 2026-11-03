@@ -1,12 +1,12 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { Briefcase, Handshake, GraduationCap, Search, ArrowRight } from "lucide-react";
+import { useState, useRef, useEffect } from "react";
+import { useNavigate, Link } from "react-router-dom";
+import { Briefcase, Handshake, GraduationCap, Search, ArrowRight, ChevronDown } from "lucide-react";
 import teamImage from "../../assets/team.png";
 import landingBg from "../../assets/landing_page_bg.png";
 import lpSample from "../../assets/lp_page_sample.png";
 import SkipLink from "../../shared/components/SkipLink";
-import PublicHeader from "../../shared/components/PublicHeader";
-import PublicFooter from "../../shared/components/PublicFooter";
+import SiteHeader from "../../shared/components/SiteHeader";
+import SiteFooter from "../../shared/components/SiteFooter";
 
 const featureCards = [
   {
@@ -21,7 +21,7 @@ const featureCards = [
     title: "Employer",
     desc: "Post jobs and find the right talent.",
     color: "bg-accent",
-    textColor: "text-gray-900",
+    textColor: "text-black",
   },
   {
     icon: <GraduationCap className="w-10 h-10 shrink-0" />,
@@ -32,10 +32,40 @@ const featureCards = [
   },
 ];
 
+const howItWorksItems = [
+  { label: "Jobseeker", to: "/register/job-seeker" },
+  { label: "Employer", to: "/register/employer" },
+  { label: "FAQ", to: "/portals" },
+];
+
 function Landing() {
   const navigate = useNavigate();
   const [keyword, setKeyword] = useState("");
   const [activeTab, setActiveTab] = useState("seeker");
+  const [open, setOpen] = useState(false);
+  const triggerRef = useRef(null);
+  const menuRef = useRef(null);
+
+  useEffect(() => {
+    if (!open) return;
+    function onPointerDown(e) {
+      if (!menuRef.current?.contains(e.target) && !triggerRef.current?.contains(e.target)) {
+        setOpen(false);
+      }
+    }
+    function onKeyDown(e) {
+      if (e.key === "Escape") {
+        setOpen(false);
+        triggerRef.current?.focus();
+      }
+    }
+    document.addEventListener("pointerdown", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [open]);
 
   function handleQuickSearch(e) {
     e.preventDefault();
@@ -45,14 +75,63 @@ function Landing() {
   }
 
   return (
-    <div className="min-h-screen bg-[#dbeafe] text-gray-900 font-sans">
+    <div className="landing-page min-h-screen bg-[#dbeafe] text-gray-900 font-sans">
       <SkipLink />
 
-      <PublicHeader />
+      <SiteHeader
+        right={
+          <div className="flex items-center gap-3">
+            <div className="relative hidden sm:block">
+              <button
+                type="button"
+                ref={triggerRef}
+                onClick={() => setOpen((v) => !v)}
+                aria-expanded={open}
+                aria-controls="how-it-works-menu"
+                className="flex items-center gap-1 min-h-[40px] px-1 rounded-md text-gray-600 text-sm font-medium hover:text-primary transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              >
+                How It Works
+                <ChevronDown className={`w-4 h-4 transition-transform ${open ? "rotate-180" : ""}`} />
+              </button>
+              {open && (
+                <nav
+                  id="how-it-works-menu"
+                  ref={menuRef}
+                  aria-label="How It Works"
+                  className="absolute right-0 top-full mt-2 w-44 rounded-lg border border-gray-100 bg-white shadow-lg py-2 z-20"
+                >
+                  {howItWorksItems.map((item) => (
+                    <Link
+                      key={item.to}
+                      to={item.to}
+                      onClick={() => setOpen(false)}
+                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                    >
+                      {item.label}
+                    </Link>
+                  ))}
+                </nav>
+              )}
+            </div>
+            <Link
+              to="/portals"
+              className="min-h-[40px] inline-flex items-center px-5 rounded-lg bg-primary text-white text-sm font-semibold hover:bg-primary-hover transition-colors shadow-sm"
+            >
+              LOG IN
+            </Link>
+            <Link
+              to="/register"
+              className="min-h-[40px] inline-flex items-center px-5 rounded-lg bg-danger text-white text-sm font-semibold hover:bg-red-700 transition-colors shadow-sm"
+            >
+              SIGN UP
+            </Link>
+          </div>
+        }
+      />
 
       <main id="main-content" tabIndex={-1}>
         {/* Hero Section */}
-        <section className="relative overflow-hidden shadow-[0_8px_20px_-4px_rgba(0,0,0,0.18)]" style={{ backgroundImage: `url(${landingBg})`, backgroundSize: 'cover', backgroundPosition: 'left center' }}>
+        <section className="landing-hero relative overflow-hidden shadow-[0_8px_20px_-4px_rgba(0,0,0,0.18)]" style={{ backgroundImage: `url(${landingBg})`, backgroundSize: 'cover', backgroundPosition: 'left center' }}>
           <div className="absolute inset-0 bg-gradient-to-b from-white/60 to-white/80" />
 
           <div className="relative w-full px-[95px] pt-12 md:pt-20 pb-32 md:pb-40">
@@ -187,7 +266,7 @@ function Landing() {
         </section>
       </main>
 
-      <PublicFooter />
+      <SiteFooter />
     </div>
   );
 }

@@ -1,0 +1,102 @@
+import SearchBar from "./SearchBar";
+
+// Standard sort/search bar shared by every page that uses CardListLayout, so the
+// controls look identical everywhere (only labels/options/data differ).
+function StandardControls({
+  sort,
+  onSortChange,
+  sortOptions = [],
+  sortLabel = "Sort:",
+  sortAriaLabel = "Sort",
+  search,
+  onSearchChange,
+  searchPlaceholder = "Search...",
+  searchAriaLabel = "Search",
+  controlAction = null,
+}) {
+  return (
+    <div className="applicant-list-controls bg-white border border-primary rounded-lg p-2 shadow-xs">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+          <SearchBar value={search} onChange={onSearchChange} placeholder={searchPlaceholder} ariaLabel={searchAriaLabel} />
+          <label className="flex items-center gap-2 text-xs font-semibold text-dark-blue">
+            {sortLabel}
+            <select
+              value={sort}
+              onChange={(e) => onSortChange(e.target.value)}
+              aria-label={sortAriaLabel}
+              className="px-3 py-2 rounded-lg text-xs bg-white border border-gray-200 text-gray-700 font-medium focus:outline-none focus:border-primary transition-all cursor-pointer"
+            >
+              {sortOptions.map((opt) => (
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
+              ))}
+            </select>
+          </label>
+        </div>
+        {controlAction && <div className="shrink-0">{controlAction}</div>}
+      </div>
+    </div>
+  );
+}
+
+export default function CardListLayout({
+  title,
+  subtitle,
+  headerAction = null,
+  // Standard controls (use these for identical search/sort bars):
+  sort,
+  onSortChange,
+  sortOptions,
+  sortLabel,
+  sortAriaLabel,
+  search,
+  onSearchChange,
+  searchPlaceholder,
+  searchAriaLabel,
+  // Optional action rendered inside the search/sort container (e.g. "Post a Job"):
+  controlAction = null,
+  // Escape hatch for fully custom controls (avoid unless necessary):
+  controls = null,
+  sidebar = null,
+  footer = null,
+  className = "",
+  children,
+}) {
+  const hasStandard = sort !== undefined || search !== undefined;
+  return (
+    <div className={`space-y-6 pb-12 ${className}`}>
+      <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="min-w-0">
+          <h1 className="text-xl md:text-2xl font-bold text-dark-blue">{title}</h1>
+          {subtitle && <p className="mt-1 text-sm italic text-gray-500">{subtitle}</p>}
+        </div>
+        {headerAction}
+      </header>
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_200px] gap-5">
+        <div className="min-w-0 space-y-4">
+          {controls
+            ? controls
+            : hasStandard
+              ? (
+                <StandardControls
+                  sort={sort}
+                  onSortChange={onSortChange}
+                  sortOptions={sortOptions}
+                  sortLabel={sortLabel}
+                  sortAriaLabel={sortAriaLabel}
+                  search={search}
+                  onSearchChange={onSearchChange}
+                  searchPlaceholder={searchPlaceholder}
+                  searchAriaLabel={searchAriaLabel}
+                  controlAction={controlAction}
+                />
+              )
+              : null}
+          {children}
+          {footer}
+        </div>
+        {sidebar && <aside className="applicant-list-sidebar space-y-3">{sidebar}</aside>}
+      </div>
+    </div>
+  );
+}

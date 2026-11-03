@@ -6,7 +6,6 @@ import ChangePassword from "../../shared/components/ChangePassword";
 import { formatFullAddress } from "../../shared/utils/address";
 import { buildFullName } from "../../shared/utils/names";
 import { titleCase } from "../../shared/utils/titleCase";
-import { PageHeader } from "../../shared/components/dashboard";
 import { SANTA_MARIA_BARANGAYS } from "../../shared/constants";
 
 function CompanyProfile() {
@@ -18,6 +17,7 @@ function CompanyProfile() {
   const [editing, setEditing] = useState(false);
   const [company, setCompany] = useState(null);
   const [form, setForm] = useState({});
+  const [logoFailed, setLogoFailed] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -102,37 +102,36 @@ function CompanyProfile() {
     titleCase([form.first_name, form.middle_name, form.last_name].filter(Boolean).join(" ")),
     (form.suffix || "").toUpperCase(),
   ].filter(Boolean).join(" ");
+  const companyLogo = !logoFailed && typeof company?.logo_path === "string" && company.logo_path ? company.logo_path : null;
 
   return (
     <div className="w-full space-y-6">
-      <PageHeader
-        eyebrow="COMPANY PROFILE"
-        title="Business Information"
-        subtitle="Your company details visible to PESO and job seekers"
-      />
+      <h1 className="text-xl md:text-2xl font-bold tracking-tight text-gray-900">My Profile</h1>
 
-      <div className="bg-white border border-primary rounded-lg p-6 md:p-9">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-6 border-b border-gray-200">
-          <div className="flex items-center gap-3">
-            <div className="w-16 h-16 rounded-lg bg-accent/20 border border-accent/30 flex items-center justify-center font-bold text-xl text-accent">
-              {form.name?.[0] || "C"}
-            </div>
-            <div>
-              <h2 className="text-xl font-bold text-gray-900">{titleCase(form.name) || "My Company"}</h2>
-              <p className="font-mono text-xs text-gray-500 mt-0.5">
-                Accreditation:{" "}
-                <span className={accreditationStatus === "approved" ? "text-emerald-600" : accreditationStatus === "rejected" || accreditationStatus === "revoked" ? "text-danger" : "text-amber-700"}>
-                  {accreditationStatus}
-                </span>
-              </p>
-            </div>
+      <section className="flex items-center gap-4 rounded-t-xl bg-dark-blue px-5 py-4 text-white shadow-sm">
+        <div className="grid h-16 w-16 shrink-0 place-items-center overflow-hidden rounded-full border-4 border-white bg-white text-xl font-bold text-primary shadow-md">
+          {companyLogo ? (
+            <img src={companyLogo} alt={`${form.name || "Company"} logo`} className="h-full w-full object-cover" onError={() => setLogoFailed(true)} />
+          ) : (
+            <span>{(form.name?.[0] || "C").toUpperCase()}</span>
+          )}
+        </div>
+        <div className="flex min-w-0 flex-1 items-center justify-between gap-4">
+          <div className="min-w-0">
+            <h2 className="truncate text-lg font-bold tracking-tight">{titleCase(form.name) || "My Company"}</h2>
+            <p className="mt-1 line-clamp-2 text-[11px] italic text-white/75">
+              {form.description || `${form.industry || "Company profile"} · ${accreditationStatus}`}
+            </p>
           </div>
           {!editing && (
-            <button onClick={() => setEditing(true)} className="min-h-[40px] px-5 rounded-xl border border-gray-300 text-xs font-medium text-gray-900 hover:bg-gray-100 hover:border-primary/40 transition-colors self-start sm:self-center">
+            <button type="button" onClick={() => setEditing(true)} className="shrink-0 rounded-lg border border-white/30 px-3 py-1.5 text-xs font-semibold text-white hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent">
               Edit Profile
             </button>
           )}
         </div>
+      </section>
+
+      <div className="profile-panel rounded-b-xl border border-primary/40 bg-white p-4 md:p-5">
 
         {saved && (
           <div className="mt-6 p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-medium">
@@ -242,10 +241,10 @@ function CompanyProfile() {
             </div>
           </form>
         ) : (
-          <div className="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
-            <section className="p-5 rounded-xl bg-gray-50 border border-gray-200 lg:col-span-2">
+          <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-[3fr_2fr]">
+            <section className="profile-panel rounded-xl border border-primary/30 bg-gray-50 p-4 lg:col-start-1 lg:row-start-1">
               <p className="font-mono text-[10px] tracking-[0.2em] uppercase text-primary font-semibold mb-4">Company Details</p>
-              <dl className="grid grid-cols-1 sm:grid-cols-2 gap-5 text-sm">
+              <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-5 gap-y-4 text-sm">
                 <div>
                   <dt className="font-mono text-[10px] tracking-widest uppercase text-gray-500">Company Name</dt>
                   <dd className="mt-1 text-xs text-gray-700 font-medium">{titleCase(form.name) || "Not set"}</dd>
@@ -270,35 +269,17 @@ function CompanyProfile() {
                   <dt className="font-mono text-[10px] tracking-widest uppercase text-gray-500">Login Email</dt>
                   <dd className="mt-1 font-mono text-xs text-gray-700 break-all">{form.email || "Not set"}</dd>
                 </div>
-                <div className="sm:col-span-2">
-                  <dt className="font-mono text-[10px] tracking-widest uppercase text-gray-500">Description</dt>
-                  <dd className="mt-1 text-xs text-gray-600">{form.description || "Not set"}</dd>
+                <div className="sm:col-span-2 border-t border-gray-200 pt-3">
+                  <dt className="font-mono text-[10px] tracking-widest uppercase text-gray-500">Business Address</dt>
+                  <dd className="mt-1 text-xs text-gray-700">
+                    {formatFullAddress(form) || "Not set"}
+                  </dd>
                 </div>
               </dl>
             </section>
-            <section className="p-5 rounded-xl bg-gray-50 border border-gray-200">
-              <p className="font-mono text-[10px] tracking-[0.2em] uppercase text-primary font-semibold mb-4">Business Address</p>
-              <dl className="grid grid-cols-1 sm:grid-cols-2 gap-5 text-sm">
-                {[
-                  ["House / Bldg / Unit", form.house_number_unit],
-                  ["Street / Lot / Block", form.street_address],
-                  ["Subdivision / Village", form.subdivision_building],
-                  ["Barangay / District", form.barangay_district],
-                ].map(([label, value]) => (
-                  <div key={label}>
-                    <dt className="font-mono text-[10px] tracking-widest uppercase text-gray-500">{label}</dt>
-                    <dd className="mt-1 text-xs text-gray-700">{titleCase(value) || "Not set"}</dd>
-                  </div>
-                ))}
-                <div className="sm:col-span-2">
-                  <dt className="font-mono text-[10px] tracking-widest uppercase text-gray-500">Full Address</dt>
-                  <dd className="mt-1 text-xs text-gray-700">{formatFullAddress(form) || "Not set"}</dd>
-                </div>
-              </dl>
-            </section>
-            <section className="p-5 rounded-xl bg-gray-50 border border-gray-200">
+            <section className="profile-panel rounded-xl border border-primary/30 bg-gray-50 p-4 lg:col-start-2 lg:row-start-1 lg:row-span-2">
               <p className="font-mono text-[10px] tracking-[0.2em] uppercase text-primary font-semibold mb-4">Authorized Representative</p>
-              <dl className="grid grid-cols-1 sm:grid-cols-2 gap-5 text-sm">
+              <dl className="grid grid-cols-1 gap-y-4 text-sm">
                 <div>
                   <dt className="font-mono text-[10px] tracking-widest uppercase text-gray-500">Full Name</dt>
                   <dd className="mt-1 text-xs text-gray-700 font-medium">
@@ -319,10 +300,11 @@ function CompanyProfile() {
                 </div>
               </dl>
             </section>
+            <div className="lg:col-start-1 lg:row-start-2"><ChangePassword /></div>
           </div>
         )}
       </div>
-      <ChangePassword />
+      {editing && <div className="-mt-2"><ChangePassword /></div>}
     </div>
   );
 }

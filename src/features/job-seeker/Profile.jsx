@@ -12,7 +12,7 @@ import { titleCase } from "../../shared/utils/titleCase";
 import LoadingScreen from "../../shared/components/LoadingScreen";
 import ChangePassword from "../../shared/components/ChangePassword";
 import { TagInput, splitTags } from "../../shared/components/TagInput";
-import { PageHeader, InlineError } from "../../shared/components/dashboard";
+import { InlineError } from "../../shared/components/dashboard";
 
 // Per-resume View (new tab) + Download links. The API streams the file, so
 // resolve it to a blob URL via the existing signedUrl service (same shape as before).
@@ -372,55 +372,41 @@ function Profile() {
   }
 
   return (
-    <div className="w-full space-y-6">
-      <PageHeader
-        eyebrow="MUNICIPAL CANDIDATE PROFILE"
-        title="My Account & Resume"
-        subtitle="Your credentials, contact information, and skill tags seen by Santa Maria employers"
-      />
+    <div className="w-full space-y-4">
+      <h1 className="text-xl md:text-2xl font-bold tracking-tight text-gray-900">My Profile</h1>
 
-      <div className="bg-white border border-primary rounded-lg p-6 md:p-9">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-6 border-b border-gray-200">
-          <div className="flex items-center gap-3">
-            <div className="w-16 h-16 rounded-lg bg-accent/20 border border-accent/30 flex items-center justify-center font-bold text-xl text-dark-blue shadow-[0_4px_16px_rgba(0,117,162,0.15)]">
-              {(form.firstName[0] || "J").toUpperCase()}{(form.lastName[0] || "S").toUpperCase()}
-            </div>
-            <div>
-              <h2 className="text-xl font-bold text-gray-900">{titleCase(fullName)}</h2>
-              <p className="font-mono text-xs text-gray-500 mt-0.5">Accredited Job Seeker · {user?.email}</p>
-            </div>
+      <section className="flex items-center gap-4 rounded-t-xl bg-dark-blue px-5 py-5 text-white shadow-sm">
+        <div aria-label={`${(form.firstName[0] || "J").toUpperCase()}${(form.lastName[0] || "S").toUpperCase()} profile initials`} className="grid h-16 w-16 shrink-0 place-items-center rounded-full border-4 border-white bg-accent/20 text-xl font-bold text-dark-blue shadow-md">
+          {(form.firstName[0] || "J").toUpperCase()}{(form.lastName[0] || "S").toUpperCase()}
+        </div>
+        <div className="flex min-w-0 flex-1 items-start justify-between gap-4">
+          <div className="min-w-0">
+            <h2 className="truncate text-lg font-bold tracking-tight">{titleCase(fullName)}</h2>
+            <p className="mt-1 truncate font-mono text-[11px] text-white/70">Accredited Job Seeker · {user?.email}</p>
           </div>
-
           {!editing && (
-            <button onClick={() => setEditing(true)} className="min-h-[40px] px-5 rounded-xl border border-gray-300 text-xs font-medium text-gray-700 hover:bg-gray-100 hover:border-primary/40 transition-colors self-start sm:self-center">
+            <button type="button" onClick={() => setEditing(true)} className="shrink-0 rounded-lg border border-white/30 px-3 py-1.5 text-xs font-semibold text-white hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent">
               Edit Profile
             </button>
           )}
         </div>
+      </section>
 
-        {saved && (
-          <div className="mt-6 p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-medium">
-            Profile information has been successfully updated.
-          </div>
-        )}
-
-        <div className="mt-6">
-          <div className="flex items-center justify-between gap-3 mb-2">
-            <p id="profile-completion-label" className="font-mono text-[11px] tracking-widest text-gray-500 uppercase">Profile Completion</p>
-            <span className="font-mono text-sm font-bold text-primary">{completion}%</span>
-          </div>
-          <div
-            role="progressbar"
-            aria-labelledby="profile-completion-label"
-            aria-valuenow={completion}
-            aria-valuemin={0}
-            aria-valuemax={100}
-            aria-valuetext={`${completion}% complete`}
-            className="h-2 rounded-full bg-gray-100 overflow-hidden"
-          >
-            <div className="h-full bg-primary transition-all" style={{ width: `${completion}%` }} />
-          </div>
+      <section className="profile-panel rounded-b-xl border border-primary/40 bg-white px-5 pb-4 pt-4 shadow-sm">
+        <div className="flex items-center justify-between gap-3 mb-2">
+          <p id="profile-completion-label" className="font-mono text-[11px] tracking-widest text-gray-500 uppercase">Profile Completion</p>
+          <span className="font-mono text-sm font-bold text-primary">{completion}%</span>
         </div>
+        <div role="progressbar" aria-labelledby="profile-completion-label" aria-valuenow={completion} aria-valuemin={0} aria-valuemax={100} aria-valuetext={`${completion}% complete`} className="h-2 rounded-full bg-gray-100 overflow-hidden">
+          <div className="h-full bg-primary transition-all" style={{ width: `${completion}%` }} />
+        </div>
+      </section>
+
+      {saved && (
+        <div role="status" className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-xs font-medium text-emerald-700">
+          Profile information has been successfully updated.
+        </div>
+      )}
 
         {editing ? (
           <form onSubmit={handleSubmit} className="mt-6 space-y-6">
@@ -621,8 +607,8 @@ function Profile() {
             </div>
           </form>
         ) : (
-          <div className="mt-6 space-y-6">
-            <section className="p-5 rounded-xl bg-gray-50 border border-gray-200">
+          <div className="mt-6 grid grid-cols-1 gap-4 xl:grid-cols-[3fr_2fr]">
+            <section className="profile-panel p-5 rounded-xl bg-white border border-primary/40 shadow-sm xl:col-start-1 xl:row-start-1">
               <p className="font-mono text-[10px] tracking-[0.2em] uppercase text-primary font-semibold mb-4">Personal Info</p>
                 <dl className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-5 text-sm">
                   <div>
@@ -676,8 +662,8 @@ function Profile() {
                 </dl>
             </section>
 
-            <div className="grid grid-cols-1 xl:grid-cols-2 xl:auto-rows-fr gap-6 items-stretch">
-                <section className="h-full p-5 rounded-xl bg-gray-50 border border-gray-200 flex flex-col">
+            <div className="flex flex-col gap-4 xl:contents">
+                <section className="profile-panel h-full p-5 rounded-xl bg-white border border-primary/40 shadow-sm flex flex-col xl:col-start-1 xl:row-start-2">
                   <p className="font-mono text-[10px] tracking-[0.2em] uppercase text-primary font-semibold mb-4">Skills</p>
                   {skills.length ? (
                     <div className="flex flex-wrap gap-2 content-start flex-1">
@@ -690,7 +676,7 @@ function Profile() {
                   )}
                 </section>
 
-                <section className="h-full p-5 rounded-xl bg-gray-50 border border-gray-200">
+                <section className="profile-panel h-full p-5 rounded-xl bg-white border border-primary/40 shadow-sm xl:col-start-2 xl:row-start-1 xl:row-span-2">
                   <p className="font-mono text-[10px] tracking-[0.2em] uppercase text-primary font-semibold mb-4">Experience</p>
                   <div className="space-y-3">
                     {employments.length > 0 && (
@@ -711,7 +697,7 @@ function Profile() {
                     )) : (employments.length === 0 && <p className="text-xs text-gray-500 text-center py-4">No experience added yet.</p>)}
                   </div>
                 </section>
-                <section className="h-full p-5 rounded-xl bg-gray-50 border border-gray-200">
+                <section className="profile-panel h-full p-5 rounded-xl bg-white border border-primary/40 shadow-sm xl:col-start-1 xl:row-start-3">
                   <p className="font-mono text-[10px] tracking-[0.2em] uppercase text-primary font-semibold mb-4">Education</p>
                   <div className="space-y-3">
                     {education.length ? education.map((edu) => (
@@ -723,7 +709,7 @@ function Profile() {
                   </div>
                 </section>
 
-                <section className="h-full p-5 rounded-xl bg-gray-50 border border-gray-200 text-center flex flex-col">
+                <section className="profile-panel h-full p-5 rounded-xl bg-white border border-primary/40 shadow-sm text-center flex flex-col xl:col-start-2 xl:row-start-3">
                   <p className="font-mono text-[10px] tracking-[0.2em] uppercase text-primary font-semibold mb-4 text-left">Resume</p>
                   <div className="flex-1 flex flex-col justify-center items-center">
                     {resumes.length > 0 ? (
@@ -740,8 +726,10 @@ function Profile() {
                   </div>
                 </section>
             </div>
+            <div className="xl:col-start-1 xl:row-start-4"><ChangePassword /></div>
           </div>
         )}
+        {editing && <div className="mt-4"><ChangePassword /></div>}
         {showDeleteConfirm && pendingDelete && (
           <ConfirmationModal
             message="Are you sure you want to delete this resume?"
@@ -770,8 +758,6 @@ function Profile() {
             </label>
           </ConfirmationModal>
         )}
-      </div>
-      <ChangePassword />
     </div>
   );
 }

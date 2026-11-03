@@ -1,4 +1,4 @@
-import PortalLayout from '../../shared/components/PortalLayout'
+import TopNavLayout from '../../shared/components/TopNavLayout'
 import HelpChat from './HelpChat'
 
 const navItems = [
@@ -12,7 +12,7 @@ const navItems = [
 export default function JobSeekerLayout() {
   return (
     <>
-      <PortalLayout
+      <TopNavLayout
         navItems={navItems}
         badge="SEEKER"
         eyebrow="PESO · SANTA MARIA"

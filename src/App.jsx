@@ -4,6 +4,7 @@ import ProtectedRoute from './shared/components/ProtectedRoute'
 import LoadingScreen from './shared/components/LoadingScreen'
 import ErrorBoundary from './shared/components/ErrorBoundary'
 import useAuth from './shared/hooks/useAuth'
+import { ThemeProvider } from './shared/context/ThemeProvider'
 
 // Route-level code splitting: each page is its own chunk, so a visitor on the
 // public site never downloads the admin / employer / seeker bundles.
@@ -51,9 +52,10 @@ const NotificationsPage = lazy(() => import('./shared/components/NotificationsPa
 function App() {
   return (
     <ErrorBoundary>
-      <BrowserRouter>
-        <Suspense fallback={<LoadingScreen />}>
-          <Routes>
+      <ThemeProvider>
+        <BrowserRouter>
+          <Suspense fallback={<LoadingScreen />}>
+            <Routes>
             <Route path="/" element={<PublicRoute><Landing /></PublicRoute>} />
             <Route path="/jobs" element={<PublicRoute><PublicJobs /></PublicRoute>} />
             <Route path="/jobs/:jobId" element={<PublicRoute><PublicJobDetail /></PublicRoute>} />
@@ -130,9 +132,10 @@ function App() {
             </Route>
 
             <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </Suspense>
-      </BrowserRouter>
+            </Routes>
+          </Suspense>
+        </BrowserRouter>
+      </ThemeProvider>
     </ErrorBoundary>
   )
 }

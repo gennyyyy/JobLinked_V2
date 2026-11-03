@@ -7,13 +7,15 @@ const router = Router();
 const SEEKER_COLS = 'id, full_name, email, phone, barangay_district, skills, employment_status, preferred_position, preferred_location';
 
 // Single-query embeds (no PostgREST ambiguous-FK problem server-side).
-const appSelect = (seekerJoin) => `select a.*,
+const appSelect = (seekerJoin, withHistory = false) => `select a.*,
   json_build_object('id', j.id, 'title', j.title, 'location', j.location,
     'employment_type', j.employment_type, 'company_id', j.company_id,
     'employers', json_build_object('id', e.id, 'company_name', e.company_name)) as job,
   ${seekerJoin ? `json_build_object(${SEEKER_COLS.split(', ').map((c) => `'${c.trim()}', s.${c.trim()}`).join(', ')}) as seeker,` : ''}
   (select json_build_object('id', r.id, 'file_name', r.file_name, 'file_path', r.file_path)
-   from resumes r where r.id = a.resume_id) as resume
+   from resumes r where r.id = a.resume_id) as resume${withHistory ? `,
+  (select coalesce(json_agg(json_build_object('status', h.status, 'changed_at', h.changed_at) order by h.changed_at), '[]'::json)
+   from application_status_history h where h.application_id = a.id) as history` : ''}
 from job_applications a
 join job_vacancies j on j.id = a.job_id
 join employers e on e.id = j.company_id
@@ -84,7 +86,7 @@ router.post('/applications', auth, requireRole('job-seeker'), ah(async (req, res
 
 router.get('/applications/mine', auth, requireRole('job-seeker'), ah(async (req, res) => {
   const { rows } = await pool.query(
-    `${appSelect(false)} where a.seeker_id = $1 order by a.applied_at desc`, [req.user.id]);
+    `${appSelect(false, true)} where a.seeker_id = $1 order by a.applied_at desc`, [req.user.id]);
   res.json(rows);
 }));
 

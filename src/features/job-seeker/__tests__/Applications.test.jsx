@@ -82,3 +82,46 @@ describe('Applications expanded panel', () => {
     expect(screen.getByText(/engagement has ended/i)).toBeInTheDocument()
   })
 })
+
+describe('Applications status stepper', () => {
+  beforeEach(() => vi.clearAllMocks())
+
+  it('ends on Hired for an accepted application and dates the interviewed stages', async () => {
+    const row = await renderRow(makeApplication({
+      status: 'Accepted',
+      interview_at: '2026-10-06T09:30:00.000Z',
+      // Oldest-first like the API returns it; "Under Review" appears twice.
+      history: [
+        { status: 'Under Review', changed_at: '2026-09-01T12:00:00.000Z' },
+        { status: 'Interview', changed_at: '2026-09-30T01:00:00.000Z' },
+        { status: 'Under Review', changed_at: '2026-09-20T12:00:00.000Z' },
+        { status: 'Accepted', changed_at: '2026-10-08T12:00:00.000Z' },
+      ],
+    }))
+
+    expect(row).toHaveTextContent('Applied')
+    expect(row).toHaveTextContent('Under Review')
+    expect(row).toHaveTextContent('Interview')
+    expect(row).toHaveTextContent('Hired')
+    expect(row).not.toHaveTextContent('Rejected')
+    // Interview prefers interview_at (with its time); the rest come from history.
+    // Formatted locally, so compare against the same local formatting.
+    const localDate = (iso) => new Date(iso).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' })
+    expect(row).toHaveTextContent(/at \d{1,2}:\d{2} (AM|PM)/)
+    expect(row).toHaveTextContent(localDate('2026-10-08T12:00:00.000Z'))
+    expect(row).toHaveTextContent(localDate('2026-09-20T12:00:00.000Z')) // latest Under Review wins
+  })
+
+  it('ends on Rejected without crashing when history is absent', async () => {
+    const row = await renderRow(makeApplication({ status: 'Rejected', history: undefined }))
+
+    expect(row).toHaveTextContent('Rejected')
+    expect(row).not.toHaveTextContent('Hired')
+  })
+
+  it('ends on Hired for a placed application', async () => {
+    const row = await renderRow(makeApplication({ status: 'Placed' }))
+
+    expect(row).toHaveTextContent('Hired')
+  })
+})

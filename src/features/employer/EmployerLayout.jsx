@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { AlertTriangle, X } from 'lucide-react'
-import PortalLayout from '../../shared/components/PortalLayout'
+import TopNavLayout from '../../shared/components/TopNavLayout'
 import useAuth from '../../shared/hooks/useAuth'
 
 const navItems = [
@@ -71,7 +71,7 @@ export default function EmployerLayout() {
           </button>
         </div>
       )}
-      <PortalLayout
+      <TopNavLayout
         navItems={navItems}
         badge="EMPLOYER"
         eyebrow="SANTA MARIA, BULACAN"
