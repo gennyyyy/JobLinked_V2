@@ -8,7 +8,7 @@ function SidebarAccount({ user, profileTo, roleLabel, onNavigate, onLogout }) {
   const initials = initialsOf(user, roleLabel);
 
   return (
-    <div className="p-4 border-t border-white/10 bg-dark-blue">
+    <div className="p-4 border-t border-white/10 bg-navy">
       <div className="flex items-center gap-2 rounded-xl bg-white/5 border border-white/10 p-2">
         <Link
           to={profileTo}

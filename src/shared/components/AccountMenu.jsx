@@ -42,7 +42,7 @@ export default function AccountMenu({ user, profileTo, roleLabel, onLogout }) {
         aria-expanded={open}
         aria-controls={open ? panelId : undefined}
         aria-label={name}
-        className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-100 dark:hover:bg-[var(--theme-hover)] transition-colors cursor-pointer"
+        className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm font-medium text-muted-foreground hover:bg-muted  transition-colors cursor-pointer"
       >
         <span className="w-8 h-8 rounded-full bg-accent/20 text-accent flex items-center justify-center text-xs font-bold">
           {initials || "U"}
@@ -54,9 +54,9 @@ export default function AccountMenu({ user, profileTo, roleLabel, onLogout }) {
         <div
           id={panelId}
           ref={panelRef}
-          className="absolute right-0 top-full mt-2 w-56 rounded-lg border border-gray-200 dark:border-[var(--theme-border)] bg-white shadow-lg py-2 z-20"
+          className="absolute right-0 top-full mt-2 w-56 rounded-lg border border-border  bg-white shadow-lg py-2 z-20"
         >
-          <div className="px-3 py-2 border-b border-gray-100">
+          <div className="px-3 py-2 border-b border-border">
             <p className="text-sm font-semibold text-gray-800 truncate">{name}</p>
             {roleLabel && (
               <p className="text-[10px] text-gray-500 uppercase tracking-wider">{roleLabel}</p>
@@ -65,7 +65,7 @@ export default function AccountMenu({ user, profileTo, roleLabel, onLogout }) {
           <Link
             to={profileTo}
             onClick={() => setOpen(false)}
-            className="block px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary transition-colors"
+            className="block px-3 py-2 text-sm text-muted-foreground hover:bg-muted hover:text-primary transition-colors"
           >
             Profile
           </Link>
@@ -75,7 +75,7 @@ export default function AccountMenu({ user, profileTo, roleLabel, onLogout }) {
               setOpen(false);
               onLogout?.();
             }}
-            className="block w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-danger transition-colors cursor-pointer"
+            className="block w-full text-left px-3 py-2 text-sm text-muted-foreground hover:bg-muted hover:text-danger transition-colors cursor-pointer"
           >
             Sign out
           </button>

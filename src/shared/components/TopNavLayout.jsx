@@ -42,19 +42,19 @@ function NavGroup({ item, pathname }) {
         type="button"
         aria-expanded={open}
         onClick={() => setOpen((value) => !value)}
-        className={`inline-flex items-center gap-1 px-3 py-2 rounded-lg text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${active ? 'bg-primary/10 text-primary' : 'text-gray-600 hover:text-primary hover:bg-gray-50'}`}
+        className={`inline-flex items-center gap-1 px-3 py-2 rounded-lg text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${active ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:text-primary hover:bg-muted'}`}
       >
         {item.label}
         <ChevronDown aria-hidden="true" className={`h-4 w-4 transition-transform ${open ? 'rotate-180' : ''}`} />
       </button>
       {open && (
-        <div className="absolute right-0 top-full z-30 mt-2 min-w-48 rounded-xl border border-gray-200 bg-white p-1.5 shadow-lg dark:border-[var(--theme-border)]">
+        <div className="absolute right-0 top-full z-30 mt-2 min-w-48 rounded-xl border border-border bg-white p-1.5 shadow-lg ">
           {item.children.map((child) => (
             <NavLink
               key={child.to}
               to={child.to}
               onClick={() => setOpen(false)}
-              className={({ isActive }) => `block rounded-lg px-3 py-2 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${isActive ? 'bg-primary/10 text-primary' : 'text-gray-700 hover:bg-gray-50 hover:text-primary dark:hover:bg-[var(--theme-hover)]'}`}
+              className={({ isActive }) => `block rounded-lg px-3 py-2 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${isActive ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted hover:text-primary '}`}
             >
               {child.label}
             </NavLink>
@@ -92,7 +92,7 @@ export default function TopNavLayout({ navItems = [], profileTo, roleLabel, home
             end={item.end}
             className={({ isActive }) =>
               `px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                isActive ? 'bg-primary/10 text-primary' : 'text-gray-600 hover:text-primary hover:bg-gray-50'
+                isActive ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:text-primary hover:bg-muted'
               }`
             }
           >
@@ -111,7 +111,7 @@ export default function TopNavLayout({ navItems = [], profileTo, roleLabel, home
   )
 
   return (
-    <div className={`${fixedContent ? 'h-screen overflow-hidden' : 'min-h-screen'} flex flex-col bg-gray-50 text-gray-900 ${roleLabel === 'Super Admin' ? 'super-admin-layout' : ''}`}>
+    <div className={`${fixedContent ? 'h-screen overflow-hidden' : 'min-h-screen'} flex flex-col bg-muted text-foreground ${roleLabel === 'Super Admin' ? 'super-admin-layout' : ''}`}>
       <SkipLink />
       <SiteHeader homeTo={home} center={nav} right={right} />
       <main
@@ -133,14 +133,14 @@ export default function TopNavLayout({ navItems = [], profileTo, roleLabel, home
             aria-labelledby="afk-title"
             className="bg-white border border-primary rounded-lg p-5 max-w-sm mx-4 shadow-xl"
           >
-            <h3 id="afk-title" className="text-lg font-bold text-gray-900 mb-2">Session Expiring</h3>
-            <p className="text-sm text-gray-600 mb-6">
+            <h3 id="afk-title" className="text-lg font-bold text-foreground mb-2">Session Expiring</h3>
+            <p className="text-sm text-muted-foreground mb-6">
               You will be logged out in 1 minute due to inactivity. Move your mouse or press a key to stay signed in.
             </p>
             <div className="flex gap-2">
               <button
                 onClick={handleLogout}
-                className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-600 hover:text-gray-900 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-lg transition-colors"
+                className="flex-1 px-4 py-2.5 text-sm font-medium text-muted-foreground hover:text-foreground bg-muted hover:bg-muted border border-border rounded-lg transition-colors"
               >
                 Sign Out
               </button>

@@ -12,20 +12,20 @@ export default function SearchBar({ value, onChange, placeholder, ariaLabel }) {
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
           aria-label={ariaLabel}
-          className="w-full pl-9 pr-3 py-2 rounded-l-lg text-sm bg-gray-50 border border-gray-200 text-gray-900 placeholder:text-gray-600 focus:outline-none focus:border-primary focus:bg-white transition-all"
+          className="w-full pl-9 pr-3 py-2 rounded-l-lg text-sm bg-muted border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary focus:bg-white transition-all"
         />
         {value && (
           <button
             type="button"
             onClick={() => onChange("")}
             aria-label="Clear search"
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-900 p-1"
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-foreground p-1"
           >
             <X className="w-3.5 h-3.5" />
           </button>
         )}
       </div>
-      <button type="submit" className="bg-dark-blue text-white text-sm font-semibold px-4 rounded-r-lg cursor-pointer">
+      <button type="submit" className="bg-navy text-white text-sm font-semibold px-4 rounded-r-lg cursor-pointer">
         Search
       </button>
     </form>

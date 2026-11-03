@@ -103,7 +103,7 @@ function NotificationBell({ dark = false, align = "right" }) {
         className={`relative p-2 rounded-lg border cursor-pointer ${
           dark
             ? "text-white/70 hover:text-white hover:bg-white/10 border-white/20"
-            : "text-gray-600 hover:text-gray-900 hover:bg-gray-100 border-gray-200"
+            : "text-muted-foreground hover:text-foreground hover:bg-muted border-border"
         }`}
       >
         <svg className="w-4 h-4 fill-none stroke-current" viewBox="0 0 24 24">
@@ -122,7 +122,7 @@ function NotificationBell({ dark = false, align = "right" }) {
         <div
           id={panelId}
           ref={panelRef}
-          className={`absolute top-full mt-2 w-72 sm:w-80 rounded-xl border-2 border-dark-blue dark:border-[var(--theme-border)] bg-white shadow-lg z-30 p-3 animate-[dropdown-in_150ms_ease-out] ${
+          className={`absolute top-full mt-2 w-72 sm:w-80 rounded-xl border-2 border-dark-blue  bg-white shadow-lg z-30 p-3 animate-[dropdown-in_150ms_ease-out] ${
             align === "left" ? "left-0 origin-top-left" : "right-0 origin-top-right"
           }`}
         >

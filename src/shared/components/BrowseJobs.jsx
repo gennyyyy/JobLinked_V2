@@ -103,7 +103,7 @@ function BrowseJobs({ jobHref, initialKeyword = "", initialLocation = "", initia
   }
 
   const inputClass =
-    "min-h-[44px] px-4 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 placeholder:text-gray-600 focus:outline-none focus:border-primary focus:bg-white transition-all w-full";
+    "min-h-[44px] px-4 rounded-xl text-sm bg-muted border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary focus:bg-white transition-all w-full";
 
   return (
     <div className="space-y-6">
@@ -152,7 +152,7 @@ function BrowseJobs({ jobHref, initialKeyword = "", initialLocation = "", initia
             <TagInput id="browse-jobs-skills" value={skillsDraft} onChange={setSkillsDraft} max={MAX_SKILLS} placeholder="Search for skills" />
           </div>
           <div>
-            <label htmlFor="browse-jobs-employment" className="block text-xs font-medium text-gray-700 mb-1.5">Employment Type:</label>
+            <label htmlFor="browse-jobs-employment" className="block text-xs font-medium text-muted-foreground mb-1.5">Employment Type:</label>
             <select
               id="browse-jobs-employment"
               value={employmentTypeDraft}
@@ -166,7 +166,7 @@ function BrowseJobs({ jobHref, initialKeyword = "", initialLocation = "", initia
           <button
             type="button"
             onClick={refine}
-            className="w-full min-h-[44px] rounded-xl bg-dark-blue text-white text-sm font-semibold hover:bg-primary transition-colors cursor-pointer"
+            className="w-full min-h-[44px] rounded-xl bg-navy text-white text-sm font-semibold hover:bg-primary transition-colors cursor-pointer"
           >
             Refine Search Results
           </button>
@@ -185,7 +185,7 @@ function BrowseJobs({ jobHref, initialKeyword = "", initialLocation = "", initia
           ) : jobs.length === 0 ? (
             <div className="rounded-lg border border-primary bg-white px-6 py-12 text-center">
               <SearchX className="mx-auto mb-3 w-8 h-8 text-gray-300" strokeWidth={1.5} aria-hidden="true" />
-              <p className="font-semibold text-gray-900">No jobs match your search</p>
+              <p className="font-semibold text-foreground">No jobs match your search</p>
               <p className="mt-1 text-sm text-gray-500">Try another keyword, location, or skill.</p>
               <button
                 type="button"
@@ -209,9 +209,9 @@ function BrowseJobs({ jobHref, initialKeyword = "", initialLocation = "", initia
                       <p className="mt-2 text-xs text-gray-500">
                         <span className="font-semibold">Salary</span> {salaryLabel(job)}
                       </p>
-                      {job.description && <p className="mt-2 text-sm text-gray-600 line-clamp-2">{job.description}</p>}
+                      {job.description && <p className="mt-2 text-sm text-muted-foreground line-clamp-2">{job.description}</p>}
                       {bullets.length > 0 && (
-                        <ul className="mt-2 list-disc pl-5 space-y-0.5 text-xs text-gray-600">
+                        <ul className="mt-2 list-disc pl-5 space-y-0.5 text-xs text-muted-foreground">
                           {bullets.map((line) => <li key={line}>{line}</li>)}
                         </ul>
                       )}

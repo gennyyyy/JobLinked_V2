@@ -34,7 +34,7 @@ const footerColumns = [
 
 function SiteFooter() {
   return (
-    <footer className="bg-white text-gray-900 shadow-[0_-8px_20px_-4px_rgba(0,0,0,0.18)]">
+    <footer className="bg-white text-foreground shadow-[0_-8px_20px_-4px_rgba(0,0,0,0.18)]">
       <div className="w-full px-[42px] py-4">
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-6 gap-8">
           {footerColumns.map((col) => (
@@ -50,7 +50,7 @@ function SiteFooter() {
                   <span className="text-sm">PESO – SANTA MARIA</span>
                 </a>
               ) : (
-                <ul className={`list-disc pl-5 space-y-2 text-sm text-gray-700 ${col.wide ? "sm:columns-2 sm:gap-x-8" : ""}`}>
+                <ul className={`list-disc pl-5 space-y-2 text-sm text-muted-foreground ${col.wide ? "sm:columns-2 sm:gap-x-8" : ""}`}>
                   {col.links.map((link) => (
                     <li key={link} className="break-inside-avoid">
                       <a href="#" className="hover:text-primary transition-colors">
