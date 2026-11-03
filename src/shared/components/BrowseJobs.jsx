@@ -21,7 +21,7 @@ function requirementLines(requirements) {
 
 function salaryLabel(job) {
   return job.salary_min
-    ? `₱${job.salary_min}${job.salary_max ? `–₱${job.salary_max}` : ""}`
+    ? `?${job.salary_min}${job.salary_max ? `�?${job.salary_max}` : ""}`
     : "Negotiable";
 }
 
@@ -103,15 +103,15 @@ function BrowseJobs({ jobHref, initialKeyword = "", initialLocation = "", initia
   }
 
   const inputClass =
-    "min-h-[44px] px-4 rounded-xl text-sm bg-muted border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary focus:bg-white transition-all w-full";
+    "min-h-[44px] px-4 rounded-xl text-sm bg-muted border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary focus:bg-card transition-all w-full";
 
   return (
     <div className="space-y-6">
-      <form onSubmit={handleSearch} role="search" className="bg-white border border-primary rounded-lg p-3 flex flex-col sm:flex-row sm:flex-nowrap items-stretch sm:items-center gap-2">
+      <form onSubmit={handleSearch} role="search" className="bg-card border border-primary rounded-lg p-3 flex flex-col sm:flex-row sm:flex-nowrap items-stretch sm:items-center gap-2">
         {toolbar}
         <div className="relative min-w-0 flex-1">
           <label htmlFor="browse-jobs-keyword" className="sr-only">Search for a job title or company</label>
-          <Search aria-hidden="true" className="w-4 h-4 text-gray-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+          <Search aria-hidden="true" className="w-4 h-4 text-muted-foreground absolute left-3.5 top-1/2 -translate-y-1/2" />
           <input
             id="browse-jobs-keyword"
             type="text"
@@ -123,7 +123,7 @@ function BrowseJobs({ jobHref, initialKeyword = "", initialLocation = "", initia
         </div>
         <div className="relative min-w-0 flex-1">
           <label htmlFor="browse-jobs-location" className="sr-only">Location</label>
-          <MapPin aria-hidden="true" className="w-4 h-4 text-gray-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+          <MapPin aria-hidden="true" className="w-4 h-4 text-muted-foreground absolute left-3.5 top-1/2 -translate-y-1/2" />
           <input
             id="browse-jobs-location"
             type="text"
@@ -142,10 +142,10 @@ function BrowseJobs({ jobHref, initialKeyword = "", initialLocation = "", initia
       </form>
 
       <div className="grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-6 items-start">
-        <aside className="bg-white border border-primary rounded-lg p-5 space-y-5">
+        <aside className="bg-card border border-primary rounded-lg p-5 space-y-5">
           <div>
             <h2 className="text-base font-semibold text-dark-blue">Filter by Skills:</h2>
-            <p className="mt-1 font-mono text-[10px] tracking-widest text-gray-500 uppercase">Select up to {MAX_SKILLS} skills</p>
+            <p className="mt-1 font-mono text-[10px] tracking-widest text-muted-foreground uppercase">Select up to {MAX_SKILLS} skills</p>
           </div>
           <div>
             <label htmlFor="browse-jobs-skills" className="sr-only">Skills</label>
@@ -176,17 +176,17 @@ function BrowseJobs({ jobHref, initialKeyword = "", initialLocation = "", initia
           <h2 className="text-sm font-semibold text-dark-blue">Displaying {jobs.length} out of {total} jobs:</h2>
 
           {loading ? (
-            <div className="flex items-center justify-center gap-3 rounded-lg border border-primary bg-white py-10 text-sm text-gray-500">
+            <div className="flex items-center justify-center gap-3 rounded-lg border border-primary bg-card py-10 text-sm text-muted-foreground">
               <span className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" aria-hidden="true" />
-              Loading jobs…
+              Loading jobs�
             </div>
           ) : error ? (
             <InlineError message={error} />
           ) : jobs.length === 0 ? (
-            <div className="rounded-lg border border-primary bg-white px-6 py-12 text-center">
+            <div className="rounded-lg border border-primary bg-card px-6 py-12 text-center">
               <SearchX className="mx-auto mb-3 w-8 h-8 text-gray-300" strokeWidth={1.5} aria-hidden="true" />
               <p className="font-semibold text-foreground">No jobs match your search</p>
-              <p className="mt-1 text-sm text-gray-500">Try another keyword, location, or skill.</p>
+              <p className="mt-1 text-sm text-muted-foreground">Try another keyword, location, or skill.</p>
               <button
                 type="button"
                 onClick={clearFilters}
@@ -201,12 +201,12 @@ function BrowseJobs({ jobHref, initialKeyword = "", initialLocation = "", initia
                 const bullets = requirementLines(job.requirements);
                 return (
                   <li key={job.id}>
-                    <article className="rounded-lg border border-primary bg-white p-5">
+                    <article className="rounded-lg border border-primary bg-card p-5">
                       <h3 className="text-base font-bold text-danger">
                         <Link to={jobHref(job.id)} className="hover:underline">{job.title}</Link>
                       </h3>
-                      <p className="mt-1 text-[11px] text-gray-500">Posted on {formatPosted(job.created_at)}</p>
-                      <p className="mt-2 text-xs text-gray-500">
+                      <p className="mt-1 text-[11px] text-muted-foreground">Posted on {formatPosted(job.created_at)}</p>
+                      <p className="mt-2 text-xs text-muted-foreground">
                         <span className="font-semibold">Salary</span> {salaryLabel(job)}
                       </p>
                       {job.description && <p className="mt-2 text-sm text-muted-foreground line-clamp-2">{job.description}</p>}
@@ -231,3 +231,4 @@ function BrowseJobs({ jobHref, initialKeyword = "", initialLocation = "", initia
 }
 
 export default BrowseJobs;
+
