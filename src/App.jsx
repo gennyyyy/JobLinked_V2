@@ -1,5 +1,5 @@
 import { Suspense, lazy, useEffect, useState } from 'react'
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import ProtectedRoute from './shared/components/ProtectedRoute'
 import LoadingScreen from './shared/components/LoadingScreen'
 import ErrorBoundary from './shared/components/ErrorBoundary'
@@ -61,6 +61,11 @@ function App() {
             <Route path="/jobs" element={<PublicRoute><PublicJobs /></PublicRoute>} />
             <Route path="/jobs/:jobId" element={<PublicRoute><PublicJobDetail /></PublicRoute>} />
             <Route path="/portals" element={<PublicRoute><PortalSelect /></PublicRoute>} />
+            {/* New-design flow aliases for the portal roots. */}
+            <Route path="/jobseeker" element={<Navigate to="/job-seeker" replace />} />
+            <Route path="/jobseeker/*" element={<LegacyRedirect to="/job-seeker" />} />
+            <Route path="/admin" element={<Navigate to="/super-admin" replace />} />
+            <Route path="/admin/*" element={<LegacyRedirect to="/super-admin" />} />
             {/* Legal pages are not PublicRoute: portals link here, and a signed-in
                 user must not be logged out just for reading the notice. */}
             <Route path="/privacy" element={<Legal title="Privacy notice" />} />
@@ -150,6 +155,13 @@ function App() {
 }
 
 export default App
+
+// New-design portal roots (/jobseeker, /admin) redirect onto this app's
+// existing portal roots while preserving the nested path and query string.
+function LegacyRedirect({ to }) {
+  const { pathname, search } = useLocation()
+  return <Navigate to={`${to}${pathname.replace(/^\/[^/]+/, '')}${search}`} replace />
+}
 
 // ADR-021 rule 1: a session survives only inside its own portal — destroy it
 // on arrival at a public route, then render the page as guest.
