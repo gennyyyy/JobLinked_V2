@@ -76,7 +76,7 @@ function App() {
             <Route path="/register/job-seeker" element={<PublicRoute><JobSeekerRegister /></PublicRoute>} />
             <Route path="/register/employer" element={<PublicRoute><EmployerRegister /></PublicRoute>} />
             {/* New-design flow aliases: /login and /signup[/role]. */}
-            <Route path="/login" element={<PublicRoute><PortalSelect /></PublicRoute>} />
+            <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
             <Route path="/signup" element={<PublicRoute><Register /></PublicRoute>} />
             <Route path="/signup/jobseeker" element={<PublicRoute><JobSeekerRegister /></PublicRoute>} />
             <Route path="/signup/employer" element={<PublicRoute><EmployerRegister /></PublicRoute>} />

@@ -12,7 +12,7 @@ import PublicShell from '@/shared/components/PublicShell'
 import AuthFrame from './AuthFrame'
 
 function Login({ portalKey }) {
-  const portal = PORTALS.find((p) => p.key === portalKey)
+  const portal = portalKey ? PORTALS.find((p) => p.key === portalKey) : null
   const navigate = useNavigate()
   const { user, role: currentRole, loading, logout } = useAuth()
   const [error, setError] = useState('')
@@ -24,14 +24,19 @@ function Login({ portalKey }) {
 
   // ADR-021 rule 2: session with a different role — destroy it, show this portal's login form.
   useEffect(() => {
+    if (!portalKey) return
     if (!loading && user && portal && currentRole !== portalKey && !resetDone) {
       Promise.resolve(typeof logout === 'function' ? logout() : null).then(() => setResetDone(true), () => setResetDone(true))
     }
   }, [loading, user, portal, currentRole, portalKey, resetDone, logout])
 
-  if (!portal) return <Navigate to="/" replace />
+  if (portalKey && !portal) return <Navigate to="/" replace />
   if (loading) return <LoadingScreen />
-  if (user && currentRole === portalKey) return <Navigate to={portal.homePath} replace />
+  if (portal && user && currentRole === portalKey) return <Navigate to={portal.homePath} replace />
+  if (!portalKey && user) {
+    const home = PORTALS.find((p) => p.key === currentRole)?.homePath
+    if (home) return <Navigate to={home} replace />
+  }
   if (user && !resetDone) return <LoadingScreen />
 
   async function handleSubmit(event) {
@@ -48,9 +53,13 @@ function Login({ portalKey }) {
     }
   }
 
+  const subtitle = portal
+    ? `Sign in to the ${portal.name} to continue.`
+    : 'A new opportunity could be waiting for you.'
+
   return (
     <PublicShell>
-      <AuthFrame title="Welcome back." subtitle={`Sign in to the ${portal.name} to continue.`}>
+      <AuthFrame title="Welcome back." subtitle={subtitle}>
         <form onSubmit={handleSubmit} className="flex flex-col gap-5">
           <FieldGroup>
             <Field>
@@ -98,12 +107,12 @@ function Login({ portalKey }) {
         </form>
         <div className="mt-6 flex items-center justify-between text-xs text-muted-foreground">
           <Link to="/forgot-password" className="inline-flex min-h-11 items-center font-medium text-primary">Forgot password?</Link>
-          {portal.key !== 'super-admin' && (
-            <Link to={`/register/${portal.key}`} className="inline-flex min-h-11 items-center font-medium text-primary">Register here</Link>
+          {(!portal || portal.key !== 'super-admin') && (
+            <Link to={portal ? `/register/${portal.key}` : '/signup'} className="inline-flex min-h-11 items-center font-medium text-primary">Register here</Link>
           )}
         </div>
         <p className="mt-6 text-center text-xs text-muted-foreground">
-          <Link to="/portals" className="font-medium text-primary">← Back to portals</Link>
+          <Link to={portal ? '/portals' : '/'} className="font-medium text-primary">{portal ? '← Back to portals' : '← Back to home'}</Link>
         </p>
       </AuthFrame>
     </PublicShell>

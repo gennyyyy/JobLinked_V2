@@ -105,7 +105,14 @@ are complete; each page commit must keep `npm test` green.
 
 ## 9. Honest status
 
-Foundation + all 29 primitives + Toaster mount are committed. Shell restyling is partial
-(ThemeToggle retired from PortalLayout/PublicHeader, token color swaps begun). Page surfaces
-(Tasks 5–9) and cleanup (Task 10) are NOT yet done. The work is large and mechanical; the
-primitives + tokens now make each page restyle a focused, low-risk edit.
+Foundation + all 29 primitives + Toaster mount are committed.
+
+**2026-11-04 — migration completed.** The public shell (and `/login` · `/signup` flow aliases),
+all auth pages (`AuthFrame` split card, login/register/recovery/invite/status/success), the
+portal shell (collapsible sidebar, search dialog, account menu, AFK guard), all three dashboards,
+the public jobs list/detail, shared cards/search/notifications/applicant shell, and every
+job-seeker, employer, and super-admin page now use the ported design vocabulary. Missing tokens
+(`danger`, `dark-blue`, `primary-hover`) were added; the dead Next-era root component and the
+stale `PortalLayout`/`PortalShell` modules were removed. Verification: `npm run lint` 0 problems,
+`npm test` 139 files / 858 tests passing, `npm run build` green, public routes render with zero
+console errors.
