@@ -181,7 +181,7 @@ function Landing() {
                     value={keyword}
                     onChange={(e) => setKeyword(e.target.value)}
                     placeholder="Job Title, skills, or company"
-                    className="flex-1 min-h-[48px] text-sm bg-transparent border-none text-gray-900 italic placeholder:italic placeholder:text-muted-foreground focus:outline-none"
+                    className="flex-1 min-h-[48px] text-sm bg-transparent border-none text-foreground italic placeholder:italic placeholder:text-muted-foreground focus:outline-none"
                   />
                 </div>
                 <Button
@@ -231,12 +231,12 @@ function Landing() {
                 <p className="text-lg font-semibold uppercase tracking-widest text-muted-foreground">
                   About JobLinked
                 </p>
-                <h2 className="mt-6 text-6xl md:text-7xl font-black text-gray-900 leading-tight">
+                <h2 className="mt-6 text-6xl md:text-7xl font-black text-foreground leading-tight">
                   More Than Just a
                   <br />
                   <span className="text-danger">Job-Matching Platform</span>
                 </h2>
-                <p className="mt-8 text-2xl font-bold text-gray-900">
+                <p className="mt-8 text-2xl font-bold text-foreground">
                   Connecting Local Talent, Employers, and Opportunities.
                 </p>
                 <p className="mt-8 text-xl text-gray-600 leading-relaxed">
@@ -273,4 +273,5 @@ function Landing() {
 }
 
 export default Landing;
+
 
