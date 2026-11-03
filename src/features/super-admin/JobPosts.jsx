@@ -1,3 +1,7 @@
+import { Button } from "../../components/ui/button";
+import { Input } from "../../components/ui/input";
+import { Textarea } from "../../components/ui/textarea";
+import { Label } from "../../components/ui/label";
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { listAllJobs, editJob, publishJob, unpublishJob } from "../../shared/services/admin";
@@ -50,34 +54,34 @@ function EditModal({ job, onClose, onSaved }) {
         <h2 className="mt-1 text-xl font-bold text-foreground">Correct listing</h2>
         <div className="mt-4 space-y-4">
           <div>
-            <label htmlFor="edit-title" className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase mb-1.5">Job title</label>
-            <input id="edit-title" type="text" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} className={inputClass} />
+            <Label htmlFor="edit-title" className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase mb-1.5">Job title</Label>
+            <Input id="edit-title" type="text" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} className={inputClass} />
           </div>
           <div>
-            <label htmlFor="edit-location" className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase mb-1.5">Location</label>
-            <input id="edit-location" type="text" value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} className={inputClass} />
+            <Label htmlFor="edit-location" className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase mb-1.5">Location</Label>
+            <Input id="edit-location" type="text" value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} className={inputClass} />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label htmlFor="edit-vacancies" className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase mb-1.5">Vacancies</label>
-              <input id="edit-vacancies" type="number" min="1" value={form.vacancies} onChange={(e) => setForm({ ...form, vacancies: e.target.value })} className={inputClass} />
+              <Label htmlFor="edit-vacancies" className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase mb-1.5">Vacancies</Label>
+              <Input id="edit-vacancies" type="number" min="1" value={form.vacancies} onChange={(e) => setForm({ ...form, vacancies: e.target.value })} className={inputClass} />
             </div>
             <div>
-              <label htmlFor="edit-deadline" className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase mb-1.5">Deadline</label>
-              <input id="edit-deadline" type="date" value={form.deadline} onChange={(e) => setForm({ ...form, deadline: e.target.value })} className={inputClass} />
+              <Label htmlFor="edit-deadline" className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase mb-1.5">Deadline</Label>
+              <Input id="edit-deadline" type="date" value={form.deadline} onChange={(e) => setForm({ ...form, deadline: e.target.value })} className={inputClass} />
             </div>
           </div>
           <div>
-            <label htmlFor="edit-description" className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase mb-1.5">Description</label>
-            <textarea id="edit-description" rows={4} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} className={inputClass} />
+            <Label htmlFor="edit-description" className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase mb-1.5">Description</Label>
+            <Textarea id="edit-description" rows={4} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} className={inputClass} />
           </div>
         </div>
         {error && <p className="mt-2 text-xs text-danger">{error}</p>}
         <div className="mt-5 flex justify-end gap-2">
-          <button onClick={onClose} className="px-4 py-2 text-xs font-medium rounded-xl border border-border text-muted-foreground hover:bg-muted transition-colors">Cancel</button>
-          <button onClick={handleSave} disabled={saving} className="px-4 py-2 text-xs font-medium rounded-xl bg-primary text-white hover:bg-primary-hover transition-colors disabled:opacity-60">
+          <Button onClick={onClose} className="px-4 py-2 text-xs font-medium rounded-xl border border-border text-muted-foreground hover:bg-muted transition-colors">Cancel</Button>
+          <Button onClick={handleSave} disabled={saving} className="px-4 py-2 text-xs font-medium rounded-xl bg-primary text-white hover:bg-primary-hover transition-colors disabled:opacity-60">
             {saving ? "Saving…" : "Save changes"}
-          </button>
+          </Button>
         </div>
       </div>
     </div>,
@@ -193,7 +197,7 @@ function JobPosts() {
             </select>
           </div>
           <div className="flex-1 min-w-[200px]">
-            <input
+            <Input
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
@@ -241,10 +245,10 @@ function JobPosts() {
                   <td className="py-3 px-3 pr-5">
                     <div className="flex items-center justify-end gap-2 whitespace-nowrap">
                     {post.status === "published" ? (
-                      <button onClick={() => handlePublishToggle(post)} className="rounded-lg border border-rose-300 px-2.5 py-1.5 text-xs font-medium text-rose-700 hover:bg-rose-50 dark:border-rose-500/50 dark:bg-rose-500/10 dark:text-rose-300 dark:hover:bg-rose-500/20 cursor-pointer">Unpublish</button>
+                      <Button onClick={() => handlePublishToggle(post)} className="rounded-lg border border-rose-300 px-2.5 py-1.5 text-xs font-medium text-rose-700 hover:bg-rose-50 dark:border-rose-500/50 dark:bg-rose-500/10 dark:text-rose-300 dark:hover:bg-rose-500/20 cursor-pointer">Unpublish</Button>
                     ) : (
                       post.status !== "archived" && (
-                        <button onClick={() => handlePublishToggle(post)} className="rounded-lg border border-emerald-300 px-2.5 py-1.5 text-xs font-medium text-emerald-700 hover:bg-emerald-50 dark:border-emerald-500/50 dark:bg-emerald-500/10 dark:text-emerald-300 dark:hover:bg-emerald-500/20 cursor-pointer">Publish</button>
+                        <Button onClick={() => handlePublishToggle(post)} className="rounded-lg border border-emerald-300 px-2.5 py-1.5 text-xs font-medium text-emerald-700 hover:bg-emerald-50 dark:border-emerald-500/50 dark:bg-emerald-500/10 dark:text-emerald-300 dark:hover:bg-emerald-500/20 cursor-pointer">Publish</Button>
                       )
                     )}
                     </div>

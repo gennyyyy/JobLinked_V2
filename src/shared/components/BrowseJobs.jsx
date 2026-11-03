@@ -1,3 +1,6 @@
+import { Button } from "../../components/ui/button";
+import { Input } from "../../components/ui/input";
+import { Label } from "../../components/ui/label";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { MapPin, Search, SearchX } from "lucide-react";
@@ -110,9 +113,9 @@ function BrowseJobs({ jobHref, initialKeyword = "", initialLocation = "", initia
       <form onSubmit={handleSearch} role="search" className="bg-card border border-primary rounded-lg p-3 flex flex-col sm:flex-row sm:flex-nowrap items-stretch sm:items-center gap-2">
         {toolbar}
         <div className="relative min-w-0 flex-1">
-          <label htmlFor="browse-jobs-keyword" className="sr-only">Search for a job title or company</label>
+          <Label htmlFor="browse-jobs-keyword" className="sr-only">Search for a job title or company</Label>
           <Search aria-hidden="true" className="w-4 h-4 text-muted-foreground absolute left-3.5 top-1/2 -translate-y-1/2" />
-          <input
+          <Input
             id="browse-jobs-keyword"
             type="text"
             value={keyword}
@@ -122,9 +125,9 @@ function BrowseJobs({ jobHref, initialKeyword = "", initialLocation = "", initia
           />
         </div>
         <div className="relative min-w-0 flex-1">
-          <label htmlFor="browse-jobs-location" className="sr-only">Location</label>
+          <Label htmlFor="browse-jobs-location" className="sr-only">Location</Label>
           <MapPin aria-hidden="true" className="w-4 h-4 text-muted-foreground absolute left-3.5 top-1/2 -translate-y-1/2" />
-          <input
+          <Input
             id="browse-jobs-location"
             type="text"
             value={location}
@@ -133,12 +136,12 @@ function BrowseJobs({ jobHref, initialKeyword = "", initialLocation = "", initia
             className={`${inputClass} pl-10`}
           />
         </div>
-        <button
+        <Button
           type="submit"
           className="min-h-[44px] px-5 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-primary-hover focus:outline-none focus:ring-2 focus:ring-primary/30 transition-colors cursor-pointer shrink-0"
         >
           Search
-        </button>
+        </Button>
       </form>
 
       <div className="grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-6 items-start">
@@ -148,11 +151,11 @@ function BrowseJobs({ jobHref, initialKeyword = "", initialLocation = "", initia
             <p className="mt-1 font-mono text-[10px] tracking-widest text-muted-foreground uppercase">Select up to {MAX_SKILLS} skills</p>
           </div>
           <div>
-            <label htmlFor="browse-jobs-skills" className="sr-only">Skills</label>
+            <Label htmlFor="browse-jobs-skills" className="sr-only">Skills</Label>
             <TagInput id="browse-jobs-skills" value={skillsDraft} onChange={setSkillsDraft} max={MAX_SKILLS} placeholder="Search for skills" />
           </div>
           <div>
-            <label htmlFor="browse-jobs-employment" className="block text-xs font-medium text-muted-foreground mb-1.5">Employment Type:</label>
+            <Label htmlFor="browse-jobs-employment" className="block text-xs font-medium text-muted-foreground mb-1.5">Employment Type:</Label>
             <select
               id="browse-jobs-employment"
               value={employmentTypeDraft}
@@ -163,13 +166,13 @@ function BrowseJobs({ jobHref, initialKeyword = "", initialLocation = "", initia
               {EMPLOYMENT_TYPES.map((type) => <option key={type} value={type}>{type}</option>)}
             </select>
           </div>
-          <button
+          <Button
             type="button"
             onClick={refine}
             className="w-full min-h-[44px] rounded-xl bg-navy text-white text-sm font-semibold hover:bg-primary transition-colors cursor-pointer"
           >
             Refine Search Results
-          </button>
+          </Button>
         </aside>
 
         <section className="space-y-3">
@@ -187,13 +190,13 @@ function BrowseJobs({ jobHref, initialKeyword = "", initialLocation = "", initia
               <SearchX className="mx-auto mb-3 w-8 h-8 text-gray-300" strokeWidth={1.5} aria-hidden="true" />
               <p className="font-semibold text-foreground">No jobs match your search</p>
               <p className="mt-1 text-sm text-muted-foreground">Try another keyword, location, or skill.</p>
-              <button
+              <Button
                 type="button"
                 onClick={clearFilters}
                 className="mt-4 min-h-[44px] px-4 rounded-xl text-xs font-semibold text-primary bg-primary/10 border border-primary/25 hover:bg-primary/20 transition-colors cursor-pointer"
               >
                 Clear all filters
-              </button>
+              </Button>
             </div>
           ) : (
             <ul className="space-y-3">

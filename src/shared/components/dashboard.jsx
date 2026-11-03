@@ -1,3 +1,4 @@
+import { Button } from "../../components/ui/button";
 // Shared building blocks for the three portal dashboards so headers, stat
 // cards, and section cards stay visually identical everywhere.
 import { AlertTriangle } from "lucide-react";
@@ -27,13 +28,13 @@ export function InlineError({ message, onRetry }) {
       <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
       <p className="min-w-0 flex-1">{message}</p>
       {onRetry ? (
-        <button
+        <Button
           type="button"
           onClick={onRetry}
           className="shrink-0 rounded-lg bg-danger px-3 py-1.5 text-xs font-semibold text-white hover:bg-danger/90 transition-colors cursor-pointer"
         >
           Retry
-        </button>
+        </Button>
       ) : null}
     </div>
   );
@@ -116,8 +117,8 @@ export function Pager({ page, pageSize, total, onChange }) {
     <div className="mt-4 flex items-center justify-between border-t border-border pt-3 text-xs text-muted-foreground">
       <span>Page {page} of {pages}</span>
       <div className="flex gap-2">
-        <button type="button" disabled={page <= 1} onClick={() => onChange(page - 1)} className="rounded-xl border border-border bg-card px-3 py-1.5 cursor-pointer disabled:opacity-40">Previous</button>
-        <button type="button" disabled={page >= pages} onClick={() => onChange(page + 1)} className="rounded-xl border border-border bg-card px-3 py-1.5 cursor-pointer disabled:opacity-40">Next</button>
+        <Button type="button" disabled={page <= 1} onClick={() => onChange(page - 1)} className="rounded-xl border border-border bg-card px-3 py-1.5 cursor-pointer disabled:opacity-40">Previous</Button>
+        <Button type="button" disabled={page >= pages} onClick={() => onChange(page + 1)} className="rounded-xl border border-border bg-card px-3 py-1.5 cursor-pointer disabled:opacity-40">Next</Button>
       </div>
     </div>
   );

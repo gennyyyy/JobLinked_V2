@@ -1,3 +1,4 @@
+import { Button } from "../../components/ui/button";
 import { useEffect, useRef, useState, useId } from "react";
 import { Link } from "react-router-dom";
 import { ChevronDown } from "lucide-react";
@@ -35,7 +36,7 @@ export default function AccountMenu({ user, profileTo, roleLabel, onLogout }) {
 
   return (
     <div className="relative">
-      <button
+      <Button
         type="button"
         ref={triggerRef}
         onClick={() => setOpen((v) => !v)}
@@ -49,7 +50,7 @@ export default function AccountMenu({ user, profileTo, roleLabel, onLogout }) {
         </span>
         Account
         <ChevronDown className={`w-4 h-4 transition-transform ${open ? "rotate-180" : ""}`} />
-      </button>
+      </Button>
       {open && (
         <div
           id={panelId}
@@ -69,7 +70,7 @@ export default function AccountMenu({ user, profileTo, roleLabel, onLogout }) {
           >
             Profile
           </Link>
-          <button
+          <Button
             type="button"
             onClick={() => {
               setOpen(false);
@@ -78,7 +79,7 @@ export default function AccountMenu({ user, profileTo, roleLabel, onLogout }) {
             className="block w-full text-left px-3 py-2 text-sm text-muted-foreground hover:bg-muted hover:text-danger transition-colors cursor-pointer"
           >
             Sign out
-          </button>
+          </Button>
         </div>
       )}
     </div>

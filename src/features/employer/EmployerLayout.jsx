@@ -1,3 +1,4 @@
+import { Button } from "../../components/ui/button";
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { AlertTriangle, X } from 'lucide-react'
@@ -61,14 +62,14 @@ export default function EmployerLayout() {
               View accreditation →
             </Link>
           </p>
-          <button
+          <Button
             type="button"
             onClick={() => setDismissed(true)}
             aria-label="Dismiss accreditation notice"
             className={`p-1 cursor-pointer shrink-0 ${notice.rejected ? 'text-danger hover:opacity-80' : 'text-amber-700 hover:text-amber-900'}`}
           >
             <X className="w-4 h-4" aria-hidden="true" />
-          </button>
+          </Button>
         </div>
       )}
       <TopNavLayout

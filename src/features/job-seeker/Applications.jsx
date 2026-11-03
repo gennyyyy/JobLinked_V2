@@ -1,3 +1,4 @@
+import { Button } from "../../components/ui/button";
 import { useState, useEffect, Fragment } from "react";
 import { Link } from "react-router-dom";
 import {
@@ -165,7 +166,7 @@ function Applications() {
           {tiles.map((tile) => {
             const isSelected = statusFilter === tile.id;
             return (
-              <button
+              <Button
                 key={tile.id}
                 type="button"
                 data-tone={tile.id === "accepted" ? "success" : tile.id === "rejected" ? "danger" : tile.id === "pending" ? "purple" : "info"}
@@ -179,7 +180,7 @@ function Applications() {
                 <p className="text-3xl font-bold leading-none">{tile.value}</p>
                 <p className="mt-2 font-mono text-[11px] tracking-widest uppercase">{tile.label}</p>
                 <p className="mt-1 text-xs opacity-80">{tile.hint}</p>
-              </button>
+              </Button>
             );
           })}
         </>
@@ -198,7 +199,7 @@ function Applications() {
       ) : filtered.length === 0 ? (
         <div className="rounded-lg border border-primary bg-card py-8 text-center text-sm text-muted-foreground">
           No applications match this filter.{" "}
-          <button onClick={() => setStatusFilter("all")} className="text-primary hover:underline underline-offset-4 font-medium cursor-pointer">Clear filter</button>
+          <Button onClick={() => setStatusFilter("all")} className="text-primary hover:underline underline-offset-4 font-medium cursor-pointer">Clear filter</Button>
         </div>
       ) : (
         <div className="space-y-4">

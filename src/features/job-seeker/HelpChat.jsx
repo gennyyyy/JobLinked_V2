@@ -1,3 +1,6 @@
+import { Button } from "../../components/ui/button";
+import { Input } from "../../components/ui/input";
+import { Label } from "../../components/ui/label";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { HelpCircle } from "lucide-react";
@@ -57,7 +60,7 @@ function HelpChat() {
 
   return (
     <>
-      <button
+      <Button
         type="button"
         onClick={() => setOpen(true)}
         aria-label="Open help chat"
@@ -65,7 +68,7 @@ function HelpChat() {
         className="fixed bottom-6 right-6 z-[9998] flex h-12 w-12 items-center justify-center rounded-full bg-primary text-white shadow-lg transition-colors hover:bg-primary-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
       >
         <HelpCircle className="h-6 w-6" aria-hidden="true" />
-      </button>
+      </Button>
       {open && createPortal(
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-xs p-4" onClick={close}>
           <div
@@ -78,7 +81,7 @@ function HelpChat() {
           >
             <div className="flex items-center justify-between px-5 py-4 border-b border-border">
               <h2 id="help-chat-title" className="text-sm font-semibold text-foreground">Help</h2>
-              <button type="button" onClick={close} aria-label="Close help chat" className="text-muted-foreground hover:text-foreground transition-colors text-lg leading-none">×</button>
+              <Button type="button" onClick={close} aria-label="Close help chat" className="text-muted-foreground hover:text-foreground transition-colors text-lg leading-none">×</Button>
             </div>
             <div ref={transcriptRef} className="flex-1 overflow-y-auto overflow-x-hidden px-5 py-4 space-y-3 min-h-[200px]">
               {messages.length === 0 && (
@@ -97,8 +100,8 @@ function HelpChat() {
             </div>
             {error && <p role="alert" className="px-5 py-2 text-xs text-danger border-t border-border">{error}</p>}
             <form onSubmit={send} className="flex gap-2 p-4 border-t border-border">
-              <label htmlFor="help-chat-input" className="sr-only">Message the help assistant</label>
-              <input
+              <Label htmlFor="help-chat-input" className="sr-only">Message the help assistant</Label>
+              <Input
                 id="help-chat-input"
                 ref={inputRef}
                 value={draft}
@@ -106,7 +109,7 @@ function HelpChat() {
                 placeholder="Type a message..."
                 className="flex-1 min-h-[44px] px-4 rounded-xl text-sm bg-muted border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all"
               />
-              <button type="submit" disabled={disabled} className="min-h-[44px] px-4 rounded-xl bg-primary text-white text-xs font-medium hover:bg-primary-hover disabled:opacity-50 disabled:cursor-not-allowed transition-colors">Send</button>
+              <Button type="submit" disabled={disabled} className="min-h-[44px] px-4 rounded-xl bg-primary text-white text-xs font-medium hover:bg-primary-hover disabled:opacity-50 disabled:cursor-not-allowed transition-colors">Send</Button>
             </form>
           </div>
         </div>,

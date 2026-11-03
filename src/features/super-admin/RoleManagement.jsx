@@ -1,3 +1,7 @@
+import { Button } from "../../components/ui/button";
+import { Input } from "../../components/ui/input";
+import { Textarea } from "../../components/ui/textarea";
+import { Label } from "../../components/ui/label";
 import { useState, useEffect, useCallback } from "react";
 import { Shield, Plus, Pencil, Trash2, Lock, Users, X } from "lucide-react";
 import { listRoles, createRole, updateRole, deleteRole, listPermissions } from "../../shared/services/admin";
@@ -244,14 +248,14 @@ function RoleManagement() {
             <h2 className="text-base font-semibold text-foreground">Custom Roles ({customRoles.length})</h2>
             <p className="text-xs text-muted-foreground mt-0.5">Roles you define — pick a base portal and the permissions it gets</p>
           </div>
-          <button
+          <Button
             type="button"
             onClick={openCreate}
             className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold text-primary bg-primary/10 border border-primary/25 hover:bg-primary/20 transition-colors cursor-pointer shrink-0"
           >
             <Plus className="w-3.5 h-3.5" />
             New Role
-          </button>
+          </Button>
         </div>
 
         {customRoles.length === 0 ? (
@@ -263,13 +267,13 @@ function RoleManagement() {
             <p className="text-sm text-muted-foreground max-w-sm mx-auto">
               Create a Custom Role with the permissions you choose, then assign it to users from the Users page.
             </p>
-            <button
+            <Button
               type="button"
               onClick={openCreate}
               className="mt-4 px-4 py-2.5 rounded-xl text-xs font-semibold text-primary bg-primary/10 border border-primary/25 hover:bg-primary/20 transition-colors cursor-pointer"
             >
               Create your first role
-            </button>
+            </Button>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 content-start gap-3">
@@ -306,22 +310,22 @@ function RoleManagement() {
                   )}
                 </div>
                 <div className="flex items-center justify-end gap-2 pt-4 mt-4 border-t border-border">
-                  <button
+                  <Button
                     type="button"
                     onClick={() => openEdit(role)}
                     className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-border bg-card text-muted-foreground hover:bg-muted hover:text-foreground text-xs font-medium transition-colors cursor-pointer"
                   >
                     <Pencil className="w-3.5 h-3.5" />
                     Edit
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     type="button"
                     onClick={() => setConfirmRole(role)}
                     className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100 text-xs font-medium transition-colors cursor-pointer"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
                     Delete
-                  </button>
+                  </Button>
                 </div>
               </article>
             ))}
@@ -343,14 +347,14 @@ function RoleManagement() {
                     {editingId ? form.name || "Untitled role" : "Create a custom role"}
                   </h2>
                 </div>
-                <button
+                <Button
                   type="button"
                   onClick={() => setFormOpen(false)}
                   aria-label="Close"
                   className="p-2 rounded-lg text-muted-foreground hover:text-muted-foreground hover:bg-muted transition-colors cursor-pointer"
                 >
                   <X className="w-4 h-4" aria-hidden="true" />
-                </button>
+                </Button>
               </div>
 
               {formError && (
@@ -358,10 +362,10 @@ function RoleManagement() {
               )}
 
               <div>
-                <label htmlFor="role-name" className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase font-semibold mb-1.5">
+                <Label htmlFor="role-name" className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase font-semibold mb-1.5">
                   Role Name <span className="text-rose-500">*</span>
-                </label>
-                <input
+                </Label>
+                <Input
                   id="role-name"
                   type="text"
                   value={form.name}
@@ -372,10 +376,10 @@ function RoleManagement() {
               </div>
 
               <div>
-                <label htmlFor="role-desc" className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase font-semibold mb-1.5">
+                <Label htmlFor="role-desc" className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase font-semibold mb-1.5">
                   Description <span className="text-muted-foreground font-normal lowercase">(optional)</span>
-                </label>
-                <textarea
+                </Label>
+                <Textarea
                   id="role-desc"
                   rows={2}
                   value={form.description}
@@ -386,9 +390,9 @@ function RoleManagement() {
               </div>
 
               <div>
-                <label htmlFor="role-base" className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase font-semibold mb-1.5">
+                <Label htmlFor="role-base" className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase font-semibold mb-1.5">
                   Base Portal <span className="text-rose-500">*</span>
-                </label>
+                </Label>
                 <select
                   id="role-base"
                   value={form.base_role}
@@ -410,21 +414,21 @@ function RoleManagement() {
                   {permissionCatalog.map((perm) => {
                     const checked = form.permissions.includes(perm.key);
                     return (
-                      <label
+                      <Label
                         key={perm.key}
                         className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl border text-xs font-medium cursor-pointer transition-colors ${checked
                           ? "bg-primary/10 border-primary/40 text-primary"
                           : "bg-muted border-border text-muted-foreground hover:border-gray-300"
                           }`}
                       >
-                        <input
+                        <Input
                           type="checkbox"
                           checked={checked}
                           onChange={() => togglePermission(perm.key)}
                           className="accent-[#0057B8] w-3.5 h-3.5"
                         />
                         {perm.label}
-                      </label>
+                      </Label>
                     );
                   })}
                 </div>
@@ -434,20 +438,20 @@ function RoleManagement() {
               </div>
 
               <div className="flex gap-2 pt-2">
-                <button
+                <Button
                   type="submit"
                   disabled={saving}
                   className="flex-1 px-4 py-2.5 rounded-xl text-sm font-semibold bg-primary text-white hover:bg-primary-hover active:scale-[0.98] transition-all disabled:opacity-60 cursor-pointer disabled:cursor-not-allowed"
                 >
                   {saving ? "Saving…" : editingId ? "Save Changes" : "Create Role"}
-                </button>
-                <button
+                </Button>
+                <Button
                   type="button"
                   onClick={() => setFormOpen(false)}
                   className="px-4 py-2.5 rounded-xl text-sm font-medium text-muted-foreground hover:text-muted-foreground hover:bg-muted border border-border transition-colors cursor-pointer"
                 >
                   Cancel
-                </button>
+                </Button>
               </div>
             </form>
           </div>

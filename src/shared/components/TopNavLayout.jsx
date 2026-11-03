@@ -1,3 +1,4 @@
+import { Button } from "../../components/ui/button";
 import { useState, useCallback, useEffect, useRef } from 'react'
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { ChevronDown } from 'lucide-react'
@@ -37,7 +38,7 @@ function NavGroup({ item, pathname }) {
 
   return (
     <div className="relative" ref={wrapperRef}>
-      <button
+      <Button
         ref={triggerRef}
         type="button"
         aria-expanded={open}
@@ -46,7 +47,7 @@ function NavGroup({ item, pathname }) {
       >
         {item.label}
         <ChevronDown aria-hidden="true" className={`h-4 w-4 transition-transform ${open ? 'rotate-180' : ''}`} />
-      </button>
+      </Button>
       {open && (
         <div className="absolute right-0 top-full z-30 mt-2 min-w-48 rounded-xl border border-border bg-card p-1.5 shadow-lg ">
           {item.children.map((child) => (
@@ -138,18 +139,18 @@ export default function TopNavLayout({ navItems = [], profileTo, roleLabel, home
               You will be logged out in 1 minute due to inactivity. Move your mouse or press a key to stay signed in.
             </p>
             <div className="flex gap-2">
-              <button
+              <Button
                 onClick={handleLogout}
                 className="flex-1 px-4 py-2.5 text-sm font-medium text-muted-foreground hover:text-foreground bg-muted hover:bg-muted border border-border rounded-lg transition-colors"
               >
                 Sign Out
-              </button>
-              <button
+              </Button>
+              <Button
                 onClick={() => setShowWarning(false)}
                 className="flex-1 px-4 py-2.5 text-sm font-medium text-white bg-primary hover:bg-primary-hover rounded-lg active:scale-[0.98] transition-colors"
               >
                 Stay Signed In
-              </button>
+              </Button>
             </div>
           </div>
         </div>

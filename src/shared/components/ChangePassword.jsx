@@ -1,3 +1,5 @@
+import { Button } from "../../components/ui/button";
+import { Input } from "../../components/ui/input";
 import { useState } from "react";
 import { changePassword } from "../services/auth";
 
@@ -44,7 +46,7 @@ function ChangePassword() {
         {message && <p className="mb-4 p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-medium">{message}</p>}
         {error && <p className="mb-4 p-3 rounded-xl bg-danger/10 border border-danger/20 text-danger text-xs font-medium">{error}</p>}
         <form onSubmit={handleSubmit} className="space-y-4 max-w-xl">
-          <input
+          <Input
             type="password"
             required
             value={form.current}
@@ -53,7 +55,7 @@ function ChangePassword() {
             aria-label="Current password"
             className="w-full min-h-[44px] px-4 rounded-xl text-sm bg-muted border border-border text-foreground focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30"
           />
-          <input
+          <Input
             type="password"
             required
             value={form.next}
@@ -62,7 +64,7 @@ function ChangePassword() {
             aria-label="New password"
             className="w-full min-h-[44px] px-4 rounded-xl text-sm bg-muted border border-border text-foreground focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30"
           />
-          <input
+          <Input
             type="password"
             required
             value={form.confirm}
@@ -71,9 +73,9 @@ function ChangePassword() {
             aria-label="Confirm new password"
             className="w-full min-h-[44px] px-4 rounded-xl text-sm bg-muted border border-border text-foreground focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30"
           />
-          <button type="submit" disabled={saving} className="min-h-[42px] px-5 rounded-xl bg-primary text-white text-xs font-semibold hover:bg-primary-hover transition-colors disabled:opacity-60">
+          <Button type="submit" disabled={saving} className="min-h-[42px] px-5 rounded-xl bg-primary text-white text-xs font-semibold hover:bg-primary-hover transition-colors disabled:opacity-60">
             {saving ? "Updating..." : "Update Password"}
-          </button>
+          </Button>
         </form>
       </div>
     </details>

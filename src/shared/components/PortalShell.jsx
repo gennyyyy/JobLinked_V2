@@ -177,13 +177,13 @@ export function PortalShell({ role, children, }) {
             </nav>
           </div>
           <div className="flex items-center gap-3">
-            <button className="mr-3 hidden min-h-10 w-[210px] items-center gap-2 rounded-lg border bg-muted/50 px-3 text-[11px] text-muted-foreground md:flex" onClick={() => setSearchOpen(true)}>
+            <Button className="mr-3 hidden min-h-10 w-[210px] items-center gap-2 rounded-lg border bg-muted/50 px-3 text-[11px] text-muted-foreground md:flex" onClick={() => setSearchOpen(true)}>
               <Search className="size-3.5"/>
               Search your workspace…
-            </button>
-            <button className="flex size-11 items-center justify-center text-muted-foreground md:hidden" aria-label="Search workspace" onClick={() => setSearchOpen(true)}>
+            </Button>
+            <Button className="flex size-11 items-center justify-center text-muted-foreground md:hidden" aria-label="Search workspace" onClick={() => setSearchOpen(true)}>
               <Search className="size-4"/>
-            </button>
+            </Button>
             <Link href={`/${role}/notifications`} aria-label={`Notifications, ${unread} unread`} className="relative flex size-11 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted">
               <Bell className="size-[18px]"/>
               {unread > 0 && (<span className="absolute right-2.5 top-2 size-1.5 rounded-full bg-primary"/>)}

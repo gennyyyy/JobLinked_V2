@@ -1,3 +1,4 @@
+import { Button } from "../../components/ui/button";
 import { Link } from "react-router-dom";
 import { LogOut } from "lucide-react";
 import { titleCase } from "../utils/titleCase";
@@ -23,7 +24,7 @@ function SidebarAccount({ user, profileTo, roleLabel, onNavigate, onLogout }) {
             <span className="block truncate mt-0.5 text-[10px] text-white/50 uppercase tracking-wider">{roleLabel}</span>
           </span>
         </Link>
-        <button
+        <Button
           type="button"
           onClick={onLogout}
           aria-label="Sign out"
@@ -31,7 +32,7 @@ function SidebarAccount({ user, profileTo, roleLabel, onNavigate, onLogout }) {
           className="shrink-0 p-2 rounded-lg text-white/60 hover:text-danger hover:bg-card/10 transition-colors cursor-pointer"
         >
           <LogOut className="w-4 h-4" />
-        </button>
+        </Button>
       </div>
     </div>
   );

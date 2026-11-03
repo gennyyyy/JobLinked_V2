@@ -1,3 +1,4 @@
+import { Button } from "../../../components/ui/button";
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import useDialog from '../useDialog'
@@ -6,11 +7,11 @@ function Harness({ onClose = vi.fn(), open = true, children = 'Panel body' }) {
   const panelRef = useDialog(onClose, open)
   return (
     <div>
-      <button type="button">Opener</button>
+      <Button type="button">Opener</Button>
       <div ref={panelRef} role="dialog" aria-modal="true">
-        <button type="button">First</button>
+        <Button type="button">First</Button>
         {children}
-        <button type="button">Last</button>
+        <Button type="button">Last</Button>
       </div>
     </div>
   )

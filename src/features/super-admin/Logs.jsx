@@ -1,3 +1,5 @@
+import { Button } from "../../components/ui/button";
+import { Input } from "../../components/ui/input";
 import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { X } from "lucide-react";
@@ -103,7 +105,7 @@ function UserModal({ email, onClose }) {
             <h2 id="logs-user-title" className="mt-1 text-xl font-bold text-foreground uppercase">{loading ? email : user?.full_name || email}</h2>
             {user?.role && <span className="mt-2 inline-block px-2 py-1 rounded-lg bg-muted text-muted-foreground text-xs capitalize">{user.role.replace("-", " ")}</span>}
           </div>
-          <button type="button" onClick={onClose} className="p-1 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer" aria-label="Close"><X className="w-4 h-4" aria-hidden="true" /></button>
+          <Button type="button" onClick={onClose} className="p-1 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer" aria-label="Close"><X className="w-4 h-4" aria-hidden="true" /></Button>
         </div>
         <div className="mt-4 grid grid-cols-1 gap-3 p-4 rounded-xl bg-muted border border-border">
           {loading ? (
@@ -123,9 +125,9 @@ function UserModal({ email, onClose }) {
           )}
         </div>
         <div className="mt-6 pt-5 border-t border-border flex justify-end">
-          <button type="button" onClick={onClose} className="px-5 py-2 text-xs font-medium rounded-xl border border-border text-muted-foreground hover:bg-muted transition-colors cursor-pointer">
+          <Button type="button" onClick={onClose} className="px-5 py-2 text-xs font-medium rounded-xl border border-border text-muted-foreground hover:bg-muted transition-colors cursor-pointer">
             Close
-          </button>
+          </Button>
         </div>
       </div>
     </div>,
@@ -215,41 +217,41 @@ function Logs() {
               {actions.map((action) => <option key={action} value={action}>{action}</option>)}
             </select>
           </div>
-          <input
+          <Input
             type="date"
             value={filters.from}
             onChange={(e) => updateFilter("from", e.target.value)}
             aria-label="From date"
             className="min-h-[38px] px-3.5 rounded-xl text-sm bg-muted border border-border text-gray-800 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all"
           />
-          <input
+          <Input
             type="date"
             value={filters.to}
             onChange={(e) => updateFilter("to", e.target.value)}
             aria-label="To date"
             className="min-h-[38px] px-3.5 rounded-xl text-sm bg-muted border border-border text-gray-800 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all"
           />
-          <button
+          <Button
             type="button"
             onClick={() => loadLogs()}
             className="min-h-[38px] px-5 rounded-xl bg-primary text-white text-xs font-semibold hover:bg-primary-hover active:scale-[0.99] transition-all cursor-pointer shadow-xs"
           >
             Apply Filters
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
             onClick={() => { const nextFilters = { ...filters, action: "auth." }; setFilters(nextFilters); loadLogs(nextFilters); }}
             className="min-h-[38px] px-5 rounded-xl bg-emerald-600 text-white text-xs font-semibold hover:bg-emerald-700 active:scale-[0.99] transition-all cursor-pointer shadow-xs"
           >
             Login History
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
             onClick={() => { const nextFilters = { userId: "", action: "", from: "", to: "" }; setFilters(nextFilters); loadLogs(nextFilters); }}
             className="min-h-[38px] px-4 rounded-xl border border-border bg-card text-xs font-semibold text-muted-foreground hover:bg-muted active:scale-[0.99] transition-all cursor-pointer"
           >
             Clear
-          </button>
+          </Button>
           <span className="self-center ml-auto text-xs text-muted-foreground font-medium whitespace-nowrap">{logs.length} records</span>
         </div>
         {/* Table */}
@@ -273,13 +275,13 @@ function Logs() {
                   <th scope="row" className="py-3 pl-5 pr-3 text-left whitespace-nowrap text-xs text-muted-foreground">{formatDate(log.created_at)}</th>
                   <td className="py-3 px-3 text-xs">
                     {log.actor_email ? (
-                      <button
+                      <Button
                         type="button"
                         onClick={() => setSelectedEmail(log.actor_email)}
                         className="text-primary hover:underline text-left cursor-pointer break-all"
                       >
                         {log.actor_email}
-                      </button>
+                      </Button>
                     ) : (
                       <span className="text-muted-foreground">{log.actor_name || "—"}</span>
                     )}

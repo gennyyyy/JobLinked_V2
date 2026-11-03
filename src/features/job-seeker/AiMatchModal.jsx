@@ -1,3 +1,5 @@
+import { Button } from "../../components/ui/button";
+import { Input } from "../../components/ui/input";
 import { useState } from "react";
 import { createPortal } from "react-dom";
 import useDialog from "../../shared/hooks/useDialog";
@@ -29,7 +31,7 @@ function AiMatchModal({ open, onClose }) {
       >
         <div className="flex items-center justify-between px-5 py-4 border-b border-border">
           <p className="font-mono text-xs font-medium tracking-widest text-muted-foreground uppercase">AI</p>
-          <button onClick={onClose} aria-label="Close" className="text-muted-foreground hover:text-foreground transition-colors text-lg leading-none">×</button>
+          <Button onClick={onClose} aria-label="Close" className="text-muted-foreground hover:text-foreground transition-colors text-lg leading-none">×</Button>
         </div>
         <div className="flex-1 overflow-y-auto px-5 py-4 space-y-3 min-h-[200px]">
           {messages.length === 0 ? (
@@ -41,14 +43,14 @@ function AiMatchModal({ open, onClose }) {
           ))}
         </div>
         <form onSubmit={send} className="flex gap-2 p-4 border-t border-border">
-          <input
+          <Input
             aria-label="Type a message"
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
             placeholder="Type a message..."
             className="flex-1 min-h-[44px] px-4 rounded-xl text-sm bg-muted border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all"
           />
-          <button type="submit" className="min-h-[44px] px-4 rounded-xl bg-primary text-white text-xs font-medium hover:bg-primary-hover transition-colors">Send</button>
+          <Button type="submit" className="min-h-[44px] px-4 rounded-xl bg-primary text-white text-xs font-medium hover:bg-primary-hover transition-colors">Send</Button>
         </form>
       </div>
     </div>,

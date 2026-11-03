@@ -1,3 +1,6 @@
+import { Button } from "../../components/ui/button";
+import { Input } from "../../components/ui/input";
+import { Label } from "../../components/ui/label";
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "../../shared/lib/supabase";
@@ -63,10 +66,10 @@ function ResetPassword() {
             )}
 
             <div>
-              <label htmlFor="reset-password" className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase mb-1.5">
+              <Label htmlFor="reset-password" className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase mb-1.5">
                 New Password
-              </label>
-              <input
+              </Label>
+              <Input
                 id="reset-password"
                 name="password"
                 type="password"
@@ -79,10 +82,10 @@ function ResetPassword() {
             </div>
 
             <div>
-              <label htmlFor="reset-confirm" className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase mb-1.5">
+              <Label htmlFor="reset-confirm" className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase mb-1.5">
                 Confirm Password
-              </label>
-              <input
+              </Label>
+              <Input
                 id="reset-confirm"
                 name="confirm"
                 type="password"
@@ -94,13 +97,13 @@ function ResetPassword() {
               />
             </div>
 
-            <button
+            <Button
               type="submit"
               disabled={busy}
               className="w-full mt-6 min-h-[44px] px-6 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-primary-hover active:scale-[0.98] transition-all shadow-md disabled:opacity-60"
             >
               {busy ? "Saving…" : "Save New Password"}
-            </button>
+            </Button>
           </form>
         </div>
       </main>

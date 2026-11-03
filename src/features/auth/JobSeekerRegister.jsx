@@ -1,3 +1,6 @@
+import { Button } from "../../components/ui/button";
+import { Input } from "../../components/ui/input";
+import { Label } from "../../components/ui/label";
 import { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { signUp } from "../../shared/services/auth";
@@ -319,8 +322,8 @@ function JobSeekerRegister() {
               <p className="font-mono text-[11px] tracking-[0.2em] text-primary uppercase mb-4 font-semibold">Step 1 — Personal Details</p>
               <div className="space-y-4">
             <section className="rounded-xl border border-dashed border-primary/40 bg-primary/5 p-4">
-              <label htmlFor="resumeAutofill" className={`${labelClass} text-primary`}>Autofill from resume (PDF or DOCX only)</label>
-              <input
+              <Label htmlFor="resumeAutofill" className={`${labelClass} text-primary`}>Autofill from resume (PDF or DOCX only)</Label>
+              <Input
                 id="resumeAutofill"
                 type="file"
                 accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
@@ -335,64 +338,64 @@ function JobSeekerRegister() {
 
             <div className="grid grid-cols-1 gap-3">
               <div>
-                <label htmlFor="firstName" className={labelClass}>First Name{reqMark}</label>
-                <input id="firstName" name="firstName" type="text" placeholder="Juan" value={form.firstName} onChange={(e) => set("firstName", e.target.value)} className={inputClass} />
+                <Label htmlFor="firstName" className={labelClass}>First Name{reqMark}</Label>
+                <Input id="firstName" name="firstName" type="text" placeholder="Juan" value={form.firstName} onChange={(e) => set("firstName", e.target.value)} className={inputClass} />
                 {errors.firstName && <p className="text-danger text-xs mt-1">{errors.firstName}</p>}
               </div>
               <div>
-                <label htmlFor="middleName" className={labelClass}>Middle Name <span className="text-muted-foreground font-normal">(optional)</span></label>
-                <input id="middleName" name="middleName" type="text" placeholder="Santos" value={form.middleName} onChange={(e) => set("middleName", e.target.value)} className={inputClass} />
+                <Label htmlFor="middleName" className={labelClass}>Middle Name <span className="text-muted-foreground font-normal">(optional)</span></Label>
+                <Input id="middleName" name="middleName" type="text" placeholder="Santos" value={form.middleName} onChange={(e) => set("middleName", e.target.value)} className={inputClass} />
               </div>
               <div>
-                <label htmlFor="lastName" className={labelClass}>Last Name{reqMark}</label>
-                <input id="lastName" name="lastName" type="text" placeholder="Dela Cruz" value={form.lastName} onChange={(e) => set("lastName", e.target.value)} className={inputClass} />
+                <Label htmlFor="lastName" className={labelClass}>Last Name{reqMark}</Label>
+                <Input id="lastName" name="lastName" type="text" placeholder="Dela Cruz" value={form.lastName} onChange={(e) => set("lastName", e.target.value)} className={inputClass} />
                 {errors.lastName && <p className="text-danger text-xs mt-1">{errors.lastName}</p>}
               </div>
             </div>
             <div className="grid grid-cols-1 gap-3">
               <div>
-                <label htmlFor="suffix" className={labelClass}>Suffix <span className="text-muted-foreground font-normal">(optional)</span></label>
-                <input id="suffix" name="suffix" type="text" placeholder="Jr., Sr., III" value={form.suffix} onChange={(e) => set("suffix", e.target.value)} className={inputClass} />
+                <Label htmlFor="suffix" className={labelClass}>Suffix <span className="text-muted-foreground font-normal">(optional)</span></Label>
+                <Input id="suffix" name="suffix" type="text" placeholder="Jr., Sr., III" value={form.suffix} onChange={(e) => set("suffix", e.target.value)} className={inputClass} />
               </div>
               <div>
-                <label htmlFor="birthdate" className={labelClass}>Birthday{reqMark}</label>
-                <input id="birthdate" name="birthdate" type="date" max={new Date().toISOString().slice(0, 10)} value={form.birthdate} onChange={(e) => set("birthdate", e.target.value)} className={inputClass} />
+                <Label htmlFor="birthdate" className={labelClass}>Birthday{reqMark}</Label>
+                <Input id="birthdate" name="birthdate" type="date" max={new Date().toISOString().slice(0, 10)} value={form.birthdate} onChange={(e) => set("birthdate", e.target.value)} className={inputClass} />
                 {errors.birthdate && <p className="text-danger text-xs mt-1">{errors.birthdate}</p>}
               </div>
             </div>
 
             <div className="grid grid-cols-1 gap-3">
               <div>
-                <label htmlFor="mobileNumber" className={labelClass}>Mobile Number{reqMark}</label>
+                <Label htmlFor="mobileNumber" className={labelClass}>Mobile Number{reqMark}</Label>
                 <div className="relative">
                   <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm text-muted-foreground select-none">+63</span>
-                  <input id="mobileNumber" name="mobileNumber" type="tel" inputMode="numeric" maxLength={10} placeholder="917 123 4567" value={form.mobileNumber.replace(/^\+63/, "")} onChange={(e) => set("mobileNumber", withPrefix(e.target.value))} onBlur={(e) => set("mobileNumber", normalizePhone(e.target.value))} className={`${inputClass} pl-12`} />
+                  <Input id="mobileNumber" name="mobileNumber" type="tel" inputMode="numeric" maxLength={10} placeholder="917 123 4567" value={form.mobileNumber.replace(/^\+63/, "")} onChange={(e) => set("mobileNumber", withPrefix(e.target.value))} onBlur={(e) => set("mobileNumber", normalizePhone(e.target.value))} className={`${inputClass} pl-12`} />
                 </div>
                 {errors.mobileNumber && <p className="text-danger text-xs mt-1">{errors.mobileNumber}</p>}
               </div>
             </div>
 
             <div>
-              <label htmlFor="email" className={labelClass}>Email Address{reqMark}</label>
-              <input id="email" name="email" type="email" placeholder="juan.delacruz@example.com" value={form.email} onChange={(e) => set("email", e.target.value)} className={inputClass} />
+              <Label htmlFor="email" className={labelClass}>Email Address{reqMark}</Label>
+              <Input id="email" name="email" type="email" placeholder="juan.delacruz@example.com" value={form.email} onChange={(e) => set("email", e.target.value)} className={inputClass} />
               {errors.email && <p className="text-danger text-xs mt-1">{errors.email}</p>}
             </div>
 
             <div className="grid grid-cols-1 gap-3">
               <div>
-                <label htmlFor="password" className={labelClass}>Password{reqMark}</label>
-                <input id="password" name="password" type="password" placeholder="Min. 8 characters" value={form.password} onChange={(e) => set("password", e.target.value)} className={inputClass} />
+                <Label htmlFor="password" className={labelClass}>Password{reqMark}</Label>
+                <Input id="password" name="password" type="password" placeholder="Min. 8 characters" value={form.password} onChange={(e) => set("password", e.target.value)} className={inputClass} />
                 {errors.password && <p className="text-danger text-xs mt-1">{errors.password}</p>}
               </div>
               <div>
-                <label htmlFor="confirmPassword" className={labelClass}>Confirm Password{reqMark}</label>
-                <input id="confirmPassword" name="confirmPassword" type="password" placeholder="Re-enter password" value={form.confirmPassword} onChange={(e) => set("confirmPassword", e.target.value)} className={inputClass} />
+                <Label htmlFor="confirmPassword" className={labelClass}>Confirm Password{reqMark}</Label>
+                <Input id="confirmPassword" name="confirmPassword" type="password" placeholder="Re-enter password" value={form.confirmPassword} onChange={(e) => set("confirmPassword", e.target.value)} className={inputClass} />
                 {errors.confirmPassword && <p className="text-danger text-xs mt-1">{errors.confirmPassword}</p>}
               </div>
             </div>
 
             <div>
-              <label htmlFor="employmentStatus" className={labelClass}>Employment Status{reqMark}</label>
+              <Label htmlFor="employmentStatus" className={labelClass}>Employment Status{reqMark}</Label>
               <select id="employmentStatus" name="employmentStatus" value={form.employmentStatus} onChange={(e) => set("employmentStatus", e.target.value)} className={inputClass}>
                 <option value="">Select status</option>
                 {EMPLOYMENT_STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
@@ -407,24 +410,24 @@ function JobSeekerRegister() {
               <div className="space-y-4">
               <div className="grid grid-cols-1 gap-3">
                 <div>
-                  <label htmlFor="lot" className={labelClass}>Lot <span className="text-muted-foreground font-normal">(optional)</span></label>
-                  <input id="lot" name="lot" type="text" placeholder="e.g. 12" value={form.lot} onChange={(e) => set("lot", e.target.value)} className={inputClass} />
+                  <Label htmlFor="lot" className={labelClass}>Lot <span className="text-muted-foreground font-normal">(optional)</span></Label>
+                  <Input id="lot" name="lot" type="text" placeholder="e.g. 12" value={form.lot} onChange={(e) => set("lot", e.target.value)} className={inputClass} />
                 </div>
                 <div>
-                  <label htmlFor="block" className={labelClass}>Block <span className="text-muted-foreground font-normal">(optional)</span></label>
-                  <input id="block" name="block" type="text" placeholder="e.g. 4" value={form.block} onChange={(e) => set("block", e.target.value)} className={inputClass} />
+                  <Label htmlFor="block" className={labelClass}>Block <span className="text-muted-foreground font-normal">(optional)</span></Label>
+                  <Input id="block" name="block" type="text" placeholder="e.g. 4" value={form.block} onChange={(e) => set("block", e.target.value)} className={inputClass} />
                 </div>
                 <div>
-                  <label htmlFor="streetAddress" className={labelClass}>Street Address{reqMark}</label>
-                  <input id="streetAddress" name="streetAddress" type="text" placeholder="e.g. Norzagaray-Santa Maria Road" value={form.streetAddress} onChange={(e) => set("streetAddress", e.target.value)} className={inputClass} />
+                  <Label htmlFor="streetAddress" className={labelClass}>Street Address{reqMark}</Label>
+                  <Input id="streetAddress" name="streetAddress" type="text" placeholder="e.g. Norzagaray-Santa Maria Road" value={form.streetAddress} onChange={(e) => set("streetAddress", e.target.value)} className={inputClass} />
                   {errors.streetAddress && <p className="text-danger text-xs mt-1">{errors.streetAddress}</p>}
                 </div>
                 <div>
-                  <label htmlFor="subdivisionBuilding" className={labelClass}>Subdivision / Village / Building Name <span className="text-muted-foreground font-normal">(optional)</span></label>
-                  <input id="subdivisionBuilding" name="subdivisionBuilding" type="text" placeholder="e.g. Greenview Heights" value={form.subdivisionBuilding} onChange={(e) => set("subdivisionBuilding", e.target.value)} className={inputClass} />
+                  <Label htmlFor="subdivisionBuilding" className={labelClass}>Subdivision / Village / Building Name <span className="text-muted-foreground font-normal">(optional)</span></Label>
+                  <Input id="subdivisionBuilding" name="subdivisionBuilding" type="text" placeholder="e.g. Greenview Heights" value={form.subdivisionBuilding} onChange={(e) => set("subdivisionBuilding", e.target.value)} className={inputClass} />
                 </div>
                 <div>
-                  <label htmlFor="barangayDistrict" className={labelClass}>Barangay / District <span className="text-muted-foreground font-normal">(optional)</span></label>
+                  <Label htmlFor="barangayDistrict" className={labelClass}>Barangay / District <span className="text-muted-foreground font-normal">(optional)</span></Label>
                   <select id="barangayDistrict" name="barangayDistrict" value={form.barangayDistrict} onChange={(e) => set("barangayDistrict", e.target.value)} className={inputClass}>
                     <option value="">Select barangay</option>
                     {form.barangayDistrict && !SANTA_MARIA_BARANGAYS.includes(form.barangayDistrict) && (
@@ -434,7 +437,7 @@ function JobSeekerRegister() {
                   </select>
                 </div>
                 <div>
-                  <label htmlFor="cityMunicipality" className={labelClass}>City / Municipality{reqMark}</label>
+                  <Label htmlFor="cityMunicipality" className={labelClass}>City / Municipality{reqMark}</Label>
                   <select id="cityMunicipality" name="cityMunicipality" value={form.cityMunicipality} onChange={(e) => set("cityMunicipality", e.target.value)} className={inputClass}>
                     <option value="">Select city / municipality</option>
                     {BULACAN_MUNICIPALITIES.map((m) => <option key={m} value={m}>{m}</option>)}
@@ -442,7 +445,7 @@ function JobSeekerRegister() {
                   {errors.cityMunicipality && <p className="text-danger text-xs mt-1">{errors.cityMunicipality}</p>}
                 </div>
                 <div>
-                  <label htmlFor="provinceState" className={labelClass}>Province / State{reqMark}</label>
+                  <Label htmlFor="provinceState" className={labelClass}>Province / State{reqMark}</Label>
                   <select id="provinceState" name="provinceState" value={form.provinceState} onChange={(e) => set("provinceState", e.target.value)} className={inputClass}>
                     <option value="">Select province</option>
                     <option value="Bulacan">Bulacan</option>
@@ -450,8 +453,8 @@ function JobSeekerRegister() {
                   {errors.provinceState && <p className="text-danger text-xs mt-1">{errors.provinceState}</p>}
                 </div>
                 <div>
-                  <label htmlFor="postalCode" className={labelClass}>Postal Code <span className="text-muted-foreground font-normal">(optional)</span></label>
-                  <input id="postalCode" name="postalCode" type="text" inputMode="numeric" maxLength={4} placeholder="e.g. 3022" value={form.postalCode} onChange={(e) => set("postalCode", e.target.value)} className={inputClass} />
+                  <Label htmlFor="postalCode" className={labelClass}>Postal Code <span className="text-muted-foreground font-normal">(optional)</span></Label>
+                  <Input id="postalCode" name="postalCode" type="text" inputMode="numeric" maxLength={4} placeholder="e.g. 3022" value={form.postalCode} onChange={(e) => set("postalCode", e.target.value)} className={inputClass} />
                   {errors.postalCode && <p className="text-danger text-xs mt-1">{errors.postalCode}</p>}
                 </div>
               </div>
@@ -468,21 +471,21 @@ function JobSeekerRegister() {
                   <option value="">Education level</option>
                   {EDUCATION_LEVELS.map((l) => <option key={l} value={l}>{l}</option>)}
                 </select>
-                <input aria-label="School name" placeholder="School name" value={education.school} onChange={(e) => setEducation({ ...education, school: e.target.value })} className="px-4 py-2.5 rounded-xl text-sm bg-muted border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/60 transition-all" />
+                <Input aria-label="School name" placeholder="School name" value={education.school} onChange={(e) => setEducation({ ...education, school: e.target.value })} className="px-4 py-2.5 rounded-xl text-sm bg-muted border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/60 transition-all" />
                 <div className="flex gap-2">
-                  <input aria-label="Course / field of study" placeholder="Course / field" value={education.field} onChange={(e) => setEducation({ ...education, field: e.target.value })} className="flex-1 px-4 py-2.5 rounded-xl text-sm bg-muted border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/60 transition-all" />
-                  <input aria-label="Graduation year" placeholder="Year" inputMode="numeric" disabled={education.studying} value={education.year} onChange={(e) => setEducation({ ...education, year: e.target.value })} className="w-20 px-3 py-2.5 rounded-xl text-sm bg-muted border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/60 transition-all disabled:opacity-50" />
+                  <Input aria-label="Course / field of study" placeholder="Course / field" value={education.field} onChange={(e) => setEducation({ ...education, field: e.target.value })} className="flex-1 px-4 py-2.5 rounded-xl text-sm bg-muted border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/60 transition-all" />
+                  <Input aria-label="Graduation year" placeholder="Year" inputMode="numeric" disabled={education.studying} value={education.year} onChange={(e) => setEducation({ ...education, year: e.target.value })} className="w-20 px-3 py-2.5 rounded-xl text-sm bg-muted border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/60 transition-all disabled:opacity-50" />
                 </div>
               </div>
-              <label className="mt-2 flex items-center gap-2 text-xs text-muted-foreground select-none cursor-pointer">
-                <input type="checkbox" checked={education.studying} onChange={(e) => setEducation({ ...education, studying: e.target.checked })} className="accent-primary" />
+              <Label className="mt-2 flex items-center gap-2 text-xs text-muted-foreground select-none cursor-pointer">
+                <Input type="checkbox" checked={education.studying} onChange={(e) => setEducation({ ...education, studying: e.target.checked })} className="accent-primary" />
                 Currently studying here
-              </label>
+              </Label>
               {eduError && <p className="mt-2 text-xs text-danger">{eduError}</p>}
               </div>
 
               <div>
-              <label htmlFor="skills" className={labelClass}>Skills <span className="text-muted-foreground font-normal">(optional)</span></label>
+              <Label htmlFor="skills" className={labelClass}>Skills <span className="text-muted-foreground font-normal">(optional)</span></Label>
               <TagInput id="skills" value={form.skills} onChange={(v) => set("skills", v)} placeholder="Type a skill and press Enter" />
               </div>
 
@@ -490,10 +493,10 @@ function JobSeekerRegister() {
               <div className="space-y-3">
                 <div>
                 <div className="flex items-start gap-2.5 text-xs text-muted-foreground pt-2">
-                  <input id="agree" type="checkbox" name="agree" checked={form.agree} disabled={!termsRead} onChange={(e) => set("agree", e.target.checked)} className="mt-0.5 accent-primary shrink-0 disabled:opacity-50 disabled:cursor-not-allowed" />
+                  <Input id="agree" type="checkbox" name="agree" checked={form.agree} disabled={!termsRead} onChange={(e) => set("agree", e.target.checked)} className="mt-0.5 accent-primary shrink-0 disabled:opacity-50 disabled:cursor-not-allowed" />
                   <div>
-                    <label htmlFor="agree" className={!termsRead ? "cursor-not-allowed opacity-70" : "cursor-pointer"}>I agree to the municipal data collection terms and PESO privacy policies.{reqMark}</label>
-                    <button type="button" onClick={() => setTermsOpen(true)} className="ml-1 whitespace-nowrap text-primary hover:underline underline-offset-4">View terms</button>
+                    <Label htmlFor="agree" className={!termsRead ? "cursor-not-allowed opacity-70" : "cursor-pointer"}>I agree to the municipal data collection terms and PESO privacy policies.{reqMark}</Label>
+                    <Button type="button" onClick={() => setTermsOpen(true)} className="ml-1 whitespace-nowrap text-primary hover:underline underline-offset-4">View terms</Button>
                     {!termsRead && <p className="mt-1 text-muted-foreground">Please open and read the terms before agreeing.</p>}
                   </div>
                 </div>
@@ -501,10 +504,10 @@ function JobSeekerRegister() {
                 </div>
 
                 <div>
-                <label className="flex items-start gap-2.5 text-xs text-muted-foreground select-none cursor-pointer">
-                  <input type="checkbox" id="confirmAccurate" name="confirmAccurate" checked={form.confirmAccurate} onChange={(e) => set("confirmAccurate", e.target.checked)} className="mt-0.5 accent-primary" />
+                <Label className="flex items-start gap-2.5 text-xs text-muted-foreground select-none cursor-pointer">
+                  <Input type="checkbox" id="confirmAccurate" name="confirmAccurate" checked={form.confirmAccurate} onChange={(e) => set("confirmAccurate", e.target.checked)} className="mt-0.5 accent-primary" />
                   <span>I confirm that all the information I provided is true and correct to the best of my knowledge.{reqMark}</span>
-                </label>
+                </Label>
                 {errors.confirmAccurate && <p className="text-danger text-xs mt-1">{errors.confirmAccurate}</p>}
                 </div>
               </div>
@@ -516,13 +519,13 @@ function JobSeekerRegister() {
               <div role="alert" className="p-3.5 rounded-xl bg-danger/10 border border-danger/20 text-danger text-xs font-medium">{error}</div>
             )}
 
-            <button
+            <Button
               type="submit"
               disabled={busy}
               className="w-full min-h-[44px] px-6 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-primary-hover active:scale-[0.98] transition-all shadow-md disabled:opacity-60"
             >
               {busy ? "Creating account…" : "Create Account"}
-            </button>
+            </Button>
           </form>
 
           <p className="mt-8 text-center text-xs text-muted-foreground">

@@ -1,3 +1,4 @@
+import { Button } from "../../components/ui/button";
 import { createPortal } from "react-dom";
 import useDialog from "../hooks/useDialog";
 
@@ -16,18 +17,18 @@ function ConfirmationModal({ message, onConfirm, onCancel, confirmLabel = "Confi
         <p id="confirmation-message" className="text-sm text-muted-foreground mb-6">{message}</p>
         {children}
         <div className="flex gap-3 justify-end">
-          <button
+          <Button
             onClick={onCancel}
             className="px-4 py-2 text-sm font-medium rounded-xl border border-border text-muted-foreground hover:bg-muted transition-colors cursor-pointer"
           >
             {cancelLabel}
-          </button>
-          <button
+          </Button>
+          <Button
             onClick={onConfirm}
             className={`px-4 py-2 text-sm font-medium text-white rounded-xl transition-colors cursor-pointer ${danger ? 'bg-danger hover:bg-danger/90' : 'bg-primary hover:bg-primary-hover'}`}
           >
             {confirmLabel}
-          </button>
+          </Button>
         </div>
       </div>
     </div>,

@@ -1,3 +1,6 @@
+import { Button } from "../../components/ui/button";
+import { Textarea } from "../../components/ui/textarea";
+import { Label } from "../../components/ui/label";
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { X } from "lucide-react";
@@ -66,7 +69,7 @@ function DetailModal({ accreditation, onClose }) {
               Submitted {new Date(accreditation.submitted_at).toLocaleString("en-PH", { dateStyle: "medium", timeStyle: "short" })}
             </p>
           </div>
-          <button onClick={onClose} className="p-1 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors" aria-label="Close"><X className="w-4 h-4" aria-hidden="true" /></button>
+          <Button onClick={onClose} className="p-1 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors" aria-label="Close"><X className="w-4 h-4" aria-hidden="true" /></Button>
         </div>
 
         <section className="mt-6">
@@ -102,9 +105,9 @@ function DetailModal({ accreditation, onClose }) {
                         }`}>
                         {doc.status}
                       </span>
-                      <button onClick={() => handleViewDoc(doc)} className="text-primary hover:underline">View</button>
-                      <button onClick={() => handleDocStatus(doc.id, "verified")} className="text-emerald-600 hover:underline">Verify</button>
-                      <button onClick={() => handleDocStatus(doc.id, "rejected")} className="text-danger hover:underline">Reject</button>
+                      <Button onClick={() => handleViewDoc(doc)} className="text-primary hover:underline">View</Button>
+                      <Button onClick={() => handleDocStatus(doc.id, "verified")} className="text-emerald-600 hover:underline">Verify</Button>
+                      <Button onClick={() => handleDocStatus(doc.id, "rejected")} className="text-danger hover:underline">Reject</Button>
                     </div>
                   </li>
                 ))}
@@ -115,9 +118,9 @@ function DetailModal({ accreditation, onClose }) {
         {error && <p role="alert" className="mt-2 text-[11px] text-danger">{error}</p>}
 
         <div className="mt-8 pt-5 border-t border-border flex justify-end">
-          <button onClick={onClose} className="px-5 py-2 text-xs font-medium rounded-xl border border-border text-muted-foreground hover:bg-muted transition-colors">
+          <Button onClick={onClose} className="px-5 py-2 text-xs font-medium rounded-xl border border-border text-muted-foreground hover:bg-muted transition-colors">
             Close Documents
-          </button>
+          </Button>
         </div>
       </div>
     </div>,
@@ -307,8 +310,8 @@ function Accreditation() {
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 shrink-0">
                   {requestingId === acc.id ? (
                     <div className="flex flex-col gap-2 w-full sm:w-72">
-                      <label htmlFor={`request-docs-${acc.id}`} className="font-mono text-[10px] tracking-wider text-muted-foreground uppercase">Documents required</label>
-                      <textarea
+                      <Label htmlFor={`request-docs-${acc.id}`} className="font-mono text-[10px] tracking-wider text-muted-foreground uppercase">Documents required</Label>
+                      <Textarea
                         id={`request-docs-${acc.id}`}
                         value={requestNote}
                         onChange={(e) => { setRequestNote(e.target.value); setRequestError(""); }}
@@ -318,14 +321,14 @@ function Accreditation() {
                       />
                       {requestError && <p className="text-[11px] text-danger">{requestError}</p>}
                       <div className="flex gap-2">
-                        <button onClick={() => confirmRequestDocs(acc)} className="flex-1 px-3 py-1.5 text-xs font-medium rounded-lg bg-amber-600 text-white hover:bg-amber-700 transition-colors">Confirm Request</button>
-                        <button onClick={() => { setRequestingId(null); setRequestError(""); }} className="px-3 py-1.5 text-xs rounded-lg text-muted-foreground hover:text-foreground transition-colors">Cancel</button>
+                        <Button onClick={() => confirmRequestDocs(acc)} className="flex-1 px-3 py-1.5 text-xs font-medium rounded-lg bg-amber-600 text-white hover:bg-amber-700 transition-colors">Confirm Request</Button>
+                        <Button onClick={() => { setRequestingId(null); setRequestError(""); }} className="px-3 py-1.5 text-xs rounded-lg text-muted-foreground hover:text-foreground transition-colors">Cancel</Button>
                       </div>
                     </div>
                   ) : rejectingId === acc.id ? (
                     <div className="flex flex-col gap-2 w-full sm:w-72">
-                      <label htmlFor={`reject-note-${acc.id}`} className="font-mono text-[10px] tracking-wider text-muted-foreground uppercase">Rejection reason</label>
-                      <textarea
+                      <Label htmlFor={`reject-note-${acc.id}`} className="font-mono text-[10px] tracking-wider text-muted-foreground uppercase">Rejection reason</Label>
+                      <Textarea
                         id={`reject-note-${acc.id}`}
                         value={rejectNote}
                         onChange={(e) => { setRejectNote(e.target.value); setRejectError(false); }}
@@ -335,16 +338,16 @@ function Accreditation() {
                       />
                       {rejectError && <p className="text-[11px] text-danger">Please enter a rejection reason.</p>}
                       <div className="flex gap-2">
-                        <button onClick={() => confirmReject(acc)} className="flex-1 px-3 py-1.5 text-xs font-medium rounded-lg bg-danger text-white hover:bg-danger/90 transition-colors">Confirm Rejection</button>
-                        <button onClick={() => setRejectingId(null)} className="px-3 py-1.5 text-xs rounded-lg text-muted-foreground hover:text-foreground transition-colors">Cancel</button>
+                        <Button onClick={() => confirmReject(acc)} className="flex-1 px-3 py-1.5 text-xs font-medium rounded-lg bg-danger text-white hover:bg-danger/90 transition-colors">Confirm Rejection</Button>
+                        <Button onClick={() => setRejectingId(null)} className="px-3 py-1.5 text-xs rounded-lg text-muted-foreground hover:text-foreground transition-colors">Cancel</Button>
                       </div>
                     </div>
                   ) : (
                     <div className="flex items-center gap-2">
-                      <button onClick={() => setViewingId(acc.id)} className="px-3.5 py-2 text-xs font-medium rounded-xl border border-border text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">View Documents</button>
-                      <button onClick={() => handleApprove(acc)} className="px-4 py-2 text-xs font-medium rounded-xl bg-primary text-white hover:bg-primary-hover transition-colors shadow-[0_2px_8px_rgba(0,87,184,0.25)]">Accredit</button>
-                      <button onClick={() => { setRequestingId(acc.id); setRequestNote(""); setRequestError(""); }} className="px-3.5 py-2 text-xs font-medium rounded-xl border border-amber-300 text-amber-700 hover:bg-amber-50 transition-colors">Request Documents</button>
-                      <button onClick={() => startReject(acc)} className="px-3.5 py-2 text-xs font-medium rounded-xl border border-danger/30 text-danger hover:bg-danger/10 transition-colors">Reject</button>
+                      <Button onClick={() => setViewingId(acc.id)} className="px-3.5 py-2 text-xs font-medium rounded-xl border border-border text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">View Documents</Button>
+                      <Button onClick={() => handleApprove(acc)} className="px-4 py-2 text-xs font-medium rounded-xl bg-primary text-white hover:bg-primary-hover transition-colors shadow-[0_2px_8px_rgba(0,87,184,0.25)]">Accredit</Button>
+                      <Button onClick={() => { setRequestingId(acc.id); setRequestNote(""); setRequestError(""); }} className="px-3.5 py-2 text-xs font-medium rounded-xl border border-amber-300 text-amber-700 hover:bg-amber-50 transition-colors">Request Documents</Button>
+                      <Button onClick={() => startReject(acc)} className="px-3.5 py-2 text-xs font-medium rounded-xl border border-danger/30 text-danger hover:bg-danger/10 transition-colors">Reject</Button>
                     </div>
                   )}
                 </div>
@@ -407,28 +410,28 @@ function Accreditation() {
                   <td className="py-3.5 px-4 text-right">
                     <div className="flex items-center justify-end gap-3">
                       {latestByCompany[company.id]?.status === "approved" && (
-                        <button
+                        <Button
                           onClick={() => setRevoking(company)}
                           className="text-xs font-mono text-danger hover:text-danger/80 transition-colors"
                         >
                           Revoke
-                        </button>
+                        </Button>
                       )}
                       {latestByCompany[company.id]?.status === "revoked" && (
-                        <button
+                        <Button
                           onClick={() => reinstate(latestByCompany[company.id])}
                           className="text-xs font-mono text-[#0057B8] hover:text-foreground transition-colors"
                         >
                           Reinstate
-                        </button>
+                        </Button>
                       )}
-                      <button
+                      <Button
                         onClick={() => toggleCompanyStatus(company)}
                         className={`text-xs font-mono transition-colors ${company.status === "suspended" ? "text-[#0057B8] hover:text-foreground" : "text-danger hover:text-danger"
                           }`}
                       >
                         {company.status === "suspended" ? "Activate" : "Suspend"}
-                      </button>
+                      </Button>
                     </div>
                   </td>
                 </tr>

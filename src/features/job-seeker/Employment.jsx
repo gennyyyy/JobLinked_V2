@@ -1,3 +1,4 @@
+import { Button } from "../../components/ui/button";
 import { useEffect, useState } from "react";
 import useAuth from "../../shared/hooks/useAuth";
 import LoadingScreen from "../../shared/components/LoadingScreen";
@@ -62,12 +63,12 @@ function Employment() {
       sidebar={
         <div className="space-y-3">
           {summaryTiles.map((tile) => (
-            <button key={tile.id} type="button" data-tone={tile.id === "current" ? "success" : tile.id === "past" ? "purple" : "info"} onClick={() => toggleFilter(tile.id)} aria-pressed={statusFilter === tile.id} title={tile.title}
+            <Button key={tile.id} type="button" data-tone={tile.id === "current" ? "success" : tile.id === "past" ? "purple" : "info"} onClick={() => toggleFilter(tile.id)} aria-pressed={statusFilter === tile.id} title={tile.title}
               className={`w-full text-left rounded-lg border px-4 py-3 cursor-pointer transition-all ${tile.tone} ${statusFilter === tile.id ? "ring-1 ring-offset-0 ring-current" : ""}`}>
               <p className="text-2xl md:text-3xl font-bold leading-none">{tile.value}</p>
               <p className="mt-2 font-mono text-[11px] tracking-widest uppercase font-bold">{tile.label}</p>
               <p className="mt-1 text-xs italic opacity-80">{tile.hint}</p>
-            </button>
+            </Button>
           ))}
         </div>
       }
@@ -82,7 +83,7 @@ function Employment() {
         <SectionCard title="Employment Record" subtitle="No records match this filter">
           <div className="py-8 text-center text-sm text-muted-foreground">
             No employment records match this filter.{" "}
-            <button onClick={() => setStatusFilter("all")} className="text-primary hover:underline underline-offset-4 font-medium">Clear filter</button>
+            <Button onClick={() => setStatusFilter("all")} className="text-primary hover:underline underline-offset-4 font-medium">Clear filter</Button>
           </div>
         </SectionCard>
       ) : (

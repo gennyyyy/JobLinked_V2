@@ -1,3 +1,4 @@
+import { Button } from "../../components/ui/button";
 import { useEffect } from "react";
 import { CheckCircle2, AlertTriangle, X } from "lucide-react";
 
@@ -27,14 +28,14 @@ export default function Toast({ message, variant = "success", onClose, duration 
         <Icon className={`w-5 h-5 shrink-0 ${isError ? "text-rose-600" : "text-emerald-600"}`} />
         <span>{message}</span>
       </div>
-      <button
+      <Button
         type="button"
         onClick={onClose}
         aria-label="Dismiss"
         className={`p-1 cursor-pointer ${isError ? "text-rose-600 hover:text-rose-800" : "text-emerald-600 hover:text-emerald-800"}`}
       >
         <X className="w-4 h-4" />
-      </button>
+      </Button>
     </div>
   );
 }

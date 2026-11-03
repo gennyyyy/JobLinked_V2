@@ -1,3 +1,4 @@
+import { Label } from "../../components/ui/label";
 import SearchBar from "./SearchBar";
 
 // Standard sort/search bar shared by every page that uses CardListLayout, so the
@@ -19,7 +20,7 @@ function StandardControls({
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="flex flex-col sm:flex-row sm:items-center gap-3">
           <SearchBar value={search} onChange={onSearchChange} placeholder={searchPlaceholder} ariaLabel={searchAriaLabel} />
-          <label className="flex items-center gap-2 text-xs font-semibold text-dark-blue">
+          <Label className="flex items-center gap-2 text-xs font-semibold text-dark-blue">
             {sortLabel}
             <select
               value={sort}
@@ -31,7 +32,7 @@ function StandardControls({
                 <option key={opt.value} value={opt.value}>{opt.label}</option>
               ))}
             </select>
-          </label>
+          </Label>
         </div>
         {controlAction && <div className="shrink-0">{controlAction}</div>}
       </div>

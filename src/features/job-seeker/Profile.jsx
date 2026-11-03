@@ -1,3 +1,6 @@
+import { Button } from "../../components/ui/button";
+import { Input } from "../../components/ui/input";
+import { Label } from "../../components/ui/label";
 import { useState, useEffect } from "react";
 import useAuth from "../../shared/hooks/useAuth";
 import { updateProfile } from "../../shared/services/auth";
@@ -385,9 +388,9 @@ function Profile() {
             <p className="mt-1 truncate font-mono text-[11px] text-white/70">Accredited Job Seeker · {user?.email}</p>
           </div>
           {!editing && (
-            <button type="button" onClick={() => setEditing(true)} className="shrink-0 rounded-lg border border-white/30 px-3 py-1.5 text-xs font-semibold text-white hover:bg-card/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent">
+            <Button type="button" onClick={() => setEditing(true)} className="shrink-0 rounded-lg border border-white/30 px-3 py-1.5 text-xs font-semibold text-white hover:bg-card/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent">
               Edit Profile
-            </button>
+            </Button>
           )}
         </div>
       </section>
@@ -414,40 +417,40 @@ function Profile() {
               <p className="font-mono text-[10px] tracking-[0.2em] uppercase text-primary font-semibold mb-4">Personal Info</p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
                   <div>
-                    <label htmlFor="profile-firstName" className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase mb-1.5">First Name</label>
-                    <input id="profile-firstName" value={form.firstName} onChange={(e) => handleChange("firstName", e.target.value)} className="w-full min-h-[44px] px-4 rounded-xl text-sm bg-muted border border-border text-foreground focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all" />
+                    <Label htmlFor="profile-firstName" className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase mb-1.5">First Name</Label>
+                    <Input id="profile-firstName" value={form.firstName} onChange={(e) => handleChange("firstName", e.target.value)} className="w-full min-h-[44px] px-4 rounded-xl text-sm bg-muted border border-border text-foreground focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all" />
                   </div>
                   <div>
-                    <label htmlFor="profile-middleName" className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase mb-1.5">Middle Name <span className="text-muted-foreground font-normal">(optional)</span></label>
-                    <input id="profile-middleName" value={form.middleName} onChange={(e) => handleChange("middleName", e.target.value)} className="w-full min-h-[44px] px-4 rounded-xl text-sm bg-muted border border-border text-foreground focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all" />
+                    <Label htmlFor="profile-middleName" className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase mb-1.5">Middle Name <span className="text-muted-foreground font-normal">(optional)</span></Label>
+                    <Input id="profile-middleName" value={form.middleName} onChange={(e) => handleChange("middleName", e.target.value)} className="w-full min-h-[44px] px-4 rounded-xl text-sm bg-muted border border-border text-foreground focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all" />
                   </div>
                   <div>
-                    <label htmlFor="profile-lastName" className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase mb-1.5">Last Name</label>
-                    <input id="profile-lastName" value={form.lastName} onChange={(e) => handleChange("lastName", e.target.value)} className="w-full min-h-[44px] px-4 rounded-xl text-sm bg-muted border border-border text-foreground focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all" />
+                    <Label htmlFor="profile-lastName" className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase mb-1.5">Last Name</Label>
+                    <Input id="profile-lastName" value={form.lastName} onChange={(e) => handleChange("lastName", e.target.value)} className="w-full min-h-[44px] px-4 rounded-xl text-sm bg-muted border border-border text-foreground focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all" />
                   </div>
                   <div>
-                    <label htmlFor="profile-suffix" className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase mb-1.5">Suffix <span className="text-muted-foreground font-normal">(optional)</span></label>
-                    <input id="profile-suffix" value={form.suffix} onChange={(e) => handleChange("suffix", e.target.value)} placeholder="Jr., Sr., III" className="w-full min-h-[44px] px-4 rounded-xl text-sm bg-muted border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all" />
+                    <Label htmlFor="profile-suffix" className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase mb-1.5">Suffix <span className="text-muted-foreground font-normal">(optional)</span></Label>
+                    <Input id="profile-suffix" value={form.suffix} onChange={(e) => handleChange("suffix", e.target.value)} placeholder="Jr., Sr., III" className="w-full min-h-[44px] px-4 rounded-xl text-sm bg-muted border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all" />
                   </div>
                   <div>
-                    <label htmlFor="profile-phone" className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase mb-1.5">Contact Mobile</label>
-                    <input id="profile-phone" value={form.phone} onChange={(e) => handleChange("phone", e.target.value)} placeholder="0917 123 4567" className="w-full min-h-[44px] px-4 rounded-xl text-sm bg-muted border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all" />
+                    <Label htmlFor="profile-phone" className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase mb-1.5">Contact Mobile</Label>
+                    <Input id="profile-phone" value={form.phone} onChange={(e) => handleChange("phone", e.target.value)} placeholder="0917 123 4567" className="w-full min-h-[44px] px-4 rounded-xl text-sm bg-muted border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all" />
                   </div>
                   <div>
-                    <label htmlFor="profile-birthdate" className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase mb-1.5">Date of Birth</label>
-                    <input id="profile-birthdate" type="date" value={form.birthdate} onChange={(e) => handleChange("birthdate", e.target.value)} className="w-full min-h-[44px] px-4 rounded-xl text-sm bg-muted border border-border text-foreground focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all" />
+                    <Label htmlFor="profile-birthdate" className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase mb-1.5">Date of Birth</Label>
+                    <Input id="profile-birthdate" type="date" value={form.birthdate} onChange={(e) => handleChange("birthdate", e.target.value)} className="w-full min-h-[44px] px-4 rounded-xl text-sm bg-muted border border-border text-foreground focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all" />
                   </div>
                 </div>
                 <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
                   {[['block', 'Block', 'e.g. 4'], ['lot', 'Lot', 'e.g. 12'], ['streetAddress', 'Street Address', 'e.g. Norzagaray-Santa Maria Road'], ['subdivisionBuilding', 'Subdivision / Village / Building Name', 'Subdivision name'], ['cityMunicipality', 'City / Municipality', 'e.g. Santa Maria'], ['provinceState', 'Province / State', 'e.g. Bulacan'], ['postalCode', 'Postal Code', 'e.g. 3022']].map(([field, label, placeholder]) => (
                     <div key={field}>
-                      <label htmlFor={`profile-${field}`} className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase mb-1.5">{label}</label>
-                      <input id={`profile-${field}`} value={form[field]} onChange={(e) => handleChange(field, e.target.value)} placeholder={placeholder} className="w-full min-h-[44px] px-4 rounded-xl text-sm bg-muted border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all" />
+                      <Label htmlFor={`profile-${field}`} className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase mb-1.5">{label}</Label>
+                      <Input id={`profile-${field}`} value={form[field]} onChange={(e) => handleChange(field, e.target.value)} placeholder={placeholder} className="w-full min-h-[44px] px-4 rounded-xl text-sm bg-muted border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all" />
                     </div>
                   ))}
                 </div>
                 <div className="mt-6">
-                  <label htmlFor="barangayDistrict" className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase mb-1.5">Barangay / District</label>
+                  <Label htmlFor="barangayDistrict" className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase mb-1.5">Barangay / District</Label>
                   <select
                     id="barangayDistrict"
                     value={form.barangayDistrict}
@@ -465,18 +468,18 @@ function Profile() {
                 </div>
                 <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
                   <div>
-                    <label htmlFor="profile-employmentStatus" className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase mb-1.5">Employment Status</label>
+                    <Label htmlFor="profile-employmentStatus" className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase mb-1.5">Employment Status</Label>
                     <select id="profile-employmentStatus" value={form.employmentStatus} onChange={(e) => handleChange("employmentStatus", e.target.value)} className="w-full min-h-[44px] px-4 rounded-xl text-sm bg-muted border border-border text-foreground focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all">
                       <option value="">Select status</option>
                       {EMPLOYMENT_STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
                     </select>
                   </div>
                   <div>
-                    <label htmlFor="profile-preferredPosition" className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase mb-1.5">Preferred Jobs <span className="text-muted-foreground font-normal">(tags)</span></label>
+                    <Label htmlFor="profile-preferredPosition" className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase mb-1.5">Preferred Jobs <span className="text-muted-foreground font-normal">(tags)</span></Label>
                     <TagInput id="profile-preferredPosition" value={form.preferredPosition} onChange={(v) => handleChange("preferredPosition", v)} placeholder="e.g. Call Center Agent — Enter to add" />
                   </div>
                   <div>
-                    <label htmlFor="profile-preferredLocation" className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase mb-1.5">Preferred Locations <span className="text-muted-foreground font-normal">(tags)</span></label>
+                    <Label htmlFor="profile-preferredLocation" className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase mb-1.5">Preferred Locations <span className="text-muted-foreground font-normal">(tags)</span></Label>
                     <TagInput id="profile-preferredLocation" value={form.preferredLocation} onChange={(v) => handleChange("preferredLocation", v)} placeholder="e.g. Santa Maria — Enter to add" />
                   </div>
                 </div>
@@ -485,7 +488,7 @@ function Profile() {
             <div className="grid grid-cols-1 xl:grid-cols-2 xl:auto-rows-fr gap-6 items-stretch">
                 <section className="h-full p-5 rounded-xl bg-muted border border-border flex flex-col">
                   <p className="font-mono text-[10px] tracking-[0.2em] uppercase text-primary font-semibold mb-4">Skills</p>
-                  <label htmlFor="profile-skills" className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase mb-1.5">Skills &amp; Competencies <span className="text-muted-foreground font-normal">(tags)</span></label>
+                  <Label htmlFor="profile-skills" className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase mb-1.5">Skills &amp; Competencies <span className="text-muted-foreground font-normal">(tags)</span></Label>
                   <TagInput id="profile-skills" value={form.skills} onChange={(v) => handleChange("skills", v)} placeholder="e.g. Data Entry — Enter to add" className="flex-1" />
                 </section>
 
@@ -505,25 +508,25 @@ function Profile() {
                           <p className="text-xs text-muted-foreground mt-0.5">{exp.company} · {exp.start_date || "Start"} – {exp.end_date || "Present"}</p>
                           {exp.description && <p className="text-xs text-muted-foreground mt-1">{exp.description}</p>}
                         </div>
-                        <button type="button" onClick={() => handleRemoveExperience(exp.id)} className="text-muted-foreground hover:text-primary text-xs">Remove</button>
+                        <Button type="button" onClick={() => handleRemoveExperience(exp.id)} className="text-muted-foreground hover:text-primary text-xs">Remove</Button>
                       </div>
                     ))}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <input aria-label="Company name" value={newExp.company} onChange={(e) => setNewExp({ ...newExp, company: e.target.value })} placeholder="Company name" className="px-4 py-2.5 rounded-xl text-sm bg-muted border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/60 transition-all" />
-                      <input aria-label="Job title" value={newExp.position} onChange={(e) => setNewExp({ ...newExp, position: e.target.value })} placeholder="Job title" className="px-4 py-2.5 rounded-xl text-sm bg-muted border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/60 transition-all" />
+                      <Input aria-label="Company name" value={newExp.company} onChange={(e) => setNewExp({ ...newExp, company: e.target.value })} placeholder="Company name" className="px-4 py-2.5 rounded-xl text-sm bg-muted border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/60 transition-all" />
+                      <Input aria-label="Job title" value={newExp.position} onChange={(e) => setNewExp({ ...newExp, position: e.target.value })} placeholder="Job title" className="px-4 py-2.5 rounded-xl text-sm bg-muted border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/60 transition-all" />
                       <div className="grid grid-cols-2 gap-3 sm:col-span-2">
                         <div>
-                          <label htmlFor="profile-exp-start" className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase mb-1.5">Start Date</label>
-                          <input id="profile-exp-start" type="date" value={newExp.start_date} onChange={(e) => setNewExp({ ...newExp, start_date: e.target.value })} className="w-full px-4 py-2.5 rounded-xl text-sm bg-muted border border-border text-foreground focus:outline-none focus:border-primary/60 transition-all" />
+                          <Label htmlFor="profile-exp-start" className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase mb-1.5">Start Date</Label>
+                          <Input id="profile-exp-start" type="date" value={newExp.start_date} onChange={(e) => setNewExp({ ...newExp, start_date: e.target.value })} className="w-full px-4 py-2.5 rounded-xl text-sm bg-muted border border-border text-foreground focus:outline-none focus:border-primary/60 transition-all" />
                         </div>
                         <div>
-                          <label htmlFor="profile-exp-end" className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase mb-1.5">End Date <span className="text-muted-foreground font-normal">(blank = present)</span></label>
-                          <input id="profile-exp-end" type="date" value={newExp.end_date} onChange={(e) => setNewExp({ ...newExp, end_date: e.target.value })} className="w-full px-4 py-2.5 rounded-xl text-sm bg-muted border border-border text-foreground focus:outline-none focus:border-primary/60 transition-all" />
+                          <Label htmlFor="profile-exp-end" className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase mb-1.5">End Date <span className="text-muted-foreground font-normal">(blank = present)</span></Label>
+                          <Input id="profile-exp-end" type="date" value={newExp.end_date} onChange={(e) => setNewExp({ ...newExp, end_date: e.target.value })} className="w-full px-4 py-2.5 rounded-xl text-sm bg-muted border border-border text-foreground focus:outline-none focus:border-primary/60 transition-all" />
                         </div>
                       </div>
                     </div>
-                    <input aria-label="Description of responsibilities" value={newExp.description} onChange={(e) => setNewExp({ ...newExp, description: e.target.value })} placeholder="Brief description of responsibilities" className="w-full px-4 py-2.5 rounded-xl text-sm bg-muted border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/60 transition-all" />
-                    <button type="button" onClick={handleAddExperience} disabled={addingExp} className="px-4 py-2.5 text-sm font-medium text-white bg-primary hover:bg-primary-hover rounded-xl active:scale-[0.98] transition-colors disabled:opacity-60">{addingExp ? "Adding…" : "Add Experience"}</button>
+                    <Input aria-label="Description of responsibilities" value={newExp.description} onChange={(e) => setNewExp({ ...newExp, description: e.target.value })} placeholder="Brief description of responsibilities" className="w-full px-4 py-2.5 rounded-xl text-sm bg-muted border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/60 transition-all" />
+                    <Button type="button" onClick={handleAddExperience} disabled={addingExp} className="px-4 py-2.5 text-sm font-medium text-white bg-primary hover:bg-primary-hover rounded-xl active:scale-[0.98] transition-colors disabled:opacity-60">{addingExp ? "Adding…" : "Add Experience"}</Button>
                     {expError && <p role="alert" className="text-xs text-danger">{expError}</p>}
                   </div>
                 </section>
@@ -537,7 +540,7 @@ function Profile() {
                           <p className="text-sm font-medium text-foreground">{titleCase(edu.school)}</p>
                           <p className="text-xs text-muted-foreground mt-0.5">{titleCase(edu.level)}{edu.field ? ` · ${titleCase(edu.field)}` : ""}{edu.end_year ? ` · ${edu.end_year}` : " · Present"}</p>
                         </div>
-                        <button type="button" onClick={() => handleRemoveEducation(edu.id)} className="text-muted-foreground hover:text-primary text-xs">Remove</button>
+                        <Button type="button" onClick={() => handleRemoveEducation(edu.id)} className="text-muted-foreground hover:text-primary text-xs">Remove</Button>
                       </div>
                     ))}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -545,17 +548,17 @@ function Profile() {
                         <option value="">Education level</option>
                         {["Elementary", "High School", "Senior High School", "Vocational", "College", "Post-Graduate"].map((l) => <option key={l} value={l}>{l}</option>)}
                       </select>
-                      <input aria-label="School name" value={newEdu.school} onChange={(e) => setNewEdu({ ...newEdu, school: e.target.value })} placeholder="School name" className="px-4 py-2.5 rounded-xl text-sm bg-muted border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/60 transition-all" />
+                      <Input aria-label="School name" value={newEdu.school} onChange={(e) => setNewEdu({ ...newEdu, school: e.target.value })} placeholder="School name" className="px-4 py-2.5 rounded-xl text-sm bg-muted border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/60 transition-all" />
                       <div className="flex gap-2">
-                        <input aria-label="Course / field of study" value={newEdu.field} onChange={(e) => setNewEdu({ ...newEdu, field: e.target.value })} placeholder="Course / field" className="flex-1 px-4 py-2.5 rounded-xl text-sm bg-muted border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/60 transition-all" />
-                        <input aria-label="Graduation year" value={newEdu.end_year} onChange={(e) => setNewEdu({ ...newEdu, end_year: e.target.value })} placeholder="Year" inputMode="numeric" disabled={newEdu.studying} className="w-20 px-3 py-2.5 rounded-xl text-sm bg-muted border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/60 transition-all disabled:opacity-50" />
+                        <Input aria-label="Course / field of study" value={newEdu.field} onChange={(e) => setNewEdu({ ...newEdu, field: e.target.value })} placeholder="Course / field" className="flex-1 px-4 py-2.5 rounded-xl text-sm bg-muted border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/60 transition-all" />
+                        <Input aria-label="Graduation year" value={newEdu.end_year} onChange={(e) => setNewEdu({ ...newEdu, end_year: e.target.value })} placeholder="Year" inputMode="numeric" disabled={newEdu.studying} className="w-20 px-3 py-2.5 rounded-xl text-sm bg-muted border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/60 transition-all disabled:opacity-50" />
                       </div>
-                      <label className="flex items-center gap-2 text-xs text-muted-foreground select-none cursor-pointer">
-                        <input type="checkbox" checked={newEdu.studying} onChange={(e) => setNewEdu({ ...newEdu, studying: e.target.checked })} className="accent-primary" />
+                      <Label className="flex items-center gap-2 text-xs text-muted-foreground select-none cursor-pointer">
+                        <Input type="checkbox" checked={newEdu.studying} onChange={(e) => setNewEdu({ ...newEdu, studying: e.target.checked })} className="accent-primary" />
                         Currently studying here <span className="text-muted-foreground">(blank = Present)</span>
-                      </label>
+                      </Label>
                     </div>
-                    <button type="button" onClick={handleAddEducation} disabled={addingEdu} className="px-4 py-2.5 text-sm font-medium text-white bg-primary hover:bg-primary-hover rounded-xl active:scale-[0.98] transition-colors disabled:opacity-60">{addingEdu ? "Adding…" : "Add Education"}</button>
+                    <Button type="button" onClick={handleAddEducation} disabled={addingEdu} className="px-4 py-2.5 text-sm font-medium text-white bg-primary hover:bg-primary-hover rounded-xl active:scale-[0.98] transition-colors disabled:opacity-60">{addingEdu ? "Adding…" : "Add Education"}</Button>
                     {eduError && <p role="alert" className="text-xs text-danger">{eduError}</p>}
                   </div>
                 </section>
@@ -564,7 +567,7 @@ function Profile() {
                   <p className="font-mono text-[10px] tracking-[0.2em] uppercase text-primary font-semibold mb-4">Resume</p>
                   <div className="flex-1 flex flex-col">
                     <div className="flex-1 flex flex-col justify-center items-center p-5 rounded-xl bg-muted border border-dashed border-gray-300">
-                      <input type="file" accept=".pdf,.doc,.docx" onChange={handleResumeUpload} className="hidden" id="resume-upload" />
+                      <Input type="file" accept=".pdf,.doc,.docx" onChange={handleResumeUpload} className="hidden" id="resume-upload" />
                       {resumes.length > 0 ? (
                         <div className="space-y-3 w-full">
                           {resumes.map((resume) => (
@@ -576,19 +579,19 @@ function Profile() {
                               <div className="flex gap-2 flex-wrap">
                                 <ResumeLinks resume={resume} />
                             {!resume.is_active && (
-                                  <button type="button" onClick={() => handleSetActiveResume(resume.id)} className="px-3 py-1.5 text-xs font-medium text-primary border border-primary/30 rounded-lg hover:bg-primary/5 transition-colors">Set Active</button>
+                                  <Button type="button" onClick={() => handleSetActiveResume(resume.id)} className="px-3 py-1.5 text-xs font-medium text-primary border border-primary/30 rounded-lg hover:bg-primary/5 transition-colors">Set Active</Button>
                                 )}
-                                <label htmlFor="resume-upload" className="cursor-pointer px-3 py-1.5 text-xs font-medium text-primary border border-primary/30 rounded-lg hover:bg-primary/5 transition-colors">Replace</label>
-                                <button type="button" onClick={() => { setPendingDelete(resume); setShowDeleteConfirm(true); }} className="px-3 py-1.5 text-xs font-medium text-danger border border-danger/30 rounded-lg hover:bg-danger/5 transition-colors">Delete</button>
+                                <Label htmlFor="resume-upload" className="cursor-pointer px-3 py-1.5 text-xs font-medium text-primary border border-primary/30 rounded-lg hover:bg-primary/5 transition-colors">Replace</Label>
+                                <Button type="button" onClick={() => { setPendingDelete(resume); setShowDeleteConfirm(true); }} className="px-3 py-1.5 text-xs font-medium text-danger border border-danger/30 rounded-lg hover:bg-danger/5 transition-colors">Delete</Button>
                               </div>
                             </div>
                           ))}
                         </div>
                       ) : (
-                        <label htmlFor="resume-upload" className="cursor-pointer text-sm text-muted-foreground hover:text-primary transition-colors flex flex-col items-center justify-center py-6 w-full h-full text-center">
+                        <Label htmlFor="resume-upload" className="cursor-pointer text-sm text-muted-foreground hover:text-primary transition-colors flex flex-col items-center justify-center py-6 w-full h-full text-center">
                           <span>Click to upload resume (PDF, DOC, or DOCX)</span>
                           <span className="mt-2 text-xs text-muted-foreground">PDF up to 2 MB; DOC or DOCX up to 5 MB.</span>
-                        </label>
+                        </Label>
                       )}
                       {uploadError && <p role="alert" className="mt-2 text-xs text-danger text-center">{uploadError}</p>}
                       {resumeStatus && <p role="status" aria-live="polite" className="mt-2 text-xs text-muted-foreground text-center">{resumeStatus}</p>}
@@ -598,12 +601,12 @@ function Profile() {
             </div>
 
             <div className="flex items-center justify-end gap-3 pt-3">
-              <button type="submit" disabled={saving} className="min-h-[42px] px-6 rounded-xl bg-primary text-white text-xs font-medium hover:bg-primary-hover transition-colors disabled:opacity-60">
+              <Button type="submit" disabled={saving} className="min-h-[42px] px-6 rounded-xl bg-primary text-white text-xs font-medium hover:bg-primary-hover transition-colors disabled:opacity-60">
                 {saving ? "Saving…" : "Save Profile"}
-              </button>
-              <button type="button" onClick={() => setEditing(false)} className="min-h-[42px] px-5 rounded-xl border border-gray-300 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">
+              </Button>
+              <Button type="button" onClick={() => setEditing(false)} className="min-h-[42px] px-5 rounded-xl border border-gray-300 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">
                 Cancel
-              </button>
+              </Button>
             </div>
           </form>
         ) : (
@@ -747,15 +750,15 @@ function Profile() {
             confirmLabel="Apply"
             cancelLabel="Not now"
           >
-            <label className="flex items-start gap-2.5 mb-6 text-sm text-muted-foreground select-none cursor-pointer">
-              <input
+            <Label className="flex items-start gap-2.5 mb-6 text-sm text-muted-foreground select-none cursor-pointer">
+              <Input
                 type="checkbox"
                 checked={autofillOverwrite}
                 onChange={(e) => setAutofillOverwrite(e.target.checked)}
                 className="mt-0.5 accent-primary"
               />
               <span>Replace existing values (fill fields that already have data)</span>
-            </label>
+            </Label>
           </ConfirmationModal>
         )}
     </div>

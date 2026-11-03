@@ -1,3 +1,4 @@
+import { Button } from "../../components/ui/button";
 import { useState, useCallback } from 'react'
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { X } from 'lucide-react'
@@ -44,7 +45,7 @@ export default function PortalLayout({ navItems, badge, eyebrow, subhead, profil
         </div>
         <div className="flex items-center gap-2">
           <NotificationBell />
-          <button
+          <Button
             onClick={() => setMobileOpen(!mobileOpen)}
             className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted border border-border cursor-pointer"
             aria-label="Toggle navigation"
@@ -58,7 +59,7 @@ export default function PortalLayout({ navItems, badge, eyebrow, subhead, profil
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" />
               )}
             </svg>
-          </button>
+          </Button>
         </div>
       </header>
 
@@ -81,13 +82,13 @@ export default function PortalLayout({ navItems, badge, eyebrow, subhead, profil
           <div className="flex items-center gap-3">
             <NotificationBell dark align="left" />
             {mobileOpen && (
-              <button
+              <Button
                 onClick={() => setMobileOpen(false)}
                 className="md:hidden text-white/60 hover:text-white p-1 text-sm cursor-pointer"
                 aria-label="Close navigation"
               >
                 <X className="w-4 h-4" aria-hidden="true" />
-              </button>
+              </Button>
             )}
           </div>
         </div>
@@ -156,18 +157,18 @@ export default function PortalLayout({ navItems, badge, eyebrow, subhead, profil
               You will be logged out in 1 minute due to inactivity. Move your mouse or press a key to stay signed in.
             </p>
             <div className="flex gap-2">
-              <button
+              <Button
                 onClick={handleLogout}
                 className="flex-1 px-4 py-2.5 text-sm font-medium text-muted-foreground hover:text-foreground bg-muted hover:bg-muted border border-border rounded-lg transition-colors"
               >
                 Sign Out
-              </button>
-              <button
+              </Button>
+              <Button
                 onClick={() => setShowWarning(false)}
                 className="flex-1 px-4 py-2.5 text-sm font-medium text-white bg-primary hover:bg-primary-hover rounded-lg active:scale-[0.98] transition-colors"
               >
                 Stay Signed In
-              </button>
+              </Button>
             </div>
           </div>
         </div>

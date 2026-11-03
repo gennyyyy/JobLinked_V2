@@ -1,3 +1,4 @@
+import { Button } from "../../components/ui/button";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import useDialog from "../hooks/useDialog";
@@ -98,13 +99,13 @@ function TermsModal({ open, onClose, onRead, title = "Data Collection Terms & Pr
           {onRead && !read && (
             <span className="mr-auto text-xs text-muted-foreground">Scroll to the bottom to enable agreement.</span>
           )}
-          <button
+          <Button
             type="button"
             onClick={onClose}
             className="px-4 py-2 text-sm font-medium text-white rounded-xl bg-primary hover:bg-primary-hover transition-colors cursor-pointer"
           >
             Close
-          </button>
+          </Button>
         </div>
       </div>
     </div>,

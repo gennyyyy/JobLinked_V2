@@ -1,3 +1,4 @@
+import { Button } from "../../components/ui/button";
 import { useState, useEffect, useMemo } from "react";
 import {
   Users,
@@ -99,21 +100,21 @@ function Employees() {
       sidebar={
         <>
           <div className="space-y-3">
-            <button type="button" data-tone="info" onClick={() => toggleFilter("all")} aria-pressed={statusFilter === "all"} title="Show all employees"
+            <Button type="button" data-tone="info" onClick={() => toggleFilter("all")} aria-pressed={statusFilter === "all"} title="Show all employees"
               className={`w-full text-left rounded-lg border px-4 py-3 cursor-pointer transition-all border-blue-300 bg-blue-50 text-blue-700 ${statusFilter === "all" ? "ring-1 ring-offset-0 ring-current" : ""}`}>
               <p className="text-2xl font-bold">{employees.length}</p>
               <p className="mt-0.5 text-[10px] font-semibold uppercase tracking-wider">Total</p>
-            </button>
-            <button type="button" data-tone="success" onClick={() => toggleFilter("active")} aria-pressed={statusFilter === "active"} title="Show active employees"
+            </Button>
+            <Button type="button" data-tone="success" onClick={() => toggleFilter("active")} aria-pressed={statusFilter === "active"} title="Show active employees"
               className={`w-full text-left rounded-lg border px-4 py-3 cursor-pointer transition-all border-emerald-300 bg-emerald-50 text-emerald-700 ${statusFilter === "active" ? "ring-1 ring-offset-0 ring-current" : ""}`}>
               <p className="text-2xl font-bold">{active}</p>
               <p className="mt-0.5 text-[10px] font-semibold uppercase tracking-wider">Active</p>
-            </button>
-            <button type="button" data-tone="neutral" onClick={() => toggleFilter("terminated")} aria-pressed={statusFilter === "terminated"} title="Show terminated employees"
+            </Button>
+            <Button type="button" data-tone="neutral" onClick={() => toggleFilter("terminated")} aria-pressed={statusFilter === "terminated"} title="Show terminated employees"
               className={`w-full text-left rounded-lg border px-4 py-3 cursor-pointer transition-all border-gray-300 bg-muted text-muted-foreground ${statusFilter === "terminated" ? "ring-1 ring-offset-0 ring-current" : ""}`}>
               <p className="text-2xl font-bold">{terminated}</p>
               <p className="mt-0.5 text-[10px] font-semibold uppercase tracking-wider">Terminated</p>
-            </button>
+            </Button>
           </div>
         </>
       }
@@ -139,13 +140,13 @@ function Employees() {
                 </select>
               </div>
               {hasActiveFilters && (
-                <button
+                <Button
                   type="button"
                   onClick={clearFilters}
                   className="px-3 py-2 rounded-xl text-xs font-medium text-muted-foreground hover:text-muted-foreground hover:bg-muted border border-border transition-colors cursor-pointer"
                 >
                   Clear filters
-                </button>
+                </Button>
               )}
             </div>
           </div>
@@ -168,13 +169,13 @@ function Employees() {
                   : "Try adjusting your search or status filter to find employees."}
               </p>
               {hasActiveFilters && (
-                <button
+                <Button
                   type="button"
                   onClick={clearFilters}
                   className="mt-4 px-4 py-2.5 rounded-xl text-xs font-semibold text-primary bg-primary/10 border border-primary/25 hover:bg-primary/20 transition-colors cursor-pointer"
                 >
                   Clear all filters
-                </button>
+                </Button>
               )}
             </div>
           ) : (
@@ -188,15 +189,15 @@ function Employees() {
                     </div>
                     <div className="flex items-center gap-1.5 shrink-0">
                       {emp.status === "Accepted" ? (
-                        <button type="button" title="Terminate employee" onClick={() => setStatus(emp.id, "Terminated")} className="inline-flex items-center gap-1.5 p-2 rounded-lg border border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100 transition-colors cursor-pointer">
+                        <Button type="button" title="Terminate employee" onClick={() => setStatus(emp.id, "Terminated")} className="inline-flex items-center gap-1.5 p-2 rounded-lg border border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100 transition-colors cursor-pointer">
                           <UserMinus className="w-3.5 h-3.5" />
                           <span className="text-xs font-medium">Terminate</span>
-                        </button>
+                        </Button>
                       ) : (
-                        <button type="button" title="Reactivate employee" onClick={() => setStatus(emp.id, "Accepted")} className="inline-flex items-center gap-1.5 p-2 rounded-lg border border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-colors cursor-pointer">
+                        <Button type="button" title="Reactivate employee" onClick={() => setStatus(emp.id, "Accepted")} className="inline-flex items-center gap-1.5 p-2 rounded-lg border border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-colors cursor-pointer">
                           <UserPlus className="w-3.5 h-3.5" />
                           <span className="text-xs font-medium">Reactivate</span>
-                        </button>
+                        </Button>
                       )}
                     </div>
                   </div>
@@ -225,10 +226,10 @@ function Employees() {
                   </div>
 
                   <div className="mt-3">
-                    <button type="button" onClick={() => toggleProfile(emp)} className="inline-flex items-center gap-1 text-[11px] text-muted-foreground font-medium cursor-pointer">
+                    <Button type="button" onClick={() => toggleProfile(emp)} className="inline-flex items-center gap-1 text-[11px] text-muted-foreground font-medium cursor-pointer">
                       {expandedId === emp.id ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
                       {expandedId === emp.id ? "Hide profile" : "View profile"}
-                    </button>
+                    </Button>
                   </div>
 
                   {expandedId === emp.id && (

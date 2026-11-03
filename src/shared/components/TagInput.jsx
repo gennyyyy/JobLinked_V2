@@ -1,3 +1,5 @@
+import { Button } from "../../components/ui/button";
+import { Input } from "../../components/ui/input";
 import { useState, useRef } from "react";
 
 // TagInput + its splitTags helper move together from Profile.
@@ -41,7 +43,7 @@ export function TagInput({ value, onChange, placeholder, id, className = "", max
         {tags.map((tag) => (
           <span key={tag} className="inline-flex items-center gap-1 font-mono text-xs px-2.5 py-1 rounded-full bg-primary/10 border border-primary/25 text-primary">
             {tag}
-            <button
+            <Button
               type="button"
               onClick={(e) => {
                 e.stopPropagation();
@@ -51,10 +53,10 @@ export function TagInput({ value, onChange, placeholder, id, className = "", max
               className="hover:text-primary-hover font-bold leading-none"
             >
               ×
-            </button>
+            </Button>
           </span>
         ))}
-        <input
+        <Input
           ref={inputRef}
           id={id}
           aria-label={id ? undefined : placeholder || "Tags input"}

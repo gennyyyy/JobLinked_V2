@@ -1,3 +1,6 @@
+import { Button } from "../../components/ui/button";
+import { Input } from "../../components/ui/input";
+import { Label } from "../../components/ui/label";
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "../../shared/lib/supabase";
@@ -107,10 +110,10 @@ function AcceptInvite() {
             )}
 
             <div>
-              <label htmlFor="invite-password" className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase mb-1.5">
+              <Label htmlFor="invite-password" className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase mb-1.5">
                 New Password
-              </label>
-              <input
+              </Label>
+              <Input
                 id="invite-password"
                 name="password"
                 type="password"
@@ -123,10 +126,10 @@ function AcceptInvite() {
             </div>
 
             <div>
-              <label htmlFor="invite-confirm" className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase mb-1.5">
+              <Label htmlFor="invite-confirm" className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase mb-1.5">
                 Confirm Password
-              </label>
-              <input
+              </Label>
+              <Input
                 id="invite-confirm"
                 name="confirm"
                 type="password"
@@ -138,13 +141,13 @@ function AcceptInvite() {
               />
             </div>
 
-            <button
+            <Button
               type="submit"
               disabled={busy}
               className="w-full mt-6 min-h-[44px] px-6 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-primary-hover active:scale-[0.98] transition-all shadow-md disabled:opacity-60"
             >
               {busy ? "Saving…" : "Save New Password"}
-            </button>
+            </Button>
           </form>
         </div>
       </main>

@@ -22,11 +22,11 @@ export function DemoSwitcher({ compact = false }) {
         });
     };
     return (<>
-      <button onClick={() => setOpen(true)} className="inline-flex min-h-8 items-center gap-2 text-[11px] font-medium transition-opacity hover:opacity-75" aria-label="Explore demo roles">
+      <Button onClick={() => setOpen(true)} className="inline-flex min-h-8 items-center gap-2 text-[11px] font-medium transition-opacity hover:opacity-75" aria-label="Explore demo roles">
         <FlaskConical className="size-3.5"/>
         {compact ? "Switch demo role" : "Interactive demo"}
         <ArrowUpRight className="size-3"/>
-      </button>
+      </Button>
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
@@ -53,7 +53,7 @@ export function DemoSwitcher({ compact = false }) {
                 icon: ShieldCheck,
                 description: "Review accreditation and explore employment reports.",
             },
-        ].map(({ role, icon: Icon, description }) => (<button disabled={pending} className="flex min-h-20 items-center gap-4 rounded-xl border p-4 text-left transition-colors hover:border-primary/40 hover:bg-blue-soft" key={role} onClick={() => change(role)}>
+        ].map(({ role, icon: Icon, description }) => (<Button disabled={pending} className="flex min-h-20 items-center gap-4 rounded-xl border p-4 text-left transition-colors hover:border-primary/40 hover:bg-blue-soft" key={role} onClick={() => change(role)}>
                 <span className="soft-icon">
                   <Icon className="size-5"/>
                 </span>
@@ -66,7 +66,7 @@ export function DemoSwitcher({ compact = false }) {
                   </span>
                 </span>
                 <ArrowUpRight className="size-4 text-primary"/>
-              </button>))}
+              </Button>))}
           </div>
           {state.users.length > 0 && (<div className="flex flex-col gap-3 rounded-xl bg-muted p-4">
               <SelectField label="Resume another sample account" value={selected} onChange={(e) => setSelected(e.target.value)} placeholder="Select an account" options={state.users

@@ -1,3 +1,4 @@
+import { Button } from "../../components/ui/button";
 import { useState, useEffect } from "react";
 import { GraduationCap, Briefcase, FileText } from "lucide-react";
 import { listSeekerEducation, listSeekerExperience } from "../services/seekers";
@@ -73,10 +74,10 @@ function SeekerProfileCard({ applicant }) {
           ) : <p className="text-xs text-muted-foreground">No skills listed.</p>}
         </div>
         {applicant.resume?.file_path && (
-          <button type="button" onClick={openResume} className="mt-2.5 inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium bg-primary/10 border border-primary/25 text-primary hover:bg-primary/20 transition-colors cursor-pointer">
+          <Button type="button" onClick={openResume} className="mt-2.5 inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium bg-primary/10 border border-primary/25 text-primary hover:bg-primary/20 transition-colors cursor-pointer">
             <FileText className="w-3.5 h-3.5" />
             View Resume ({applicant.resume.file_name})
-          </button>
+          </Button>
         )}
         {resumeError && <p role="alert" className="mt-2 text-xs text-rose-600">{resumeError}</p>}
       </div>

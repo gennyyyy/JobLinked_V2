@@ -1,3 +1,7 @@
+import { Button } from "../../components/ui/button";
+import { Input } from "../../components/ui/input";
+import { Textarea } from "../../components/ui/textarea";
+import { Label } from "../../components/ui/label";
 import { useState, useEffect } from "react";
 import useAuth from "../../shared/hooks/useAuth";
 import { updateProfile, getEmployer, provision } from "../../shared/services/auth";
@@ -124,9 +128,9 @@ function CompanyProfile() {
             </p>
           </div>
           {!editing && (
-            <button type="button" onClick={() => setEditing(true)} className="shrink-0 rounded-lg border border-white/30 px-3 py-1.5 text-xs font-semibold text-white hover:bg-card/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent">
+            <Button type="button" onClick={() => setEditing(true)} className="shrink-0 rounded-lg border border-white/30 px-3 py-1.5 text-xs font-semibold text-white hover:bg-card/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent">
               Edit Profile
-            </button>
+            </Button>
           )}
         </div>
       </section>
@@ -145,29 +149,29 @@ function CompanyProfile() {
               <p className="font-mono text-[11px] tracking-[0.2em] text-primary uppercase font-semibold">Company Details</p>
               <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
                 <div>
-                  <label className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase mb-1.5">Company Name</label>
-                  <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="w-full min-h-[44px] px-4 rounded-xl text-sm bg-card border border-border text-foreground focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all" />
+                  <Label className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase mb-1.5">Company Name</Label>
+                  <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="w-full min-h-[44px] px-4 rounded-xl text-sm bg-card border border-border text-foreground focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all" />
                 </div>
                 <div>
-                  <label className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase mb-1.5">Industry</label>
-                  <input value={form.industry} onChange={(e) => setForm({ ...form, industry: e.target.value })} placeholder="e.g., Manufacturing, IT, Retail" className="w-full min-h-[44px] px-4 rounded-xl text-sm bg-card border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all" />
+                  <Label className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase mb-1.5">Industry</Label>
+                  <Input value={form.industry} onChange={(e) => setForm({ ...form, industry: e.target.value })} placeholder="e.g., Manufacturing, IT, Retail" className="w-full min-h-[44px] px-4 rounded-xl text-sm bg-card border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all" />
                 </div>
                 <div>
-                  <label className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase mb-1.5">Official Company Email</label>
-                  <input type="email" value={form.company_email} onChange={(e) => setForm({ ...form, company_email: e.target.value })} placeholder="hr@company.com" className="w-full min-h-[44px] px-4 rounded-xl text-sm bg-card border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all" />
+                  <Label className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase mb-1.5">Official Company Email</Label>
+                  <Input type="email" value={form.company_email} onChange={(e) => setForm({ ...form, company_email: e.target.value })} placeholder="hr@company.com" className="w-full min-h-[44px] px-4 rounded-xl text-sm bg-card border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all" />
                 </div>
                 <div>
-                  <label className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase mb-1.5">Company Contact No.</label>
-                  <input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} placeholder="02-XXXX-XXXX / 0917 123 4567" className="w-full min-h-[44px] px-4 rounded-xl text-sm bg-card border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all" />
+                  <Label className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase mb-1.5">Company Contact No.</Label>
+                  <Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} placeholder="02-XXXX-XXXX / 0917 123 4567" className="w-full min-h-[44px] px-4 rounded-xl text-sm bg-card border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all" />
                 </div>
                 <div>
-                  <label className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase mb-1.5">Website</label>
-                  <input value={form.website} onChange={(e) => setForm({ ...form, website: e.target.value })} placeholder="https://..." className="w-full min-h-[44px] px-4 rounded-xl text-sm bg-card border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all" />
+                  <Label className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase mb-1.5">Website</Label>
+                  <Input value={form.website} onChange={(e) => setForm({ ...form, website: e.target.value })} placeholder="https://..." className="w-full min-h-[44px] px-4 rounded-xl text-sm bg-card border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all" />
                 </div>
               </div>
               <div>
-                <label className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase mb-1.5">Company Description</label>
-                <textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={4} placeholder="Brief description of your company..." className="w-full px-4 py-3 rounded-xl text-sm bg-card border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all resize-none" />
+                <Label className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase mb-1.5">Company Description</Label>
+                <Textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={4} placeholder="Brief description of your company..." className="w-full px-4 py-3 rounded-xl text-sm bg-card border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all resize-none" />
               </div>
             </section>
             <section className="bg-muted border border-border rounded-xl p-5 space-y-4">
@@ -175,13 +179,13 @@ function CompanyProfile() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {[["house_number_unit", "House / Building / Unit No.", "e.g. Unit 402 or Bldg 3"], ["street_address", "Street Address & Lot / Block", "Street address"], ["subdivision_building", "Subdivision / Village / Building Name", "Subdivision name"], ["city_municipality", "City / Municipality", "e.g. Santa Maria"], ["province_state", "Province / State", "e.g. Bulacan"], ["postal_code", "Postal Code", "e.g. 3022"]].map(([field, label, placeholder]) => (
                   <div key={field}>
-                    <label htmlFor={field} className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase mb-1.5">{label}</label>
-                    <input id={field} value={form[field] || ""} onChange={(e) => setForm({ ...form, [field]: e.target.value })} placeholder={placeholder} className="w-full min-h-[44px] px-4 rounded-xl text-sm bg-card border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all" />
+                    <Label htmlFor={field} className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase mb-1.5">{label}</Label>
+                    <Input id={field} value={form[field] || ""} onChange={(e) => setForm({ ...form, [field]: e.target.value })} placeholder={placeholder} className="w-full min-h-[44px] px-4 rounded-xl text-sm bg-card border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all" />
                   </div>
                 ))}
               </div>
               <div>
-                <label htmlFor="barangay_district" className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase mb-1.5">Barangay / District</label>
+                <Label htmlFor="barangay_district" className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase mb-1.5">Barangay / District</Label>
                 <select
                   id="barangay_district"
                   value={form.barangay_district || ""}
@@ -202,42 +206,42 @@ function CompanyProfile() {
               <p className="font-mono text-[11px] tracking-[0.2em] text-primary uppercase font-semibold">Authorized Representative</p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase mb-1.5">First Name</label>
-                  <input value={form.first_name} onChange={(e) => setForm({ ...form, first_name: e.target.value })} placeholder="Maria" className="w-full min-h-[44px] px-4 rounded-xl text-sm bg-card border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all" />
+                  <Label className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase mb-1.5">First Name</Label>
+                  <Input value={form.first_name} onChange={(e) => setForm({ ...form, first_name: e.target.value })} placeholder="Maria" className="w-full min-h-[44px] px-4 rounded-xl text-sm bg-card border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all" />
                 </div>
                 <div>
-                  <label className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase mb-1.5">Middle Name</label>
-                  <input value={form.middle_name} onChange={(e) => setForm({ ...form, middle_name: e.target.value })} placeholder="Santos" className="w-full min-h-[44px] px-4 rounded-xl text-sm bg-card border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all" />
+                  <Label className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase mb-1.5">Middle Name</Label>
+                  <Input value={form.middle_name} onChange={(e) => setForm({ ...form, middle_name: e.target.value })} placeholder="Santos" className="w-full min-h-[44px] px-4 rounded-xl text-sm bg-card border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all" />
                 </div>
                 <div>
-                  <label className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase mb-1.5">Last Name</label>
-                  <input value={form.last_name} onChange={(e) => setForm({ ...form, last_name: e.target.value })} placeholder="Reyes" className="w-full min-h-[44px] px-4 rounded-xl text-sm bg-card border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all" />
+                  <Label className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase mb-1.5">Last Name</Label>
+                  <Input value={form.last_name} onChange={(e) => setForm({ ...form, last_name: e.target.value })} placeholder="Reyes" className="w-full min-h-[44px] px-4 rounded-xl text-sm bg-card border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all" />
                 </div>
                 <div>
-                  <label className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase mb-1.5">Suffix</label>
-                  <input value={form.suffix} onChange={(e) => setForm({ ...form, suffix: e.target.value })} placeholder="Jr., Sr., III" className="w-full min-h-[44px] px-4 rounded-xl text-sm bg-card border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all" />
+                  <Label className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase mb-1.5">Suffix</Label>
+                  <Input value={form.suffix} onChange={(e) => setForm({ ...form, suffix: e.target.value })} placeholder="Jr., Sr., III" className="w-full min-h-[44px] px-4 rounded-xl text-sm bg-card border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all" />
                 </div>
                 <div>
-                  <label className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase mb-1.5">Designation / Position</label>
-                  <input value={form.representative_position} onChange={(e) => setForm({ ...form, representative_position: e.target.value })} placeholder="e.g. HR Manager" className="w-full min-h-[44px] px-4 rounded-xl text-sm bg-card border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all" />
+                  <Label className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase mb-1.5">Designation / Position</Label>
+                  <Input value={form.representative_position} onChange={(e) => setForm({ ...form, representative_position: e.target.value })} placeholder="e.g. HR Manager" className="w-full min-h-[44px] px-4 rounded-xl text-sm bg-card border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all" />
                 </div>
                 <div>
-                  <label className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase mb-1.5">Representative Email</label>
-                  <input type="email" value={form.representative_email} onChange={(e) => setForm({ ...form, representative_email: e.target.value })} placeholder="maria@company.com" className="w-full min-h-[44px] px-4 rounded-xl text-sm bg-card border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all" />
+                  <Label className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase mb-1.5">Representative Email</Label>
+                  <Input type="email" value={form.representative_email} onChange={(e) => setForm({ ...form, representative_email: e.target.value })} placeholder="maria@company.com" className="w-full min-h-[44px] px-4 rounded-xl text-sm bg-card border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all" />
                 </div>
               </div>
               <div>
-                <label className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase mb-1.5">Login Email (read-only)</label>
-                <input value={form.email} disabled className="w-full min-h-[44px] px-4 rounded-xl text-sm bg-muted border border-border text-muted-foreground cursor-not-allowed" />
+                <Label className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase mb-1.5">Login Email (read-only)</Label>
+                <Input value={form.email} disabled className="w-full min-h-[44px] px-4 rounded-xl text-sm bg-muted border border-border text-muted-foreground cursor-not-allowed" />
               </div>
             </section>
             <div className="xl:col-span-2 flex items-center justify-end gap-3 pt-3">
-              <button type="submit" disabled={saving} className="min-h-[42px] px-6 rounded-xl bg-primary text-white text-xs font-medium hover:bg-primary-hover active:scale-[0.98] transition-colors disabled:opacity-60">
+              <Button type="submit" disabled={saving} className="min-h-[42px] px-6 rounded-xl bg-primary text-white text-xs font-medium hover:bg-primary-hover active:scale-[0.98] transition-colors disabled:opacity-60">
                 {saving ? "Saving…" : "Save Profile"}
-              </button>
-              <button type="button" onClick={() => setEditing(false)} className="min-h-[42px] px-5 rounded-xl border border-gray-300 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">
+              </Button>
+              <Button type="button" onClick={() => setEditing(false)} className="min-h-[42px] px-5 rounded-xl border border-gray-300 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">
                 Cancel
-              </button>
+              </Button>
             </div>
           </form>
         ) : (

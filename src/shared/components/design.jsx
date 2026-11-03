@@ -1,5 +1,5 @@
 "use client";
-import Link from "next/link";
+import { Link } from "react-router-dom";
 import { useState } from "react";
 import { ArrowRight, CheckCircle2, Search, ShieldCheck, Loader2, } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";

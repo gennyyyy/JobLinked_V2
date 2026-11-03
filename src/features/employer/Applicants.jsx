@@ -1,3 +1,7 @@
+import { Button } from "../../components/ui/button";
+import { Input } from "../../components/ui/input";
+import { Textarea } from "../../components/ui/textarea";
+import { Label } from "../../components/ui/label";
 import { useState, useEffect, useMemo } from "react";
 import {
   Clock,
@@ -173,12 +177,12 @@ function Applicants() {
             <article key={applicant.id} className="rounded-lg border border-primary/40 bg-card p-4">
               <div className="flex items-start justify-between gap-3">
                 <p className="text-sm font-bold text-dark-blue truncate">{titleCase(applicant.seeker?.full_name || "")}</p>
-                <button type="button" onClick={() => toggleProfile(applicant)}
+                <Button type="button" onClick={() => toggleProfile(applicant)}
                   title={expandedId === applicant.id ? "Hide profile" : "View profile"}
                   data-applicant-profile-action="true"
                   className="shrink-0 inline-flex items-center whitespace-nowrap rounded-full border border-dark-blue text-dark-blue px-3 py-1 text-[10px] font-semibold uppercase">
                   {expandedId === applicant.id ? "HIDE PROFILE" : "VIEW PROFILE"} →
-                </button>
+                </Button>
               </div>
 
               <div className="mt-3 grid grid-cols-3 gap-2">
@@ -202,22 +206,22 @@ function Applicants() {
 
               <div className="mt-3 flex flex-wrap gap-1.5">
                 {applicant.status === "Under Review" && (
-                  <button type="button" title="Revert to Applied" onClick={() => setStatus(applicant.id, "Applied")}
+                  <Button type="button" title="Revert to Applied" onClick={() => setStatus(applicant.id, "Applied")}
                     data-action-tone="neutral"
                     className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-border bg-muted text-muted-foreground hover:bg-muted transition-colors cursor-pointer">
                     <RotateCcw className="w-3.5 h-3.5" />
                     <span className="text-xs font-medium">Undo Review</span>
-                  </button>
+                  </Button>
                 )}
                 {applicant.status !== "Under Review" && (
-                  <button type="button" title="Move back to Under Review" onClick={() => setStatus(applicant.id, "Under Review")}
+                  <Button type="button" title="Move back to Under Review" onClick={() => setStatus(applicant.id, "Under Review")}
                     data-action-tone="warning"
                     className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100 transition-colors cursor-pointer">
                     <Clock className="w-3.5 h-3.5" />
                     <span className="text-xs font-medium">Review</span>
-                  </button>
+                  </Button>
                 )}
-                <button type="button" title={interviewingId === applicant.id ? "Hide interview details" : "Schedule an interview"}
+                <Button type="button" title={interviewingId === applicant.id ? "Hide interview details" : "Schedule an interview"}
                   aria-pressed={interviewingId === applicant.id}
                   onClick={() => (interviewingId === applicant.id ? setInterviewingId(null) : handleInterview(applicant))}
                   data-action-tone={interviewingId === applicant.id ? "purple-active" : "purple"}
@@ -228,22 +232,22 @@ function Applicants() {
                   }`}>
                   <Calendar className="w-3.5 h-3.5" />
                   <span className="text-xs font-medium">Interview</span>
-                </button>
+                </Button>
                 {applicant.status !== "Accepted" && (
-                  <button type="button" title="Accept candidate" onClick={() => setStatus(applicant.id, "Accepted")}
+                  <Button type="button" title="Accept candidate" onClick={() => setStatus(applicant.id, "Accepted")}
                     data-action-tone="success"
                     className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-colors cursor-pointer">
                     <CheckCircle2 className="w-3.5 h-3.5" />
                     <span className="text-xs font-medium">Accept</span>
-                  </button>
+                  </Button>
                 )}
                 {applicant.status !== "Rejected" && applicant.status !== "Placed" && (
-                  <button type="button" title="Reject candidate" onClick={() => setStatus(applicant.id, "Rejected")}
+                  <Button type="button" title="Reject candidate" onClick={() => setStatus(applicant.id, "Rejected")}
                     data-action-tone="danger"
                     className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100 transition-colors cursor-pointer">
                     <XCircle className="w-3.5 h-3.5" />
                     <span className="text-xs font-medium">Reject</span>
-                  </button>
+                  </Button>
                 )}
               </div>
               {actionErrors[applicant.id] && (
@@ -274,7 +278,7 @@ function Applicants() {
                           {INTERVIEW_ATTIRE.map((opt) => {
                             const selected = interviewAttire.includes(opt);
                             return (
-                              <button
+                              <Button
                                 key={opt}
                                 type="button"
                                 onClick={() =>
@@ -285,7 +289,7 @@ function Applicants() {
                                 }`}
                               >
                                 {opt}
-                              </button>
+                              </Button>
                             );
                           })}
                         </div>
@@ -298,7 +302,7 @@ function Applicants() {
                           {INTERVIEW_BRING.map((opt) => {
                             const selected = interviewBring.includes(opt);
                             return (
-                              <button
+                              <Button
                                 key={opt}
                                 type="button"
                                 onClick={() =>
@@ -309,17 +313,17 @@ function Applicants() {
                                 }`}
                               >
                                 {opt}
-                              </button>
+                              </Button>
                             );
                           })}
                         </div>
                       </div>
                     </div>
                     <div className="mb-4">
-                      <label htmlFor={`ivloc-${applicant.id}`} className="block font-mono text-[10px] uppercase tracking-widest text-muted-foreground mb-1.5">
+                      <Label htmlFor={`ivloc-${applicant.id}`} className="block font-mono text-[10px] uppercase tracking-widest text-muted-foreground mb-1.5">
                         Meeting Location
-                      </label>
-                      <input
+                      </Label>
+                      <Input
                         id={`ivloc-${applicant.id}`}
                         type="text"
                         value={interviewLocation}
@@ -330,8 +334,8 @@ function Applicants() {
                     </div>
                     <div className="flex flex-col md:flex-row md:items-end gap-3">
                       <div>
-                        <label htmlFor={`iv-${applicant.id}`} className="block font-mono text-[10px] uppercase tracking-widest text-muted-foreground mb-1.5">Interview Date &amp; Time</label>
-                        <input
+                        <Label htmlFor={`iv-${applicant.id}`} className="block font-mono text-[10px] uppercase tracking-widest text-muted-foreground mb-1.5">Interview Date &amp; Time</Label>
+                        <Input
                           id={`iv-${applicant.id}`}
                           type="datetime-local"
                           value={interviewAt}
@@ -341,8 +345,8 @@ function Applicants() {
                         />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <label htmlFor={`ivn-${applicant.id}`} className="block font-mono text-[10px] uppercase tracking-widest text-muted-foreground mb-1.5">Instructions</label>
-                        <input
+                        <Label htmlFor={`ivn-${applicant.id}`} className="block font-mono text-[10px] uppercase tracking-widest text-muted-foreground mb-1.5">Instructions</Label>
+                        <Input
                           id={`ivn-${applicant.id}`}
                           type="text"
                           value={interviewNotes}
@@ -352,8 +356,8 @@ function Applicants() {
                         />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <label htmlFor={`ivnotes-${applicant.id}`} className="block font-mono text-[10px] uppercase tracking-widest text-muted-foreground mb-1.5">Internal Notes</label>
-                        <textarea
+                        <Label htmlFor={`ivnotes-${applicant.id}`} className="block font-mono text-[10px] uppercase tracking-widest text-muted-foreground mb-1.5">Internal Notes</Label>
+                        <Textarea
                           id={`ivnotes-${applicant.id}`}
                           value={interviewEmployerNotes}
                           onChange={(e) => setInterviewEmployerNotes(e.target.value)}
@@ -363,16 +367,16 @@ function Applicants() {
                         />
                       </div>
                       <div className="flex gap-2">
-                        <button
+                        <Button
                           onClick={() => confirmInterview(applicant.id)}
                           disabled={!interviewAt}
                           className="px-4 py-2.5 rounded-xl text-xs font-semibold bg-primary text-white hover:bg-primary-hover transition-all disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
                         >
                           Schedule
-                        </button>
-                        <button onClick={() => setInterviewingId(null)} className="px-4 py-2.5 rounded-xl text-xs font-medium text-muted-foreground hover:text-muted-foreground hover:bg-muted border border-border transition-colors cursor-pointer">
+                        </Button>
+                        <Button onClick={() => setInterviewingId(null)} className="px-4 py-2.5 rounded-xl text-xs font-medium text-muted-foreground hover:text-muted-foreground hover:bg-muted border border-border transition-colors cursor-pointer">
                           Cancel
-                        </button>
+                        </Button>
                       </div>
                     </div>
                   </div>

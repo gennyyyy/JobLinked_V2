@@ -1,3 +1,6 @@
+import { Button } from "../../components/ui/button";
+import { Input } from "../../components/ui/input";
+import { Label } from "../../components/ui/label";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { X } from "lucide-react";
 import { listUsers, updateUser, listAllAccreditations, listRoles, assignRole, assignCustomRole, inviteUser } from "../../shared/services/admin";
@@ -207,7 +210,7 @@ function UserManagement() {
             </select>
           </div>
           <div className="flex-1 min-w-[200px]">
-            <input
+            <Input
               type="text"
               aria-label="Search users by name or email"
               value={searchTerm}
@@ -217,13 +220,13 @@ function UserManagement() {
             />
           </div>
           <span className="self-center ml-auto text-xs text-muted-foreground font-medium whitespace-nowrap">{total} records</span>
-          <button
+          <Button
             type="button"
             onClick={() => { setActionError(""); setShowInvite(true); }}
             className="shrink-0 min-h-[38px] px-4 rounded-xl bg-primary text-white text-sm font-medium hover:bg-primary-hover transition-colors cursor-pointer"
           >
             Add user
-          </button>
+          </Button>
         </div>
 
         {/* Table */}
@@ -273,7 +276,7 @@ function UserManagement() {
                       </div>
                     ) : (
                       <div className="space-y-1">
-                        <label htmlFor={`role-${user.id}`} className="sr-only">Role for {user.full_name || user.email}</label>
+                        <Label htmlFor={`role-${user.id}`} className="sr-only">Role for {user.full_name || user.email}</Label>
                         <select
                           id={`role-${user.id}`}
                           value={user.custom_role_id ? `custom:${user.custom_role_id}` : `sys:${user.role}`}
@@ -330,7 +333,7 @@ function UserManagement() {
                     {new Date(user.created_at).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })}
                   </td>
                   <td className="py-3 px-3 pr-5 text-right">
-                    <button
+                    <Button
                       onClick={() => handleToggleStatus(user)}
                       className={`inline-flex items-center rounded-lg border px-2.5 py-1.5 text-xs font-medium cursor-pointer transition-colors ${user.status === "active"
                         ? "border-rose-300 bg-rose-50 text-rose-700 hover:bg-rose-100 dark:border-rose-500/50 dark:bg-rose-500/10 dark:text-rose-300 dark:hover:bg-rose-500/20"
@@ -338,7 +341,7 @@ function UserManagement() {
                       }`}
                     >
                       {user.status === "active" ? "Suspend" : "Activate"}
-                    </button>
+                    </Button>
                   </td>
                 </tr>
               ))}
@@ -365,18 +368,18 @@ function UserManagement() {
                 <h2 id="invite-title" className="mt-1 text-xl font-bold text-foreground">Add user</h2>
                 <p className="mt-1 text-xs text-muted-foreground">Send an invitation email to onboard a new municipal user or partner.</p>
               </div>
-              <button type="button" onClick={() => setShowInvite(false)} className="p-1 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer" aria-label="Close">
+              <Button type="button" onClick={() => setShowInvite(false)} className="p-1 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer" aria-label="Close">
                 <X className="w-4 h-4" aria-hidden="true" />
-              </button>
+              </Button>
             </div>
 
             <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="sm:col-span-2">
-                <label htmlFor="invite-email" className="block text-xs font-medium text-muted-foreground mb-1">Email</label>
-                <input id="invite-email" type="email" required placeholder="e.g. juan.delacruz@example.com" value={inviteForm.email} onChange={(e) => setInviteField("email", e.target.value)} className={INVITE_INPUT_CLASS} />
+                <Label htmlFor="invite-email" className="block text-xs font-medium text-muted-foreground mb-1">Email</Label>
+                <Input id="invite-email" type="email" required placeholder="e.g. juan.delacruz@example.com" value={inviteForm.email} onChange={(e) => setInviteField("email", e.target.value)} className={INVITE_INPUT_CLASS} />
               </div>
               <div className="sm:col-span-2">
-                <label htmlFor="invite-role" className="block text-xs font-medium text-muted-foreground mb-1">Role</label>
+                <Label htmlFor="invite-role" className="block text-xs font-medium text-muted-foreground mb-1">Role</Label>
                 <select id="invite-role" required value={inviteForm.role} onChange={(e) => setInviteField("role", e.target.value)} className={`${INVITE_INPUT_CLASS} cursor-pointer`}>
                   <option value="" disabled>Select a role…</option>
                   <optgroup label="System roles">
@@ -394,29 +397,29 @@ function UserManagement() {
                 </select>
               </div>
               <div>
-                <label htmlFor="invite-first" className="block text-xs font-medium text-muted-foreground mb-1">First name</label>
-                <input id="invite-first" type="text" required placeholder="e.g. Juan" value={inviteForm.first_name} onChange={(e) => setInviteField("first_name", e.target.value)} className={INVITE_INPUT_CLASS} />
+                <Label htmlFor="invite-first" className="block text-xs font-medium text-muted-foreground mb-1">First name</Label>
+                <Input id="invite-first" type="text" required placeholder="e.g. Juan" value={inviteForm.first_name} onChange={(e) => setInviteField("first_name", e.target.value)} className={INVITE_INPUT_CLASS} />
               </div>
               <div>
-                <label htmlFor="invite-middle" className="block text-xs font-medium text-muted-foreground mb-1">Middle name</label>
-                <input id="invite-middle" type="text" placeholder="e.g. Santos (optional)" value={inviteForm.middle_name} onChange={(e) => setInviteField("middle_name", e.target.value)} className={INVITE_INPUT_CLASS} />
+                <Label htmlFor="invite-middle" className="block text-xs font-medium text-muted-foreground mb-1">Middle name</Label>
+                <Input id="invite-middle" type="text" placeholder="e.g. Santos (optional)" value={inviteForm.middle_name} onChange={(e) => setInviteField("middle_name", e.target.value)} className={INVITE_INPUT_CLASS} />
               </div>
               <div>
-                <label htmlFor="invite-last" className="block text-xs font-medium text-muted-foreground mb-1">Last name</label>
-                <input id="invite-last" type="text" required placeholder="e.g. Dela Cruz" value={inviteForm.last_name} onChange={(e) => setInviteField("last_name", e.target.value)} className={INVITE_INPUT_CLASS} />
+                <Label htmlFor="invite-last" className="block text-xs font-medium text-muted-foreground mb-1">Last name</Label>
+                <Input id="invite-last" type="text" required placeholder="e.g. Dela Cruz" value={inviteForm.last_name} onChange={(e) => setInviteField("last_name", e.target.value)} className={INVITE_INPUT_CLASS} />
               </div>
               <div>
-                <label htmlFor="invite-suffix" className="block text-xs font-medium text-muted-foreground mb-1">Suffix</label>
-                <input id="invite-suffix" type="text" placeholder="e.g. Jr., III (optional)" value={inviteForm.suffix} onChange={(e) => setInviteField("suffix", e.target.value)} className={INVITE_INPUT_CLASS} />
+                <Label htmlFor="invite-suffix" className="block text-xs font-medium text-muted-foreground mb-1">Suffix</Label>
+                <Input id="invite-suffix" type="text" placeholder="e.g. Jr., III (optional)" value={inviteForm.suffix} onChange={(e) => setInviteField("suffix", e.target.value)} className={INVITE_INPUT_CLASS} />
               </div>
               <div className="sm:col-span-2">
-                <label htmlFor="invite-phone" className="block text-xs font-medium text-muted-foreground mb-1">Phone</label>
-                <input id="invite-phone" type="tel" placeholder="e.g. 0917 123 4567" value={inviteForm.phone} onChange={(e) => setInviteField("phone", e.target.value)} className={INVITE_INPUT_CLASS} />
+                <Label htmlFor="invite-phone" className="block text-xs font-medium text-muted-foreground mb-1">Phone</Label>
+                <Input id="invite-phone" type="tel" placeholder="e.g. 0917 123 4567" value={inviteForm.phone} onChange={(e) => setInviteField("phone", e.target.value)} className={INVITE_INPUT_CLASS} />
               </div>
               {inviteBaseRole === "employer" && (
                 <div className="sm:col-span-2">
-                  <label htmlFor="invite-company" className="block text-xs font-medium text-muted-foreground mb-1">Company name</label>
-                  <input id="invite-company" type="text" required placeholder="e.g. San Miguel Corporation" value={inviteForm.company_name} onChange={(e) => setInviteField("company_name", e.target.value)} className={INVITE_INPUT_CLASS} />
+                  <Label htmlFor="invite-company" className="block text-xs font-medium text-muted-foreground mb-1">Company name</Label>
+                  <Input id="invite-company" type="text" required placeholder="e.g. San Miguel Corporation" value={inviteForm.company_name} onChange={(e) => setInviteField("company_name", e.target.value)} className={INVITE_INPUT_CLASS} />
                 </div>
               )}
             </div>
@@ -424,12 +427,12 @@ function UserManagement() {
             {actionError && <div className="mt-4 text-sm text-danger bg-danger/10 border border-danger/20 px-4 py-3 rounded-lg">{actionError}</div>}
 
             <div className="mt-6 pt-5 border-t border-border flex justify-end gap-3">
-              <button type="button" onClick={() => setShowInvite(false)} className="px-5 py-2 text-xs font-medium rounded-xl border border-border text-muted-foreground hover:bg-muted transition-colors cursor-pointer">
+              <Button type="button" onClick={() => setShowInvite(false)} className="px-5 py-2 text-xs font-medium rounded-xl border border-border text-muted-foreground hover:bg-muted transition-colors cursor-pointer">
                 Cancel
-              </button>
-              <button type="submit" disabled={inviting} className="px-5 py-2 text-xs font-medium rounded-xl bg-primary text-white hover:bg-primary-hover transition-colors cursor-pointer disabled:opacity-50">
+              </Button>
+              <Button type="submit" disabled={inviting} className="px-5 py-2 text-xs font-medium rounded-xl bg-primary text-white hover:bg-primary-hover transition-colors cursor-pointer disabled:opacity-50">
                 {inviting ? "Sending…" : "Send invite"}
-              </button>
+              </Button>
             </div>
           </form>
         </div>

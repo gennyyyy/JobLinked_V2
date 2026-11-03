@@ -1,3 +1,7 @@
+import { Button } from "../../components/ui/button";
+import { Input } from "../../components/ui/input";
+import { Textarea } from "../../components/ui/textarea";
+import { Label } from "../../components/ui/label";
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { createPortal } from "react-dom";
 import { Link } from "react-router-dom";
@@ -478,12 +482,12 @@ export default function JobPosts() {
             <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
             <span>{actionSuccess}</span>
           </div>
-          <button
+          <Button
             onClick={() => setActionSuccess("")}
             className="text-emerald-600 hover:text-emerald-800 p-1 cursor-pointer"
           >
             <X className="w-4 h-4" />
-          </button>
+          </Button>
         </div>
       )}
 
@@ -493,12 +497,12 @@ export default function JobPosts() {
             <AlertTriangle className="w-5 h-5 text-rose-600 shrink-0" />
             <span>{actionError}</span>
           </div>
-          <button
+          <Button
             onClick={() => setActionError("")}
             className="text-rose-600 hover:text-rose-800 p-1 cursor-pointer"
           >
             <X className="w-4 h-4" />
-          </button>
+          </Button>
         </div>
       )}
 
@@ -527,7 +531,7 @@ export default function JobPosts() {
         title="Job Vacancy Postings"
         subtitle="Publish municipal job openings and manage your vacancies"
         controlAction={
-          <button
+          <Button
             type="button"
             onClick={handleOpenCreate}
             disabled={!company}
@@ -535,13 +539,13 @@ export default function JobPosts() {
           >
             <Plus className="w-4 h-4" />
             <span>Post a Job</span>
-          </button>
+          </Button>
         }
         sidebar={
           <>
             <div className="space-y-3">
               {sidebarTiles.map((tile) => (
-                <button
+                <Button
                   key={tile.label}
                   type="button"
                   data-tone={tile.id === "published" ? "success" : tile.id === "closed" ? "warning" : tile.id === "draft" ? "neutral" : "info"}
@@ -552,7 +556,7 @@ export default function JobPosts() {
                 >
                   <p className="text-2xl font-bold">{tile.value}</p>
                   <p className="mt-0.5 text-[10px] font-semibold uppercase tracking-wider">{tile.label}</p>
-                </button>
+                </Button>
               ))}
             </div>
           </>
@@ -582,19 +586,19 @@ export default function JobPosts() {
               {/* Top row */}
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <button
+                  <Button
                     type="button"
                     onClick={() => setViewingJob(post)}
                     className="text-left font-bold text-base text-foreground hover:text-primary transition-colors cursor-pointer"
                   >
                     {post.title}
-                  </button>
+                  </Button>
                   <p className="mt-1 text-[11px] text-muted-foreground">
                     Posted on {new Date(post.created_at).toLocaleDateString("en-PH", { year: "numeric", month: "long", day: "numeric" })}
                   </p>
                 </div>
                 <div className="flex items-center gap-1.5 shrink-0">
-                  <button
+                  <Button
                     type="button"
                     onClick={() => handleOpenEdit(post)}
                     data-action-hover="info"
@@ -602,8 +606,8 @@ export default function JobPosts() {
                     title="Edit Job"
                   >
                     <Edit3 className="w-4 h-4" />
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     type="button"
                     onClick={() => setViewingJob(post)}
                     data-action-hover="info"
@@ -611,8 +615,8 @@ export default function JobPosts() {
                     title="View job details"
                   >
                     <Eye className="w-4 h-4" />
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     type="button"
                     onClick={() => setConfirmDeleteJob(post)}
                     data-action-hover="danger"
@@ -620,9 +624,9 @@ export default function JobPosts() {
                     title="Delete posting permanently"
                   >
                     <Trash2 className="w-4 h-4" />
-                  </button>
+                  </Button>
                   {(post.status === "published" || post.status === "closed") && (
-                    <button
+                    <Button
                       type="button"
                       onClick={() => handleToggleClose(post)}
                       data-action-tone={post.status === "published" ? "warning" : "success"}
@@ -634,7 +638,7 @@ export default function JobPosts() {
                       title={post.status === "published" ? "Close recruitment" : "Reopen listing"}
                     >
                       {post.status === "published" ? "Close" : "Reopen"}
-                    </button>
+                    </Button>
                   )}
                 </div>
               </div>
@@ -695,7 +699,7 @@ export default function JobPosts() {
                     : "To post job vacancies, your company must first be accredited by PESO."}
             </p>
             {searchTerm || statusFilter ? (
-              <button
+              <Button
                 type="button"
                 onClick={() => {
                   setSearchTerm("");
@@ -706,7 +710,7 @@ export default function JobPosts() {
               >
                 <RotateCcw className="w-3 h-3" />
                 <span>Reset filters</span>
-              </button>
+              </Button>
             ) : accreditationStatus !== "approved" ? (
               <Link
                 to="/employer/accreditation"
@@ -746,24 +750,24 @@ export default function JobPosts() {
                   </h2>
                 </div>
               </div>
-              <button
+              <Button
                 type="button"
                 onClick={requestCloseForm}
                 aria-label="Close form"
                 className="p-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer"
               >
                 <X className="w-5 h-5" />
-              </button>
+              </Button>
             </div>
 
             {/* Form Fields */}
             <div className="mt-6 space-y-5">
               {/* Job Title */}
               <div>
-                <label htmlFor="job-title" className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase font-semibold mb-1.5">
+                <Label htmlFor="job-title" className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase font-semibold mb-1.5">
                   Job Title <span aria-hidden="true" className="text-rose-500">*</span>
-                </label>
-                <input
+                </Label>
+                <Input
                   id="job-title"
                   type="text"
                   value={form.title}
@@ -782,10 +786,10 @@ export default function JobPosts() {
               {/* Department / Office & Employment Type */}
               <div className="grid grid-cols-1 gap-3">
                 <div>
-                  <label htmlFor="job-office" className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase font-semibold mb-1.5">
+                  <Label htmlFor="job-office" className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase font-semibold mb-1.5">
                     Department / Office <span className="text-muted-foreground font-normal lowercase">(optional)</span>
-                  </label>
-                  <input
+                  </Label>
+                  <Input
                     id="job-office"
                     type="text"
                     value={form.office}
@@ -796,9 +800,9 @@ export default function JobPosts() {
                 </div>
 
                 <div>
-                  <label htmlFor="job-employment-type" className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase font-semibold mb-1.5">
+                  <Label htmlFor="job-employment-type" className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase font-semibold mb-1.5">
                     Employment Type <span aria-hidden="true" className="text-rose-500">*</span>
-                  </label>
+                  </Label>
                   <select
                     id="job-employment-type"
                     value={form.employment_type}
@@ -814,9 +818,9 @@ export default function JobPosts() {
                   </select>
                 </div>
                 <div>
-                  <label htmlFor="job-work-arrangement" className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase font-semibold mb-1.5">
+                  <Label htmlFor="job-work-arrangement" className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase font-semibold mb-1.5">
                     Work Arrangement <span aria-hidden="true" className="text-rose-500">*</span>
-                  </label>
+                  </Label>
                   <select
                     id="job-work-arrangement"
                     value={form.work_arrangement}
@@ -833,12 +837,12 @@ export default function JobPosts() {
               {/* Barangay Location & Vacancies */}
               <div className="grid grid-cols-1 gap-3">
                 <div>
-                  <label id="job-location-label" className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase font-semibold mb-1.5">
+                  <Label id="job-location-label" className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase font-semibold mb-1.5">
                     Barangay Location <span aria-hidden="true" className="text-rose-500">*</span>
-                  </label>
+                  </Label>
                   {/* ponytail: custom listbox only because native select direction is browser-controlled; revert to native if requirement lifts. */}
                   <div ref={barangayRef} className="relative">
-                    <button
+                    <Button
                       type="button"
                       aria-haspopup="listbox"
                       aria-expanded={barangayOpen}
@@ -854,10 +858,10 @@ export default function JobPosts() {
                         {form.location || "Select barangay"}
                       </span>
                       <span aria-hidden="true" className="text-muted-foreground text-xs">▾</span>
-                    </button>
+                    </Button>
                     {barangayOpen && (
                       <div className="absolute top-full left-0 right-0 mt-1 z-50 bg-card border border-border rounded-xl shadow-xl">
-                        <input
+                        <Input
                           type="text"
                           aria-label="Search barangay"
                           value={barangayQuery}
@@ -913,10 +917,10 @@ export default function JobPosts() {
                 </div>
 
                 <div>
-                  <label htmlFor="job-vacancies" className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase font-semibold mb-1.5">
+                  <Label htmlFor="job-vacancies" className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase font-semibold mb-1.5">
                     Number of Vacancies <span aria-hidden="true" className="text-rose-500">*</span>
-                  </label>
-                  <input
+                  </Label>
+                  <Input
                     id="job-vacancies"
                     type="number"
                     min="1"
@@ -940,14 +944,14 @@ export default function JobPosts() {
               {/* Salary Range */}
               <div className="grid grid-cols-1 gap-3">
                 <div>
-                  <label htmlFor="job-salary-min" className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase font-semibold mb-1.5">
+                  <Label htmlFor="job-salary-min" className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase font-semibold mb-1.5">
                     Minimum Salary (₱) <span className="text-muted-foreground font-normal lowercase">(optional)</span>
-                  </label>
+                  </Label>
                   <div className="relative">
                     <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground text-sm font-semibold">
                       ₱
                     </span>
-                    <input
+                    <Input
                       id="job-salary-min"
                       type="number"
                       min="0"
@@ -969,14 +973,14 @@ export default function JobPosts() {
                 </div>
 
                 <div>
-                  <label htmlFor="job-salary-max" className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase font-semibold mb-1.5">
+                  <Label htmlFor="job-salary-max" className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase font-semibold mb-1.5">
                     Maximum Salary (₱) <span className="text-muted-foreground font-normal lowercase">(optional)</span>
-                  </label>
+                  </Label>
                   <div className="relative">
                     <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground text-sm font-semibold">
                       ₱
                     </span>
-                    <input
+                    <Input
                       id="job-salary-max"
                       type="number"
                       min="0"
@@ -998,10 +1002,10 @@ export default function JobPosts() {
 
               {/* Application Deadline */}
               <div>
-                <label htmlFor="job-deadline" className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase font-semibold mb-1.5">
+                <Label htmlFor="job-deadline" className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase font-semibold mb-1.5">
                   Application Deadline <span className="text-muted-foreground font-normal lowercase">(optional)</span>
-                </label>
-                <input
+                </Label>
+                <Input
                   id="job-deadline"
                   type="date"
                   value={form.deadline}
@@ -1012,10 +1016,10 @@ export default function JobPosts() {
 
               {/* Job Description */}
               <div>
-                <label htmlFor="job-description" className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase font-semibold mb-1.5">
+                <Label htmlFor="job-description" className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase font-semibold mb-1.5">
                   Job Description &amp; Responsibilities <span aria-hidden="true" className="text-rose-500">*</span>
-                </label>
-                <textarea
+                </Label>
+                <Textarea
                   id="job-description"
                   rows={4}
                   value={form.description}
@@ -1037,9 +1041,9 @@ export default function JobPosts() {
 
               {/* Education Requirement */}
               <div>
-                <label htmlFor="job-education-requirement" className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase font-semibold mb-1.5">
+                <Label htmlFor="job-education-requirement" className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase font-semibold mb-1.5">
                   Education Requirement <span className="text-muted-foreground font-normal lowercase">(optional)</span>
-                </label>
+                </Label>
                 <select
                   id="job-education-requirement"
                   value={parseEducation(form.requirements)}
@@ -1055,9 +1059,9 @@ export default function JobPosts() {
 
               {/* Work Experience Required */}
               <div>
-                <label htmlFor="job-experience-required" className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase font-semibold mb-1.5">
+                <Label htmlFor="job-experience-required" className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase font-semibold mb-1.5">
                   Work Experience Required <span className="text-muted-foreground font-normal lowercase">(years, optional)</span>
-                </label>
+                </Label>
                 <select
                   id="job-experience-required"
                   value={experienceIsCustom ? "custom" : experienceYears}
@@ -1081,7 +1085,7 @@ export default function JobPosts() {
                   <option value="custom">Custom…</option>
                 </select>
                 {experienceIsCustom && (
-                  <input
+                  <Input
                     id="job-experience-custom"
                     type="number"
                     min="0"
@@ -1105,7 +1109,7 @@ export default function JobPosts() {
                   {JOB_BENEFITS.map((benefit) => {
                     const selected = form.benefits.includes(benefit);
                     return (
-                      <button
+                      <Button
                         key={benefit}
                         type="button"
                         aria-pressed={selected}
@@ -1124,7 +1128,7 @@ export default function JobPosts() {
                         }`}
                       >
                         {benefit}
-                      </button>
+                      </Button>
                     );
                   })}
                 </div>
@@ -1139,7 +1143,7 @@ export default function JobPosts() {
                   {JOB_TAGS.map((tag) => {
                     const selected = form.tags.includes(tag);
                     return (
-                      <button
+                      <Button
                         key={tag}
                         type="button"
                         aria-pressed={selected}
@@ -1156,7 +1160,7 @@ export default function JobPosts() {
                         }`}
                       >
                         {tag}
-                      </button>
+                      </Button>
                     );
                   })}
                 </div>
@@ -1164,10 +1168,10 @@ export default function JobPosts() {
 
               {/* Application Instructions */}
               <div>
-                <label htmlFor="job-instructions" className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase font-semibold mb-1.5">
+                <Label htmlFor="job-instructions" className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase font-semibold mb-1.5">
                   Application Instructions <span className="text-muted-foreground font-normal lowercase">(optional)</span>
-                </label>
-                <textarea
+                </Label>
+                <Textarea
                   id="job-instructions"
                   rows={2}
                   value={form.instructions}
@@ -1180,25 +1184,25 @@ export default function JobPosts() {
 
             {/* Modal Actions */}
             <div className="mt-8 pt-5 border-t border-border flex flex-col sm:flex-row items-center justify-end gap-3">
-              <button
+              <Button
                 type="button"
                 onClick={requestCloseForm}
                 disabled={saving}
                 className="w-full sm:w-auto px-5 py-2.5 text-xs font-semibold rounded-xl border border-border text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer"
               >
                 Cancel
-              </button>
+              </Button>
 
-              <button
+              <Button
                 type="button"
                 onClick={() => handleSaveJob("draft")}
                 disabled={saving}
                 className="w-full sm:w-auto px-5 py-2.5 text-xs font-semibold text-muted-foreground bg-muted hover:bg-gray-200 rounded-xl transition-colors disabled:opacity-50 cursor-pointer"
               >
                 {saving ? "Saving..." : editingId ? "Save Changes as Draft" : "Save as Draft"}
-              </button>
+              </Button>
 
-              <button
+              <Button
                 type="button"
                 onClick={() => handleSaveJob("published")}
                 disabled={saving}
@@ -1206,7 +1210,7 @@ export default function JobPosts() {
               >
                 <Send className="w-3.5 h-3.5" />
                 <span>{saving ? "Publishing..." : "Publish Job"}</span>
-              </button>
+              </Button>
             </div>
           </div>
         </div>,
@@ -1235,14 +1239,14 @@ export default function JobPosts() {
                   <span>· Posted on {new Date(viewingJob.created_at).toLocaleDateString()}</span>
                 </div>
               </div>
-              <button
+              <Button
                 type="button"
                 onClick={() => setViewingJob(null)}
                 aria-label="Close job details"
                 className="p-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer"
               >
                 <X className="w-5 h-5" />
-              </button>
+              </Button>
             </div>
 
             {/* Quick Fact Grid */}
@@ -1349,7 +1353,7 @@ export default function JobPosts() {
 
             {/* Modal Bottom Actions */}
             <div className="pt-4 border-t border-border flex flex-wrap items-center justify-end gap-2.5">
-              <button
+              <Button
                 type="button"
                 onClick={() => {
                   const toEdit = viewingJob;
@@ -1359,25 +1363,25 @@ export default function JobPosts() {
                 className="px-4 py-2 rounded-xl text-xs font-semibold border border-border text-muted-foreground hover:bg-muted transition-colors cursor-pointer"
               >
                 Edit Listing
-              </button>
+              </Button>
 
               {(viewingJob.status === "published" || viewingJob.status === "closed") && (
-                <button
+                <Button
                   type="button"
                   onClick={() => handleToggleClose(viewingJob)}
                   className="px-4 py-2 rounded-xl text-xs font-semibold border border-border text-muted-foreground hover:bg-muted transition-colors cursor-pointer"
                 >
                   {viewingJob.status === "published" ? "Close Job" : "Reopen Job"}
-                </button>
+                </Button>
               )}
 
-              <button
+              <Button
                 type="button"
                 onClick={() => setViewingJob(null)}
                 className="px-4 py-2 rounded-xl text-xs font-semibold bg-muted text-muted-foreground hover:bg-gray-200 transition-colors cursor-pointer"
               >
                 Done
-              </button>
+              </Button>
             </div>
           </div>
         </div>,

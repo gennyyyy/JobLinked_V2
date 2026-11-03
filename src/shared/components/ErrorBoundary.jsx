@@ -1,3 +1,4 @@
+import { Button } from "../../components/ui/button";
 import { Component } from "react";
 
 // One render throw anywhere below this boundary would otherwise unmount the
@@ -25,13 +26,13 @@ class ErrorBoundary extends Component {
           <h1 className="text-lg font-semibold text-foreground">Something went wrong</h1>
           <p className="text-sm text-muted-foreground">This page could not be displayed. Reloading usually fixes it.</p>
           <p className="text-xs text-danger break-words">{this.state.error.message || "Unknown error"}</p>
-          <button
+          <Button
             type="button"
             onClick={() => window.location.reload()}
             className="min-h-[44px] px-6 rounded-xl bg-primary text-white text-sm font-medium hover:bg-primary-hover transition-colors"
           >
             Reload
-          </button>
+          </Button>
         </div>
       </div>
     );

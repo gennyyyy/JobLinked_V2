@@ -1,3 +1,7 @@
+import { Button } from "../../components/ui/button";
+import { Input } from "../../components/ui/input";
+import { Textarea } from "../../components/ui/textarea";
+import { Label } from "../../components/ui/label";
 import { useState, useEffect } from "react";
 import { sendSystemNotification } from "../../shared/services/admin";
 import { listNotifications } from "../../shared/services/notifications";
@@ -62,7 +66,7 @@ export default function Broadcast() {
         <p className="mt-2 text-sm text-muted-foreground">Send an announcement to all users. Past broadcasts appear below.</p>
       </header>
       <div aria-label="Broadcast sections" className="flex flex-wrap gap-2">
-        <button
+        <Button
           type="button"
           onClick={() => setTab("compose")}
           aria-current={tab === "compose" ? "true" : undefined}
@@ -71,8 +75,8 @@ export default function Broadcast() {
             : "rounded-xl border border-border bg-card px-4 py-2.5 text-sm font-medium text-muted-foreground hover:bg-muted"}
         >
           Compose
-        </button>
-        <button
+        </Button>
+        <Button
           type="button"
           onClick={() => setTab("recent")}
           aria-current={tab === "recent" ? "true" : undefined}
@@ -81,29 +85,29 @@ export default function Broadcast() {
             : "rounded-xl border border-border bg-card px-4 py-2.5 text-sm font-medium text-muted-foreground hover:bg-muted"}
         >
           {`Recent broadcasts (${sent.length})`}
-        </button>
+        </Button>
       </div>
       {tab === "compose" ? (
         <section className="bg-card border border-primary rounded-lg p-6">
           <form onSubmit={handleSend} className="space-y-4">
             <div>
-              <label htmlFor="sys-title" className="block text-xs font-medium text-muted-foreground mb-1.5">Title</label>
-              <input id="sys-title" type="text" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Job fair on Saturday" className={inputClass} />
+              <Label htmlFor="sys-title" className="block text-xs font-medium text-muted-foreground mb-1.5">Title</Label>
+              <Input id="sys-title" type="text" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Job fair on Saturday" className={inputClass} />
             </div>
             <div>
-              <label htmlFor="sys-message" className="block text-xs font-medium text-muted-foreground mb-1.5">Message</label>
-              <textarea id="sys-message" rows={3} value={message} onChange={(e) => setMessage(e.target.value)} placeholder="Announcement details…" className={`${inputClass} resize-none`} />
+              <Label htmlFor="sys-message" className="block text-xs font-medium text-muted-foreground mb-1.5">Message</Label>
+              <Textarea id="sys-message" rows={3} value={message} onChange={(e) => setMessage(e.target.value)} placeholder="Announcement details…" className={`${inputClass} resize-none`} />
             </div>
             {error && <p className="text-xs text-danger">{error}</p>}
             <div>
-              <label htmlFor="sys-expires" className="block text-xs font-medium text-muted-foreground mb-1.5">Expires <span className="text-muted-foreground font-normal">(optional)</span></label>
-              <input id="sys-expires" type="date" value={expiresAt} onChange={(e) => setExpiresAt(e.target.value)} className={inputClass} />
+              <Label htmlFor="sys-expires" className="block text-xs font-medium text-muted-foreground mb-1.5">Expires <span className="text-muted-foreground font-normal">(optional)</span></Label>
+              <Input id="sys-expires" type="date" value={expiresAt} onChange={(e) => setExpiresAt(e.target.value)} className={inputClass} />
             </div>
             {result && <p className="text-xs text-emerald-700">{result}</p>}
             <div className="flex justify-end pt-1">
-              <button type="submit" disabled={sending} className="px-4 py-2.5 text-sm font-medium text-white bg-primary hover:bg-primary-hover rounded-lg transition-colors disabled:opacity-60">
+              <Button type="submit" disabled={sending} className="px-4 py-2.5 text-sm font-medium text-white bg-primary hover:bg-primary-hover rounded-lg transition-colors disabled:opacity-60">
                 {sending ? "Sending…" : "Send Broadcast"}
-              </button>
+              </Button>
             </div>
           </form>
         </section>

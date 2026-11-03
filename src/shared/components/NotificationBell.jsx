@@ -1,3 +1,4 @@
+import { Button } from "../../components/ui/button";
 import { Link, useNavigate } from "react-router-dom";
 import { useState, useEffect, useCallback, useId, useRef } from "react";
 import { listNotifications, markRead } from "../services/notifications";
@@ -93,7 +94,7 @@ function NotificationBell({ dark = false, align = "right" }) {
 
   return (
     <div className="relative">
-      <button
+      <Button
         type="button"
         ref={triggerRef}
         onClick={() => setOpen((v) => !v)}
@@ -114,7 +115,7 @@ function NotificationBell({ dark = false, align = "right" }) {
             {unread > 9 ? "9+" : unread}
           </span>
         )}
-      </button>
+      </Button>
 
       {/* ponytail: closes instantly — an exit animation needs the panel kept
           mounted for the transition duration; add when the hard cut is noticed. */}
@@ -148,7 +149,7 @@ function NotificationBell({ dark = false, align = "right" }) {
                 const { icon: Icon, colorClass, tone } = getNotificationVisual(n);
                 return (
                   <li key={n.id}>
-                    <button
+                    <Button
                       type="button"
                       onClick={() => handleRowClick(n)}
                       className={`w-full cursor-pointer text-left rounded-lg border border-dark-blue bg-card pl-2.5 pr-4 py-3 flex items-center gap-3 ${
@@ -167,7 +168,7 @@ function NotificationBell({ dark = false, align = "right" }) {
                       {!n.is_read && (
                         <span className="w-2 h-2 shrink-0 rounded-full bg-primary" aria-hidden="true" />
                       )}
-                    </button>
+                    </Button>
                   </li>
                 );
               })}

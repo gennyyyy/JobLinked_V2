@@ -1,3 +1,4 @@
+import { Button } from "../../components/ui/button";
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { ChevronDown } from "lucide-react";
@@ -47,7 +48,7 @@ function PublicHeader() {
         </Link>
         <div className="flex items-center gap-3">
           <div className="relative hidden sm:block">
-            <button
+            <Button
               type="button"
               ref={triggerRef}
               onClick={() => setOpen((v) => !v)}
@@ -57,7 +58,7 @@ function PublicHeader() {
             >
               How It Works
               <ChevronDown className={`w-4 h-4 transition-transform ${open ? "rotate-180" : ""}`} />
-            </button>
+            </Button>
             {open && (
               <nav
                 id="how-it-works-menu"

@@ -1,3 +1,6 @@
+import { Button } from "../../components/ui/button";
+import { Input } from "../../components/ui/input";
+import { Label } from "../../components/ui/label";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { resetPassword } from "../../shared/services/auth";
@@ -64,10 +67,10 @@ function ForgotPassword() {
             )}
 
             <div>
-              <label htmlFor="forgot-email" className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase mb-1.5">
+              <Label htmlFor="forgot-email" className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase mb-1.5">
                 Email
-              </label>
-              <input
+              </Label>
+              <Input
                 id="forgot-email"
                 name="email"
                 type="email"
@@ -79,13 +82,13 @@ function ForgotPassword() {
               />
             </div>
 
-            <button
+            <Button
               type="submit"
               disabled={busy}
               className="w-full mt-6 min-h-[44px] px-6 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-primary-hover active:scale-[0.98] transition-all shadow-md disabled:opacity-60"
             >
               {busy ? "Sending…" : "Send Reset Link"}
-            </button>
+            </Button>
           </form>
         </div>
       </main>

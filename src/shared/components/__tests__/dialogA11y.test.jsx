@@ -1,3 +1,4 @@
+import { Button } from "../../../components/ui/button";
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
@@ -11,7 +12,7 @@ describe('modal a11y (shared dialog behaviour)', () => {
     render(
       <MemoryRouter>
         <div>
-          <button type="button">Remove job</button>
+          <Button type="button">Remove job</Button>
           <ConfirmationModal message="Delete this job?" onConfirm={vi.fn()} onCancel={onCancel} />
         </div>
       </MemoryRouter>

@@ -1,3 +1,4 @@
+import { Button } from "../../components/ui/button";
 import { useState } from "react";
 import useAuth from "../../shared/hooks/useAuth";
 import AiMatchModal from "./AiMatchModal";
@@ -21,7 +22,7 @@ function Jobs() {
         jobHref={(id) => `/job-seeker/jobs/${id}`}
         initialSkills={skills.slice(0, 3)}
         toolbar={
-          <button
+          <Button
             type="button"
             onClick={() => setAiOpen(true)}
             aria-label="Open AI job matching"
@@ -29,7 +30,7 @@ function Jobs() {
             className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-primary/25 bg-primary/10 text-primary hover:bg-primary/20 focus:outline-none focus:ring-2 focus:ring-primary/30 transition-colors cursor-pointer"
           >
             <span className="text-xs font-bold tracking-wide">AI</span>
-          </button>
+          </Button>
         }
       />
 

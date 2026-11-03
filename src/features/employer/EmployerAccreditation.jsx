@@ -1,3 +1,6 @@
+import { Button } from "../../components/ui/button";
+import { Input } from "../../components/ui/input";
+import { Label } from "../../components/ui/label";
 import { useState, useEffect } from "react";
 import { ClipboardList } from "lucide-react";
 import useAuth from "../../shared/hooks/useAuth";
@@ -127,13 +130,13 @@ function EmployerAccreditation() {
             To post job vacancies, your company must be accredited by PESO. Begin by submitting your application and uploading the required documents.
           </p>
           {error && <p className="text-sm text-danger">{error}</p>}
-          <button
+          <Button
             onClick={handleSubmitApplication}
             disabled={submitting}
             className="inline-flex items-center justify-center px-6 py-2.5 text-sm font-semibold text-white bg-primary hover:bg-primary-hover rounded-xl transition-colors shadow-md disabled:opacity-60"
           >
             {submitting ? "Submitting…" : "Begin Accreditation Application"}
-          </button>
+          </Button>
         </div>
       </div>
     );
@@ -156,13 +159,13 @@ function EmployerAccreditation() {
       <div className="bg-card border border-primary rounded-lg p-6 md:p-9">
         <div className="flex items-center gap-1 p-1 bg-muted border border-border rounded-xl w-fit mb-6">
           {[["documents", "Required Documents"], ["history", `History (${accreditations.length})`]].map(([key, label]) => (
-            <button
+            <Button
               key={key}
               onClick={() => setTab(key)}
               className={`px-4 py-2 rounded-lg text-xs font-medium cursor-pointer transition-all ${tab === key ? "bg-primary text-white shadow-xs" : "text-muted-foreground hover:text-foreground"}`}
             >
               {label}
-            </button>
+            </Button>
           ))}
         </div>
 
@@ -220,22 +223,22 @@ function EmployerAccreditation() {
                 </div>
                 <div className="shrink-0 ml-4 flex gap-2">
                   {doc && (
-                    <button onClick={() => handleView(doc)} className="px-3 py-2 text-xs font-medium text-muted-foreground hover:text-foreground bg-muted hover:bg-gray-200 border border-border rounded-lg transition-colors">
+                    <Button onClick={() => handleView(doc)} className="px-3 py-2 text-xs font-medium text-muted-foreground hover:text-foreground bg-muted hover:bg-gray-200 border border-border rounded-lg transition-colors">
                       View
-                    </button>
+                    </Button>
                   )}
-                  <input type="file" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" onChange={(e) => handleFileChange(docType, e)} className="hidden" id={`doc-${docType}`} />
-                  <label htmlFor={`doc-${docType}`} className="cursor-pointer inline-block px-4 py-2 text-xs font-medium text-muted-foreground hover:text-foreground bg-muted hover:bg-gray-200 border border-border rounded-lg transition-colors">
+                  <Input type="file" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" onChange={(e) => handleFileChange(docType, e)} className="hidden" id={`doc-${docType}`} />
+                  <Label htmlFor={`doc-${docType}`} className="cursor-pointer inline-block px-4 py-2 text-xs font-medium text-muted-foreground hover:text-foreground bg-muted hover:bg-gray-200 border border-border rounded-lg transition-colors">
                     {doc ? "Replace" : "Upload"}
-                  </label>
+                  </Label>
                   {files[docType] && (
-                    <button
+                    <Button
                       onClick={() => handleUpload(docType)}
                       disabled={uploading === docType}
                       className="px-3 py-2 text-xs font-medium text-white bg-primary hover:bg-primary-hover rounded-lg transition-colors disabled:opacity-60"
                     >
                       {uploading === docType ? "…" : "Save"}
-                    </button>
+                    </Button>
                   )}
                 </div>
               </div>

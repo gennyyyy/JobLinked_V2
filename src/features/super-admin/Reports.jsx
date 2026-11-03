@@ -1,4 +1,7 @@
-﻿import { useEffect, useMemo, useState } from "react";
+import { Button } from "../../components/ui/button";
+import { Input } from "../../components/ui/input";
+import { Label } from "../../components/ui/label";
+import { useEffect, useMemo, useState } from "react";
 import { listAllJobs, listAllApplications, listUsers } from "../../shared/services/admin";
 import LoadingScreen from "../../shared/components/LoadingScreen";
 import { PageHeader, StatCard, SectionCard } from "../../shared/components/dashboard";
@@ -90,7 +93,7 @@ function Reports() {
 
       <nav aria-label="Report types" className="grid grid-cols-2 gap-2 md:grid-cols-4">
         {REPORTS.map((report) => (
-          <button
+          <Button
             key={report.id}
             type="button"
             onClick={() => { setActive(report.id); setPage(1); }}
@@ -99,7 +102,7 @@ function Reports() {
           >
             <span className="block text-sm font-semibold">{report.label}</span>
             <span className={`mt-0.5 block text-xs ${active === report.id ? "text-white/70" : "text-muted-foreground"}`}>{report.eyebrow}</span>
-          </button>
+          </Button>
         ))}
       </nav>
 
@@ -110,17 +113,17 @@ function Reports() {
           <p className="mt-1 text-sm text-muted-foreground">{current.description}</p>
         </div>
         <div className="flex flex-wrap items-end gap-3">
-          <label className="grid gap-1 text-xs text-muted-foreground">
+          <Label className="grid gap-1 text-xs text-muted-foreground">
             From
-            <input aria-label="From date" type="date" value={from} onChange={(event) => { setFrom(event.target.value); setPage(1); }} className="rounded-xl border border-border bg-muted px-3 py-2 text-sm text-dark-blue focus:border-primary/60 focus:outline-none focus:ring-1 focus:ring-primary/30" />
-          </label>
-          <label className="grid gap-1 text-xs text-muted-foreground">
+            <Input aria-label="From date" type="date" value={from} onChange={(event) => { setFrom(event.target.value); setPage(1); }} className="rounded-xl border border-border bg-muted px-3 py-2 text-sm text-dark-blue focus:border-primary/60 focus:outline-none focus:ring-1 focus:ring-primary/30" />
+          </Label>
+          <Label className="grid gap-1 text-xs text-muted-foreground">
             To
-            <input aria-label="To date" type="date" value={to} onChange={(event) => { setTo(event.target.value); setPage(1); }} className="rounded-xl border border-border bg-muted px-3 py-2 text-sm text-dark-blue focus:border-primary/60 focus:outline-none focus:ring-1 focus:ring-primary/30" />
-          </label>
-          <button type="button" onClick={downloadCSV} className="rounded-xl bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary-hover focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2">
+            <Input aria-label="To date" type="date" value={to} onChange={(event) => { setTo(event.target.value); setPage(1); }} className="rounded-xl border border-border bg-muted px-3 py-2 text-sm text-dark-blue focus:border-primary/60 focus:outline-none focus:ring-1 focus:ring-primary/30" />
+          </Label>
+          <Button type="button" onClick={downloadCSV} className="rounded-xl bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary-hover focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2">
             Download CSV
-          </button>
+          </Button>
         </div>
       </section>
 
@@ -236,8 +239,8 @@ function Reports() {
           <div className="mt-4 flex items-center justify-between border-t border-border pt-3 text-xs text-muted-foreground">
             <span>Page {page} of {pages}</span>
             <div className="flex gap-2">
-              <button type="button" disabled={page <= 1} onClick={() => setPage((value) => value - 1)} className="rounded-xl border border-border bg-card px-3 py-1.5 disabled:opacity-40">Previous</button>
-              <button type="button" disabled={page >= pages} onClick={() => setPage((value) => value + 1)} className="rounded-xl border border-border bg-card px-3 py-1.5 disabled:opacity-40">Next</button>
+              <Button type="button" disabled={page <= 1} onClick={() => setPage((value) => value - 1)} className="rounded-xl border border-border bg-card px-3 py-1.5 disabled:opacity-40">Previous</Button>
+              <Button type="button" disabled={page >= pages} onClick={() => setPage((value) => value + 1)} className="rounded-xl border border-border bg-card px-3 py-1.5 disabled:opacity-40">Next</Button>
             </div>
           </div>
         )}

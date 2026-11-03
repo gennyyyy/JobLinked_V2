@@ -1,3 +1,6 @@
+import { Button } from "../../components/ui/button";
+import { Input } from "../../components/ui/input";
+import { Label } from "../../components/ui/label";
 import { useState, useEffect } from "react";
 import { Link, Navigate, useParams } from "react-router-dom";
 import { CheckCircle2 } from "lucide-react";
@@ -210,7 +213,7 @@ function JobDetail() {
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
               {resumes.length > 0 && (
                 <>
-                  <label htmlFor="job-resume-select" className="sr-only">Choose resume</label>
+                  <Label htmlFor="job-resume-select" className="sr-only">Choose resume</Label>
                   <select
                     id="job-resume-select"
                     value={selectedResume}
@@ -221,21 +224,21 @@ function JobDetail() {
                   </select>
                 </>
               )}
-              <input type="file" accept=".pdf,.doc,.docx" onChange={handleResumeUpload} className="hidden" id="job-resume-upload" />
-              <label htmlFor="job-resume-upload" className="inline-flex items-center min-h-[44px] px-4 rounded-xl text-xs font-medium text-muted-foreground hover:text-foreground bg-muted hover:bg-gray-200 border border-border transition-colors cursor-pointer">
+              <Input type="file" accept=".pdf,.doc,.docx" onChange={handleResumeUpload} className="hidden" id="job-resume-upload" />
+              <Label htmlFor="job-resume-upload" className="inline-flex items-center min-h-[44px] px-4 rounded-xl text-xs font-medium text-muted-foreground hover:text-foreground bg-muted hover:bg-gray-200 border border-border transition-colors cursor-pointer">
                 {uploading ? "Uploading…" : "Upload New Resume"}
-              </label>
+              </Label>
               <p className="mt-2 text-xs text-muted-foreground">PDF up to 2 MB; DOC or DOCX up to 5 MB.</p>
               {deadlinePassed && (
                 <p className="text-xs text-danger">Applications are closed — the deadline has passed.</p>
               )}
-              <button
+              <Button
                 onClick={handleApply}
                 disabled={applying || deadlinePassed}
                 className="min-h-[44px] px-8 rounded-xl bg-primary text-white text-sm font-medium hover:bg-primary-hover active:scale-[0.98] transition-all shadow-md disabled:opacity-60"
               >
                 {applying ? "Submitting…" : "Submit Application"}
-              </button>
+              </Button>
             </div>
           )}
           {alreadyApplied && (

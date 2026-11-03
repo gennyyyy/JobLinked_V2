@@ -1,3 +1,4 @@
+import { Button } from "../../../components/ui/button";
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, waitFor, fireEvent, act } from '@testing-library/react'
 import { useEffect, useState } from 'react'
@@ -49,7 +50,7 @@ function ProfileIdentityProbe({ sessionUser }) {
       <span data-testid="probe-company">{user?.company_name || 'none'}</span>
       <span data-testid="probe-skills">{user?.skills ? user.skills.join(', ') : 'none'}</span>
       <span data-testid="probe-user-objects">{userObjects}</span>
-      <button type="button" onClick={() => refreshUser(sessionUser)}>refresh</button>
+      <Button type="button" onClick={() => refreshUser(sessionUser)}>refresh</Button>
     </>
   )
 }

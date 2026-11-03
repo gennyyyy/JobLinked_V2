@@ -1,3 +1,5 @@
+import { Button } from "../../components/ui/button";
+import { Input } from "../../components/ui/input";
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { Bell, Search, AlertTriangle } from "lucide-react";
@@ -20,7 +22,7 @@ function NotificationItem({ n, onMarkRead, selected, onToggleSelect, role }) {
       className={`rounded-lg border border-dark-blue bg-card pl-3 pr-4 py-3 flex items-center gap-3 ${!n.is_read ? "bg-primary/[0.03]" : ""
         }`}
     >
-      <input
+      <Input
         type="checkbox"
         checked={!!selected}
         onChange={() => onToggleSelect(n.id)}
@@ -171,7 +173,7 @@ export default function NotificationsPage({ title = "Notifications", subtitle = 
       {/* Toolbar */}
       <div className="rounded-lg bg-primary/5 border border-primary/20 p-3 flex flex-col lg:flex-row lg:items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-2">
-          <input
+          <Input
             type="checkbox"
             checked={allSelected}
             disabled={notifications.length === 0}
@@ -182,7 +184,7 @@ export default function NotificationsPage({ title = "Notifications", subtitle = 
             }}
             className="h-4 w-4 shrink-0 rounded accent-primary disabled:opacity-50 cursor-pointer"
           />
-          <button
+          <Button
             type="button"
             aria-pressed={unreadOnly}
             onClick={() => {
@@ -195,22 +197,22 @@ export default function NotificationsPage({ title = "Notifications", subtitle = 
               }`}
           >
             Unread
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
             onClick={handleMarkAllRead}
             className="text-xs font-semibold rounded-lg px-3 py-2 bg-card border border-border text-foreground transition-colors cursor-pointer disabled:opacity-50"
           >
             Mark as Read
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
             onClick={() => setConfirmBulk(true)}
             disabled={selected.size === 0}
             className="text-xs font-semibold rounded-lg px-3 py-2 bg-danger text-white border border-danger hover:bg-danger/90 transition-colors disabled:opacity-50 cursor-pointer"
           >
             Delete Selected
-          </button>
+          </Button>
         </div>
 
         <form
@@ -219,7 +221,7 @@ export default function NotificationsPage({ title = "Notifications", subtitle = 
         >
           <div className="relative flex-1">
             <Search className="w-4 h-4 text-muted-foreground absolute left-3.5 top-1/2 -translate-y-1/2" />
-            <input
+            <Input
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
@@ -228,12 +230,12 @@ export default function NotificationsPage({ title = "Notifications", subtitle = 
               className="w-full h-full pl-10 pr-3 py-2 rounded-l-lg rounded-r-none text-sm bg-card border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary transition-all"
             />
           </div>
-          <button
+          <Button
             type="submit"
             className="bg-navy text-white text-sm font-semibold px-4 rounded-r-lg cursor-pointer"
           >
             Search
-          </button>
+          </Button>
         </form>
       </div>
 
@@ -257,13 +259,13 @@ export default function NotificationsPage({ title = "Notifications", subtitle = 
             <p className="text-sm text-muted-foreground max-w-sm mx-auto">
               Try searching for a different keyword or clear the search filter.
             </p>
-            <button
+            <Button
               type="button"
               onClick={() => setSearch("")}
               className="mt-4 px-3 py-2 rounded-xl text-xs font-medium text-muted-foreground bg-muted hover:bg-gray-200 border border-border transition-colors cursor-pointer"
             >
               Clear search
-            </button>
+            </Button>
           </div>
         ) : (
           filtered.map((n) => (

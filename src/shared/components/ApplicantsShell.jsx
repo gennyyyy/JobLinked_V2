@@ -1,3 +1,4 @@
+import { Button } from "../../components/ui/button";
 import { Users } from "lucide-react";
 import CardListLayout from "./CardListLayout";
 
@@ -45,7 +46,7 @@ export default function ApplicantsShell({
   const statusCards = filters.length ? (
     <div className="space-y-3">
       {filters.map((card) => (
-        <button
+        <Button
           key={card.value}
           type="button"
           data-tone={getCardTone(card.className)}
@@ -55,7 +56,7 @@ export default function ApplicantsShell({
         >
           <p className="text-2xl font-bold">{card.count}</p>
           <p className="mt-0.5 text-[10px] font-semibold uppercase tracking-wider">{card.label}</p>
-        </button>
+        </Button>
       ))}
     </div>
   ) : null;
@@ -83,7 +84,7 @@ export default function ApplicantsShell({
           <p className="font-semibold text-foreground mb-1">{emptyTitle}</p>
           {emptyBody ? (typeof emptyBody === "string" ? <p className="text-sm text-muted-foreground max-w-sm mx-auto">{emptyBody}</p> : emptyBody) : null}
           {emptyAction ? <div className="mt-4">{emptyAction}</div> : null}
-          {onClearFilters ? <button type="button" onClick={onClearFilters} className="mt-4 px-4 py-2.5 rounded-xl text-xs font-semibold text-primary bg-primary/10 border border-primary/25 hover:bg-primary/20 transition-colors cursor-pointer">Clear all filters</button> : null}
+          {onClearFilters ? <Button type="button" onClick={onClearFilters} className="mt-4 px-4 py-2.5 rounded-xl text-xs font-semibold text-primary bg-primary/10 border border-primary/25 hover:bg-primary/20 transition-colors cursor-pointer">Clear all filters</Button> : null}
         </div>
       ) : children}
     </CardListLayout>

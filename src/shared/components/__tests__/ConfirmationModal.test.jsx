@@ -1,3 +1,4 @@
+import { Input } from "../../../components/ui/input";
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import ConfirmationModal from '../ConfirmationModal'
@@ -35,7 +36,7 @@ describe('ConfirmationModal', () => {
   it('renders any children between the message and the actions', () => {
     render(
       <ConfirmationModal message="Confirm" onConfirm={vi.fn()} onCancel={vi.fn()}>
-        <input aria-label="reason" />
+        <Input aria-label="reason" />
       </ConfirmationModal>
     )
     expect(screen.getByLabelText('reason')).toBeInTheDocument()
