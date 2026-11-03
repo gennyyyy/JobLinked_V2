@@ -96,8 +96,24 @@ export async function optionalAuth(req, _res, next) {
   next();
 }
 
-export const requireRole = (...roles) => (req, res, next) =>
-  roles.includes(req.user?.role) ? next() : err(res, 403, 'FORBIDDEN', 'Insufficient role');
+// Permission gate for staff (restricted custom roles): super-admins with a
+// custom_role_id are limited to its permission list; unassigned super-admins
+// pass. All others are rejected.
+export const requirePermission = (token) => async (req, res, next) => {
+  if (req.user?.role !== 'super-admin') return err(res, 403, 'FORBIDDEN', 'Insufficient role');
+  let found;
+  try { found = await roleFrom(req, req.user.id); } catch { found = null; }
+  const customRoleId = found?.profile?.custom_role_id ?? null;
+  if (!customRoleId) return next();
+  if (!req._customRolePerms) {
+    try {
+      const { rows } = await pool.query(`select details->'permissions' as perms from reference_data where id = $1`, [customRoleId]);
+      req._customRolePerms = Array.isArray(rows[0]?.perms) ? rows[0].perms : [];
+    } catch { req._customRolePerms = []; }
+  }
+  if (req._customRolePerms.includes(token)) return next();
+  return err(res, 403, 'FORBIDDEN', `Missing permission: ${token}`);
+};
 
 // Token-only auth (Addendum B): validates the Supabase JWT but SKIPS the
 // provisioned-row check — a fresh session has no row by definition.
@@ -111,3 +127,6 @@ export async function tokenAuth(req, res, next) {
   req.user = { id: user.id, email: user.email, app_metadata: user.app_metadata };
   next();
 }
+
+export const requireRole = (...roles) => (req, res, next) =>
+  roles.includes(req.user?.role) ? next() : err(res, 403, 'FORBIDDEN', 'Insufficient role');
