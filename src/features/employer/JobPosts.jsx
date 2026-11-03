@@ -1,6 +1,5 @@
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
-import { Textarea } from "../../components/ui/textarea";
 import { Label } from "../../components/ui/label";
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { createPortal } from "react-dom";
@@ -29,6 +28,7 @@ import { Pager } from "../../shared/components/dashboard";
 import useDialog from "../../shared/hooks/useDialog";
 import { InlineError } from "../../shared/components/dashboard";
 import ApplicantsShell from "../../shared/components/ApplicantsShell";
+import { EmptyState, StatusBadge, TextField, SelectField } from "../../shared/components/design";
 
 const initialForm = {
   title: "",
@@ -78,6 +78,117 @@ function applyExperience(requirements, years) {
     lines.unshift(n === 0 ? "Experience: No experience required" : `Experience: ${n} year${n === 1 ? "" : "s"}`);
   }
   return lines.join("\n");
+}
+
+const EXPERIENCE_OPTIONS = [
+  { value: "0", label: "No experience required" },
+  ...JOB_EXPERIENCE_PRESETS.filter((n) => n !== 0).map((n) => ({ value: String(n), label: `${n} year${n === 1 ? "" : "s"}` })),
+  { value: "custom", label: "Custom…" },
+];
+
+const SIDEBAR_TILES = [
+  { id: null, label: "Total", title: "Show all job postings", tone: "border-border bg-blue-soft text-primary", fallback: "total" },
+  { id: "published", label: "Published", title: "Show published job postings", tone: "border-border bg-success-soft text-success", fallback: "published" },
+  { id: "closed", label: "Closed", title: "Show closed job postings", tone: "border-border bg-warning-soft text-warning", fallback: "closed" },
+  { id: "draft", label: "Draft", title: "Show draft job postings", tone: "border-border bg-secondary text-muted-foreground", fallback: "draft" },
+];
+
+// One job post card: title opens the detail dialog, actions sit beside it.
+function JobCard({ post, onView, onEdit, onToggleClose, onDelete }) {
+  return (
+    <article className="rounded-xl border bg-card p-4">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <button
+            type="button"
+            onClick={() => onView(post)}
+            className="block max-w-full truncate text-left text-sm font-semibold text-navy transition-colors hover:text-primary"
+          >
+            {post.title}
+          </button>
+          <p className="mt-1 text-[10px] text-muted-foreground">
+            Posted on {new Date(post.created_at).toLocaleDateString("en-PH", { year: "numeric", month: "long", day: "numeric" })}
+          </p>
+        </div>
+        <div className="flex shrink-0 items-center gap-1">
+          <Button type="button" variant="ghost" size="icon-sm" onClick={() => onEdit(post)} title="Edit Job" aria-label="Edit Job">
+            <Edit3 />
+          </Button>
+          <Button type="button" variant="ghost" size="icon-sm" onClick={() => onView(post)} title="View job details" aria-label="View job details">
+            <Eye />
+          </Button>
+          <Button type="button" variant="ghost" size="icon-sm" onClick={() => onDelete(post)} title="Delete posting permanently" aria-label="Delete posting permanently" className="text-destructive hover:bg-danger-soft">
+            <Trash2 />
+          </Button>
+          {(post.status === "published" || post.status === "closed") && (
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => onToggleClose(post)}
+              data-action-tone={post.status === "published" ? "warning" : "success"}
+              title={post.status === "published" ? "Close recruitment" : "Reopen listing"}
+              className={`text-xs ${post.status === "published" ? "text-warning hover:bg-warning-soft" : "text-success hover:bg-success-soft"}`}
+            >
+              {post.status === "published" ? "Close" : "Reopen"}
+            </Button>
+          )}
+        </div>
+      </div>
+
+      <div className="mt-4">
+        <StatusBadge status={post.status === "published" ? "Published" : post.status === "closed" ? "Closed" : "Draft"} />
+      </div>
+
+      <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-3">
+        <div className="min-w-0">
+          <dt className="text-[10px] text-muted-foreground">Department</dt>
+          <dd className="mt-1 truncate text-xs font-medium text-navy">{post.office}</dd>
+        </div>
+        <div className="min-w-0">
+          <dt className="text-[10px] text-muted-foreground">Location</dt>
+          <dd className="mt-1 truncate text-xs font-medium text-navy">{`Brgy. ${post.location}, Santa Maria, Bulacan`}</dd>
+        </div>
+        <div className="min-w-0">
+          <dt className="text-[10px] text-muted-foreground">Employment Type</dt>
+          <dd className="mt-1 text-xs font-medium text-navy">{post.employment_type}</dd>
+        </div>
+        <div className="min-w-0">
+          <dt className="text-[10px] text-muted-foreground">Salary</dt>
+          <dd className="mt-1 text-xs font-medium text-navy">{formatSalary(post.salary_min, post.salary_max)}</dd>
+        </div>
+        <div className="min-w-0">
+          <dt className="text-[10px] text-muted-foreground">Vacancy</dt>
+          <dd className="mt-1 text-xs font-medium text-navy">{post.vacancies}</dd>
+        </div>
+      </dl>
+
+      <div className="mt-4 flex justify-end">
+        <Link to="/employer/applicants" data-action-tone="info" className="text-link text-xs">
+          <Users className="size-3.5" />
+          {post.applicant_count || 0} Applied
+        </Link>
+      </div>
+    </article>
+  );
+}
+
+function formatSalary(min, max) {
+  if (!min && !max) return "Not disclosed";
+  if (min && max) {
+    return `₱${Number(min).toLocaleString()} - ₱${Number(max).toLocaleString()}`;
+  }
+  if (min) return `From ₱${Number(min).toLocaleString()}`;
+  return `Up to ₱${Number(max).toLocaleString()}`;
+}
+
+// Section label/value pair inside the read-only detail dialog.
+function Fact({ label, children }) {
+  return (
+    <div className="min-w-0">
+      <p className="text-[10px] text-muted-foreground">{label}</p>
+      <p className="mt-1 text-xs font-medium text-navy">{children}</p>
+    </div>
+  );
 }
 
 export default function JobPosts() {
@@ -450,24 +561,22 @@ export default function JobPosts() {
       });
   }, [jobs, searchTerm, sortBy]);
 
-  const formatSalary = (min, max) => {
-    if (!min && !max) return "Not disclosed";
-    if (min && max) {
-      return `₱${Number(min).toLocaleString()} - ₱${Number(max).toLocaleString()}`;
-    }
-    if (min) return `From ₱${Number(min).toLocaleString()}`;
-    return `Up to ₱${Number(max).toLocaleString()}`;
-  };
-
   // Counts come from the API (`counts` ignores status + paging); fall back to
   // the current page when an older API/response omits them.
-  const sidebarTiles = [
-    { id: null,        label: "Total",     value: statusCounts?.total ?? total, tone: "bg-blue-50 border-blue-300 text-blue-700", title: "Show all job postings" },
-    { id: "published", label: "Published", value: statusCounts?.published ?? jobs.filter((j) => j.status === "published").length, tone: "bg-emerald-50 border-emerald-300 text-emerald-700", title: "Show published job postings" },
-    { id: "closed",    label: "Closed",    value: statusCounts?.closed ?? jobs.filter((j) => j.status === "closed").length, tone: "bg-amber-50 border-amber-300 text-amber-700", title: "Show closed job postings" },
-    { id: "draft",     label: "Draft",     value: statusCounts?.draft ?? jobs.filter((j) => j.status === "draft").length, tone: "bg-muted border-gray-300 text-muted-foreground", title: "Show draft job postings" },
-  ];
+  const sidebarTiles = SIDEBAR_TILES.map((tile) => ({
+    ...tile,
+    value:
+      (statusCounts ? statusCounts[tile.fallback] : null) ??
+      (tile.id ? jobs.filter((j) => j.status === tile.id).length : total),
+  }));
 
+  const emptyDescription = searchTerm
+    ? "Try adjusting your search criteria to locate the postings you're looking for."
+    : statusFilter
+      ? "No job postings with this status."
+      : accreditationStatus === "approved"
+        ? "You haven't posted any job vacancies yet. Click '+ Post a Job' to recruit Santa Maria talent."
+        : "To post job vacancies, your company must first be accredited by PESO.";
 
   if (loading) return <LoadingScreen />;
 
@@ -477,50 +586,44 @@ export default function JobPosts() {
     <>
       {/* Action feedback notifications */}
       {actionSuccess && (
-        <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm flex items-center justify-between shadow-xs">
-          <div className="flex items-center gap-3">
-            <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
-            <span>{actionSuccess}</span>
+        <div role="status" className="mb-4 flex items-center justify-between gap-3 rounded-xl border border-success/20 bg-success-soft px-4 py-3 text-xs font-medium text-success">
+          <div className="flex min-w-0 items-center gap-2">
+            <CheckCircle2 className="size-4 shrink-0" aria-hidden="true" />
+            <span className="min-w-0">{actionSuccess}</span>
           </div>
-          <Button
-            onClick={() => setActionSuccess("")}
-            className="text-emerald-600 hover:text-emerald-800 p-1 cursor-pointer"
-          >
-            <X className="w-4 h-4" />
+          <Button type="button" variant="ghost" size="icon-xs" onClick={() => setActionSuccess("")} aria-label="Dismiss" className="text-success hover:bg-success-soft">
+            <X />
           </Button>
         </div>
       )}
 
       {actionError && (
-        <div role="alert" className="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-sm flex items-center justify-between shadow-xs">
-          <div className="flex items-center gap-3">
-            <AlertTriangle className="w-5 h-5 text-rose-600 shrink-0" />
-            <span>{actionError}</span>
+        <div role="alert" className="mb-4 flex items-center justify-between gap-3 rounded-xl border border-danger/20 bg-danger-soft px-4 py-3 text-xs font-medium text-destructive">
+          <div className="flex min-w-0 items-center gap-2">
+            <AlertTriangle className="size-4 shrink-0" aria-hidden="true" />
+            <span className="min-w-0">{actionError}</span>
           </div>
-          <Button
-            onClick={() => setActionError("")}
-            className="text-rose-600 hover:text-rose-800 p-1 cursor-pointer"
-          >
-            <X className="w-4 h-4" />
+          <Button type="button" variant="ghost" size="icon-xs" onClick={() => setActionError("")} aria-label="Dismiss" className="text-destructive hover:bg-danger-soft">
+            <X />
           </Button>
         </div>
       )}
 
       {/* No Company Warning Banner */}
       {!company && (
-        <div className="p-5 rounded-lg bg-amber-50 border border-amber-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
+        <div className="mb-4 flex flex-col justify-between gap-3 rounded-xl border border-warning/20 bg-warning-soft p-4 sm:flex-row sm:items-center">
           <div className="flex items-start gap-3">
-            <Building className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+            <Building className="mt-0.5 size-5 shrink-0 text-warning" aria-hidden="true" />
             <div>
-              <h3 className="text-sm font-bold text-amber-900">Company Profile Required</h3>
-              <p className="text-xs text-amber-700 mt-0.5">
+              <h2 className="text-sm font-semibold text-warning">Company Profile Required</h2>
+              <p className="mt-1 text-xs leading-6 text-warning/80">
                 You must complete your company details before you can publish vacancies to the Santa Maria job board.
               </p>
             </div>
           </div>
           <Link
             to="/employer/company"
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold shrink-0 transition-colors"
+            className="shrink-0 rounded-lg bg-warning px-4 py-2 text-center text-xs font-semibold text-white transition-colors hover:bg-warning/90"
           >
             Set Up Company Profile →
           </Link>
@@ -531,35 +634,28 @@ export default function JobPosts() {
         title="Job Vacancy Postings"
         subtitle="Publish municipal job openings and manage your vacancies"
         controlAction={
-          <Button
-            type="button"
-            onClick={handleOpenCreate}
-            disabled={!company}
-            className="inline-flex items-center justify-center gap-2 min-h-[44px] px-6 rounded-lg bg-primary text-white text-sm font-semibold hover:bg-primary-hover active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed shrink-0 cursor-pointer"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Post a Job</span>
+          <Button type="button" onClick={handleOpenCreate} disabled={!company} className="gap-2 px-5">
+            <Plus className="size-4" />
+            Post a Job
           </Button>
         }
         sidebar={
-          <>
-            <div className="space-y-3">
-              {sidebarTiles.map((tile) => (
-                <Button
-                  key={tile.label}
-                  type="button"
-                  data-tone={tile.id === "published" ? "success" : tile.id === "closed" ? "warning" : tile.id === "draft" ? "neutral" : "info"}
-                  title={tile.title}
-                  aria-pressed={statusFilter === tile.id}
-                  onClick={() => { setStatusFilter((prev) => (prev === tile.id ? null : tile.id)); setPage(1); }}
-                  className={`w-full text-left rounded-lg border px-4 py-3 cursor-pointer transition-all ${tile.tone} ${statusFilter === tile.id ? "ring-1 ring-offset-0 ring-current" : ""}`}
-                >
-                  <p className="text-2xl font-bold">{tile.value}</p>
-                  <p className="mt-0.5 text-[10px] font-semibold uppercase tracking-wider">{tile.label}</p>
-                </Button>
-              ))}
-            </div>
-          </>
+          <div className="space-y-3">
+            {sidebarTiles.map((tile) => (
+              <Button
+                key={tile.label}
+                type="button"
+                data-tone={tile.id === "published" ? "success" : tile.id === "closed" ? "warning" : tile.id === "draft" ? "neutral" : "info"}
+                title={tile.title}
+                aria-pressed={statusFilter === tile.id}
+                onClick={() => { setStatusFilter((prev) => (prev === tile.id ? null : tile.id)); setPage(1); }}
+                className={`w-full rounded-lg border px-4 py-3 text-left transition-all ${tile.tone} ${statusFilter === tile.id ? "ring-1 ring-current ring-offset-0" : ""}`}
+              >
+                <p className="text-2xl font-bold">{tile.value}</p>
+                <p className="mt-0.5 text-[10px] font-semibold uppercase tracking-wider">{tile.label}</p>
+              </Button>
+            ))}
+          </div>
         }
         footer={<Pager page={page} pageSize={pageSize} total={total} onChange={setPage} />}
         sort={sortBy}
@@ -578,148 +674,45 @@ export default function JobPosts() {
         searchPlaceholder="Search by job title, department, or barangay..."
         searchAriaLabel="Search job postings by title, department, or barangay"
       >
-
-          {/* Listings grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          {filteredJobs.map((post) => (
-            <div key={post.id} className="rounded-lg border border-primary bg-card p-4 shadow-xs">
-              {/* Top row */}
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <Button
-                    type="button"
-                    onClick={() => setViewingJob(post)}
-                    className="text-left font-bold text-base text-foreground hover:text-primary transition-colors cursor-pointer"
-                  >
-                    {post.title}
-                  </Button>
-                  <p className="mt-1 text-[11px] text-muted-foreground">
-                    Posted on {new Date(post.created_at).toLocaleDateString("en-PH", { year: "numeric", month: "long", day: "numeric" })}
-                  </p>
-                </div>
-                <div className="flex items-center gap-1.5 shrink-0">
-                  <Button
-                    type="button"
-                    onClick={() => handleOpenEdit(post)}
-                    data-action-hover="info"
-                    className="p-1.5 rounded-lg text-muted-foreground hover:text-primary hover:bg-blue-50 transition-colors cursor-pointer"
-                    title="Edit Job"
-                  >
-                    <Edit3 className="w-4 h-4" />
-                  </Button>
-                  <Button
-                    type="button"
-                    onClick={() => setViewingJob(post)}
-                    data-action-hover="info"
-                    className="p-1.5 rounded-lg text-muted-foreground hover:text-primary hover:bg-blue-50 transition-colors cursor-pointer"
-                    title="View job details"
-                  >
-                    <Eye className="w-4 h-4" />
-                  </Button>
-                  <Button
-                    type="button"
-                    onClick={() => setConfirmDeleteJob(post)}
-                    data-action-hover="danger"
-                    className="p-1.5 rounded-lg text-muted-foreground hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
-                    title="Delete posting permanently"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                  {(post.status === "published" || post.status === "closed") && (
-                    <Button
-                      type="button"
-                      onClick={() => handleToggleClose(post)}
-                      data-action-tone={post.status === "published" ? "warning" : "success"}
-                      className={`px-2.5 py-1 rounded-lg text-xs font-medium border transition-colors cursor-pointer ${
-                        post.status === "published"
-                          ? "text-amber-800 bg-amber-50 hover:bg-amber-100 border-amber-200"
-                          : "text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border-emerald-200"
-                      }`}
-                      title={post.status === "published" ? "Close recruitment" : "Reopen listing"}
-                    >
-                      {post.status === "published" ? "Close" : "Reopen"}
-                    </Button>
-                  )}
-                </div>
-              </div>
-
-              {/* Body label/value pairs */}
-              <div className="grid grid-cols-2 gap-x-4 gap-y-3 text-xs mt-4">
-                <div>
-                  <p className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Department</p>
-                  <p className="text-xs font-semibold text-foreground">{post.office}</p>
-                </div>
-                <div>
-                  <p className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Location</p>
-                  <p className="text-xs font-semibold text-foreground">{`Brgy. ${post.location}, Santa Maria, Bulacan`}</p>
-                </div>
-                <div>
-                  <p className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Employment Type</p>
-                  <p className="text-xs font-semibold text-foreground">{post.employment_type}</p>
-                </div>
-                <div>
-                  <p className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Salary</p>
-                  <p className="text-xs font-semibold text-foreground">{formatSalary(post.salary_min, post.salary_max)}</p>
-                </div>
-                <div>
-                  <p className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Vacancy</p>
-                  <p className="text-xs font-semibold text-foreground">{post.vacancies}</p>
-                </div>
-              </div>
-
-              {/* Bottom-right applicants link */}
-              <div className="flex justify-end mt-4">
-                <Link
-                  to="/employer/applicants"
-                  data-action-tone="info"
-                  className="inline-flex items-center gap-1.5 font-mono text-xs px-2.5 py-1 rounded-full bg-blue-50/70 border border-blue-200/80 text-primary hover:bg-blue-100 transition-colors"
-                >
-                  <Users className="w-3 h-3 text-primary" />
-                  <span className="font-bold">{post.applicant_count || 0}</span>
-                  <span>Applied</span>
-                </Link>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {filteredJobs.length === 0 && (
-          <div className="py-8 text-center space-y-3">
-            <div className="w-12 h-12 rounded-full bg-muted text-muted-foreground flex items-center justify-center mx-auto">
-              <Briefcase className="w-6 h-6" />
-            </div>
-            <h3 className="text-sm font-bold text-foreground">No job listings found</h3>
-            <p className="text-xs text-muted-foreground max-w-sm mx-auto">
-              {searchTerm
-                ? "Try adjusting your search criteria to locate the postings you're looking for."
-                : statusFilter
-                  ? "No job postings with this status."
-                  : accreditationStatus === "approved"
-                    ? "You haven't posted any job vacancies yet. Click '+ Post a Job' to recruit Santa Maria talent."
-                    : "To post job vacancies, your company must first be accredited by PESO."}
-            </p>
-            {searchTerm || statusFilter ? (
-              <Button
-                type="button"
-                onClick={() => {
-                  setSearchTerm("");
-                  setStatusFilter(null);
-                  setPage(1);
-                }}
-                className="inline-flex items-center gap-1.5 text-xs text-primary font-semibold hover:underline pt-2 cursor-pointer"
-              >
-                <RotateCcw className="w-3 h-3" />
-                <span>Reset filters</span>
-              </Button>
-            ) : accreditationStatus !== "approved" ? (
-              <Link
-                to="/employer/accreditation"
-                className="inline-block text-xs text-primary font-semibold hover:underline pt-2"
-              >
-                View accreditation →
-              </Link>
-            ) : null}
+        {filteredJobs.length ? (
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+            {filteredJobs.map((post) => (
+              <JobCard
+                key={post.id}
+                post={post}
+                onView={setViewingJob}
+                onEdit={handleOpenEdit}
+                onToggleClose={handleToggleClose}
+                onDelete={setConfirmDeleteJob}
+              />
+            ))}
           </div>
+        ) : (
+          <EmptyState
+            title="No job listings found"
+            description={emptyDescription}
+            action={
+              searchTerm || statusFilter ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    setSearchTerm("");
+                    setStatusFilter(null);
+                    setPage(1);
+                  }}
+                  className="gap-1.5 text-xs"
+                >
+                  <RotateCcw className="size-3.5" />
+                  Reset filters
+                </Button>
+              ) : accreditationStatus !== "approved" ? (
+                <Link to="/employer/accreditation" className="text-link text-xs">
+                  View accreditation →
+                </Link>
+              ) : null
+            }
+          />
         )}
       </ApplicantsShell>
 
@@ -727,382 +720,260 @@ export default function JobPosts() {
       {/* Post / Edit Job Modal Form                                                */}
       {/* ========================================================================= */}
       {showForm && createPortal(
-        <div className="fixed inset-0 z-[9999] flex items-start justify-center p-4 bg-black/60 backdrop-blur-xs overflow-y-auto">
+        <div className="fixed inset-0 z-[9999] flex items-start justify-center overflow-y-auto bg-black/60 p-4 backdrop-blur-xs">
           <div
             ref={formPanelRef}
             role="dialog"
             aria-modal="true"
             aria-labelledby="job-form-title"
-            className="w-full max-w-2xl bg-card border border-border rounded-3xl p-5 md:p-6 shadow-2xl my-8 max-h-[90vh] overflow-y-auto"
+            className="my-8 max-h-[90vh] w-full max-w-2xl space-y-5 overflow-y-auto rounded-2xl border bg-card p-5 shadow-2xl md:p-6"
           >
             {/* Modal Header */}
-            <div className="flex items-center justify-between pb-4 border-b border-border">
+            <div className="flex items-center justify-between gap-3 border-b pb-4">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
-                  <Briefcase className="w-5 h-5" />
-                </div>
+                <span className="soft-icon">
+                  <Briefcase />
+                </span>
                 <div>
-                  <span className="font-mono text-[10px] tracking-widest text-primary uppercase font-bold">
-                    {editingId ? "UPDATE VACANCY" : "NEW RECRUITMENT BULLETIN"}
-                  </span>
-                  <h2 id="job-form-title" className="text-xl font-bold text-foreground mt-0.5">
+                  <p className="eyebrow">{editingId ? "Update vacancy" : "New recruitment bulletin"}</p>
+                  <h2 id="job-form-title" className="mt-1 text-xl font-semibold tracking-[-.02em] text-navy">
                     {editingId ? "Edit Job Vacancy" : "Post a Municipal Vacancy"}
                   </h2>
                 </div>
               </div>
-              <Button
-                type="button"
-                onClick={requestCloseForm}
-                aria-label="Close form"
-                className="p-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer"
-              >
-                <X className="w-5 h-5" />
+              <Button type="button" variant="ghost" size="icon" onClick={requestCloseForm} aria-label="Close form">
+                <X />
               </Button>
             </div>
 
             {/* Form Fields */}
-            <div className="mt-6 space-y-5">
-              {/* Job Title */}
-              <div>
-                <Label htmlFor="job-title" className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase font-semibold mb-1.5">
-                  Job Title <span aria-hidden="true" className="text-rose-500">*</span>
-                </Label>
-                <Input
-                  id="job-title"
-                  type="text"
-                  value={form.title}
-                  onChange={(e) => {
-                    setForm({ ...form, title: e.target.value });
-                    if (errors.title) setErrors((prev) => ({ ...prev, title: undefined }));
-                  }}
-                  placeholder="e.g. Administrative Officer, Welder, Accountant..."
-                  className={`w-full min-h-[44px] px-4 rounded-xl text-sm bg-muted border text-foreground placeholder:text-muted-foreground focus:outline-none focus:bg-card focus:ring-2 focus:ring-primary/20 transition-all ${
-                    errors.title ? "border-rose-300 ring-1 ring-rose-200" : "border-border focus:border-primary"
-                  }`}
+            <div className="space-y-5">
+              <TextField
+                id="job-title"
+                label={<>Job Title <span aria-hidden="true" className="text-destructive">*</span></>}
+                value={form.title}
+                onChange={(e) => {
+                  setForm({ ...form, title: e.target.value });
+                  if (errors.title) setErrors((prev) => ({ ...prev, title: undefined }));
+                }}
+                placeholder="e.g. Administrative Officer, Welder, Accountant..."
+                error={errors.title}
+              />
+
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <TextField
+                  id="job-office"
+                  label={<>Department / Office <span className="font-normal text-muted-foreground">(optional)</span></>}
+                  value={form.office}
+                  onChange={(e) => setForm({ ...form, office: e.target.value })}
+                  placeholder="e.g. Main Plant, Warehouse 1, Accounting"
                 />
-                {errors.title && <p className="text-rose-600 text-xs mt-1 font-medium">{errors.title}</p>}
+                <SelectField
+                  id="job-employment-type"
+                  label={<>Employment Type <span aria-hidden="true" className="text-destructive">*</span></>}
+                  value={form.employment_type}
+                  onChange={(e) => setForm({ ...form, employment_type: e.target.value })}
+                  options={["Full-time", "Part-time", "Contractual", "Job Order", "Seasonal", "Internship"]}
+                />
+                <SelectField
+                  id="job-work-arrangement"
+                  label={<>Work Arrangement <span aria-hidden="true" className="text-destructive">*</span></>}
+                  value={form.work_arrangement}
+                  onChange={(e) => setForm({ ...form, work_arrangement: e.target.value })}
+                  options={["On-site", "Remote / Work from home", "Hybrid"]}
+                />
+                <TextField
+                  id="job-vacancies"
+                  type="number"
+                  min="1"
+                  label={<>Number of Vacancies <span aria-hidden="true" className="text-destructive">*</span></>}
+                  value={form.vacancies}
+                  onChange={(e) => {
+                    setForm({ ...form, vacancies: e.target.value });
+                    if (errors.vacancies) setErrors((prev) => ({ ...prev, vacancies: undefined }));
+                  }}
+                  error={errors.vacancies}
+                />
               </div>
 
-              {/* Department / Office & Employment Type */}
-              <div className="grid grid-cols-1 gap-3">
-                <div>
-                  <Label htmlFor="job-office" className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase font-semibold mb-1.5">
-                    Department / Office <span className="text-muted-foreground font-normal lowercase">(optional)</span>
-                  </Label>
-                  <Input
-                    id="job-office"
-                    type="text"
-                    value={form.office}
-                    onChange={(e) => setForm({ ...form, office: e.target.value })}
-                    placeholder="e.g. Main Plant, Warehouse 1, Accounting"
-                    className="w-full min-h-[44px] px-4 rounded-xl text-sm bg-muted border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:bg-card focus:border-primary transition-all"
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="job-employment-type" className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase font-semibold mb-1.5">
-                    Employment Type <span aria-hidden="true" className="text-rose-500">*</span>
-                  </Label>
-                  <select
-                    id="job-employment-type"
-                    value={form.employment_type}
-                    onChange={(e) => setForm({ ...form, employment_type: e.target.value })}
-                    className="w-full min-h-[44px] px-4 rounded-xl text-sm bg-muted border border-border text-foreground focus:outline-none focus:bg-card focus:border-primary transition-all cursor-pointer"
+              {/* Barangay Location */}
+              <div>
+                <Label id="job-location-label" className="text-sm font-medium">
+                  Barangay Location <span aria-hidden="true" className="text-destructive">*</span>
+                </Label>
+                {/* ponytail: custom listbox only because native select direction is browser-controlled; revert to native if requirement lifts. */}
+                <div ref={barangayRef} className="relative mt-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    aria-haspopup="listbox"
+                    aria-expanded={barangayOpen}
+                    aria-labelledby="job-location-label job-location-value"
+                    aria-invalid={Boolean(errors.location)}
+                    onClick={() => setBarangayOpen((v) => !v)}
+                    className="w-full justify-between font-normal"
                   >
-                    <option value="Full-time">Full-time</option>
-                    <option value="Part-time">Part-time</option>
-                    <option value="Contractual">Contractual</option>
-                    <option value="Job Order">Job Order</option>
-                    <option value="Seasonal">Seasonal</option>
-                    <option value="Internship">Internship</option>
-                  </select>
-                </div>
-                <div>
-                  <Label htmlFor="job-work-arrangement" className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase font-semibold mb-1.5">
-                    Work Arrangement <span aria-hidden="true" className="text-rose-500">*</span>
-                  </Label>
-                  <select
-                    id="job-work-arrangement"
-                    value={form.work_arrangement}
-                    onChange={(e) => setForm({ ...form, work_arrangement: e.target.value })}
-                    className="w-full min-h-[44px] px-4 rounded-xl text-sm bg-muted border border-border text-foreground focus:outline-none focus:bg-card focus:border-primary transition-all cursor-pointer"
-                  >
-                    <option value="On-site">On-site</option>
-                    <option value="Remote / Work from home">Remote / Work from home</option>
-                    <option value="Hybrid">Hybrid</option>
-                  </select>
-                </div>
-              </div>
-
-              {/* Barangay Location & Vacancies */}
-              <div className="grid grid-cols-1 gap-3">
-                <div>
-                  <Label id="job-location-label" className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase font-semibold mb-1.5">
-                    Barangay Location <span aria-hidden="true" className="text-rose-500">*</span>
-                  </Label>
-                  {/* ponytail: custom listbox only because native select direction is browser-controlled; revert to native if requirement lifts. */}
-                  <div ref={barangayRef} className="relative">
-                    <Button
-                      type="button"
-                      aria-haspopup="listbox"
-                      aria-expanded={barangayOpen}
-                      aria-labelledby="job-location-label job-location-value"
-                      onClick={() => setBarangayOpen((v) => !v)}
-                      className={`w-full min-h-[44px] px-4 rounded-xl text-sm bg-muted border text-foreground focus:outline-none focus:bg-card transition-all cursor-pointer flex items-center justify-between gap-2 ${
-                        errors.location
-                          ? "border-rose-300 ring-1 ring-rose-200"
-                          : "border-border focus:border-primary"
-                      }`}
-                    >
-                      <span id="job-location-value" className={form.location ? "" : "text-muted-foreground"}>
-                        {form.location || "Select barangay"}
-                      </span>
-                      <span aria-hidden="true" className="text-muted-foreground text-xs">▾</span>
-                    </Button>
-                    {barangayOpen && (
-                      <div className="absolute top-full left-0 right-0 mt-1 z-50 bg-card border border-border rounded-xl shadow-xl">
-                        <Input
-                          type="text"
-                          aria-label="Search barangay"
-                          value={barangayQuery}
-                          onChange={(e) => setBarangayQuery(e.target.value)}
-                          autoFocus
-                          placeholder="Search barangay..."
-                          className="w-full px-4 py-2.5 text-sm bg-transparent border-b border-border text-foreground placeholder:text-muted-foreground focus:outline-none"
-                        />
-                        {filteredBarangays.length === 0 ? (
-                          <p className="px-4 py-2.5 text-sm text-muted-foreground">No barangays match</p>
-                        ) : (
-                          <ul
-                            role="listbox"
-                            aria-label="Barangay location"
-                            className="max-h-56 overflow-y-auto"
-                          >
-                            {filteredBarangays.map((b) => (
-                              <li
-                                key={b}
-                                role="option"
-                                aria-selected={form.location === b}
-                                tabIndex={0}
-                                onClick={() => {
+                    <span id="job-location-value" className={form.location ? "" : "text-muted-foreground"}>
+                      {form.location || "Select barangay"}
+                    </span>
+                    <span aria-hidden="true" className="text-xs text-muted-foreground">▾</span>
+                  </Button>
+                  {barangayOpen && (
+                    <div className="absolute top-full right-0 left-0 z-50 mt-1 rounded-xl border bg-card shadow-xl">
+                      <Input
+                        type="text"
+                        aria-label="Search barangay"
+                        value={barangayQuery}
+                        onChange={(e) => setBarangayQuery(e.target.value)}
+                        autoFocus
+                        placeholder="Search barangay..."
+                        className="rounded-b-none border-0 border-b"
+                      />
+                      {filteredBarangays.length === 0 ? (
+                        <p className="px-4 py-2.5 text-xs text-muted-foreground">No barangays match</p>
+                      ) : (
+                        <ul role="listbox" aria-label="Barangay location" className="max-h-56 overflow-y-auto">
+                          {filteredBarangays.map((b) => (
+                            <li
+                              key={b}
+                              role="option"
+                              aria-selected={form.location === b}
+                              tabIndex={0}
+                              onClick={() => {
+                                setForm({ ...form, location: b });
+                                if (errors.location) setErrors((prev) => ({ ...prev, location: undefined }));
+                                setBarangayOpen(false);
+                                setBarangayQuery("");
+                              }}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter" || e.key === " ") {
+                                  e.preventDefault();
                                   setForm({ ...form, location: b });
                                   if (errors.location) setErrors((prev) => ({ ...prev, location: undefined }));
                                   setBarangayOpen(false);
                                   setBarangayQuery("");
-                                }}
-                                onKeyDown={(e) => {
-                                  if (e.key === "Enter" || e.key === " ") {
-                                    e.preventDefault();
-                                    setForm({ ...form, location: b });
-                                    if (errors.location) setErrors((prev) => ({ ...prev, location: undefined }));
-                                    setBarangayOpen(false);
-                                    setBarangayQuery("");
-                                  }
-                                }}
-                                className={`px-4 py-2.5 text-sm cursor-pointer hover:bg-muted focus:bg-muted focus:outline-none ${
-                                  form.location === b ? "bg-muted font-semibold" : ""
-                                }`}
-                              >
-                                {b}
-                              </li>
-                            ))}
-                          </ul>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                  {errors.location && (
-                    <p className="text-rose-600 text-xs mt-1 font-medium">{errors.location}</p>
+                                }
+                              }}
+                              className={`cursor-pointer px-4 py-2.5 text-xs hover:bg-muted focus:bg-muted focus:outline-none ${
+                                form.location === b ? "bg-muted font-semibold" : ""
+                              }`}
+                            >
+                              {b}
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
                   )}
                 </div>
-
-                <div>
-                  <Label htmlFor="job-vacancies" className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase font-semibold mb-1.5">
-                    Number of Vacancies <span aria-hidden="true" className="text-rose-500">*</span>
-                  </Label>
-                  <Input
-                    id="job-vacancies"
-                    type="number"
-                    min="1"
-                    value={form.vacancies}
-                    onChange={(e) => {
-                      setForm({ ...form, vacancies: e.target.value });
-                      if (errors.vacancies) setErrors((prev) => ({ ...prev, vacancies: undefined }));
-                    }}
-                    className={`w-full min-h-[44px] px-4 rounded-xl text-sm bg-muted border text-foreground focus:outline-none focus:bg-card transition-all ${
-                      errors.vacancies
-                        ? "border-rose-300 ring-1 ring-rose-200"
-                        : "border-border focus:border-primary"
-                    }`}
-                  />
-                  {errors.vacancies && (
-                    <p className="text-rose-600 text-xs mt-1 font-medium">{errors.vacancies}</p>
-                  )}
-                </div>
+                {errors.location && <p role="alert" className="mt-1 text-xs text-destructive">{errors.location}</p>}
               </div>
 
               {/* Salary Range */}
-              <div className="grid grid-cols-1 gap-3">
-                <div>
-                  <Label htmlFor="job-salary-min" className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase font-semibold mb-1.5">
-                    Minimum Salary (₱) <span className="text-muted-foreground font-normal lowercase">(optional)</span>
-                  </Label>
-                  <div className="relative">
-                    <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground text-sm font-semibold">
-                      ₱
-                    </span>
-                    <Input
-                      id="job-salary-min"
-                      type="number"
-                      min="0"
-                      step="500"
-                      value={form.salary_min}
-                      onChange={(e) => {
-                        setForm({ ...form, salary_min: e.target.value });
-                        if (errors.salary_min || errors.salary_max) {
-                          setErrors((prev) => ({ ...prev, salary_min: undefined, salary_max: undefined }));
-                        }
-                      }}
-                      placeholder="e.g. 18000"
-                      className="w-full min-h-[44px] pl-8 pr-4 rounded-xl text-sm bg-muted border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:bg-card focus:border-primary transition-all"
-                    />
-                  </div>
-                  {errors.salary_min && (
-                    <p className="text-rose-600 text-xs mt-1 font-medium">{errors.salary_min}</p>
-                  )}
-                </div>
-
-                <div>
-                  <Label htmlFor="job-salary-max" className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase font-semibold mb-1.5">
-                    Maximum Salary (₱) <span className="text-muted-foreground font-normal lowercase">(optional)</span>
-                  </Label>
-                  <div className="relative">
-                    <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground text-sm font-semibold">
-                      ₱
-                    </span>
-                    <Input
-                      id="job-salary-max"
-                      type="number"
-                      min="0"
-                      step="500"
-                      value={form.salary_max}
-                      onChange={(e) => {
-                        setForm({ ...form, salary_max: e.target.value });
-                        if (errors.salary_max) setErrors((prev) => ({ ...prev, salary_max: undefined }));
-                      }}
-                      placeholder="e.g. 25000"
-                      className="w-full min-h-[44px] pl-8 pr-4 rounded-xl text-sm bg-muted border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:bg-card focus:border-primary transition-all"
-                    />
-                  </div>
-                  {errors.salary_max && (
-                    <p className="text-rose-600 text-xs mt-1 font-medium">{errors.salary_max}</p>
-                  )}
-                </div>
-              </div>
-
-              {/* Application Deadline */}
-              <div>
-                <Label htmlFor="job-deadline" className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase font-semibold mb-1.5">
-                  Application Deadline <span className="text-muted-foreground font-normal lowercase">(optional)</span>
-                </Label>
-                <Input
-                  id="job-deadline"
-                  type="date"
-                  value={form.deadline}
-                  onChange={(e) => setForm({ ...form, deadline: e.target.value })}
-                  className="w-full min-h-[44px] px-4 rounded-xl text-sm bg-muted border border-border text-foreground focus:outline-none focus:bg-card focus:border-primary transition-all"
-                />
-              </div>
-
-              {/* Job Description */}
-              <div>
-                <Label htmlFor="job-description" className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase font-semibold mb-1.5">
-                  Job Description &amp; Responsibilities <span aria-hidden="true" className="text-rose-500">*</span>
-                </Label>
-                <Textarea
-                  id="job-description"
-                  rows={4}
-                  value={form.description}
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <TextField
+                  id="job-salary-min"
+                  type="number"
+                  min="0"
+                  step="500"
+                  label={<>Minimum Salary (₱) <span className="font-normal text-muted-foreground">(optional)</span></>}
+                  value={form.salary_min}
                   onChange={(e) => {
-                    setForm({ ...form, description: e.target.value });
-                    if (errors.description) setErrors((prev) => ({ ...prev, description: undefined }));
-                  }}
-                  placeholder="Outline key duties, scope of work, day-to-day responsibilities, and team role..."
-                  className={`w-full p-4 rounded-xl text-sm bg-muted border text-foreground placeholder:text-muted-foreground focus:outline-none focus:bg-card transition-all ${
-                    errors.description
-                      ? "border-rose-300 ring-1 ring-rose-200"
-                      : "border-border focus:border-primary"
-                  }`}
-                />
-                {errors.description && (
-                  <p className="text-rose-600 text-xs mt-1 font-medium">{errors.description}</p>
-                )}
-              </div>
-
-              {/* Education Requirement */}
-              <div>
-                <Label htmlFor="job-education-requirement" className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase font-semibold mb-1.5">
-                  Education Requirement <span className="text-muted-foreground font-normal lowercase">(optional)</span>
-                </Label>
-                <select
-                  id="job-education-requirement"
-                  value={parseEducation(form.requirements)}
-                  onChange={(e) => setForm({ ...form, requirements: applyEducation(form.requirements, e.target.value) })}
-                  className="w-full min-h-[44px] px-4 rounded-xl text-sm bg-muted border border-border text-foreground focus:outline-none focus:bg-card focus:border-primary transition-all cursor-pointer"
-                >
-                  <option value="">Select education requirement</option>
-                  {JOB_EDUCATION_LEVELS.map((level) => (
-                    <option key={level} value={level}>{level}</option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Work Experience Required */}
-              <div>
-                <Label htmlFor="job-experience-required" className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase font-semibold mb-1.5">
-                  Work Experience Required <span className="text-muted-foreground font-normal lowercase">(years, optional)</span>
-                </Label>
-                <select
-                  id="job-experience-required"
-                  value={experienceIsCustom ? "custom" : experienceYears}
-                  onChange={(e) => {
-                    const v = e.target.value;
-                    if (v === "custom") {
-                      setExperienceCustom(true);
-                      setForm({ ...form, requirements: applyExperience(form.requirements, "") });
-                    } else {
-                      setExperienceCustom(false);
-                      setForm({ ...form, requirements: applyExperience(form.requirements, v) });
+                    setForm({ ...form, salary_min: e.target.value });
+                    if (errors.salary_min || errors.salary_max) {
+                      setErrors((prev) => ({ ...prev, salary_min: undefined, salary_max: undefined }));
                     }
                   }}
-                  className="w-full min-h-[44px] px-4 rounded-xl text-sm bg-muted border border-border text-foreground focus:outline-none focus:bg-card focus:border-primary transition-all cursor-pointer"
-                >
-                  <option value="">Select experience</option>
-                  <option value="0">No experience required</option>
-                  {JOB_EXPERIENCE_PRESETS.filter((n) => n !== 0).map((n) => (
-                    <option key={n} value={n}>{n} year{n === 1 ? "" : "s"}</option>
-                  ))}
-                  <option value="custom">Custom…</option>
-                </select>
-                {experienceIsCustom && (
-                  <Input
-                    id="job-experience-custom"
-                    type="number"
-                    min="0"
-                    step="1"
-                    value={experienceYears}
-                    onChange={(e) => setForm({ ...form, requirements: applyExperience(form.requirements, e.target.value) })}
-                    placeholder="Enter number of years"
-                    aria-label="Number of years of experience required"
-                    className="mt-2 w-full min-h-[44px] px-4 rounded-xl text-sm bg-muted border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:bg-card focus:border-primary transition-all"
+                  placeholder="e.g. 18000"
+                  error={errors.salary_min}
+                />
+                <TextField
+                  id="job-salary-max"
+                  type="number"
+                  min="0"
+                  step="500"
+                  label={<>Maximum Salary (₱) <span className="font-normal text-muted-foreground">(optional)</span></>}
+                  value={form.salary_max}
+                  onChange={(e) => {
+                    setForm({ ...form, salary_max: e.target.value });
+                    if (errors.salary_max) setErrors((prev) => ({ ...prev, salary_max: undefined }));
+                  }}
+                  placeholder="e.g. 25000"
+                  error={errors.salary_max}
+                />
+              </div>
+
+              <TextField
+                id="job-deadline"
+                type="date"
+                label={<>Application Deadline <span className="font-normal text-muted-foreground">(optional)</span></>}
+                value={form.deadline}
+                onChange={(e) => setForm({ ...form, deadline: e.target.value })}
+              />
+
+              <TextField
+                id="job-description"
+                multiline
+                rows={4}
+                label={<>Job Description &amp; Responsibilities <span aria-hidden="true" className="text-destructive">*</span></>}
+                value={form.description}
+                onChange={(e) => {
+                  setForm({ ...form, description: e.target.value });
+                  if (errors.description) setErrors((prev) => ({ ...prev, description: undefined }));
+                }}
+                placeholder="Outline key duties, scope of work, day-to-day responsibilities, and team role..."
+                error={errors.description}
+              />
+
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <SelectField
+                  id="job-education-requirement"
+                  label={<>Education Requirement <span className="font-normal text-muted-foreground">(optional)</span></>}
+                  placeholder="Select education requirement"
+                  value={parseEducation(form.requirements)}
+                  onChange={(e) => setForm({ ...form, requirements: applyEducation(form.requirements, e.target.value) })}
+                  options={JOB_EDUCATION_LEVELS}
+                />
+
+                <div>
+                  <SelectField
+                    id="job-experience-required"
+                    label={<>Work Experience Required <span className="font-normal text-muted-foreground">(years, optional)</span></>}
+                    placeholder="Select experience"
+                    value={experienceIsCustom ? "custom" : experienceYears}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      if (v === "custom") {
+                        setExperienceCustom(true);
+                        setForm({ ...form, requirements: applyExperience(form.requirements, "") });
+                      } else {
+                        setExperienceCustom(false);
+                        setForm({ ...form, requirements: applyExperience(form.requirements, v) });
+                      }
+                    }}
+                    options={EXPERIENCE_OPTIONS}
                   />
-                )}
+                  {experienceIsCustom && (
+                    <div className="mt-3">
+                      <TextField
+                        id="job-experience-custom"
+                        type="number"
+                        min="0"
+                        step="1"
+                        label="Number of years of experience required"
+                        value={experienceYears}
+                        onChange={(e) => setForm({ ...form, requirements: applyExperience(form.requirements, e.target.value) })}
+                        placeholder="Enter number of years"
+                      />
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* Benefits & Perks */}
               <div role="group" aria-labelledby="job-benefits-label">
-                <p id="job-benefits-label" className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase font-semibold mb-1.5">
-                  Benefits &amp; Perks <span className="text-muted-foreground font-normal lowercase">(optional, click to toggle)</span>
+                <p id="job-benefits-label" className="mb-2 text-sm font-medium">
+                  Benefits &amp; Perks <span className="font-normal text-muted-foreground">(optional, click to toggle)</span>
                 </p>
                 <div className="flex flex-wrap gap-2">
                   {/* ponytail: custom benefit lines are preserved but only known chips are shown; render extras as chips if PESO starts using them. */}
@@ -1121,10 +992,10 @@ export default function JobPosts() {
                               : [...f.benefits, benefit],
                           }))
                         }
-                        className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors cursor-pointer ${
+                        className={`px-3 py-1.5 text-xs font-medium ${
                           selected
-                            ? "bg-primary text-white border-primary"
-                            : "bg-muted text-muted-foreground border-border hover:border-primary/40"
+                            ? "bg-primary text-white"
+                            : "bg-muted text-muted-foreground hover:bg-secondary"
                         }`}
                       >
                         {benefit}
@@ -1136,8 +1007,8 @@ export default function JobPosts() {
 
               {/* Job Tags */}
               <div role="group" aria-labelledby="job-tags-label">
-                <p id="job-tags-label" className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase font-semibold mb-1.5">
-                  Tags <span className="text-muted-foreground font-normal lowercase">(optional, click to toggle)</span>
+                <p id="job-tags-label" className="mb-2 text-sm font-medium">
+                  Tags <span className="font-normal text-muted-foreground">(optional, click to toggle)</span>
                 </p>
                 <div className="flex flex-wrap gap-2">
                   {JOB_TAGS.map((tag) => {
@@ -1153,10 +1024,10 @@ export default function JobPosts() {
                             tags: selected ? f.tags.filter((t) => t !== tag) : [...f.tags, tag],
                           }))
                         }
-                        className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors cursor-pointer ${
+                        className={`px-3 py-1.5 text-xs font-medium ${
                           selected
-                            ? "bg-primary text-white border-primary"
-                            : "bg-muted text-muted-foreground border-border hover:border-primary/40"
+                            ? "bg-primary text-white"
+                            : "bg-muted text-muted-foreground hover:bg-secondary"
                         }`}
                       >
                         {tag}
@@ -1166,38 +1037,29 @@ export default function JobPosts() {
                 </div>
               </div>
 
-              {/* Application Instructions */}
-              <div>
-                <Label htmlFor="job-instructions" className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase font-semibold mb-1.5">
-                  Application Instructions <span className="text-muted-foreground font-normal lowercase">(optional)</span>
-                </Label>
-                <Textarea
-                  id="job-instructions"
-                  rows={2}
-                  value={form.instructions}
-                  onChange={(e) => setForm({ ...form, instructions: e.target.value })}
-                  placeholder="e.g. Please bring an updated resume, 2x2 photo, and NBI clearance. Walk-ins accepted Mon-Fri 9AM-3PM..."
-                  className="w-full p-4 rounded-xl text-sm bg-muted border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:bg-card focus:border-primary transition-all"
-                />
-              </div>
+              <TextField
+                id="job-instructions"
+                multiline
+                rows={2}
+                label={<>Application Instructions <span className="font-normal text-muted-foreground">(optional)</span></>}
+                value={form.instructions}
+                onChange={(e) => setForm({ ...form, instructions: e.target.value })}
+                placeholder="e.g. Please bring an updated resume, 2x2 photo, and NBI clearance. Walk-ins accepted Mon-Fri 9AM-3PM..."
+              />
             </div>
 
             {/* Modal Actions */}
-            <div className="mt-8 pt-5 border-t border-border flex flex-col sm:flex-row items-center justify-end gap-3">
-              <Button
-                type="button"
-                onClick={requestCloseForm}
-                disabled={saving}
-                className="w-full sm:w-auto px-5 py-2.5 text-xs font-semibold rounded-xl border border-border text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer"
-              >
+            <div className="flex flex-col items-center justify-end gap-3 border-t pt-4 sm:flex-row">
+              <Button type="button" variant="outline" onClick={requestCloseForm} disabled={saving} className="w-full text-xs sm:w-auto">
                 Cancel
               </Button>
 
               <Button
                 type="button"
+                variant="secondary"
                 onClick={() => handleSaveJob("draft")}
                 disabled={saving}
-                className="w-full sm:w-auto px-5 py-2.5 text-xs font-semibold text-muted-foreground bg-muted hover:bg-gray-200 rounded-xl transition-colors disabled:opacity-50 cursor-pointer"
+                className="w-full text-xs sm:w-auto"
               >
                 {saving ? "Saving..." : editingId ? "Save Changes as Draft" : "Save as Draft"}
               </Button>
@@ -1206,9 +1068,9 @@ export default function JobPosts() {
                 type="button"
                 onClick={() => handleSaveJob("published")}
                 disabled={saving}
-                className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-6 py-2.5 text-xs font-semibold text-white bg-primary hover:bg-primary-hover rounded-xl shadow-xs transition-all disabled:opacity-50 cursor-pointer"
+                className="w-full gap-1.5 text-xs sm:w-auto"
               >
-                <Send className="w-3.5 h-3.5" />
+                <Send className="size-3.5" />
                 <span>{saving ? "Publishing..." : "Publish Job"}</span>
               </Button>
             </div>
@@ -1221,65 +1083,45 @@ export default function JobPosts() {
       {/* View Job Bulletin Details Modal                                           */}
       {/* ========================================================================= */}
       {viewingJob && createPortal(
-        <div className="fixed inset-0 z-[9999] flex items-start justify-center p-4 bg-black/60 backdrop-blur-xs overflow-y-auto">
+        <div className="fixed inset-0 z-[9999] flex items-start justify-center overflow-y-auto bg-black/60 p-4 backdrop-blur-xs">
           <div
             ref={viewPanelRef}
             role="dialog"
             aria-modal="true"
             aria-labelledby="job-view-title"
-            className="w-full max-w-2xl bg-card border border-border rounded-3xl p-5 md:p-6 shadow-2xl my-8 max-h-[90vh] overflow-y-auto space-y-6"
+            className="my-8 max-h-[90vh] w-full max-w-2xl space-y-5 overflow-y-auto rounded-2xl border bg-card p-5 shadow-2xl md:p-6"
           >
             {/* Modal Top Bar */}
-            <div className="flex items-start justify-between gap-3 pb-4 border-b border-border">
-              <div>
-                <h2 id="job-view-title" className="text-2xl font-bold text-foreground">{viewingJob.title}</h2>
-                <div className="flex items-center gap-3 text-xs text-muted-foreground mt-1">
-                  <span className="uppercase">{company?.company_name || "My Company"}</span>
-                  {viewingJob.office && <span>· Dept: {viewingJob.office}</span>}
-                  <span>· Posted on {new Date(viewingJob.created_at).toLocaleDateString()}</span>
+            <div className="flex items-start justify-between gap-3 border-b pb-4">
+              <div className="min-w-0">
+                <div className="mb-2 flex items-center gap-2">
+                  <StatusBadge status={viewingJob.status === "published" ? "Published" : viewingJob.status === "closed" ? "Closed" : "Draft"} />
+                  {viewingJob.office && <span className="truncate text-[10px] text-muted-foreground">Dept: {viewingJob.office}</span>}
                 </div>
+                <h2 id="job-view-title" className="text-xl font-semibold tracking-[-.02em] text-navy">{viewingJob.title}</h2>
+                <p className="mt-1 text-[10px] text-muted-foreground">
+                  {company?.company_name || "My Company"} · Posted on {new Date(viewingJob.created_at).toLocaleDateString()}
+                </p>
               </div>
-              <Button
-                type="button"
-                onClick={() => setViewingJob(null)}
-                aria-label="Close job details"
-                className="p-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer"
-              >
-                <X className="w-5 h-5" />
+              <Button type="button" variant="ghost" size="icon" onClick={() => setViewingJob(null)} aria-label="Close job details">
+                <X />
               </Button>
             </div>
 
             {/* Quick Fact Grid */}
-            <div className="grid grid-cols-1 gap-3 p-4 rounded-lg bg-muted border border-border/70">
-              <div>
-                <p className="font-mono text-[10px] text-muted-foreground uppercase tracking-wider">Employment</p>
-                <p className="text-xs font-semibold text-foreground mt-1">{viewingJob.employment_type}</p>
-              </div>
-              <div>
-                <p className="font-mono text-[10px] text-muted-foreground uppercase tracking-wider">Work arrangement</p>
-                <p className="text-xs font-semibold text-foreground mt-1">{viewingJob.work_arrangement || "On-site"}</p>
-              </div>
-              <div>
-                <p className="font-mono text-[10px] text-muted-foreground uppercase tracking-wider">Location</p>
-                <p className="text-xs font-semibold text-foreground mt-1">Brgy. {viewingJob.location}</p>
-              </div>
-              <div>
-                <p className="font-mono text-[10px] text-muted-foreground uppercase tracking-wider">Vacancies</p>
-                <p className="text-xs font-semibold text-foreground mt-1">{viewingJob.vacancies} open</p>
-              </div>
-              <div>
-                <p className="font-mono text-[10px] text-muted-foreground uppercase tracking-wider">Salary</p>
-                <p className="text-xs font-semibold text-foreground mt-1">
-                  {formatSalary(viewingJob.salary_min, viewingJob.salary_max)}
-                </p>
-              </div>
+            <div className="grid grid-cols-1 gap-4 rounded-xl border bg-muted p-4 sm:grid-cols-2">
+              <Fact label="Employment">{viewingJob.employment_type}</Fact>
+              <Fact label="Work arrangement">{viewingJob.work_arrangement || "On-site"}</Fact>
+              <Fact label="Location">Brgy. {viewingJob.location}</Fact>
+              <Fact label="Vacancies">{viewingJob.vacancies} open</Fact>
+              <Fact label="Salary">{formatSalary(viewingJob.salary_min, viewingJob.salary_max)}</Fact>
             </div>
 
             {/* Tags */}
             {viewingJob.tags?.length > 0 && (
               <div className="flex flex-wrap gap-1.5">
                 {viewingJob.tags.map((tag) => (
-                  <span key={tag} className="font-mono text-[10px] px-2 py-0.5 rounded-full bg-primary/10 border border-primary/25 text-primary">
+                  <span key={tag} className="rounded-full bg-blue-soft px-2 py-0.5 text-[10px] font-medium text-primary">
                     {tag}
                   </span>
                 ))}
@@ -1287,99 +1129,57 @@ export default function JobPosts() {
             )}
 
             {/* Candidate Applications Summary */}
-            <div className="flex items-center justify-between p-4 rounded-lg bg-blue-50/50 border border-blue-100">
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-primary/10 bg-blue-soft p-4">
               <div className="flex items-center gap-3">
-                <Users className="w-5 h-5 text-primary" />
+                <Users className="size-5 shrink-0 text-primary" aria-hidden="true" />
                 <div>
-                  <p className="text-sm font-bold text-foreground">
-                    {viewingJob.applicant_count || 0} Candidates Applied
-                  </p>
-                  <p className="text-xs text-muted-foreground">Track and review resumes in your applicant pipeline</p>
+                  <p className="text-xs font-semibold text-navy">{viewingJob.applicant_count || 0} Candidates Applied</p>
+                  <p className="mt-1 text-[10px] text-muted-foreground">Track and review resumes in your applicant pipeline</p>
                 </div>
               </div>
-              <Link
-                to="/employer/applicants"
-                className="px-4 py-1.5 rounded-xl bg-primary text-white text-xs font-semibold hover:bg-primary-hover transition-colors"
-              >
+              <Link to="/employer/applicants" className="text-link text-xs">
                 View Applicants →
               </Link>
             </div>
 
-            {/* Description */}
-            <div className="space-y-2">
-              <h3 className="text-xs font-mono tracking-wider uppercase font-bold text-muted-foreground">
-                Job Description
-              </h3>
-              <p className="text-sm text-muted-foreground whitespace-pre-line leading-relaxed bg-muted/50 p-4 rounded-lg border border-border">
-                {viewingJob.description}
-              </p>
-            </div>
-
-            {/* Requirements */}
-            {viewingJob.requirements && (
-              <div className="space-y-2">
-                <h3 className="text-xs font-mono tracking-wider uppercase font-bold text-muted-foreground">
-                  Qualifications & Requirements
-                </h3>
-                <p className="text-sm text-muted-foreground whitespace-pre-line leading-relaxed bg-muted/50 p-4 rounded-lg border border-border">
-                  {viewingJob.requirements}
-                </p>
-              </div>
-            )}
-
-            {/* Benefits */}
-            {viewingJob.benefits && (
-              <div className="space-y-2">
-                <h3 className="text-xs font-mono tracking-wider uppercase font-bold text-muted-foreground">
-                  Benefits & Perks
-                </h3>
-                <p className="text-sm text-muted-foreground whitespace-pre-line leading-relaxed bg-muted/50 p-4 rounded-lg border border-border">
-                  {viewingJob.benefits}
-                </p>
-              </div>
-            )}
-
-            {/* Instructions */}
-            {viewingJob.instructions && (
-              <div className="space-y-2">
-                <h3 className="text-xs font-mono tracking-wider uppercase font-bold text-muted-foreground">
-                  Application Instructions
-                </h3>
-                <p className="text-sm text-muted-foreground whitespace-pre-line leading-relaxed bg-muted/50 p-4 rounded-lg border border-border">
-                  {viewingJob.instructions}
-                </p>
-              </div>
-            )}
+            {[
+              ["Job Description", viewingJob.description],
+              ["Qualifications & Requirements", viewingJob.requirements],
+              ["Benefits & Perks", viewingJob.benefits],
+              ["Application Instructions", viewingJob.instructions],
+            ]
+              .filter(([, value]) => value)
+              .map(([label, value]) => (
+                <div key={label}>
+                  <h3 className="mb-2 text-xs font-semibold text-navy">{label}</h3>
+                  <p className="rounded-xl border bg-muted p-4 text-xs leading-6 whitespace-pre-line text-muted-foreground">
+                    {value}
+                  </p>
+                </div>
+              ))}
 
             {/* Modal Bottom Actions */}
-            <div className="pt-4 border-t border-border flex flex-wrap items-center justify-end gap-2.5">
+            <div className="flex flex-wrap items-center justify-end gap-2 border-t pt-4">
               <Button
                 type="button"
+                variant="outline"
                 onClick={() => {
                   const toEdit = viewingJob;
                   setViewingJob(null);
                   handleOpenEdit(toEdit);
                 }}
-                className="px-4 py-2 rounded-xl text-xs font-semibold border border-border text-muted-foreground hover:bg-muted transition-colors cursor-pointer"
+                className="text-xs"
               >
                 Edit Listing
               </Button>
 
               {(viewingJob.status === "published" || viewingJob.status === "closed") && (
-                <Button
-                  type="button"
-                  onClick={() => handleToggleClose(viewingJob)}
-                  className="px-4 py-2 rounded-xl text-xs font-semibold border border-border text-muted-foreground hover:bg-muted transition-colors cursor-pointer"
-                >
+                <Button type="button" variant="outline" onClick={() => handleToggleClose(viewingJob)} className="text-xs">
                   {viewingJob.status === "published" ? "Close Job" : "Reopen Job"}
                 </Button>
               )}
 
-              <Button
-                type="button"
-                onClick={() => setViewingJob(null)}
-                className="px-4 py-2 rounded-xl text-xs font-semibold bg-muted text-muted-foreground hover:bg-gray-200 transition-colors cursor-pointer"
-              >
+              <Button type="button" variant="secondary" onClick={() => setViewingJob(null)} className="text-xs">
                 Done
               </Button>
             </div>

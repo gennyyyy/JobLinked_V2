@@ -1,9 +1,9 @@
-import { Button } from "../../components/ui/button";
+import { Button } from "@/components/ui/button";
 import { useState } from "react";
-import useAuth from "../../shared/hooks/useAuth";
+import useAuth from "@/shared/hooks/useAuth";
 import AiMatchModal from "./AiMatchModal";
-import BrowseJobs from "../../shared/components/BrowseJobs";
-import { PageHeader } from "../../shared/components/dashboard";
+import BrowseJobs from "@/shared/components/BrowseJobs";
+import { PageHeading } from "@/shared/components/design";
 
 function Jobs() {
   const { user } = useAuth();
@@ -12,10 +12,10 @@ function Jobs() {
 
   return (
     <div className="space-y-6 pb-12">
-      <PageHeader
-        eyebrow="OPPORTUNITIES IN SANTA MARIA"
+      <PageHeading
+        eyebrow="Opportunities in Santa Maria"
         title="Browse Verified Openings"
-        subtitle="Search verified positions from accredited employers in Santa Maria."
+        description="Search verified positions from accredited employers in Santa Maria."
       />
 
       <BrowseJobs
@@ -24,10 +24,11 @@ function Jobs() {
         toolbar={
           <Button
             type="button"
+            variant="outline"
             onClick={() => setAiOpen(true)}
             aria-label="Open AI job matching"
             title="AI Job Matching"
-            className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-primary/25 bg-primary/10 text-primary hover:bg-primary/20 focus:outline-none focus:ring-2 focus:ring-primary/30 transition-colors cursor-pointer"
+            className="border-primary/25 bg-primary/5 text-primary hover:bg-primary/10"
           >
             <span className="text-xs font-bold tracking-wide">AI</span>
           </Button>

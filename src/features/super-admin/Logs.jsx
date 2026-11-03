@@ -1,158 +1,169 @@
-import { Button } from "../../components/ui/button";
-import { Input } from "../../components/ui/input";
-import { useEffect, useMemo, useState } from "react";
-import { createPortal } from "react-dom";
-import { X } from "lucide-react";
-import { listAuditLogs, listUsers } from "../../shared/services/admin";
-import LoadingScreen from "../../shared/components/LoadingScreen";
-import useDialog from "../../shared/hooks/useDialog";
+import { Button } from '@/components/ui/button'
+import { useEffect, useMemo, useState } from 'react'
+import { createPortal } from 'react-dom'
+import { X } from 'lucide-react'
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
+import { listAuditLogs, listUsers } from '@/shared/services/admin'
+import LoadingScreen from '@/shared/components/LoadingScreen'
+import useDialog from '@/shared/hooks/useDialog'
+import { InlineError } from '@/shared/components/dashboard'
+import { EmptyState, PageHeading, SelectField, StatusBadge, TextField } from '@/shared/components/design'
 
 const ACTIVITY_TYPES = [
-  "auth.login",
-  "auth.login.failed",
-  "auth.logout",
-  "auth.register",
-  "auth.password.change",
-  "auth.password.reset.request",
-  "profile.update",
-  "profile.view",
-  "job.search",
-  "job.view",
-  "job.list.view",
-  "job.create",
-  "job.update",
-  "job.status.draft",
-  "job.status.pending",
-  "job.status.approved",
-  "job.status.rejected",
-  "job.status.published",
-  "job.status.closed",
-  "job.status.archived",
-  "application.list.view",
-  "application.create",
-  "application.status.Applied",
-  "application.status.Under Review",
-  "application.status.Interview",
-  "application.status.Accepted",
-  "application.status.Rejected",
-  "application.status.Terminated",
-  "resume.upload",
-  "resume.activate",
-  "document.upload",
-  "document.view",
-  "document.pending",
-  "document.verified",
-  "document.rejected",
-  "accreditation.submit",
-  "accreditation.approved",
-  "accreditation.rejected",
-  "accreditation.revoked",
-  "facebook.connect",
-  "facebook.disconnect",
-  "data.purge",
-  "settings.reference.add",
-  "settings.reference.remove",
-  "settings.barangay.add",
-  "settings.barangay.remove",
-  "user.update",
-];
+  'auth.login',
+  'auth.login.failed',
+  'auth.logout',
+  'auth.register',
+  'auth.password.change',
+  'auth.password.reset.request',
+  'profile.update',
+  'profile.view',
+  'job.search',
+  'job.view',
+  'job.list.view',
+  'job.create',
+  'job.update',
+  'job.status.draft',
+  'job.status.pending',
+  'job.status.approved',
+  'job.status.rejected',
+  'job.status.published',
+  'job.status.closed',
+  'job.status.archived',
+  'application.list.view',
+  'application.create',
+  'application.status.Applied',
+  'application.status.Under Review',
+  'application.status.Interview',
+  'application.status.Accepted',
+  'application.status.Rejected',
+  'application.status.Terminated',
+  'resume.upload',
+  'resume.activate',
+  'document.upload',
+  'document.view',
+  'document.pending',
+  'document.verified',
+  'document.rejected',
+  'accreditation.submit',
+  'accreditation.approved',
+  'accreditation.rejected',
+  'accreditation.revoked',
+  'facebook.connect',
+  'facebook.disconnect',
+  'data.purge',
+  'settings.reference.add',
+  'settings.reference.remove',
+  'settings.barangay.add',
+  'settings.barangay.remove',
+  'user.update',
+]
 
 function formatDate(dateStr) {
-  if (!dateStr) return "—";
-  const d = new Date(dateStr);
-  if (isNaN(d.getTime())) return "—";
-  return d.toLocaleString("en-US", {
-    month: "numeric",
-    day: "numeric",
-    year: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-    second: "2-digit",
+  if (!dateStr) return '—'
+  const d = new Date(dateStr)
+  if (isNaN(d.getTime())) return '—'
+  return d.toLocaleString('en-US', {
+    month: 'numeric',
+    day: 'numeric',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    second: '2-digit',
     hour12: true,
-  });
+  })
 }
 
 function InfoRow({ label, value }) {
-  if (!value) return null;
+  if (!value) return null
   return (
     <div>
-      <p className="font-mono text-[10px] tracking-wider text-muted-foreground uppercase">{label}</p>
-      <p className="mt-1 text-sm text-foreground font-medium">{value}</p>
+      <dt className="text-[10px] uppercase tracking-[.14em] text-muted-foreground">{label}</dt>
+      <dd className="mt-1 text-xs font-medium text-navy">{value}</dd>
     </div>
-  );
+  )
 }
 
 function UserModal({ email, onClose }) {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const panelRef = useDialog(onClose);
+  const [user, setUser] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const panelRef = useDialog(onClose)
 
   useEffect(() => {
-    if (!email) return;
+    if (!email) return
     listUsers({ search: email })
       .then((res) => setUser((res.data || []).find((u) => u.email?.toLowerCase() === email.toLowerCase()) || null))
       .catch(() => setUser(null))
-      .finally(() => setLoading(false));
-  }, [email]);
+      .finally(() => setLoading(false))
+  }, [email])
 
-  if (!email) return null;
+  if (!email) return null
   return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" onClick={onClose}>
-      <div ref={panelRef} className="bg-card w-full max-w-md max-h-[90vh] overflow-y-auto border border-primary rounded-lg shadow-xl p-5" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="logs-user-title">
-        <div className="flex items-start justify-between gap-3 pb-4 border-b border-border">
-          <div>
-            <span className="font-mono text-[10px] tracking-widest text-primary uppercase">USER PROFILE</span>
-            <h2 id="logs-user-title" className="mt-1 text-xl font-bold text-foreground uppercase">{loading ? email : user?.full_name || email}</h2>
-            {user?.role && <span className="mt-2 inline-block px-2 py-1 rounded-lg bg-muted text-muted-foreground text-xs capitalize">{user.role.replace("-", " ")}</span>}
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/60 p-4" onClick={onClose}>
+      <div
+        ref={panelRef}
+        className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-2xl border bg-card p-5 shadow-xl"
+        onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="logs-user-title"
+      >
+        <div className="flex items-start justify-between gap-3 border-b pb-4">
+          <div className="min-w-0">
+            <p className="eyebrow">User profile</p>
+            <h2 id="logs-user-title" className="mt-2 truncate text-lg font-semibold uppercase tracking-tight text-navy">
+              {loading ? email : user?.full_name || email}
+            </h2>
+            {user?.role && <div className="mt-2"><StatusBadge status={user.role.replace('-', ' ')} /></div>}
           </div>
-          <Button type="button" onClick={onClose} className="p-1 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer" aria-label="Close"><X className="w-4 h-4" aria-hidden="true" /></Button>
+          <Button type="button" variant="ghost" size="icon" onClick={onClose} aria-label="Close">
+            <X aria-hidden="true" />
+          </Button>
         </div>
-        <div className="mt-4 grid grid-cols-1 gap-3 p-4 rounded-xl bg-muted border border-border">
+        <dl className="mt-4 grid grid-cols-1 gap-3 rounded-xl border bg-muted/50 p-4">
           {loading ? (
-            <p className="text-xs text-muted-foreground">Loading profile…</p>
+            <div className="text-xs text-muted-foreground">Loading profile…</div>
           ) : !user ? (
-            <p className="text-sm text-muted-foreground">No profile found for this email.</p>
+            <div className="text-xs text-muted-foreground">No profile found for this email.</div>
           ) : (
             <>
               <InfoRow label="Email" value={user.email} />
               <InfoRow label="Phone" value={user.phone} />
               <InfoRow label="Status" value={user.status} />
-              {user.role === "employer" && <InfoRow label="Company" value={user.company_name} />}
+              {user.role === 'employer' && <InfoRow label="Company" value={user.company_name} />}
               <InfoRow label="Barangay" value={user.barangay_district || user.barangay} />
               <InfoRow label="City" value={user.city} />
-              <InfoRow label="Member since" value={user.created_at && new Date(user.created_at).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })} />
+              <InfoRow label="Member since" value={user.created_at && new Date(user.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })} />
             </>
           )}
-        </div>
-        <div className="mt-6 pt-5 border-t border-border flex justify-end">
-          <Button type="button" onClick={onClose} className="px-5 py-2 text-xs font-medium rounded-xl border border-border text-muted-foreground hover:bg-muted transition-colors cursor-pointer">
-            Close
-          </Button>
+        </dl>
+        <div className="mt-5 flex justify-end border-t pt-4">
+          <Button type="button" variant="outline" onClick={onClose}>Close</Button>
         </div>
       </div>
     </div>,
     document.body
-  );
+  )
 }
 
 function Logs() {
-  const [logs, setLogs] = useState([]);
-  const [users, setUsers] = useState([]);
-  const [filters, setFilters] = useState({ userId: "", action: "", from: "", to: "" });
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [selectedEmail, setSelectedEmail] = useState("");
+  const [logs, setLogs] = useState([])
+  const [users, setUsers] = useState([])
+  const [filters, setFilters] = useState({ userId: '', action: '', from: '', to: '' })
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+  const [selectedEmail, setSelectedEmail] = useState('')
 
   async function loadLogs(nextFilters = filters) {
-    setLoading(true);
-    setError("");
+    setLoading(true)
+    setError('')
     try {
-      const data = await listAuditLogs(nextFilters);
-      setLogs(data);
+      const data = await listAuditLogs(nextFilters)
+      setLogs(data)
     } catch (err) {
-      setError(err.message || "Failed to load activity logs");
+      setError(err.message || 'Failed to load activity logs')
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
   }
 
@@ -162,143 +173,114 @@ function Logs() {
     // stat cards). Move to a search-keyed dropdown if accounts outgrow 500.
     Promise.all([listUsers({ pageSize: 500 }), listAuditLogs()])
       .then(([userRows, logRows]) => {
-        setUsers(userRows.data);
-        setLogs(logRows);
+        setUsers(userRows.data)
+        setLogs(logRows)
       })
-      .catch((err) => setError(err.message || "Failed to load activity logs"))
-      .finally(() => setLoading(false));
-  }, []);
+      .catch((err) => setError(err.message || 'Failed to load activity logs'))
+      .finally(() => setLoading(false))
+  }, [])
 
-  const actions = useMemo(() => [...new Set([...ACTIVITY_TYPES, ...logs.map((log) => log.action).filter(Boolean)])].sort(), [logs]);
+  const actions = useMemo(() => [...new Set([...ACTIVITY_TYPES, ...logs.map((log) => log.action).filter(Boolean)])].sort(), [logs])
 
   function updateFilter(key, value) {
-    setFilters((current) => ({ ...current, [key]: value }));
+    setFilters((current) => ({ ...current, [key]: value }))
   }
 
-  if (loading) return <LoadingScreen />;
-  if (error) return <div className="py-8 text-center text-sm text-danger">{error}</div>;
+  if (loading) return <LoadingScreen />
+  if (error) return <InlineError message={error} />
 
   return (
-    <div className="h-full min-h-0 flex flex-col gap-4 overflow-hidden">
-      <header className="shrink-0">
-        <div className="flex items-center gap-2.5">
-          <div className="w-1 h-5 bg-primary rounded-full" />
-          <p className="font-mono text-[11px] tracking-[0.2em] text-primary uppercase font-medium">SYSTEM AUDIT</p>
-        </div>
-        <h1 className="mt-1 text-xl md:text-2xl font-bold tracking-tight text-dark-blue">Activity Logs</h1>
-        <p className="mt-2 text-sm text-muted-foreground">Review user actions and system activity across the platform</p>
-      </header>
+    <div className="flex h-full min-h-0 flex-col gap-6">
+      <PageHeading
+        eyebrow="System audit"
+        title="Activity Logs"
+        description="Review user actions and system activity across the platform."
+      />
 
-
-
-      <section className="bg-card border border-primary rounded-lg shadow-xs min-h-0 flex-1 flex flex-col overflow-hidden">
-        {/* Filter bar */}
-        <div className="shrink-0 px-5 py-4 flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-3 border-b border-border">
-          <div className="flex-1 min-w-[150px]">
-            <select
+      <section className="surface flex min-h-0 flex-1 flex-col overflow-hidden p-0">
+        <div className="flex shrink-0 flex-col gap-3 border-b px-5 py-4 sm:flex-row sm:flex-wrap sm:items-end">
+          <div className="sm:w-52">
+            <SelectField
+              label="Filter by user"
+              placeholder="All users"
               value={filters.userId}
-              onChange={(e) => updateFilter("userId", e.target.value)}
-              aria-label="Filter by user"
-              className="w-full min-h-[38px] px-3.5 rounded-xl text-sm bg-muted border border-border text-gray-800 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all cursor-pointer"
-            >
-              <option value="">All users</option>
-              {users.map((user) => <option key={user.id} value={user.id}>{user.full_name || user.email}</option>)}
-            </select>
+              onChange={(e) => updateFilter('userId', e.target.value)}
+              options={users.map((user) => ({ value: user.id, label: user.full_name || user.email }))}
+            />
           </div>
-          <div className="flex-1 min-w-[150px]">
-            <select
+          <div className="sm:w-56">
+            <SelectField
+              label="Filter by activity"
+              placeholder="All activities"
               value={filters.action}
-              onChange={(e) => updateFilter("action", e.target.value)}
-              aria-label="Filter by activity"
-              className="w-full min-h-[38px] px-3.5 rounded-xl text-sm bg-muted border border-border text-gray-800 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all cursor-pointer"
-            >
-              <option value="">All activities</option>
-              <option value="auth.">auth.* (all auth events)</option>
-              {actions.map((action) => <option key={action} value={action}>{action}</option>)}
-            </select>
+              onChange={(e) => updateFilter('action', e.target.value)}
+              options={[{ value: 'auth.', label: 'auth.* (all auth events)' }, ...actions.map((action) => ({ value: action, label: action }))]}
+            />
           </div>
-          <Input
-            type="date"
-            value={filters.from}
-            onChange={(e) => updateFilter("from", e.target.value)}
-            aria-label="From date"
-            className="min-h-[38px] px-3.5 rounded-xl text-sm bg-muted border border-border text-gray-800 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all"
-          />
-          <Input
-            type="date"
-            value={filters.to}
-            onChange={(e) => updateFilter("to", e.target.value)}
-            aria-label="To date"
-            className="min-h-[38px] px-3.5 rounded-xl text-sm bg-muted border border-border text-gray-800 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all"
-          />
-          <Button
-            type="button"
-            onClick={() => loadLogs()}
-            className="min-h-[38px] px-5 rounded-xl bg-primary text-white text-xs font-semibold hover:bg-primary-hover active:scale-[0.99] transition-all cursor-pointer shadow-xs"
-          >
-            Apply Filters
-          </Button>
-          <Button
-            type="button"
-            onClick={() => { const nextFilters = { ...filters, action: "auth." }; setFilters(nextFilters); loadLogs(nextFilters); }}
-            className="min-h-[38px] px-5 rounded-xl bg-emerald-600 text-white text-xs font-semibold hover:bg-emerald-700 active:scale-[0.99] transition-all cursor-pointer shadow-xs"
-          >
+          <div className="w-full sm:w-40">
+            <TextField label="From date" type="date" value={filters.from} onChange={(e) => updateFilter('from', e.target.value)} />
+          </div>
+          <div className="w-full sm:w-40">
+            <TextField label="To date" type="date" value={filters.to} onChange={(e) => updateFilter('to', e.target.value)} />
+          </div>
+          <Button type="button" onClick={() => loadLogs()}>Apply Filters</Button>
+          <Button type="button" variant="outline" onClick={() => { const nextFilters = { ...filters, action: 'auth.' }; setFilters(nextFilters); loadLogs(nextFilters) }}>
             Login History
           </Button>
-          <Button
-            type="button"
-            onClick={() => { const nextFilters = { userId: "", action: "", from: "", to: "" }; setFilters(nextFilters); loadLogs(nextFilters); }}
-            className="min-h-[38px] px-4 rounded-xl border border-border bg-card text-xs font-semibold text-muted-foreground hover:bg-muted active:scale-[0.99] transition-all cursor-pointer"
-          >
+          <Button type="button" variant="ghost" onClick={() => { const nextFilters = { userId: '', action: '', from: '', to: '' }; setFilters(nextFilters); loadLogs(nextFilters) }}>
             Clear
           </Button>
-          <span className="self-center ml-auto text-xs text-muted-foreground font-medium whitespace-nowrap">{logs.length} records</span>
+          <p className="text-xs text-muted-foreground sm:ml-auto">{logs.length} records</p>
         </div>
-        {/* Table */}
-        <div className="overflow-auto min-h-0 flex-1">
-          <table className="w-full text-sm table-fixed">
-            <colgroup>
-              <col style={{ width: "160px" }} />
-              <col style={{ width: "190px" }} />
-              <col style={{ width: "190px" }} />
-            </colgroup>
-            <thead>
-              <tr className="sticky top-0 bg-card z-10 border-b border-border font-mono text-[10px] tracking-widest text-muted-foreground uppercase">
-                <th scope="col" className="text-left py-3 pl-5 pr-3 font-medium">Date</th>
-                <th scope="col" className="text-left py-3 px-3 font-medium">User</th>
-                <th scope="col" className="text-left py-3 px-3 pr-5 font-medium">Activity</th>
-              </tr>
-            </thead>
-            <tbody>
-              {logs.map((log) => (
-                <tr key={log.id} className="border-t border-border hover:bg-muted/60 transition-colors align-top">
-                  <th scope="row" className="py-3 pl-5 pr-3 text-left whitespace-nowrap text-xs text-muted-foreground">{formatDate(log.created_at)}</th>
-                  <td className="py-3 px-3 text-xs">
-                    {log.actor_email ? (
-                      <Button
-                        type="button"
-                        onClick={() => setSelectedEmail(log.actor_email)}
-                        className="text-primary hover:underline text-left cursor-pointer break-all"
-                      >
-                        {log.actor_email}
-                      </Button>
-                    ) : (
-                      <span className="text-muted-foreground">{log.actor_name || "—"}</span>
-                    )}
-                  </td>
-                  <td className="py-3 px-3 pr-5">
-                    <span className="font-mono text-xs font-semibold text-primary break-all">{log.action}</span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          {logs.length === 0 && <div className="py-8 text-center text-sm text-muted-foreground">No activity logs match these filters.</div>}
+
+        <div className="min-h-0 flex-1 overflow-auto">
+          {logs.length === 0 ? (
+            <div className="p-5">
+              <EmptyState title="No activity logs match these filters." description="Clear the filters to see the full audit trail." />
+            </div>
+          ) : (
+            <Table className="table-fixed">
+              <colgroup>
+                <col style={{ width: '200px' }} />
+                <col style={{ width: '220px' }} />
+                <col />
+              </colgroup>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Date</TableHead>
+                  <TableHead>User</TableHead>
+                  <TableHead>Activity</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {logs.map((log) => (
+                  <TableRow key={log.id} className="align-top">
+                    <TableCell className="whitespace-nowrap text-[11px] text-muted-foreground">{formatDate(log.created_at)}</TableCell>
+                    <TableCell className="whitespace-normal text-xs">
+                      {log.actor_email ? (
+                        <Button
+                          type="button"
+                          variant="link"
+                          onClick={() => setSelectedEmail(log.actor_email)}
+                          className="h-auto justify-start break-all p-0 text-left text-xs font-normal"
+                        >
+                          {log.actor_email}
+                        </Button>
+                      ) : (
+                        <span className="text-muted-foreground">{log.actor_name || '—'}</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="whitespace-normal break-all text-xs font-medium text-primary">{log.action}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
         </div>
       </section>
-      {selectedEmail && <UserModal email={selectedEmail} onClose={() => setSelectedEmail("")} />}
+      {selectedEmail && <UserModal email={selectedEmail} onClose={() => setSelectedEmail('')} />}
     </div>
-  );
+  )
 }
 
-export default Logs;
+export default Logs

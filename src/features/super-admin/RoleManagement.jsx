@@ -1,100 +1,102 @@
-import { Button } from "../../components/ui/button";
-import { Input } from "../../components/ui/input";
-import { Textarea } from "../../components/ui/textarea";
-import { Label } from "../../components/ui/label";
-import { useState, useEffect, useCallback } from "react";
-import { Shield, Plus, Pencil, Trash2, Lock, Users, X } from "lucide-react";
-import { listRoles, createRole, updateRole, deleteRole, listPermissions } from "../../shared/services/admin";
-import ConfirmationModal from "../../shared/components/ConfirmationModal";
-import LoadingScreen from "../../shared/components/LoadingScreen";
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
+import { Label } from '@/components/ui/label'
+import { useState, useEffect, useCallback } from 'react'
+import { Shield, Plus, Pencil, Trash2, Lock, Users, X } from 'lucide-react'
+import { listRoles, createRole, updateRole, deleteRole, listPermissions } from '@/shared/services/admin'
+import ConfirmationModal from '@/shared/components/ConfirmationModal'
+import LoadingScreen from '@/shared/components/LoadingScreen'
+import { SectionCard, StatCard } from '@/shared/components/dashboard'
+import { PageHeading, StatusBadge } from '@/shared/components/design'
 
 // The 3 system roles are fixed by the DB enum + auth — read-only here.
 // Custom roles (permission bundles) are added/edited below and assigned from
 // the Users page only. Nothing on this page touches user assignment.
 const SYSTEM_ROLES = [
   {
-    key: "super-admin",
-    label: "Super Admin",
-    description: "Full system access: manage employers, accreditations, jobs, users, and settings.",
-    capabilities: ["Users", "Roles", "Reports", "Logs", "Settings"],
+    key: 'super-admin',
+    label: 'Super Admin',
+    description: 'Full system access: manage employers, accreditations, jobs, users, and settings.',
+    capabilities: ['Users', 'Roles', 'Reports', 'Logs', 'Settings'],
   },
   {
-    key: "employer",
-    label: "Employer",
-    description: "Post jobs, manage applicants, submit accreditation documents.",
-    capabilities: ["Job posts", "Applicants & employees", "Company profile", "Accreditation"],
+    key: 'employer',
+    label: 'Employer',
+    description: 'Post jobs, manage applicants, submit accreditation documents.',
+    capabilities: ['Job posts', 'Applicants & employees', 'Company profile', 'Accreditation'],
   },
   {
-    key: "job-seeker",
-    label: "Job Seeker",
-    description: "Browse jobs, manage profile, submit applications.",
-    capabilities: ["Browse jobs", "Applications", "Profile & resume", "Employment history"],
+    key: 'job-seeker',
+    label: 'Job Seeker',
+    description: 'Browse jobs, manage profile, submit applications.',
+    capabilities: ['Browse jobs', 'Applications', 'Profile & resume', 'Employment history'],
   },
-];
+]
 
-const BASE_ROLE_OPTIONS = SYSTEM_ROLES.map((r) => ({ key: r.key, label: r.label }));
+const BASE_ROLE_OPTIONS = SYSTEM_ROLES.map((r) => ({ key: r.key, label: r.label }))
 
-const emptyForm = { name: "", description: "", base_role: "super-admin", permissions: [] };
+const emptyForm = { name: '', description: '', base_role: 'super-admin', permissions: [] }
 
 function RoleManagement() {
-  const [customRoles, setCustomRoles] = useState([]);
-  const [permissionCatalog, setPermissionCatalog] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [flash, setFlash] = useState("");
+  const [customRoles, setCustomRoles] = useState([])
+  const [permissionCatalog, setPermissionCatalog] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+  const [flash, setFlash] = useState('')
 
   // Create / edit modal
-  const [formOpen, setFormOpen] = useState(false);
-  const [editingId, setEditingId] = useState(null);
-  const [form, setForm] = useState(emptyForm);
-  const [formError, setFormError] = useState("");
-  const [saving, setSaving] = useState(false);
+  const [formOpen, setFormOpen] = useState(false)
+  const [editingId, setEditingId] = useState(null)
+  const [form, setForm] = useState(emptyForm)
+  const [formError, setFormError] = useState('')
+  const [saving, setSaving] = useState(false)
 
   // Delete confirm
-  const [confirmRole, setConfirmRole] = useState(null);
+  const [confirmRole, setConfirmRole] = useState(null)
 
   // Permission catalog is server-owned (GET /admin/permissions) — one fetch with
   // the roles so the single loading gate covers both, no second loader.
   const load = useCallback(async () => {
     try {
-      const [roles, permissions] = await Promise.all([listRoles(), listPermissions()]);
-      setCustomRoles(roles);
-      setPermissionCatalog(permissions);
-      setError("");
+      const [roles, permissions] = await Promise.all([listRoles(), listPermissions()])
+      setCustomRoles(roles)
+      setPermissionCatalog(permissions)
+      setError('')
     } catch (err) {
-      setError(err.message || "Failed to load roles");
+      setError(err.message || 'Failed to load roles')
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  }, []);
+  }, [])
 
   useEffect(() => {
-    const timer = setTimeout(load, 0);
-    return () => clearTimeout(timer);
-  }, [load]);
+    const timer = setTimeout(load, 0)
+    return () => clearTimeout(timer)
+  }, [load])
 
   function showFlash(text) {
-    setFlash(text);
-    setTimeout(() => setFlash(""), 4000);
+    setFlash(text)
+    setTimeout(() => setFlash(''), 4000)
   }
 
   function openCreate() {
-    setEditingId(null);
-    setForm(emptyForm);
-    setFormError("");
-    setFormOpen(true);
+    setEditingId(null)
+    setForm(emptyForm)
+    setFormError('')
+    setFormOpen(true)
   }
 
   function openEdit(role) {
-    setEditingId(role.id);
+    setEditingId(role.id)
     setForm({
       name: role.name,
-      description: role.description || "",
-      base_role: role.base_role || "super-admin",
+      description: role.description || '',
+      base_role: role.base_role || 'super-admin',
       permissions: [...(role.permissions || [])],
-    });
-    setFormError("");
-    setFormOpen(true);
+    })
+    setFormError('')
+    setFormOpen(true)
   }
 
   function togglePermission(key) {
@@ -103,267 +105,182 @@ function RoleManagement() {
       permissions: prev.permissions.includes(key)
         ? prev.permissions.filter((p) => p !== key)
         : [...prev.permissions, key],
-    }));
+    }))
   }
 
   async function handleSave(e) {
-    e.preventDefault();
-    if (!form.name.trim()) { setFormError("Role name is required."); return; }
-    setSaving(true);
-    setFormError("");
+    e.preventDefault()
+    if (!form.name.trim()) { setFormError('Role name is required.'); return }
+    setSaving(true)
+    setFormError('')
     try {
       const payload = {
         name: form.name.trim(),
         description: form.description.trim(),
         base_role: form.base_role,
         permissions: form.permissions,
-      };
-      if (editingId) {
-        await updateRole(editingId, payload);
-        showFlash(`Role "${payload.name}" updated.`);
-      } else {
-        await createRole(payload);
-        showFlash(`Role "${payload.name}" created.`);
       }
-      setFormOpen(false);
-      await load();
+      if (editingId) {
+        await updateRole(editingId, payload)
+        showFlash(`Role "${payload.name}" updated.`)
+      } else {
+        await createRole(payload)
+        showFlash(`Role "${payload.name}" created.`)
+      }
+      setFormOpen(false)
+      await load()
     } catch (err) {
-      setFormError(err.message || "Failed to save role");
+      setFormError(err.message || 'Failed to save role')
     } finally {
-      setSaving(false);
+      setSaving(false)
     }
   }
 
   async function handleDelete() {
-    const role = confirmRole;
-    setConfirmRole(null);
+    const role = confirmRole
+    setConfirmRole(null)
     try {
-      await deleteRole(role.id);
-      showFlash(`Role "${role.name}" deleted. Users holding it were untagged.`);
-      await load();
+      await deleteRole(role.id)
+      showFlash(`Role "${role.name}" deleted. Users holding it were untagged.`)
+      await load()
     } catch (err) {
-      setError(err.message || "Failed to delete role");
+      setError(err.message || 'Failed to delete role')
     }
   }
 
-  if (loading) return <LoadingScreen />;
+  if (loading) return <LoadingScreen />
 
   return (
-    <div className="h-full min-h-0 flex flex-col gap-4 overflow-hidden">
-      {/* Header Section */}
-      <header className="shrink-0 flex flex-col md:flex-row md:items-center justify-between gap-3">
-        <div>
-          <div className="flex items-center gap-2">
-            <span className="font-mono text-[11px] tracking-[0.2em] text-primary uppercase font-semibold">
-              SYSTEM ADMINISTRATION
-            </span>
-            <span className="w-1.5 h-1.5 rounded-full bg-primary" />
-            <span className="text-xs text-muted-foreground font-medium">Santa Maria PESO</span>
-          </div>
-          <h1 className="mt-1 font-sans text-xl md:text-2xl font-bold tracking-tight text-foreground">
-            Roles
-          </h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Define roles and their permissions — assign them to people from the Users page
-          </p>
-        </div>
-      </header>
-
-      {flash && (
-        <div className="shrink-0 text-sm text-emerald-700 bg-emerald-50 border border-emerald-200 px-4 py-3 rounded-xl">{flash}</div>
-      )}
-      {error && (
-        <div className="shrink-0 bg-card border border-rose-100 rounded-2xl p-5 flex items-start gap-3 shadow-[0_2px_16px_-8px_rgba(16,24,40,0.08)]">
-          <div className="shrink-0 mt-0.5 w-8 h-8 rounded-lg bg-rose-50 border border-rose-100 flex items-center justify-center">
-            <Lock className="w-4 h-4 text-rose-500" strokeWidth={2} />
-          </div>
-          <div className="min-w-0">
-            <p className="text-sm font-semibold text-foreground">Role management hit a snag</p>
-            <p className="text-sm text-rose-600 mt-0.5">{error}</p>
-          </div>
-        </div>
-      )}
-
-      {/* Metric Counters Bar */}
-      <div className="shrink-0 grid grid-cols-1 sm:grid-cols-3 gap-3 w-full">
-        {[
-          { label: "System Roles", count: SYSTEM_ROLES.length, icon: Lock },
-          { label: "Custom Roles", count: customRoles.length, icon: Shield },
-          { label: "Permission Slots", count: permissionCatalog.length, icon: Users },
-        ].map((c) => {
-          const MetricIcon = c.icon;
-          return (
-            <div key={c.label} className="p-4 rounded-lg border bg-card border-border">
-              <div className="flex items-center justify-between">
-                <p className="text-2xl font-bold text-foreground">{c.count}</p>
-                <MetricIcon className="w-4 h-4 text-muted-foreground" />
-              </div>
-              <p className="text-xs font-mono uppercase tracking-wider text-muted-foreground mt-1">{c.label}</p>
-            </div>
-          );
-        })}
+    <div className="flex h-full min-h-0 flex-col gap-4 overflow-hidden">
+      <div className="shrink-0">
+        <PageHeading
+          eyebrow="System administration"
+          title="Roles"
+          description="Define roles and their permissions — assign them to people from the Users page."
+          action={(
+            <Button type="button" onClick={openCreate}>
+              <Plus data-icon="inline-start" />
+              New Role
+            </Button>
+          )}
+        />
       </div>
 
-      <section className="min-h-0 flex-1 flex flex-col overflow-y-auto bg-card border border-primary rounded-lg p-4 shadow-xs">
-        {/* System Roles — fixed by auth, read-only */}
-        <div className="shrink-0 space-y-3 pb-4">
-          <div className="flex items-center justify-between gap-3 pb-3 border-b border-border">
-          <div>
-            <h2 className="text-base font-semibold text-foreground">System Roles</h2>
-          </div>
-          <span className="inline-flex items-center gap-1.5 font-mono text-[10px] tracking-wider px-2.5 py-1 rounded-full uppercase border font-semibold bg-muted border-border text-muted-foreground shrink-0">
-            <Lock className="w-3 h-3" />
-            Read-only
-          </span>
-        </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-          {SYSTEM_ROLES.map((role) => (
-            <div key={role.key} className="bg-muted border border-border rounded-xl p-3">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
-                  <Shield className="w-4 h-4 text-primary" />
-                </div>
-                <div>
-                  <h3 className="text-sm font-semibold text-foreground">{role.label}</h3>
-                  <p className="font-mono text-[10px] tracking-wider text-muted-foreground uppercase">{role.key}</p>
-                </div>
-              </div>
-              <p className="text-xs text-muted-foreground mt-2 leading-relaxed">{role.description}</p>
-              <div className="flex flex-wrap gap-1.5 mt-2">
-                {role.capabilities.map((cap) => (
-                  <span key={cap} className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-medium bg-card border border-border text-muted-foreground">
-                    {cap}
-                  </span>
-                ))}
-              </div>
-            </div>
-          ))}
-          </div>
-        </div>
+      {flash && <p className="shrink-0 rounded-xl border border-success/20 bg-success-soft px-4 py-3 text-xs text-success">{flash}</p>}
+      {error && <p role="alert" className="shrink-0 text-xs text-destructive">{error}</p>}
 
-        {/* Custom Roles — the super-admin's catalog (assign from Users page) */}
-        <div className="shrink-0 flex flex-col gap-5 border-t border-border pt-4">
-        <div className="shrink-0 flex items-center justify-between gap-3 pb-4 border-b border-border">
-          <div>
-            <h2 className="text-base font-semibold text-foreground">Custom Roles ({customRoles.length})</h2>
-            <p className="text-xs text-muted-foreground mt-0.5">Roles you define — pick a base portal and the permissions it gets</p>
-          </div>
-          <Button
-            type="button"
-            onClick={openCreate}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold text-primary bg-primary/10 border border-primary/25 hover:bg-primary/20 transition-colors cursor-pointer shrink-0"
-          >
-            <Plus className="w-3.5 h-3.5" />
-            New Role
-          </Button>
-        </div>
+      <div className="grid shrink-0 gap-4 sm:grid-cols-3">
+        <StatCard label="System roles" value={SYSTEM_ROLES.length} icon={<Lock className="size-4" strokeWidth={1.7} />} />
+        <StatCard label="Custom roles" value={customRoles.length} icon={<Shield className="size-4" strokeWidth={1.7} />} />
+        <StatCard label="Permission slots" value={permissionCatalog.length} icon={<Users className="size-4" strokeWidth={1.7} />} />
+      </div>
 
-        {customRoles.length === 0 ? (
-          <div className="text-center py-16 px-6">
-            <div className="w-16 h-16 mx-auto rounded-2xl bg-muted border border-border flex items-center justify-center mb-4">
-              <Shield className="w-8 h-8 text-gray-300" strokeWidth={1.5} />
+      <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto">
+        <SectionCard
+          className="p-0"
+          title="System roles"
+          subtitle="Fixed by authentication. Read-only."
+          action={<span className="inline-flex items-center gap-1.5 rounded-full border bg-muted px-2.5 py-1 text-[10px] uppercase tracking-[.14em] text-muted-foreground"><Lock className="size-3" aria-hidden="true" />Read-only</span>}
+        >
+          <ul className="grid gap-4 md:grid-cols-3">
+            {SYSTEM_ROLES.map((role) => (
+              <li key={role.key} className="rounded-xl border p-4">
+                <div className="flex items-center gap-3">
+                  <span className="soft-icon size-9"><Shield className="size-4" aria-hidden="true" /></span>
+                  <div className="min-w-0">
+                    <h3 className="truncate text-sm font-semibold text-navy">{role.label}</h3>
+                    <p className="mt-0.5 text-[10px] uppercase tracking-[.14em] text-muted-foreground">{role.key}</p>
+                  </div>
+                </div>
+                <p className="mt-3 text-[11px] leading-5 text-muted-foreground">{role.description}</p>
+                <div className="mt-3 flex flex-wrap gap-1.5">
+                  {role.capabilities.map((cap) => (
+                    <span key={cap} className="rounded-full border bg-muted/60 px-2 py-0.5 text-[10px] text-muted-foreground">{cap}</span>
+                  ))}
+                </div>
+              </li>
+            ))}
+          </ul>
+        </SectionCard>
+
+        <SectionCard
+          className="p-0"
+          title={`Custom Roles (${customRoles.length})`}
+          subtitle="Roles you define — pick a base portal and the permissions it gets."
+        >
+          {customRoles.length === 0 ? (
+            <div className="flex flex-col items-center gap-3 py-10 text-center">
+              <span className="soft-icon"><Shield className="size-5" aria-hidden="true" /></span>
+              <p className="text-sm font-semibold text-navy">No custom roles yet</p>
+              <p className="max-w-sm text-xs leading-5 text-muted-foreground">
+                Create a Custom Role with the permissions you choose, then assign it to users from the Users page.
+              </p>
+              <Button type="button" variant="outline" onClick={openCreate}>Create your first role</Button>
             </div>
-            <p className="font-semibold text-foreground mb-1">No custom roles yet</p>
-            <p className="text-sm text-muted-foreground max-w-sm mx-auto">
-              Create a Custom Role with the permissions you choose, then assign it to users from the Users page.
-            </p>
-            <Button
-              type="button"
-              onClick={openCreate}
-              className="mt-4 px-4 py-2.5 rounded-xl text-xs font-semibold text-primary bg-primary/10 border border-primary/25 hover:bg-primary/20 transition-colors cursor-pointer"
-            >
-              Create your first role
-            </Button>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 content-start gap-3">
-            {customRoles.map((role) => (
-              <article
-                key={role.id}
-                className="rounded-xl bg-card border border-border hover:border-primary/40 hover:shadow-[0_8px_24px_-12px_rgba(16,24,40,0.25)] transition-all p-5 flex flex-col min-h-[170px]"
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex items-start gap-3 min-w-0">
-                    <div className="w-10 h-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
-                      <Shield className="w-5 h-5 text-primary" />
-                    </div>
+          ) : (
+            <ul className="grid content-start gap-4 md:grid-cols-2">
+              {customRoles.map((role) => (
+                <li key={role.id} className="flex flex-col rounded-xl border p-5">
+                  <div className="flex items-start gap-3">
+                    <span className="soft-icon size-9"><Shield className="size-4" aria-hidden="true" /></span>
                     <div className="min-w-0">
-                      <h3 className="font-semibold text-foreground line-clamp-1">{role.name}</h3>
-                      <p className="font-mono text-[10px] tracking-wider text-muted-foreground uppercase mt-0.5">
+                      <h3 className="truncate text-sm font-semibold text-navy">{role.name}</h3>
+                      <p className="mt-0.5 text-[10px] uppercase tracking-[.14em] text-muted-foreground">
                         base · {BASE_ROLE_OPTIONS.find((b) => b.key === role.base_role)?.label || role.base_role}
                       </p>
                     </div>
                   </div>
-                </div>
-                <p className="text-sm text-muted-foreground line-clamp-2 mt-3 flex-1">
-                  {role.description || "No description provided."}
-                </p>
-                <div className="flex flex-wrap gap-1.5 mt-3">
-                  {(role.permissions || []).length === 0 ? (
-                    <span className="text-[11px] text-muted-foreground italic">No permissions selected</span>
-                  ) : (
-                    role.permissions.map((p) => (
-                      <span key={p} className="inline-flex items-center px-2.5 py-1 rounded-full font-mono text-[10px] uppercase tracking-wider bg-emerald-50 border border-emerald-200 text-emerald-700 font-semibold">
-                        {permissionCatalog.find((x) => x.key === p)?.label || p}
-                      </span>
-                    ))
-                  )}
-                </div>
-                <div className="flex items-center justify-end gap-2 pt-4 mt-4 border-t border-border">
-                  <Button
-                    type="button"
-                    onClick={() => openEdit(role)}
-                    className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-border bg-card text-muted-foreground hover:bg-muted hover:text-foreground text-xs font-medium transition-colors cursor-pointer"
-                  >
-                    <Pencil className="w-3.5 h-3.5" />
-                    Edit
-                  </Button>
-                  <Button
-                    type="button"
-                    onClick={() => setConfirmRole(role)}
-                    className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100 text-xs font-medium transition-colors cursor-pointer"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                    Delete
-                  </Button>
-                </div>
-              </article>
-            ))}
-          </div>
-        )}
-        </div>
-      </section>
+                  <p className="mt-3 line-clamp-2 flex-1 text-[11px] leading-5 text-muted-foreground">
+                    {role.description || 'No description provided.'}
+                  </p>
+                  <div className="mt-3 flex flex-wrap gap-1.5">
+                    {(role.permissions || []).length === 0 ? (
+                      <span className="text-[10px] italic text-muted-foreground">No permissions selected</span>
+                    ) : (
+                      role.permissions.map((p) => (
+                        <StatusBadge key={p} status={permissionCatalog.find((x) => x.key === p)?.label || p} />
+                      ))
+                    )}
+                  </div>
+                  <div className="mt-4 flex items-center justify-end gap-2 border-t pt-4">
+                    <Button type="button" variant="outline" size="sm" onClick={() => openEdit(role)}>
+                      <Pencil data-icon="inline-start" />
+                      Edit
+                    </Button>
+                    <Button type="button" variant="ghost" size="sm" onClick={() => setConfirmRole(role)} className="text-destructive">
+                      <Trash2 data-icon="inline-start" />
+                      Delete
+                    </Button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </SectionCard>
+      </div>
+
       {/* Create / Edit modal */}
       {formOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
-          <div className="w-full max-w-lg bg-card rounded-2xl border border-border shadow-xl max-h-[90vh] overflow-y-auto">
-            <form onSubmit={handleSave} className="p-5 md:p-6 space-y-4">
-              <div className="flex items-center justify-between gap-3">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/60 p-4">
+          <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl border bg-card shadow-xl">
+            <form onSubmit={handleSave} className="flex flex-col gap-5 p-5 md:p-6">
+              <div className="flex items-start justify-between gap-3">
                 <div>
-                  <p className="font-mono text-[10px] tracking-[0.2em] text-primary uppercase font-semibold">
-                    {editingId ? "Edit Role" : "New Role"}
-                  </p>
-                  <h2 className="text-lg font-bold text-foreground mt-0.5">
-                    {editingId ? form.name || "Untitled role" : "Create a custom role"}
+                  <p className="eyebrow">{editingId ? 'Edit role' : 'New role'}</p>
+                  <h2 className="mt-2 text-lg font-semibold tracking-tight text-navy">
+                    {editingId ? form.name || 'Untitled role' : 'Create a custom role'}
                   </h2>
                 </div>
-                <Button
-                  type="button"
-                  onClick={() => setFormOpen(false)}
-                  aria-label="Close"
-                  className="p-2 rounded-lg text-muted-foreground hover:text-muted-foreground hover:bg-muted transition-colors cursor-pointer"
-                >
-                  <X className="w-4 h-4" aria-hidden="true" />
+                <Button type="button" variant="ghost" size="icon" onClick={() => setFormOpen(false)} aria-label="Close">
+                  <X aria-hidden="true" />
                 </Button>
               </div>
 
-              {formError && (
-                <div className="text-sm text-rose-600 bg-rose-50 border border-rose-200 px-4 py-3 rounded-xl">{formError}</div>
-              )}
+              {formError && <p role="alert" className="rounded-xl border border-destructive/20 bg-danger-soft px-4 py-3 text-xs text-destructive">{formError}</p>}
 
               <div>
-                <Label htmlFor="role-name" className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase font-semibold mb-1.5">
-                  Role Name <span className="text-rose-500">*</span>
+                <Label htmlFor="role-name" className="mb-2 flex-col items-start gap-1 text-xs text-muted-foreground">
+                  Role Name <span className="text-destructive">*</span>
                 </Label>
                 <Input
                   id="role-name"
@@ -371,13 +288,12 @@ function RoleManagement() {
                   value={form.name}
                   onChange={(e) => setForm((prev) => ({ ...prev, name: e.target.value }))}
                   placeholder="e.g. HR Officer, PESO Staff"
-                  className="w-full min-h-[44px] px-4 rounded-xl text-sm bg-muted border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:bg-card focus:border-primary transition-all"
                 />
               </div>
 
               <div>
-                <Label htmlFor="role-desc" className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase font-semibold mb-1.5">
-                  Description <span className="text-muted-foreground font-normal lowercase">(optional)</span>
+                <Label htmlFor="role-desc" className="mb-2 flex-col items-start gap-1 text-xs text-muted-foreground">
+                  Description <span className="font-normal">(optional)</span>
                 </Label>
                 <Textarea
                   id="role-desc"
@@ -385,73 +301,50 @@ function RoleManagement() {
                   value={form.description}
                   onChange={(e) => setForm((prev) => ({ ...prev, description: e.target.value }))}
                   placeholder="What is this role for?"
-                  className="w-full min-h-[44px] px-4 py-2.5 rounded-xl text-sm bg-muted border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:bg-card focus:border-primary transition-all"
                 />
               </div>
 
               <div>
-                <Label htmlFor="role-base" className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase font-semibold mb-1.5">
-                  Base Portal <span className="text-rose-500">*</span>
+                <Label htmlFor="role-base" className="mb-2 flex-col items-start gap-1 text-xs text-muted-foreground">
+                  Base Portal <span className="text-destructive">*</span>
                 </Label>
                 <select
                   id="role-base"
                   value={form.base_role}
                   onChange={(e) => setForm((prev) => ({ ...prev, base_role: e.target.value }))}
-                  className="w-full min-h-[44px] px-4 rounded-xl text-sm bg-muted border border-border text-foreground focus:outline-none focus:bg-card focus:border-primary transition-all cursor-pointer"
+                  className="form-select"
                 >
                   {BASE_ROLE_OPTIONS.map((opt) => (
                     <option key={opt.key} value={opt.key}>{opt.label} portal</option>
                   ))}
                 </select>
-                <p className="text-[11px] text-muted-foreground mt-1.5">Which portal holders of this role use to sign in.</p>
+                <p className="mt-2 text-[10px] text-muted-foreground">Which portal holders of this role use to sign in.</p>
               </div>
 
-              <div>
-                <p className="font-mono text-[11px] tracking-wider text-muted-foreground uppercase font-semibold mb-2">
-                  Permissions <span className="text-muted-foreground font-normal lowercase">({form.permissions.length} selected)</span>
-                </p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <fieldset>
+                <legend className="mb-2 text-xs text-muted-foreground">
+                  Permissions <span className="font-normal">({form.permissions.length} selected)</span>
+                </legend>
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                   {permissionCatalog.map((perm) => {
-                    const checked = form.permissions.includes(perm.key);
+                    const checked = form.permissions.includes(perm.key)
                     return (
-                      <Label
+                      <label
                         key={perm.key}
-                        className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl border text-xs font-medium cursor-pointer transition-colors ${checked
-                          ? "bg-primary/10 border-primary/40 text-primary"
-                          : "bg-muted border-border text-muted-foreground hover:border-gray-300"
-                          }`}
+                        className={`flex cursor-pointer items-center gap-2.5 rounded-xl border px-3 py-2.5 text-[11px] ${checked ? 'border-primary/30 bg-blue-soft font-medium text-primary' : 'text-muted-foreground hover:bg-muted/60'}`}
                       >
-                        <Input
-                          type="checkbox"
-                          checked={checked}
-                          onChange={() => togglePermission(perm.key)}
-                          className="accent-[#0057B8] w-3.5 h-3.5"
-                        />
+                        <input type="checkbox" checked={checked} onChange={() => togglePermission(perm.key)} className="size-3.5 accent-primary" />
                         {perm.label}
-                      </Label>
-                    );
+                      </label>
+                    )
                   })}
                 </div>
-                <p className="text-[11px] text-muted-foreground mt-1.5">
-                  Permissions gate super-admin pages — they do not replace API role checks.
-                </p>
-              </div>
+                <p className="mt-2 text-[10px] text-muted-foreground">Permissions gate super-admin pages — they do not replace API role checks.</p>
+              </fieldset>
 
-              <div className="flex gap-2 pt-2">
-                <Button
-                  type="submit"
-                  disabled={saving}
-                  className="flex-1 px-4 py-2.5 rounded-xl text-sm font-semibold bg-primary text-white hover:bg-primary-hover active:scale-[0.98] transition-all disabled:opacity-60 cursor-pointer disabled:cursor-not-allowed"
-                >
-                  {saving ? "Saving…" : editingId ? "Save Changes" : "Create Role"}
-                </Button>
-                <Button
-                  type="button"
-                  onClick={() => setFormOpen(false)}
-                  className="px-4 py-2.5 rounded-xl text-sm font-medium text-muted-foreground hover:text-muted-foreground hover:bg-muted border border-border transition-colors cursor-pointer"
-                >
-                  Cancel
-                </Button>
+              <div className="flex gap-2">
+                <Button type="submit" disabled={saving}>{saving ? 'Saving…' : editingId ? 'Save Changes' : 'Create Role'}</Button>
+                <Button type="button" variant="outline" onClick={() => setFormOpen(false)}>Cancel</Button>
               </div>
             </form>
           </div>
@@ -468,7 +361,7 @@ function RoleManagement() {
         />
       )}
     </div>
-  );
+  )
 }
 
-export default RoleManagement;
+export default RoleManagement

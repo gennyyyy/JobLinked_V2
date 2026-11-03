@@ -31,7 +31,6 @@ export default function Dashboard() {
   if (error) return <InlineError message={error} />
   if (!stats) return null
 
-  const pending = accreditations.filter((item) => item.status === 'pending')
   const firstName = user?.first_name || String(user?.full_name || user?.name || 'reviewer').split(' ')[0]
 
   return (

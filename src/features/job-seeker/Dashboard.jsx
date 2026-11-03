@@ -66,7 +66,6 @@ export default function Dashboard() {
   if (loading) return <LoadingScreen />
   if (error) return <InlineError message={error} />
 
-  const rejected = applications.filter((app) => app.status === 'Rejected').length
   const accepted = applications.filter((app) => app.status === 'Accepted').length
   const newThisWeek = applications.filter((app) => (today - new Date(app.applied_at).getTime()) / 86400000 <= 7).length
   const completion = profileCompletion(user)

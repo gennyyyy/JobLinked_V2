@@ -1,7 +1,4 @@
 import { Button } from "../../components/ui/button";
-import { Input } from "../../components/ui/input";
-import { Textarea } from "../../components/ui/textarea";
-import { Label } from "../../components/ui/label";
 import { useState, useEffect } from "react";
 import useAuth from "../../shared/hooks/useAuth";
 import { updateProfile, getEmployer, provision } from "../../shared/services/auth";
@@ -11,6 +8,43 @@ import { formatFullAddress } from "../../shared/utils/address";
 import { buildFullName } from "../../shared/utils/names";
 import { titleCase } from "../../shared/utils/titleCase";
 import { SANTA_MARIA_BARANGAYS } from "../../shared/constants";
+import { CompanyMark, PageHeading, Panel, SelectField, StatusBadge, TextField } from "../../shared/components/design";
+
+const COMPANY_FIELDS = [
+  ["name", "Company Name", "e.g. Santa Maria Trading"],
+  ["industry", "Industry", "e.g. Manufacturing, IT, Retail"],
+  ["company_email", "Official Company Email", "hr@company.com"],
+  ["phone", "Company Contact No.", "02-XXXX-XXXX / 0917 123 4567"],
+  ["website", "Website", "https://..."],
+];
+
+const ADDRESS_FIELDS = [
+  ["house_number_unit", "House / Building / Unit No.", "e.g. Unit 402 or Bldg 3"],
+  ["street_address", "Street Address & Lot / Block", "Street address"],
+  ["subdivision_building", "Subdivision / Village / Building Name", "Subdivision name"],
+  ["city_municipality", "City / Municipality", "e.g. Santa Maria"],
+  ["province_state", "Province / State", "e.g. Bulacan"],
+  ["postal_code", "Postal Code", "e.g. 3022"],
+];
+
+const REPRESENTATIVE_FIELDS = [
+  ["first_name", "First Name", "Maria"],
+  ["middle_name", "Middle Name", "Santos"],
+  ["last_name", "Last Name", "Reyes"],
+  ["suffix", "Suffix", "Jr., Sr., III"],
+  ["representative_position", "Designation / Position", "e.g. HR Manager"],
+  ["representative_email", "Representative Email", "maria@company.com"],
+];
+
+// Label/value pair used by the read-only panels.
+function Detail({ label, children }) {
+  return (
+    <div className="min-w-0">
+      <dt className="text-[10px] text-muted-foreground">{label}</dt>
+      <dd className="mt-1 break-words text-xs text-navy">{children || "Not set"}</dd>
+    </div>
+  );
+}
 
 function CompanyProfile() {
   const { user, refreshUser } = useAuth();
@@ -59,7 +93,7 @@ function CompanyProfile() {
   }, [user]);
 
   if (loading) return <LoadingScreen />;
-  if (error) return <div className="py-8 text-center text-sm text-danger">{error}</div>;
+  if (error) return <p role="alert" className="py-8 text-center text-sm text-destructive">{error}</p>;
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -107,209 +141,149 @@ function CompanyProfile() {
     (form.suffix || "").toUpperCase(),
   ].filter(Boolean).join(" ");
   const companyLogo = !logoFailed && typeof company?.logo_path === "string" && company.logo_path ? company.logo_path : null;
+  const barangayOptions = [
+    ...(!form.barangay_district || SANTA_MARIA_BARANGAYS.includes(form.barangay_district)
+      ? []
+      : [{ value: form.barangay_district, label: form.barangay_district }]),
+    ...SANTA_MARIA_BARANGAYS.map((b) => ({ value: b, label: b })),
+  ];
+  const field = (name) => ({
+    id: name,
+    value: form[name] || "",
+    onChange: (e) => setForm({ ...form, [name]: e.target.value }),
+  });
 
   return (
-    <div className="w-full space-y-6">
-      <h1 className="text-xl md:text-2xl font-bold tracking-tight text-foreground">My Profile</h1>
-
-      <section className="flex items-center gap-4 rounded-t-xl bg-navy px-5 py-4 text-white shadow-sm">
-        <div className="grid h-16 w-16 shrink-0 place-items-center overflow-hidden rounded-full border-4 border-white bg-card text-xl font-bold text-primary shadow-md">
-          {companyLogo ? (
-            <img src={companyLogo} alt={`${form.name || "Company"} logo`} className="h-full w-full object-cover" onError={() => setLogoFailed(true)} />
-          ) : (
-            <span>{(form.name?.[0] || "C").toUpperCase()}</span>
-          )}
-        </div>
-        <div className="flex min-w-0 flex-1 items-center justify-between gap-4">
-          <div className="min-w-0">
-            <h2 className="truncate text-lg font-bold tracking-tight">{titleCase(form.name) || "My Company"}</h2>
-            <p className="mt-1 line-clamp-2 text-[11px] italic text-white/75">
-              {form.description || `${form.industry || "Company profile"} · ${accreditationStatus}`}
-            </p>
-          </div>
-          {!editing && (
-            <Button type="button" onClick={() => setEditing(true)} className="shrink-0 rounded-lg border border-white/30 px-3 py-1.5 text-xs font-semibold text-white hover:bg-card/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent">
+    <>
+      <PageHeading
+        eyebrow="Employer profile"
+        title="My Profile"
+        description="Keep your company details and authorized representative current — they appear on your accreditation record."
+        action={
+          !editing ? (
+            <Button variant="outline" onClick={() => setEditing(true)}>
               Edit Profile
             </Button>
+          ) : null
+        }
+      />
+
+      <div className="grid items-start gap-6 xl:grid-cols-[1fr_280px]">
+        <div className="flex min-w-0 flex-col gap-6">
+          {saved && (
+            <p role="status" className="rounded-lg border border-success/20 bg-success-soft px-4 py-3 text-xs font-medium text-success">
+              Company profile updated successfully.
+            </p>
+          )}
+
+          {editing ? (
+            <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+              <Panel title="Company details" description="Shown alongside your public vacancies.">
+                <div className="grid gap-5 sm:grid-cols-2">
+                  {COMPANY_FIELDS.map(([name, label, placeholder]) => (
+                    <TextField key={name} label={label} placeholder={placeholder} type={name === "company_email" ? "email" : "text"} {...field(name)} />
+                  ))}
+                </div>
+                <div className="mt-5">
+                  <TextField label="Company Description" multiline rows={4} placeholder="Brief description of your company..." {...field("description")} />
+                </div>
+              </Panel>
+
+              <Panel title="Business address" description="Where candidates can find your office.">
+                <div className="grid gap-5 sm:grid-cols-2">
+                  {ADDRESS_FIELDS.map(([name, label, placeholder]) => (
+                    <TextField key={name} label={label} placeholder={placeholder} {...field(name)} />
+                  ))}
+                </div>
+                <div className="mt-5">
+                  <SelectField
+                    label="Barangay / District"
+                    id="barangay_district"
+                    placeholder="Select barangay"
+                    options={barangayOptions}
+                    {...field("barangay_district")}
+                  />
+                </div>
+              </Panel>
+
+              <Panel title="Authorized representative" description="The person PESO contacts about this company.">
+                <div className="grid gap-5 sm:grid-cols-2">
+                  {REPRESENTATIVE_FIELDS.map(([name, label, placeholder]) => (
+                    <TextField
+                      key={name}
+                      label={label}
+                      placeholder={placeholder}
+                      type={name === "representative_email" ? "email" : "text"}
+                      {...field(name)}
+                    />
+                  ))}
+                </div>
+                <div className="mt-5">
+                  <TextField label="Login Email (read-only)" value={form.email || ""} disabled />
+                </div>
+              </Panel>
+
+              <div className="flex flex-wrap items-center justify-end gap-3">
+                <Button type="button" variant="outline" onClick={() => setEditing(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={saving}>
+                  {saving ? "Saving…" : "Save Profile"}
+                </Button>
+              </div>
+            </form>
+          ) : (
+            <>
+              <Panel title="Company details" description="These details appear alongside your public vacancies.">
+                <dl className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+                  <Detail label="Company Name">{titleCase(form.name)}</Detail>
+                  <Detail label="Industry">{form.industry}</Detail>
+                  <Detail label="Official Company Email">{form.company_email}</Detail>
+                  <Detail label="Contact No.">{form.phone}</Detail>
+                  <Detail label="Website">{form.website}</Detail>
+                  <Detail label="Login Email">{form.email}</Detail>
+                  <Detail label="Business Address">{formatFullAddress(form)}</Detail>
+                </dl>
+              </Panel>
+
+              <Panel title="Authorized representative" description="Employer contact on record with PESO.">
+                <dl className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+                  <Detail label="Full Name">{representativeName}</Detail>
+                  <Detail label="Designation / Position">{titleCase(form.representative_position)}</Detail>
+                  <Detail label="Representative Email">{form.representative_email}</Detail>
+                  <Detail label="Representative Mobile">{form.phone}</Detail>
+                </dl>
+              </Panel>
+
+              <ChangePassword />
+            </>
           )}
         </div>
-      </section>
 
-      <div className="profile-panel rounded-b-xl border border-primary/40 bg-card p-4 md:p-5">
-
-        {saved && (
-          <div className="mt-6 p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-medium">
-            Company profile updated successfully.
-          </div>
-        )}
-
-        {editing ? (
-          <form onSubmit={handleSubmit} className="mt-6 grid grid-cols-1 xl:grid-cols-2 gap-6 items-stretch">
-            <section className="bg-muted border border-border rounded-xl p-5 space-y-4 xl:col-span-2">
-              <p className="font-mono text-[11px] tracking-[0.2em] text-primary uppercase font-semibold">Company Details</p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-                <div>
-                  <Label className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase mb-1.5">Company Name</Label>
-                  <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="w-full min-h-[44px] px-4 rounded-xl text-sm bg-card border border-border text-foreground focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all" />
-                </div>
-                <div>
-                  <Label className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase mb-1.5">Industry</Label>
-                  <Input value={form.industry} onChange={(e) => setForm({ ...form, industry: e.target.value })} placeholder="e.g., Manufacturing, IT, Retail" className="w-full min-h-[44px] px-4 rounded-xl text-sm bg-card border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all" />
-                </div>
-                <div>
-                  <Label className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase mb-1.5">Official Company Email</Label>
-                  <Input type="email" value={form.company_email} onChange={(e) => setForm({ ...form, company_email: e.target.value })} placeholder="hr@company.com" className="w-full min-h-[44px] px-4 rounded-xl text-sm bg-card border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all" />
-                </div>
-                <div>
-                  <Label className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase mb-1.5">Company Contact No.</Label>
-                  <Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} placeholder="02-XXXX-XXXX / 0917 123 4567" className="w-full min-h-[44px] px-4 rounded-xl text-sm bg-card border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all" />
-                </div>
-                <div>
-                  <Label className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase mb-1.5">Website</Label>
-                  <Input value={form.website} onChange={(e) => setForm({ ...form, website: e.target.value })} placeholder="https://..." className="w-full min-h-[44px] px-4 rounded-xl text-sm bg-card border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all" />
-                </div>
-              </div>
-              <div>
-                <Label className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase mb-1.5">Company Description</Label>
-                <Textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={4} placeholder="Brief description of your company..." className="w-full px-4 py-3 rounded-xl text-sm bg-card border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all resize-none" />
-              </div>
-            </section>
-            <section className="bg-muted border border-border rounded-xl p-5 space-y-4">
-              <p className="block font-mono text-[11px] tracking-[0.2em] text-primary uppercase font-semibold">Business Address</p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {[["house_number_unit", "House / Building / Unit No.", "e.g. Unit 402 or Bldg 3"], ["street_address", "Street Address & Lot / Block", "Street address"], ["subdivision_building", "Subdivision / Village / Building Name", "Subdivision name"], ["city_municipality", "City / Municipality", "e.g. Santa Maria"], ["province_state", "Province / State", "e.g. Bulacan"], ["postal_code", "Postal Code", "e.g. 3022"]].map(([field, label, placeholder]) => (
-                  <div key={field}>
-                    <Label htmlFor={field} className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase mb-1.5">{label}</Label>
-                    <Input id={field} value={form[field] || ""} onChange={(e) => setForm({ ...form, [field]: e.target.value })} placeholder={placeholder} className="w-full min-h-[44px] px-4 rounded-xl text-sm bg-card border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all" />
-                  </div>
-                ))}
-              </div>
-              <div>
-                <Label htmlFor="barangay_district" className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase mb-1.5">Barangay / District</Label>
-                <select
-                  id="barangay_district"
-                  value={form.barangay_district || ""}
-                  onChange={(e) => setForm({ ...form, barangay_district: e.target.value })}
-                  className="w-full min-h-[44px] px-4 rounded-xl text-sm bg-card border border-border text-foreground focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all"
-                >
-                  <option value="">Select barangay</option>
-                  {form.barangay_district && !SANTA_MARIA_BARANGAYS.includes(form.barangay_district) && (
-                    <option value={form.barangay_district}>{form.barangay_district}</option>
-                  )}
-                  {SANTA_MARIA_BARANGAYS.map((b) => (
-                    <option key={b} value={b}>{b}</option>
-                  ))}
-                </select>
-              </div>
-            </section>
-            <section className="bg-muted border border-border rounded-xl p-5 space-y-4">
-              <p className="font-mono text-[11px] tracking-[0.2em] text-primary uppercase font-semibold">Authorized Representative</p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <Label className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase mb-1.5">First Name</Label>
-                  <Input value={form.first_name} onChange={(e) => setForm({ ...form, first_name: e.target.value })} placeholder="Maria" className="w-full min-h-[44px] px-4 rounded-xl text-sm bg-card border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all" />
-                </div>
-                <div>
-                  <Label className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase mb-1.5">Middle Name</Label>
-                  <Input value={form.middle_name} onChange={(e) => setForm({ ...form, middle_name: e.target.value })} placeholder="Santos" className="w-full min-h-[44px] px-4 rounded-xl text-sm bg-card border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all" />
-                </div>
-                <div>
-                  <Label className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase mb-1.5">Last Name</Label>
-                  <Input value={form.last_name} onChange={(e) => setForm({ ...form, last_name: e.target.value })} placeholder="Reyes" className="w-full min-h-[44px] px-4 rounded-xl text-sm bg-card border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all" />
-                </div>
-                <div>
-                  <Label className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase mb-1.5">Suffix</Label>
-                  <Input value={form.suffix} onChange={(e) => setForm({ ...form, suffix: e.target.value })} placeholder="Jr., Sr., III" className="w-full min-h-[44px] px-4 rounded-xl text-sm bg-card border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all" />
-                </div>
-                <div>
-                  <Label className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase mb-1.5">Designation / Position</Label>
-                  <Input value={form.representative_position} onChange={(e) => setForm({ ...form, representative_position: e.target.value })} placeholder="e.g. HR Manager" className="w-full min-h-[44px] px-4 rounded-xl text-sm bg-card border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all" />
-                </div>
-                <div>
-                  <Label className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase mb-1.5">Representative Email</Label>
-                  <Input type="email" value={form.representative_email} onChange={(e) => setForm({ ...form, representative_email: e.target.value })} placeholder="maria@company.com" className="w-full min-h-[44px] px-4 rounded-xl text-sm bg-card border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all" />
-                </div>
-              </div>
-              <div>
-                <Label className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase mb-1.5">Login Email (read-only)</Label>
-                <Input value={form.email} disabled className="w-full min-h-[44px] px-4 rounded-xl text-sm bg-muted border border-border text-muted-foreground cursor-not-allowed" />
-              </div>
-            </section>
-            <div className="xl:col-span-2 flex items-center justify-end gap-3 pt-3">
-              <Button type="submit" disabled={saving} className="min-h-[42px] px-6 rounded-xl bg-primary text-white text-xs font-medium hover:bg-primary-hover active:scale-[0.98] transition-colors disabled:opacity-60">
-                {saving ? "Saving…" : "Save Profile"}
-              </Button>
-              <Button type="button" onClick={() => setEditing(false)} className="min-h-[42px] px-5 rounded-xl border border-gray-300 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">
-                Cancel
-              </Button>
-            </div>
-          </form>
-        ) : (
-          <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-[3fr_2fr]">
-            <section className="profile-panel rounded-xl border border-primary/30 bg-muted p-4 lg:col-start-1 lg:row-start-1">
-              <p className="font-mono text-[10px] tracking-[0.2em] uppercase text-primary font-semibold mb-4">Company Details</p>
-              <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-5 gap-y-4 text-sm">
-                <div>
-                  <dt className="font-mono text-[10px] tracking-widest uppercase text-muted-foreground">Company Name</dt>
-                  <dd className="mt-1 text-xs text-muted-foreground font-medium">{titleCase(form.name) || "Not set"}</dd>
-                </div>
-                <div>
-                  <dt className="font-mono text-[10px] tracking-widest uppercase text-muted-foreground">Industry</dt>
-                  <dd className="mt-1 text-xs text-muted-foreground">{form.industry || "Not set"}</dd>
-                </div>
-                <div>
-                  <dt className="font-mono text-[10px] tracking-widest uppercase text-muted-foreground">Official Company Email</dt>
-                  <dd className="mt-1 font-mono text-xs text-muted-foreground break-all">{form.company_email || "Not set"}</dd>
-                </div>
-                <div>
-                  <dt className="font-mono text-[10px] tracking-widest uppercase text-muted-foreground">Contact No.</dt>
-                  <dd className="mt-1 font-mono text-xs text-muted-foreground">{form.phone || "Not set"}</dd>
-                </div>
-                <div>
-                  <dt className="font-mono text-[10px] tracking-widest uppercase text-muted-foreground">Website</dt>
-                  <dd className="mt-1 font-mono text-xs text-muted-foreground break-all">{form.website || "Not set"}</dd>
-                </div>
-                <div>
-                  <dt className="font-mono text-[10px] tracking-widest uppercase text-muted-foreground">Login Email</dt>
-                  <dd className="mt-1 font-mono text-xs text-muted-foreground break-all">{form.email || "Not set"}</dd>
-                </div>
-                <div className="sm:col-span-2 border-t border-border pt-3">
-                  <dt className="font-mono text-[10px] tracking-widest uppercase text-muted-foreground">Business Address</dt>
-                  <dd className="mt-1 text-xs text-muted-foreground">
-                    {formatFullAddress(form) || "Not set"}
-                  </dd>
-                </div>
-              </dl>
-            </section>
-            <section className="profile-panel rounded-xl border border-primary/30 bg-muted p-4 lg:col-start-2 lg:row-start-1 lg:row-span-2">
-              <p className="font-mono text-[10px] tracking-[0.2em] uppercase text-primary font-semibold mb-4">Authorized Representative</p>
-              <dl className="grid grid-cols-1 gap-y-4 text-sm">
-                <div>
-                  <dt className="font-mono text-[10px] tracking-widest uppercase text-muted-foreground">Full Name</dt>
-                  <dd className="mt-1 text-xs text-muted-foreground font-medium">
-                    {representativeName || "Not set"}
-                  </dd>
-                </div>
-                <div>
-                  <dt className="font-mono text-[10px] tracking-widest uppercase text-muted-foreground">Designation / Position</dt>
-                  <dd className="mt-1 text-xs text-muted-foreground">{titleCase(form.representative_position) || "Not set"}</dd>
-                </div>
-                <div>
-                  <dt className="font-mono text-[10px] tracking-widest uppercase text-muted-foreground">Representative Email</dt>
-                  <dd className="mt-1 font-mono text-xs text-muted-foreground break-all">{form.representative_email || "Not set"}</dd>
-                </div>
-                <div>
-                  <dt className="font-mono text-[10px] tracking-widest uppercase text-muted-foreground">Representative Mobile</dt>
-                  <dd className="mt-1 font-mono text-xs text-muted-foreground">{form.phone || "Not set"}</dd>
-                </div>
-              </dl>
-            </section>
-            <div className="lg:col-start-1 lg:row-start-2"><ChangePassword /></div>
-          </div>
-        )}
+        <Panel title="Your company at a glance">
+          {companyLogo ? (
+            <img
+              src={companyLogo}
+              alt={`${form.name || "Company"} logo`}
+              className="size-16 rounded-2xl border object-cover"
+              onError={() => setLogoFailed(true)}
+            />
+          ) : (
+            <CompanyMark initials={(form.name?.[0] || "C").toUpperCase()} large />
+          )}
+          <h2 className="mt-4 text-base font-semibold text-navy">{titleCase(form.name) || "My Company"}</h2>
+          <p className="my-3 text-xs leading-6 text-muted-foreground">
+            {[form.industry || "Company profile", form.barangay_district].filter(Boolean).join(" · ")}
+          </p>
+          <StatusBadge status={accreditationStatus} />
+          <p className="mt-4 text-[11px] leading-6 text-muted-foreground">
+            Authorized representative: {representativeName || "Not set"}. Editing your profile does not replace the accreditation review.
+          </p>
+        </Panel>
       </div>
-      {editing && <div className="-mt-2"><ChangePassword /></div>}
-    </div>
+
+      {editing && <div className="mt-6"><ChangePassword /></div>}
+    </>
   );
 }
 

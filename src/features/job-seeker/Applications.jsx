@@ -1,4 +1,5 @@
-import { Button } from "../../components/ui/button";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { useState, useEffect, Fragment } from "react";
 import { Link } from "react-router-dom";
 import {
@@ -15,13 +16,14 @@ import {
   ChevronDown,
   ExternalLink,
 } from "lucide-react";
-import useAuth from "../../shared/hooks/useAuth";
-import { listBySeeker } from "../../shared/services/applications";
-import LoadingScreen from "../../shared/components/LoadingScreen";
+import useAuth from "@/shared/hooks/useAuth";
+import { listBySeeker } from "@/shared/services/applications";
+import LoadingScreen from "@/shared/components/LoadingScreen";
 
-import ApplicantsShell from "../../shared/components/ApplicantsShell";
-import { SectionCard } from "../../shared/components/dashboard";
-import { titleCase } from "../../shared/utils/titleCase";
+import ApplicantsShell from "@/shared/components/ApplicantsShell";
+import { SectionCard } from "@/shared/components/dashboard";
+import { EmptyState } from "@/shared/components/design";
+import { titleCase } from "@/shared/utils/titleCase";
 
 function formatInterviewDateTime(isoString) {
   if (!isoString) return null;
@@ -71,6 +73,13 @@ function parseInterviewInstructions(text) {
 const STAGE_ORDER = ["Applied", "Under Review", "Interview"];
 // Where each terminal status lands on the stepper's fourth stage.
 const FINAL_STAGE = { Accepted: "Hired", Placed: "Hired", Rejected: "Rejected", Terminated: "Terminated" };
+
+const TILE_TONES = {
+  all: "border-primary/15 bg-blue-soft text-primary",
+  accepted: "border-success/20 bg-success-soft text-success",
+  pending: "border-warning/20 bg-warning-soft text-warning",
+  rejected: "border-danger/20 bg-danger-soft text-destructive",
+};
 
 // application.history is [{ status, changed_at }]. Order is not guaranteed
 // (the API currently returns it oldest-first), so keep the latest timestamp per
@@ -140,10 +149,10 @@ function Applications() {
     );
 
   const tiles = [
-    { id: "all", label: "Total", value: applications.length, hint: "All submitted Application", tone: "bg-blue-50 border-blue-300 text-blue-800", title: "Show all applications" },
-    { id: "accepted", label: "Accepted", value: acceptedCount, hint: "Accepted or Placed Application", tone: "bg-emerald-50 border-emerald-300 text-emerald-800", title: "Show accepted applications" },
-    { id: "pending", label: "Pending", value: pendingCount, hint: "Awaiting employer review", tone: "bg-purple-50 border-purple-300 text-purple-800", title: "Show pending applications" },
-    { id: "rejected", label: "Rejected", value: rejectedCount, hint: "Application not selected", tone: "bg-danger/5 border-danger/40 text-danger", title: "Show rejected applications" },
+    { id: "all", label: "Total", value: applications.length, hint: "All submitted Application", title: "Show all applications" },
+    { id: "accepted", label: "Accepted", value: acceptedCount, hint: "Accepted or Placed Application", title: "Show accepted applications" },
+    { id: "pending", label: "Pending", value: pendingCount, hint: "Awaiting employer review", title: "Show pending applications" },
+    { id: "rejected", label: "Rejected", value: rejectedCount, hint: "Application not selected", title: "Show rejected applications" },
   ];
 
   return (
@@ -164,22 +173,21 @@ function Applications() {
       sidebar={
         <>
           {tiles.map((tile) => {
-            const isSelected = statusFilter === tile.id;
+            const selected = statusFilter === tile.id;
             return (
               <Button
                 key={tile.id}
                 type="button"
-                data-tone={tile.id === "accepted" ? "success" : tile.id === "rejected" ? "danger" : tile.id === "pending" ? "purple" : "info"}
                 onClick={() => toggleFilter(tile.id)}
-                aria-pressed={isSelected}
+                aria-pressed={selected}
                 title={tile.title}
-                className={`w-full text-left rounded-lg border px-4 py-3 cursor-pointer transition-all ${tile.tone} ${
-                  isSelected ? "ring-1 ring-offset-0 ring-current" : ""
-                }`}
+                className={`w-full justify-start rounded-xl px-4 py-3 text-left ${TILE_TONES[tile.id]} ${selected ? "ring-2 ring-current" : ""}`}
               >
-                <p className="text-3xl font-bold leading-none">{tile.value}</p>
-                <p className="mt-2 font-mono text-[11px] tracking-widest uppercase">{tile.label}</p>
-                <p className="mt-1 text-xs opacity-80">{tile.hint}</p>
+                <span className="flex min-w-0 flex-col items-start">
+                  <span className="text-3xl font-semibold leading-none">{tile.value}</span>
+                  <span className="mt-2 text-[10px] font-semibold uppercase tracking-[.08em]">{tile.label}</span>
+                  <span className="mt-1 text-[10px] font-normal opacity-80">{tile.hint}</span>
+                </span>
               </Button>
             );
           })}
@@ -188,19 +196,22 @@ function Applications() {
     >
 
       {applications.length === 0 ? (
-        <SectionCard title="My Applications" subtitle="Browse verified municipal listings and apply with a single tap">
-          <div className="py-8 text-center">
-            <p className="text-base text-muted-foreground">You haven't submitted any job applications yet.</p>
-            <Link to="/job-seeker/jobs" className="inline-flex mt-6 min-h-[44px] items-center px-6 rounded-xl bg-primary text-white text-xs font-medium hover:bg-primary-hover transition-colors">
-              Explore Openings →
-            </Link>
-          </div>
+        <SectionCard title="My applications" subtitle="Browse verified municipal listings and apply with a single tap">
+          <EmptyState
+            title="You haven't submitted any job applications yet."
+            description="Explore verified openings from accredited Santa Maria employers and apply with your JobLinked profile."
+            href="/job-seeker/jobs"
+            label="Explore openings"
+          />
         </SectionCard>
       ) : filtered.length === 0 ? (
-        <div className="rounded-lg border border-primary bg-card py-8 text-center text-sm text-muted-foreground">
-          No applications match this filter.{" "}
-          <Button onClick={() => setStatusFilter("all")} className="text-primary hover:underline underline-offset-4 font-medium cursor-pointer">Clear filter</Button>
-        </div>
+        <SectionCard title="My applications" subtitle="No applications match this view">
+          <EmptyState
+            title="No applications match this filter."
+            description="Clear the filter to see every application you have submitted."
+            action={<Button type="button" variant="outline" onClick={() => setStatusFilter("all")}>Clear filter</Button>}
+          />
+        </SectionCard>
       ) : (
         <div className="space-y-4">
           {filtered.map((application) => {
@@ -225,15 +236,16 @@ function Applications() {
               return (
                 <article
                   key={application.id}
-                  className={`rounded-lg border p-5 transition-colors ${
+                  className={`rounded-2xl border p-5 transition-colors ${
                     status === "Rejected" || status === "Terminated"
-                      ? "border-amber-300 bg-amber-50"
-                      : "border-primary bg-card"
+                      ? "border-warning/25 bg-warning-soft"
+                      : "border-border bg-card"
                   }`}
                 >
                   <div
                     role="button"
                     tabIndex={0}
+                    aria-expanded={isExpanded}
                     onClick={() => setSelectedId((current) => current === application.id ? null : application.id)}
                     onKeyDown={(event) => {
                       if (event.key === "Enter" || event.key === " ") {
@@ -241,28 +253,28 @@ function Applications() {
                         setSelectedId((current) => current === application.id ? null : application.id);
                       }
                     }}
-                    className="cursor-pointer rounded-lg focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-primary/20"
+                    className="cursor-pointer rounded-xl focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-primary/20"
                   >
-                    <div className="flex items-center gap-2.5">
-                      <h2 className="min-w-0 text-base font-bold text-dark-blue truncate">{application.job?.title}</h2>
+                    <div className="flex flex-wrap items-center gap-2.5">
+                      <h2 className="min-w-0 truncate text-base font-semibold text-navy">{application.job?.title}</h2>
 
                       <Link
                         to={`/job-seeker/jobs/${application.job_id}`}
                         onClick={(event) => event.stopPropagation()}
-                        className="shrink-0 inline-flex items-center whitespace-nowrap rounded-full border border-primary text-primary px-2.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide"
+                        className="shrink-0 whitespace-nowrap rounded-full border border-primary/25 px-2.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-primary hover:bg-primary/10"
                       >
-                        VIEW JOB POSTING DETAILS →
+                        View job posting details →
                       </Link>
 
                       <ChevronDown
-                        className={`ml-auto w-3.5 h-3.5 shrink-0 transition-transform duration-200 ${
+                        className={`ml-auto size-4 shrink-0 transition-transform duration-200 ${
                           isExpanded ? "rotate-180 text-primary" : "text-muted-foreground"
                         }`}
                       />
                     </div>
 
-                    <p className="mt-1 flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-                      <Building className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                    <p className="mt-1.5 flex items-center gap-1.5 text-xs text-muted-foreground">
+                      <Building className="size-3.5 shrink-0" />
                       {titleCase(application.job?.employers?.company_name || "")}
                     </p>
 
@@ -276,31 +288,31 @@ function Applications() {
                             {index > 0 && (
                               <div
                                 className={`mt-[15px] h-0.5 flex-1 ${
-                                  isFinalRejected ? "bg-danger" : index < reached ? "bg-primary" : "bg-gray-200"
+                                  isFinalRejected ? "bg-danger" : index < reached ? "bg-primary" : "bg-border"
                                 }`}
                               />
                             )}
-                            <div className="min-w-0 flex-1 px-0.5 flex flex-col items-center text-center">
+                            <div className="flex min-w-0 flex-1 flex-col items-center px-0.5 text-center">
                               <div
-                                className={`w-8 h-8 rounded-full grid place-items-center shrink-0 ${
+                                className={`grid size-8 shrink-0 place-items-center rounded-full ${
                                   isFinalRejected
                                     ? "bg-danger text-white"
                                     : isReached
-                                      ? "bg-primary text-white"
-                                      : "bg-card border-2 border-primary/40"
+                                      ? "bg-primary text-primary-foreground"
+                                      : "border-2 border-primary/30 bg-card"
                                 }`}
                               >
-                                {isFinalRejected ? <X className="w-4 h-4" /> : isReached ? <Check className="w-4 h-4" /> : null}
+                                {isFinalRejected ? <X className="size-4" /> : isReached ? <Check className="size-4" /> : null}
                               </div>
                               <p
                                 className={`mt-2 text-xs font-semibold leading-tight ${
-                                  isFinalRejected ? "text-danger" : isReached ? "text-dark-blue" : "text-muted-foreground"
+                                  isFinalRejected ? "text-danger" : isReached ? "text-navy" : "text-muted-foreground"
                                 }`}
                               >
                                 {stage.label}
                               </p>
                               {stage.date ? (
-                                <p className="mt-0.5 text-[11px] text-muted-foreground leading-tight">{stage.date}</p>
+                                <p className="mt-0.5 text-[11px] leading-tight text-muted-foreground">{stage.date}</p>
                               ) : null}
                             </div>
                           </Fragment>
@@ -308,69 +320,64 @@ function Applications() {
                       })}
                     </div>
 
-                    {/* Expanded Details Card */}
+                    {/* Expanded details */}
                     {isExpanded && (
                       <div
                         onClick={(e) => e.stopPropagation()}
-                        className="mt-4 pt-4 border-t border-border space-y-4 animate-fadeIn"
+                        className="mt-4 space-y-4 border-t pt-4"
                       >
                         {hasInterview ? (
-                          <div className="bg-muted/70 border border-border rounded-xl p-4 sm:p-5 space-y-4">
-                            {/* Interview Header Banner */}
-                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-3 border-b border-border/80">
-                              <div className="flex items-center gap-2">
-                                <div className="w-8 h-8 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-700">
-                                  <Calendar className="w-4 h-4" />
-                                </div>
+                          <div className="space-y-4 rounded-xl border bg-muted/50 p-4 sm:p-5">
+                            {/* Interview header */}
+                            <div className="flex flex-col justify-between gap-2.5 border-b pb-3 sm:flex-row sm:items-center">
+                              <div className="flex items-center gap-2.5">
+                                <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-warning-soft text-warning">
+                                  <Calendar className="size-4" />
+                                </span>
                                 <div>
-                                  <p className="font-mono text-[10px] tracking-wider uppercase text-amber-800 font-bold">
-                                    Interview Scheduled
-                                  </p>
-                                  <p className="text-sm font-bold text-foreground">
+                                  <p className="text-[10px] font-semibold uppercase tracking-[.08em] text-warning">Interview scheduled</p>
+                                  <p className="text-sm font-semibold text-navy">
                                     {interviewFormatted ? interviewFormatted.full : "Schedule to be confirmed"}
                                   </p>
                                 </div>
                               </div>
-                              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-amber-100 text-amber-800 self-start sm:self-center">
-                                Action Required
-                              </span>
+                              <Badge variant="secondary" className="self-start bg-warning-soft text-warning sm:self-center">
+                                Action required
+                              </Badge>
                             </div>
 
-                            {/* Structured Info Grid */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                              {/* Location */}
+                            {/* Structured info grid */}
+                            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                               {parsedInstructions.location && (
-                                <div className="bg-card border border-border rounded-xl p-3.5 shadow-2xs">
-                                  <div className="flex items-center gap-1.5 text-xs font-mono font-semibold text-muted-foreground uppercase tracking-wider mb-1">
-                                    <MapPin className="w-3.5 h-3.5 text-primary" /> Location / Venue
+                                <div className="rounded-xl border bg-card p-3.5">
+                                  <div className="mb-1 flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[.08em] text-muted-foreground">
+                                    <MapPin className="size-3.5 text-primary" /> Location / Venue
                                   </div>
-                                  <p className="text-sm font-semibold text-foreground break-words">
+                                  <p className="break-words text-sm font-medium text-navy">
                                     {parsedInstructions.location}
                                   </p>
                                 </div>
                               )}
 
-                              {/* Recommended Attire */}
                               {parsedInstructions.attire && (
-                                <div className="bg-card border border-border rounded-xl p-3.5 shadow-2xs">
-                                  <div className="flex items-center gap-1.5 text-xs font-mono font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
-                                    <Shirt className="w-3.5 h-3.5 text-accent" /> Recommended Attire
+                                <div className="rounded-xl border bg-card p-3.5">
+                                  <div className="mb-1.5 flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[.08em] text-muted-foreground">
+                                    <Shirt className="size-3.5 text-teal" /> Recommended Attire
                                   </div>
-                                  <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-primary/10 text-primary border border-primary/20">
+                                  <Badge variant="secondary" className="bg-blue-soft text-primary">
                                     {parsedInstructions.attire}
-                                  </span>
+                                  </Badge>
                                 </div>
                               )}
 
-                              {/* Items to Bring */}
                               {parsedInstructions.bring.length > 0 && (
-                                <div className="md:col-span-2 bg-card border border-border rounded-xl p-3.5 shadow-2xs">
-                                  <div className="flex items-center gap-1.5 text-xs font-mono font-semibold text-muted-foreground uppercase tracking-wider mb-2">
-                                    <CheckSquare className="w-3.5 h-3.5 text-emerald-600" />
+                                <div className="rounded-xl border bg-card p-3.5 md:col-span-2">
+                                  <div className="mb-2 flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[.08em] text-muted-foreground">
+                                    <CheckSquare className="size-3.5 text-success" />
                                     What to Bring ({parsedInstructions.bring.length})
                                   </div>
                                   {parsedInstructions.bring.length > 1 ? (
-                                    <ul className="list-disc pl-5 space-y-1 text-xs text-emerald-800 marker:text-emerald-600">
+                                    <ul className="list-disc space-y-1 pl-5 text-xs text-muted-foreground marker:text-teal">
                                       {parsedInstructions.bring.map((item, idx) => (
                                         <li key={idx}>{item}</li>
                                       ))}
@@ -380,9 +387,9 @@ function Applications() {
                                       {parsedInstructions.bring.map((item, idx) => (
                                         <div
                                           key={idx}
-                                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-emerald-50 text-emerald-800 border border-emerald-200/80"
+                                          className="flex items-center gap-1.5 rounded-lg border border-success/20 bg-success-soft px-3 py-1.5 text-xs font-medium text-success"
                                         >
-                                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                                          <CheckCircle2 className="size-3.5 shrink-0" />
                                           <span>{item}</span>
                                         </div>
                                       ))}
@@ -391,39 +398,37 @@ function Applications() {
                                 </div>
                               )}
 
-                              {/* Extra notes from instructions */}
                               {parsedInstructions.notes.length > 0 && (
-                                <div className="md:col-span-2 bg-card border border-border rounded-xl p-3.5 shadow-2xs">
-                                  <div className="flex items-center gap-1.5 text-xs font-mono font-semibold text-muted-foreground uppercase tracking-wider mb-1">
-                                    <Info className="w-3.5 h-3.5 text-muted-foreground" /> Instructions & Notes
+                                <div className="rounded-xl border bg-card p-3.5 md:col-span-2">
+                                  <div className="mb-1 flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[.08em] text-muted-foreground">
+                                    <Info className="size-3.5" /> Instructions &amp; Notes
                                   </div>
-                                  <p className="text-xs text-muted-foreground whitespace-pre-line leading-relaxed">
+                                  <p className="whitespace-pre-line text-xs leading-6 text-muted-foreground">
                                     {parsedInstructions.notes.join("\n")}
                                   </p>
                                 </div>
                               )}
                             </div>
 
-                            {/* Employer Note */}
                             {application.employer_notes && (
-                              <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-3.5 text-xs">
-                                <div className="flex items-center gap-1.5 font-mono font-semibold text-amber-900 uppercase tracking-wider mb-1">
-                                  <MessageSquare className="w-3.5 h-3.5 text-amber-700" /> Note from Employer
+                              <div className="rounded-xl border border-warning/20 bg-warning-soft p-3.5 text-xs">
+                                <div className="mb-1 flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[.08em] text-warning">
+                                  <MessageSquare className="size-3.5" /> Note from employer
                                 </div>
-                                <p className="text-gray-800 whitespace-pre-line leading-relaxed">
+                                <p className="whitespace-pre-line leading-6 text-foreground">
                                   {application.employer_notes}
                                 </p>
                               </div>
                             )}
                           </div>
                         ) : (
-                          <div className="bg-muted/70 border border-border rounded-xl p-4 space-y-3">
+                          <div className="space-y-3 rounded-xl border bg-muted/50 p-4">
                             <div className="flex items-start gap-3">
-                              <div className="p-2 rounded-lg bg-primary/10 text-primary shrink-0">
-                                <Info className="w-4 h-4" />
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <p className="text-sm font-semibold text-foreground">
+                              <span className="soft-icon size-9 rounded-xl">
+                                <Info className="size-4" />
+                              </span>
+                              <div className="min-w-0 flex-1">
+                                <p className="text-sm font-semibold text-navy">
                                   {application.status === "Applied" && "Application Received"}
                                   {application.status === "Under Review" && "Under Review by Employer"}
                                   {application.status === "Accepted" && "Application Accepted"}
@@ -431,7 +436,7 @@ function Applications() {
                                   {application.status === "Rejected" && "Application Not Selected"}
                                   {application.status === "Terminated" && "Engagement Ended"}
                                 </p>
-                                <p className="text-xs text-muted-foreground mt-0.5">
+                                <p className="mt-1 text-xs leading-6 text-muted-foreground">
                                   {application.status === "Applied" && "Your profile and documents were submitted to the employer. You will receive an update once they review it."}
                                   {application.status === "Under Review" && "The employer is currently reviewing candidate qualifications and credentials for this position."}
                                   {application.status === "Accepted" && "Congratulations! You have been accepted for this position. The employer may reach out with onboarding steps."}
@@ -443,9 +448,9 @@ function Applications() {
                             </div>
 
                             {application.employer_notes && (
-                              <div className="bg-card border border-border rounded-lg p-3 text-xs">
-                                <p className="font-mono text-[10px] uppercase font-semibold text-muted-foreground mb-1">Employer Note</p>
-                                <p className="text-muted-foreground whitespace-pre-line">{application.employer_notes}</p>
+                              <div className="rounded-lg border bg-card p-3 text-xs">
+                                <p className="mb-1 text-[10px] font-semibold uppercase tracking-[.08em] text-muted-foreground">Employer note</p>
+                                <p className="whitespace-pre-line leading-6 text-muted-foreground">{application.employer_notes}</p>
                               </div>
                             )}
                           </div>
@@ -454,10 +459,10 @@ function Applications() {
                         <div className="flex justify-end">
                           <Link
                             to={`/job-seeker/jobs/${application.job_id}`}
-                            className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary hover:underline"
+                            className="text-link text-xs"
                           >
-                            <span>View job posting details</span>
-                            <ExternalLink className="w-3.5 h-3.5" />
+                            View job posting details
+                            <ExternalLink className="size-3.5" />
                           </Link>
                         </div>
                       </div>

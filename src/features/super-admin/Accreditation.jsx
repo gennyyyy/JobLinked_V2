@@ -1,113 +1,130 @@
-import { Button } from "../../components/ui/button";
-import { Textarea } from "../../components/ui/textarea";
-import { Label } from "../../components/ui/label";
-import { useState, useEffect } from "react";
-import { createPortal } from "react-dom";
-import { X } from "lucide-react";
-import { listAllAccreditations, listCompanies, updateUser, requestDocs } from "../../shared/services/admin";
-import { signedUrl, updateAccreditation, updateDocumentStatus, listCompanyDocuments, latestAccByCompany } from "../../shared/services/documents";
-import LoadingScreen from "../../shared/components/LoadingScreen";
-import ConfirmationModal from "../../shared/components/ConfirmationModal";
-import { Pager } from "../../shared/components/dashboard";
-import { formatFullAddress } from "../../shared/utils/address";
-import { titleCase } from "../../shared/utils/titleCase";
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { Textarea } from '@/components/ui/textarea'
+import { Label } from '@/components/ui/label'
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
+import { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
+import { X } from 'lucide-react'
+import { listAllAccreditations, listCompanies, updateUser, requestDocs } from '@/shared/services/admin'
+import { signedUrl, updateAccreditation, updateDocumentStatus, listCompanyDocuments, latestAccByCompany } from '@/shared/services/documents'
+import LoadingScreen from '@/shared/components/LoadingScreen'
+import ConfirmationModal from '@/shared/components/ConfirmationModal'
+import useDialog from '@/shared/hooks/useDialog'
+import { InlineError, Pager, SectionCard } from '@/shared/components/dashboard'
+import { EmptyState, PageHeading, StatusBadge } from '@/shared/components/design'
+import { formatFullAddress } from '@/shared/utils/address'
+import { titleCase } from '@/shared/utils/titleCase'
 
 function InfoRow({ label, value }) {
   return (
     <div>
-      <p className="font-mono text-[10px] tracking-wider text-muted-foreground uppercase">{label}</p>
-      <p className="mt-1 text-sm text-foreground font-medium">{value || "—"}</p>
+      <dt className="text-[10px] uppercase tracking-[.14em] text-muted-foreground">{label}</dt>
+      <dd className="mt-1 text-xs font-medium text-navy">{value || '—'}</dd>
     </div>
-  );
+  )
 }
 
 function DetailModal({ accreditation, onClose }) {
-  const [docs, setDocs] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [docs, setDocs] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+  const panelRef = useDialog(onClose)
 
   useEffect(() => {
-    if (!accreditation) return;
+    if (!accreditation) return
     listCompanyDocuments(accreditation.company_id)
       .then(setDocs)
       .catch(() => setDocs([]))
-      .finally(() => setLoading(false));
-  }, [accreditation]);
+      .finally(() => setLoading(false))
+  }, [accreditation])
 
   async function handleViewDoc(doc) {
-    setError("");
+    setError('')
     try {
-      const url = await signedUrl("documents", doc.file_path);
-      window.open(url, "_blank");
+      const url = await signedUrl('documents', doc.file_path)
+      window.open(url, '_blank')
     } catch (err) {
-      setError(err.message || "Could not open the document.");
+      setError(err.message || 'Could not open the document.')
     }
   }
 
   async function handleDocStatus(docId, status) {
-    setError("");
+    setError('')
     try {
-      await updateDocumentStatus(docId, status);
-      const updated = await listCompanyDocuments(accreditation.company_id);
-      setDocs(updated);
+      await updateDocumentStatus(docId, status)
+      const updated = await listCompanyDocuments(accreditation.company_id)
+      setDocs(updated)
     } catch (err) {
-      setError(err.message || "Failed to update the document status.");
+      setError(err.message || 'Failed to update the document status.')
     }
   }
 
-  if (!accreditation) return null;
-  const company = accreditation.employers;
+  if (!accreditation) return null
+  const company = accreditation.employers
 
   return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
-      <div className="bg-card w-full max-w-2xl max-h-[90vh] overflow-y-auto border border-primary rounded-lg shadow-xl p-5 md:p-6">
-        <div className="flex items-start justify-between gap-3 pb-4 border-b border-border">
-          <div>
-            <span className="font-mono text-[10px] tracking-widest text-[#0057B8] uppercase">APPLICATION DOCUMENTS</span>
-            <h2 className="mt-1 text-xl font-bold text-foreground">{titleCase(company?.company_name)}</h2>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Submitted {new Date(accreditation.submitted_at).toLocaleString("en-PH", { dateStyle: "medium", timeStyle: "short" })}
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/60 p-4">
+      <div
+        ref={panelRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="accreditation-detail-title"
+        className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl border bg-card p-5 shadow-xl md:p-6"
+      >
+        <div className="flex items-start justify-between gap-3 border-b pb-4">
+          <div className="min-w-0">
+            <p className="eyebrow">Application documents</p>
+            <h2 id="accreditation-detail-title" className="mt-2 truncate text-xl font-semibold tracking-tight text-navy">{titleCase(company?.company_name)}</h2>
+            <p className="mt-1 text-[11px] text-muted-foreground">
+              Submitted {new Date(accreditation.submitted_at).toLocaleString('en-PH', { dateStyle: 'medium', timeStyle: 'short' })}
             </p>
           </div>
-          <Button onClick={onClose} className="p-1 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors" aria-label="Close"><X className="w-4 h-4" aria-hidden="true" /></Button>
+          <Button type="button" variant="ghost" size="icon" onClick={onClose} aria-label="Close">
+            <X aria-hidden="true" />
+          </Button>
         </div>
 
         <section className="mt-6">
-          <h3 className="font-mono text-[11px] tracking-[0.2em] text-[#0057B8] uppercase mb-4">Company Information</h3>
-          <div className="grid grid-cols-1 gap-3 p-4 rounded-xl bg-muted border border-border">
+          <h3 className="text-xs font-semibold uppercase tracking-[.14em] text-teal">Company information</h3>
+          <dl className="mt-3 grid grid-cols-1 gap-4 rounded-xl border bg-muted/50 p-4">
             <InfoRow label="Company Name" value={company?.company_name} />
             <InfoRow label="Barangay" value={company?.barangay_district} />
             <InfoRow label="Business Address" value={formatFullAddress(company)} />
             <InfoRow label="Contact Number" value={company?.phone} />
             <InfoRow label="Industry" value={company?.industry} />
-          </div>
+          </dl>
         </section>
 
         <section className="mt-6">
-          <h3 className="font-mono text-[11px] tracking-[0.2em] text-[#0057B8] uppercase mb-4">Accreditation Documents</h3>
-          <div className="p-4 rounded-xl bg-muted border border-border">
+          <h3 className="text-xs font-semibold uppercase tracking-[.14em] text-teal">Accreditation documents</h3>
+          <div className="mt-3 rounded-xl border bg-muted/50 p-4">
             {loading ? (
               <p className="text-xs text-muted-foreground">Loading documents…</p>
             ) : docs.length === 0 ? (
               <p className="text-xs text-muted-foreground">No documents uploaded.</p>
             ) : (
-              <ul className="space-y-3">
+              <ul className="flex flex-col divide-y">
                 {docs.map((doc) => (
-                  <li key={doc.id} className="flex items-center justify-between text-xs py-2 border-b border-border last:border-0">
-                    <div>
-                      <p className="text-muted-foreground font-medium">{doc.doc_type}</p>
-                      <p className="text-muted-foreground">{doc.file_name}</p>
+                  <li key={doc.id} className="flex flex-wrap items-center justify-between gap-3 py-3 first:pt-0 last:pb-0">
+                    <div className="min-w-0">
+                      <p className="truncate text-xs font-medium text-navy">{doc.doc_type}</p>
+                      <p className="mt-0.5 truncate text-[11px] text-muted-foreground">{doc.file_name}</p>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <span className={`font-mono text-[10px] px-2 py-0.5 rounded-full uppercase border ${doc.status === "verified" ? "bg-emerald-50 border-emerald-200 text-emerald-700"
-                        : doc.status === "rejected" ? "bg-danger/10 border-danger/20 text-danger"
-                          : "bg-amber-50 border-amber-200 text-amber-700"
-                        }`}>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Badge
+                        variant="secondary"
+                        className={doc.status === 'verified'
+                          ? 'bg-success-soft text-success'
+                          : doc.status === 'rejected'
+                            ? 'bg-danger-soft text-destructive'
+                            : 'bg-warning-soft text-warning'}
+                      >
                         {doc.status}
-                      </span>
-                      <Button onClick={() => handleViewDoc(doc)} className="text-primary hover:underline">View</Button>
-                      <Button onClick={() => handleDocStatus(doc.id, "verified")} className="text-emerald-600 hover:underline">Verify</Button>
-                      <Button onClick={() => handleDocStatus(doc.id, "rejected")} className="text-danger hover:underline">Reject</Button>
+                      </Badge>
+                      <Button type="button" variant="link" size="sm" onClick={() => handleViewDoc(doc)} className="h-auto p-0 text-xs">View</Button>
+                      <Button type="button" variant="link" size="sm" onClick={() => handleDocStatus(doc.id, 'verified')} className="h-auto p-0 text-xs">Verify</Button>
+                      <Button type="button" variant="link" size="sm" onClick={() => handleDocStatus(doc.id, 'rejected')} className="h-auto p-0 text-xs text-destructive">Reject</Button>
                     </div>
                   </li>
                 ))}
@@ -115,93 +132,91 @@ function DetailModal({ accreditation, onClose }) {
             )}
           </div>
         </section>
-        {error && <p role="alert" className="mt-2 text-[11px] text-danger">{error}</p>}
+        {error && <p role="alert" className="mt-3 text-[11px] text-destructive">{error}</p>}
 
-        <div className="mt-8 pt-5 border-t border-border flex justify-end">
-          <Button onClick={onClose} className="px-5 py-2 text-xs font-medium rounded-xl border border-border text-muted-foreground hover:bg-muted transition-colors">
-            Close Documents
-          </Button>
+        <div className="mt-8 flex justify-end border-t pt-5">
+          <Button type="button" variant="outline" onClick={onClose}>Close Documents</Button>
         </div>
       </div>
     </div>,
     document.body
-  );
+  )
 }
 
 function Accreditation() {
-  const [accs, setAccs] = useState([]);
-  const [accPage, setAccPage] = useState(1);
-  const [accPageSize, setAccPageSize] = useState(0);
-  const [accTotal, setAccTotal] = useState(0);
-  const [companies, setCompanies] = useState([]);
-  const [companyPage, setCompanyPage] = useState(1);
-  const [companyPageSize, setCompanyPageSize] = useState(0);
-  const [companyTotal, setCompanyTotal] = useState(0);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [rejectingId, setRejectingId] = useState(null);
-  const [rejectNote, setRejectNote] = useState("");
-  const [rejectError, setRejectError] = useState(false);
-  const [requestingId, setRequestingId] = useState(null);
-  const [requestNote, setRequestNote] = useState("");
-  const [requestError, setRequestError] = useState("");
-  const [viewingId, setViewingId] = useState(null);
-  const [revoking, setRevoking] = useState(null);
-  const [actionError, setActionError] = useState("");
+  const [accs, setAccs] = useState([])
+  const [accPage, setAccPage] = useState(1)
+  const [accPageSize, setAccPageSize] = useState(0)
+  const [accTotal, setAccTotal] = useState(0)
+  const [companies, setCompanies] = useState([])
+  const [companyPage, setCompanyPage] = useState(1)
+  const [companyPageSize, setCompanyPageSize] = useState(0)
+  const [companyTotal, setCompanyTotal] = useState(0)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+  const [rejectingId, setRejectingId] = useState(null)
+  const [rejectNote, setRejectNote] = useState('')
+  const [rejectError, setRejectError] = useState(false)
+  const [requestingId, setRequestingId] = useState(null)
+  const [requestNote, setRequestNote] = useState('')
+  const [requestError, setRequestError] = useState('')
+  const [viewingId, setViewingId] = useState(null)
+  const [revoking, setRevoking] = useState(null)
+  const [actionError, setActionError] = useState('')
 
   // Both lists arrive as the { data, total, page, pageSize } envelope (C2);
   // one effect drives both pagers.
   useEffect(() => {
     Promise.all([listAllAccreditations({ page: accPage }), listCompanies({ page: companyPage })])
       .then(([allAccs, comps]) => {
-        setAccs(allAccs.data);
-        setAccTotal(allAccs.total);
-        setAccPageSize(allAccs.pageSize);
-        setCompanies(comps.data);
-        setCompanyTotal(comps.total);
-        setCompanyPageSize(comps.pageSize);
+        setAccs(allAccs.data)
+        setAccTotal(allAccs.total)
+        setAccPageSize(allAccs.pageSize)
+        setCompanies(comps.data)
+        setCompanyTotal(comps.total)
+        setCompanyPageSize(comps.pageSize)
       })
-      .catch((err) => setError(err.message || "Failed to load"))
-      .finally(() => setLoading(false));
-  }, [accPage, companyPage]);
+      .catch((err) => setError(err.message || 'Failed to load'))
+      .finally(() => setLoading(false))
+  }, [accPage, companyPage])
 
-  if (loading) return <LoadingScreen />;
-  if (error) return <div className="py-8 text-center text-sm text-danger">{error}</div>;
+  if (loading) return <LoadingScreen />
+  if (error) return <InlineError message={error} />
 
   // accs is ordered by submitted_at desc, so the first row per company is its latest
-  const pending = accs.filter((a) => a.status === "pending");
-  const latestByCompany = latestAccByCompany(accs);
+  const pending = accs.filter((a) => a.status === 'pending')
+  const latestByCompany = latestAccByCompany(accs)
 
   async function handleApprove(acc) {
-    setActionError("");
+    setActionError('')
     try {
-      await updateAccreditation(acc.id, { status: "approved", remarks: "Account verified and accredited." });
-      setAccs((prev) => prev.map((a) => (a.id === acc.id ? { ...a, status: "approved" } : a)));
-      setCompanies((prev) => prev.map((c) => (c.id === acc.company_id ? { ...c, accreditation_status: "approved" } : c)));
+      await updateAccreditation(acc.id, { status: 'approved', remarks: 'Account verified and accredited.' })
+      setAccs((prev) => prev.map((a) => (a.id === acc.id ? { ...a, status: 'approved' } : a)))
+      setCompanies((prev) => prev.map((c) => (c.id === acc.company_id ? { ...c, accreditation_status: 'approved' } : c)))
     } catch (err) {
-      setActionError(err.message || "Failed to accredit employer.");
+      setActionError(err.message || 'Failed to accredit employer.')
     }
   }
 
   async function startReject(acc) {
-    setRejectingId(acc.id);
-    setRejectNote("");
-    setRejectError(false);
+    setRejectingId(acc.id)
+    setRejectNote('')
+    setRejectError(false)
   }
 
   async function confirmReject(acc) {
-    const note = rejectNote.trim();
-    if (!note) { setRejectError(true); return; }
-    setActionError("");
+    const note = rejectNote.trim()
+    if (!note) { setRejectError(true); return }
+    setActionError('')
     try {
-      await updateAccreditation(acc.id, { status: "rejected", remarks: note });
-      setAccs((prev) => prev.map((a) => (a.id === acc.id ? { ...a, status: "rejected", remarks: note } : a)));
-      setCompanies((prev) => prev.map((c) => (c.id === acc.company_id ? { ...c, accreditation_status: "rejected" } : c)));
-      setRejectingId(null);
-      setRejectNote("");
-      setRejectError(false);
+      await updateAccreditation(acc.id, { status: 'rejected', remarks: note })
+      setAccs((prev) => prev.map((a) => (a.id === acc.id ? { ...a, status: 'rejected', remarks: note } : a)))
+      setCompanies((prev) => prev.map((c) => (c.id === acc.company_id ? { ...c, accreditation_status: 'rejected' } : c)))
+      setRejectingId(null)
+      setRejectNote('')
+      setRejectError(false)
     } catch (err) {
-      setActionError(err.message || "Failed to reject accreditation.");
+      setActionError(err.message || 'Failed to reject accreditation.')
     }
   }
 
@@ -210,237 +225,193 @@ function Accreditation() {
   // matches the admin accreditation contract ({ status, remarks? }); if the
   // backend rejects the status, the row stays pending and the error shows.
   async function confirmRequestDocs(acc) {
-    const note = requestNote.trim();
-    if (!note) { setRequestError("Please list the documents required."); return; }
+    const note = requestNote.trim()
+    if (!note) { setRequestError('Please list the documents required.'); return }
     try {
-      await requestDocs(acc.id, note);
-      setAccs((prev) => prev.map((a) => (a.id === acc.id ? { ...a, status: "resubmission", remarks: note } : a)));
-      setCompanies((prev) => prev.map((c) => (c.id === acc.company_id ? { ...c, accreditation_status: "resubmission" } : c)));
-      setRequestingId(null);
-      setRequestNote("");
-      setRequestError("");
+      await requestDocs(acc.id, note)
+      setAccs((prev) => prev.map((a) => (a.id === acc.id ? { ...a, status: 'resubmission', remarks: note } : a)))
+      setCompanies((prev) => prev.map((c) => (c.id === acc.company_id ? { ...c, accreditation_status: 'resubmission' } : c)))
+      setRequestingId(null)
+      setRequestNote('')
+      setRequestError('')
     } catch (err) {
-      setRequestError(err.message || "Request failed — resubmission status rejected by the server.");
+      setRequestError(err.message || 'Request failed — resubmission status rejected by the server.')
     }
   }
 
   async function toggleCompanyStatus(company) {
-    const newStatus = company.status === "suspended" ? "active" : "suspended";
-    setActionError("");
+    const newStatus = company.status === 'suspended' ? 'active' : 'suspended'
+    setActionError('')
     try {
-      await updateUser(company.id, { status: newStatus });
-      const updated = await listCompanies({ page: companyPage });
-      setCompanies(updated.data);
-      setCompanyTotal(updated.total);
-      setCompanyPageSize(updated.pageSize);
+      await updateUser(company.id, { status: newStatus })
+      const updated = await listCompanies({ page: companyPage })
+      setCompanies(updated.data)
+      setCompanyTotal(updated.total)
+      setCompanyPageSize(updated.pageSize)
     } catch (err) {
-      setActionError(err.message || "Failed to update employer status.");
+      setActionError(err.message || 'Failed to update employer status.')
     }
   }
 
   async function confirmRevoke() {
-    const acc = latestByCompany[revoking.id];
-    const remarks = "Accreditation revoked by PESO.";
-    setActionError("");
+    const acc = latestByCompany[revoking.id]
+    const remarks = 'Accreditation revoked by PESO.'
+    setActionError('')
     try {
-      await updateAccreditation(acc.id, { status: "revoked", remarks });
-      setAccs((prev) => prev.map((a) => (a.id === acc.id ? { ...a, status: "revoked", remarks } : a)));
-      setCompanies((prev) => prev.map((c) => (c.id === revoking.id ? { ...c, accreditation_status: "revoked" } : c)));
-      setRevoking(null);
+      await updateAccreditation(acc.id, { status: 'revoked', remarks })
+      setAccs((prev) => prev.map((a) => (a.id === acc.id ? { ...a, status: 'revoked', remarks } : a)))
+      setCompanies((prev) => prev.map((c) => (c.id === revoking.id ? { ...c, accreditation_status: 'revoked' } : c)))
+      setRevoking(null)
     } catch (err) {
-      setActionError(err.message || "Failed to revoke accreditation.");
+      setActionError(err.message || 'Failed to revoke accreditation.')
     }
   }
 
   async function reinstate(acc) {
-    const remarks = "Accreditation reinstated by PESO.";
-    setActionError("");
+    const remarks = 'Accreditation reinstated by PESO.'
+    setActionError('')
     try {
-      await updateAccreditation(acc.id, { status: "approved", remarks });
-      setAccs((prev) => prev.map((a) => (a.id === acc.id ? { ...a, status: "approved", remarks } : a)));
-      setCompanies((prev) => prev.map((c) => (c.id === acc.company_id ? { ...c, accreditation_status: "approved" } : c)));
+      await updateAccreditation(acc.id, { status: 'approved', remarks })
+      setAccs((prev) => prev.map((a) => (a.id === acc.id ? { ...a, status: 'approved', remarks } : a)))
+      setCompanies((prev) => prev.map((c) => (c.id === acc.company_id ? { ...c, accreditation_status: 'approved' } : c)))
     } catch (err) {
-      setActionError(err.message || "Failed to reinstate accreditation.");
+      setActionError(err.message || 'Failed to reinstate accreditation.')
     }
   }
 
-  const viewingAcc = viewingId ? pending.find((a) => a.id === viewingId) : null;
+  const viewingAcc = viewingId ? pending.find((a) => a.id === viewingId) : null
 
   return (
-    <div className="accreditation-page space-y-6 bg-muted">
-      <header>
-        <div className="flex items-center gap-3">
-          <div className="w-1 h-6 bg-primary rounded-full" />
-          <p className="font-mono text-[11px] tracking-[0.2em] text-primary uppercase">EMPLOYER DIRECTORY</p>
-        </div>
-        <h1 className="mt-1 font-sans text-xl md:text-2xl font-bold tracking-tight text-dark-blue">Accreditation Management</h1>
-        <p className="mt-2 text-sm text-muted-foreground">Verify municipal employer applications and manage compliance statuses</p>
-      </header>
+    <>
+      <PageHeading
+        eyebrow="Employer directory"
+        title="Accreditation management"
+        description="Verify municipal employer applications and manage compliance statuses."
+      />
 
-      {actionError && (
-        <div role="alert" className="text-sm text-danger bg-danger/10 border border-danger/20 px-4 py-3 rounded-lg">{actionError}</div>
-      )}
+      {actionError && <InlineError message={actionError} />}
 
-      <section className="bg-card border border-primary rounded-lg p-5">
-        <div className="flex items-center gap-3 mb-6 border-l-4 border-primary pl-4">
-          <div className="flex items-center gap-2.5">
-            <h2 className="text-lg font-semibold text-dark-blue">Pending Accreditation</h2>
-            <span className="font-mono text-[10px] tracking-wider px-2.5 py-0.5 rounded-full bg-amber-50 border border-amber-200 text-amber-700 font-semibold">
-              {pending.length} PENDING
-            </span>
-          </div>
-        </div>
+      <div className="flex flex-col gap-6">
+        <SectionCard
+          className="p-0"
+          title="Pending accreditation"
+          subtitle="New submissions appear here first."
+          action={<Badge variant="secondary" className="bg-warning-soft text-warning">{pending.length} PENDING</Badge>}
+        >
+          {pending.length === 0 ? (
+            <EmptyState title="No employers currently waiting for accreditation verification." description="New submissions will appear here." />
+          ) : (
+            <ul className="flex flex-col divide-y">
+              {pending.map((acc) => (
+                <li key={acc.id} className="flex flex-col justify-between gap-4 py-5 first:pt-0 last:pb-0 lg:flex-row lg:items-center">
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-navy">{titleCase(acc.employers?.company_name)}</p>
+                    <p className="mt-1 text-[11px] leading-5 text-muted-foreground">
+                      {formatFullAddress(acc.employers) || 'Address not provided'}
+                    </p>
+                    <p className="mt-1 text-[11px] text-muted-foreground">
+                      Submitted {new Date(acc.submitted_at).toLocaleDateString('en-PH', { dateStyle: 'medium' })}
+                    </p>
+                  </div>
 
-        {pending.length === 0 ? (
-          <div className="py-10 text-center text-sm text-muted-foreground">No employers currently waiting for accreditation verification.</div>
-        ) : (
-          <div className="divide-y divide-gray-100">
-            {pending.map((acc) => (
-              <div key={acc.id} className="py-5 first:pt-0 last:pb-0 flex flex-col lg:flex-row lg:items-center justify-between gap-3">
-                <div className="min-w-0">
-                  <p className="text-base font-semibold text-foreground">{titleCase(acc.employers?.company_name)}</p>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    {formatFullAddress(acc.employers) || "Address not provided"}
-                  </p>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    Submitted {new Date(acc.submitted_at).toLocaleDateString("en-PH", { dateStyle: "medium" })}
-                  </p>
-                </div>
-
-                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 shrink-0">
-                  {requestingId === acc.id ? (
-                    <div className="flex flex-col gap-2 w-full sm:w-72">
-                      <Label htmlFor={`request-docs-${acc.id}`} className="font-mono text-[10px] tracking-wider text-muted-foreground uppercase">Documents required</Label>
-                      <Textarea
-                        id={`request-docs-${acc.id}`}
-                        value={requestNote}
-                        onChange={(e) => { setRequestNote(e.target.value); setRequestError(""); }}
-                        rows={2}
-                        placeholder="List the missing or deficient documents…"
-                        className="w-full px-3 py-2 text-xs bg-muted border border-amber-300 rounded-xl text-foreground placeholder:text-muted-foreground focus:outline-none"
-                      />
-                      {requestError && <p className="text-[11px] text-danger">{requestError}</p>}
-                      <div className="flex gap-2">
-                        <Button onClick={() => confirmRequestDocs(acc)} className="flex-1 px-3 py-1.5 text-xs font-medium rounded-lg bg-amber-600 text-white hover:bg-amber-700 transition-colors">Confirm Request</Button>
-                        <Button onClick={() => { setRequestingId(null); setRequestError(""); }} className="px-3 py-1.5 text-xs rounded-lg text-muted-foreground hover:text-foreground transition-colors">Cancel</Button>
+                  <div className="flex shrink-0 flex-col items-stretch gap-2 sm:flex-row sm:items-center">
+                    {requestingId === acc.id ? (
+                      <div className="flex w-full flex-col gap-2 sm:w-72">
+                        <Label htmlFor={`request-docs-${acc.id}`} className="text-[10px] uppercase tracking-[.14em] text-muted-foreground">Documents required</Label>
+                        <Textarea
+                          id={`request-docs-${acc.id}`}
+                          value={requestNote}
+                          onChange={(e) => { setRequestNote(e.target.value); setRequestError('') }}
+                          rows={2}
+                          placeholder="List the missing or deficient documents…"
+                          className="text-xs"
+                        />
+                        {requestError && <p className="text-[11px] text-destructive">{requestError}</p>}
+                        <div className="flex gap-2">
+                          <Button type="button" size="sm" onClick={() => confirmRequestDocs(acc)} className="flex-1">Confirm Request</Button>
+                          <Button type="button" variant="ghost" size="sm" onClick={() => { setRequestingId(null); setRequestError('') }}>Cancel</Button>
+                        </div>
                       </div>
-                    </div>
-                  ) : rejectingId === acc.id ? (
-                    <div className="flex flex-col gap-2 w-full sm:w-72">
-                      <Label htmlFor={`reject-note-${acc.id}`} className="font-mono text-[10px] tracking-wider text-muted-foreground uppercase">Rejection reason</Label>
-                      <Textarea
-                        id={`reject-note-${acc.id}`}
-                        value={rejectNote}
-                        onChange={(e) => { setRejectNote(e.target.value); setRejectError(false); }}
-                        rows={2}
-                        placeholder="Reason for rejection or required changes..."
-                        className="w-full px-3 py-2 text-xs bg-muted border border-danger/40 rounded-xl text-foreground placeholder:text-muted-foreground focus:outline-none"
-                      />
-                      {rejectError && <p className="text-[11px] text-danger">Please enter a rejection reason.</p>}
-                      <div className="flex gap-2">
-                        <Button onClick={() => confirmReject(acc)} className="flex-1 px-3 py-1.5 text-xs font-medium rounded-lg bg-danger text-white hover:bg-danger/90 transition-colors">Confirm Rejection</Button>
-                        <Button onClick={() => setRejectingId(null)} className="px-3 py-1.5 text-xs rounded-lg text-muted-foreground hover:text-foreground transition-colors">Cancel</Button>
+                    ) : rejectingId === acc.id ? (
+                      <div className="flex w-full flex-col gap-2 sm:w-72">
+                        <Label htmlFor={`reject-note-${acc.id}`} className="text-[10px] uppercase tracking-[.14em] text-muted-foreground">Rejection reason</Label>
+                        <Textarea
+                          id={`reject-note-${acc.id}`}
+                          value={rejectNote}
+                          onChange={(e) => { setRejectNote(e.target.value); setRejectError(false) }}
+                          rows={2}
+                          placeholder="Reason for rejection or required changes..."
+                          className="text-xs"
+                        />
+                        {rejectError && <p className="text-[11px] text-destructive">Please enter a rejection reason.</p>}
+                        <div className="flex gap-2">
+                          <Button type="button" variant="destructive" size="sm" onClick={() => confirmReject(acc)} className="flex-1">Confirm Rejection</Button>
+                          <Button type="button" variant="ghost" size="sm" onClick={() => setRejectingId(null)}>Cancel</Button>
+                        </div>
                       </div>
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-2">
-                      <Button onClick={() => setViewingId(acc.id)} className="px-3.5 py-2 text-xs font-medium rounded-xl border border-border text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">View Documents</Button>
-                      <Button onClick={() => handleApprove(acc)} className="px-4 py-2 text-xs font-medium rounded-xl bg-primary text-white hover:bg-primary-hover transition-colors shadow-[0_2px_8px_rgba(0,87,184,0.25)]">Accredit</Button>
-                      <Button onClick={() => { setRequestingId(acc.id); setRequestNote(""); setRequestError(""); }} className="px-3.5 py-2 text-xs font-medium rounded-xl border border-amber-300 text-amber-700 hover:bg-amber-50 transition-colors">Request Documents</Button>
-                      <Button onClick={() => startReject(acc)} className="px-3.5 py-2 text-xs font-medium rounded-xl border border-danger/30 text-danger hover:bg-danger/10 transition-colors">Reject</Button>
-                    </div>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-        <Pager page={accPage} pageSize={accPageSize} total={accTotal} onChange={setAccPage} />
-      </section>
+                    ) : (
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Button type="button" variant="outline" size="sm" onClick={() => setViewingId(acc.id)}>View Documents</Button>
+                        <Button type="button" size="sm" onClick={() => handleApprove(acc)}>Accredit</Button>
+                        <Button type="button" variant="outline" size="sm" onClick={() => { setRequestingId(acc.id); setRequestNote(''); setRequestError('') }}>Request Documents</Button>
+                        <Button type="button" variant="ghost" size="sm" onClick={() => startReject(acc)} className="text-destructive">Reject</Button>
+                      </div>
+                    )}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+          <Pager page={accPage} pageSize={accPageSize} total={accTotal} onChange={setAccPage} />
+        </SectionCard>
 
-      <section className="bg-card border border-primary rounded-lg p-5">
-        <div className="flex items-center gap-3 mb-6 border-l-4 border-primary pl-4">
-          <h2 className="text-lg font-semibold text-dark-blue">Registered Employers ({companyTotal})</h2>
-        </div>
-
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-border font-mono text-[10px] tracking-widest text-muted-foreground uppercase">
-                <th className="text-left py-3 px-4 font-medium">Company</th>
-                <th className="text-left py-3 px-4 font-medium">Owner</th>
-                <th className="text-left py-3 px-4 font-medium">Email</th>
-                <th className="text-left py-3 px-4 font-medium">Status</th>
-                <th className="text-left py-3 px-4 font-medium">Accreditation</th>
-                <th className="text-right py-3 px-4 font-medium">Action</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
+        <SectionCard
+          className="p-0"
+          title={`Registered Employers (${companyTotal})`}
+          subtitle="Account status and accreditation for every employer."
+        >
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Company</TableHead>
+                <TableHead>Owner</TableHead>
+                <TableHead>Email</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Accreditation</TableHead>
+                <TableHead className="text-right">Action</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {companies.map((company) => (
-                <tr key={company.id} className="hover:bg-primary/5 transition-colors">
-                  <td className="py-3.5 px-4 text-foreground font-medium">{titleCase(company.company_name)}</td>
-                  <td className="py-3.5 px-4 font-mono text-xs text-muted-foreground">{titleCase(company.full_name)}</td>
-                  <td className="py-3.5 px-4 font-mono text-xs text-muted-foreground">{company.email}</td>
-                  <td className="py-3.5 px-4">
-                    <span className={`font-mono text-[10px] tracking-wider px-2.5 py-0.5 rounded-full uppercase border ${company.status === "active" ? "bg-emerald-50 border-emerald-200 text-emerald-700"
-                      : company.status === "suspended" ? "bg-amber-50 border-amber-200 text-amber-700"
-                        : "bg-muted border-border text-muted-foreground"
-                      }`}>
-                      {company.status}
-                    </span>
-                  </td>
-                  <td className="py-3.5 px-4">
-                    {(() => {
-                      // Read directly from the employers row — kept in sync by documents.js
-                      const status = company.accreditation_status || "not applied";
-                      const styles = status === "approved"
-                        ? "bg-emerald-50 border-emerald-200 text-emerald-700"
-                        : status === "pending"
-                          ? "bg-amber-50 border-amber-200 text-amber-700"
-                          : status === "rejected" || status === "revoked"
-                            ? "bg-danger/10 border-danger/20 text-danger"
-                            : "bg-muted border-border text-muted-foreground";
-                      return (
-                        <span className={`font-mono text-[10px] tracking-wider px-2.5 py-0.5 rounded-full uppercase border ${styles}`}>
-                          {status}
-                        </span>
-                      );
-                    })()}
-                  </td>
-                  <td className="py-3.5 px-4 text-right">
-                    <div className="flex items-center justify-end gap-3">
-                      {latestByCompany[company.id]?.status === "approved" && (
-                        <Button
-                          onClick={() => setRevoking(company)}
-                          className="text-xs font-mono text-danger hover:text-danger/80 transition-colors"
-                        >
-                          Revoke
-                        </Button>
+                <TableRow key={company.id}>
+                  <TableCell className="whitespace-normal text-xs font-medium text-navy">{titleCase(company.company_name)}</TableCell>
+                  <TableCell className="whitespace-normal text-[11px] text-muted-foreground">{titleCase(company.full_name)}</TableCell>
+                  <TableCell className="whitespace-normal break-all text-[11px] text-muted-foreground">{company.email}</TableCell>
+                  <TableCell><StatusBadge status={company.status} /></TableCell>
+                  <TableCell>
+                    {/* Read directly from the employers row — kept in sync by documents.js */}
+                    <StatusBadge status={company.accreditation_status || 'not applied'} />
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex flex-wrap items-center justify-end gap-2">
+                      {latestByCompany[company.id]?.status === 'approved' && (
+                        <Button type="button" variant="ghost" size="sm" onClick={() => setRevoking(company)} className="text-destructive">Revoke</Button>
                       )}
-                      {latestByCompany[company.id]?.status === "revoked" && (
-                        <Button
-                          onClick={() => reinstate(latestByCompany[company.id])}
-                          className="text-xs font-mono text-[#0057B8] hover:text-foreground transition-colors"
-                        >
-                          Reinstate
-                        </Button>
+                      {latestByCompany[company.id]?.status === 'revoked' && (
+                        <Button type="button" variant="link" size="sm" onClick={() => reinstate(latestByCompany[company.id])} className="h-auto p-0 text-xs">Reinstate</Button>
                       )}
-                      <Button
-                        onClick={() => toggleCompanyStatus(company)}
-                        className={`text-xs font-mono transition-colors ${company.status === "suspended" ? "text-[#0057B8] hover:text-foreground" : "text-danger hover:text-danger"
-                          }`}
-                      >
-                        {company.status === "suspended" ? "Activate" : "Suspend"}
+                      <Button type="button" variant="link" size="sm" onClick={() => toggleCompanyStatus(company)} className={`h-auto p-0 text-xs ${company.status === 'suspended' ? '' : 'text-destructive'}`}>
+                        {company.status === 'suspended' ? 'Activate' : 'Suspend'}
                       </Button>
                     </div>
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               ))}
-            </tbody>
-          </table>
-        </div>
-        <Pager page={companyPage} pageSize={companyPageSize} total={companyTotal} onChange={setCompanyPage} />
-      </section>
+            </TableBody>
+          </Table>
+          <Pager page={companyPage} pageSize={companyPageSize} total={companyTotal} onChange={setCompanyPage} />
+        </SectionCard>
+      </div>
 
       {viewingAcc && (
         <DetailModal
@@ -458,8 +429,8 @@ function Accreditation() {
           onCancel={() => setRevoking(null)}
         />
       )}
-    </div>
-  );
+    </>
+  )
 }
 
-export default Accreditation;
+export default Accreditation

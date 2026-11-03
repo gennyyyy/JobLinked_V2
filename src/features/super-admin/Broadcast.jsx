@@ -1,138 +1,139 @@
-import { Button } from "../../components/ui/button";
-import { Input } from "../../components/ui/input";
-import { Textarea } from "../../components/ui/textarea";
-import { Label } from "../../components/ui/label";
-import { useState, useEffect } from "react";
-import { sendSystemNotification } from "../../shared/services/admin";
-import { listNotifications } from "../../shared/services/notifications";
-import useAuth from "../../shared/hooks/useAuth";
-import LoadingScreen from "../../shared/components/LoadingScreen";
-
-const inputClass = "w-full px-4 py-2.5 text-sm bg-muted border border-border text-foreground placeholder:text-muted-foreground rounded-lg focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30";
+import { Button } from '@/components/ui/button'
+import { useState, useEffect } from 'react'
+import { Megaphone, Send } from 'lucide-react'
+import { sendSystemNotification } from '@/shared/services/admin'
+import { listNotifications } from '@/shared/services/notifications'
+import useAuth from '@/shared/hooks/useAuth'
+import LoadingScreen from '@/shared/components/LoadingScreen'
+import { EmptyState, PageHeading, Panel, TextField } from '@/shared/components/design'
 
 export default function Broadcast() {
-  const { user } = useAuth();
-  const [title, setTitle] = useState("");
-  const [message, setMessage] = useState("");
-  const [expiresAt, setExpiresAt] = useState("");
-  const [result, setResult] = useState("");
-  const [error, setError] = useState("");
-  const [sending, setSending] = useState(false);
-  const [sent, setSent] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [tab, setTab] = useState("compose");
+  const { user } = useAuth()
+  const [title, setTitle] = useState('')
+  const [message, setMessage] = useState('')
+  const [expiresAt, setExpiresAt] = useState('')
+  const [result, setResult] = useState('')
+  const [error, setError] = useState('')
+  const [sending, setSending] = useState(false)
+  const [sent, setSent] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [tab, setTab] = useState('compose')
 
   useEffect(() => {
-    if (!user) return;
+    if (!user) return
     listNotifications(user.id)
       .then((rows) => {
-        setSent((rows || []).filter((n) => n.type === "system"));
-        setLoading(false);
+        setSent((rows || []).filter((n) => n.type === 'system'))
+        setLoading(false)
       })
       .catch(() => {
-        setSent([]);
-        setLoading(false);
-      });
-  }, [user]);
+        setSent([])
+        setLoading(false)
+      })
+  }, [user])
 
   async function handleSend(e) {
-    e.preventDefault();
-    if (!title.trim() || !message.trim()) { setError("Title and message are required."); return; }
-    setError("");
-    setResult("");
-    setSending(true);
+    e.preventDefault()
+    if (!title.trim() || !message.trim()) { setError('Title and message are required.'); return }
+    setError('')
+    setResult('')
+    setSending(true)
     try {
-      const res = await sendSystemNotification({ title: title.trim(), message: message.trim(), expires_at: expiresAt || null });
-      setResult(`Broadcast sent to ${res?.sent ?? "?"} user(s).`);
-      setTitle("");
-      setMessage("");
-      setExpiresAt("");
+      const res = await sendSystemNotification({ title: title.trim(), message: message.trim(), expires_at: expiresAt || null })
+      setResult(`Broadcast sent to ${res?.sent ?? '?'} user(s).`)
+      setTitle('')
+      setMessage('')
+      setExpiresAt('')
       try {
-        const rows = await listNotifications(user.id);
-        setSent((rows || []).filter((n) => n.type === "system"));
+        const rows = await listNotifications(user.id)
+        setSent((rows || []).filter((n) => n.type === 'system'))
       } catch { /* list refresh is best-effort */ }
     } catch (err) {
-      setError(err.message || "Failed to send notification");
+      setError(err.message || 'Failed to send notification')
     } finally {
-      setSending(false);
+      setSending(false)
     }
   }
 
+  const tabClass = (name) => (tab === name
+    ? 'rounded-xl bg-primary px-4 text-xs font-medium text-primary-foreground'
+    : 'rounded-xl border border-border bg-card px-4 text-xs font-medium text-muted-foreground hover:bg-muted')
+
   return (
-    <div className="space-y-6 bg-muted">
-      <header>
-        <div className="flex items-center gap-3"><div className="w-1 h-6 bg-primary rounded-full" /><p className="font-mono text-[11px] tracking-[0.2em] text-primary uppercase">SYSTEM BROADCAST</p></div>
-        <h1 className="mt-1 font-sans text-2xl font-bold text-dark-blue">Broadcast</h1>
-        <p className="mt-2 text-sm text-muted-foreground">Send an announcement to all users. Past broadcasts appear below.</p>
-      </header>
-      <div aria-label="Broadcast sections" className="flex flex-wrap gap-2">
-        <Button
-          type="button"
-          onClick={() => setTab("compose")}
-          aria-current={tab === "compose" ? "true" : undefined}
-          className={tab === "compose"
-            ? "rounded-xl bg-primary px-4 py-2.5 text-sm font-medium text-white"
-            : "rounded-xl border border-border bg-card px-4 py-2.5 text-sm font-medium text-muted-foreground hover:bg-muted"}
-        >
+    <>
+      <PageHeading
+        eyebrow="System broadcast"
+        title="Broadcast"
+        description="Send an announcement to all users. Past broadcasts appear below."
+      />
+      <div role="group" aria-label="Broadcast sections" className="mb-6 flex flex-wrap gap-2">
+        <Button type="button" onClick={() => setTab('compose')} aria-current={tab === 'compose' ? 'true' : undefined} className={tabClass('compose')}>
           Compose
         </Button>
-        <Button
-          type="button"
-          onClick={() => setTab("recent")}
-          aria-current={tab === "recent" ? "true" : undefined}
-          className={tab === "recent"
-            ? "rounded-xl bg-primary px-4 py-2.5 text-sm font-medium text-white"
-            : "rounded-xl border border-border bg-card px-4 py-2.5 text-sm font-medium text-muted-foreground hover:bg-muted"}
-        >
+        <Button type="button" onClick={() => setTab('recent')} aria-current={tab === 'recent' ? 'true' : undefined} className={tabClass('recent')}>
           {`Recent broadcasts (${sent.length})`}
         </Button>
       </div>
-      {tab === "compose" ? (
-        <section className="bg-card border border-primary rounded-lg p-6">
-          <form onSubmit={handleSend} className="space-y-4">
-            <div>
-              <Label htmlFor="sys-title" className="block text-xs font-medium text-muted-foreground mb-1.5">Title</Label>
-              <Input id="sys-title" type="text" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Job fair on Saturday" className={inputClass} />
-            </div>
-            <div>
-              <Label htmlFor="sys-message" className="block text-xs font-medium text-muted-foreground mb-1.5">Message</Label>
-              <Textarea id="sys-message" rows={3} value={message} onChange={(e) => setMessage(e.target.value)} placeholder="Announcement details…" className={`${inputClass} resize-none`} />
-            </div>
-            {error && <p className="text-xs text-danger">{error}</p>}
-            <div>
-              <Label htmlFor="sys-expires" className="block text-xs font-medium text-muted-foreground mb-1.5">Expires <span className="text-muted-foreground font-normal">(optional)</span></Label>
-              <Input id="sys-expires" type="date" value={expiresAt} onChange={(e) => setExpiresAt(e.target.value)} className={inputClass} />
-            </div>
-            {result && <p className="text-xs text-emerald-700">{result}</p>}
-            <div className="flex justify-end pt-1">
-              <Button type="submit" disabled={sending} className="px-4 py-2.5 text-sm font-medium text-white bg-primary hover:bg-primary-hover rounded-lg transition-colors disabled:opacity-60">
-                {sending ? "Sending…" : "Send Broadcast"}
+
+      {tab === 'compose' ? (
+        <Panel title="Compose an announcement" description="Every active account receives this message in their notifications.">
+          <form onSubmit={handleSend} className="flex flex-col gap-5">
+            <TextField
+              id="sys-title"
+              label="Title"
+              type="text"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="e.g. Job fair on Saturday"
+            />
+            <TextField
+              id="sys-message"
+              label="Message"
+              multiline
+              rows={3}
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              placeholder="Announcement details…"
+            />
+            {error && <p role="alert" className="text-xs text-destructive">{error}</p>}
+            <TextField
+              id="sys-expires"
+              label="Expires"
+              help="Optional. The announcement stops showing after this date."
+              type="date"
+              value={expiresAt}
+              onChange={(e) => setExpiresAt(e.target.value)}
+            />
+            {result && <p className="text-xs text-success">{result}</p>}
+            <div className="flex justify-end">
+              <Button type="submit" disabled={sending}>
+                <Send data-icon="inline-start" />
+                {sending ? 'Sending…' : 'Send Broadcast'}
               </Button>
             </div>
           </form>
-        </section>
+        </Panel>
       ) : (
-        <section className="bg-card border border-primary rounded-lg p-6">
-          <div className="border-l-4 border-primary pl-4 mb-5">
-            <h2 className="text-lg font-semibold text-dark-blue">Recent broadcasts</h2>
-            <p className="text-xs text-muted-foreground mt-1.5">Announcements sent to all users.</p>
-          </div>
+        <Panel title="Recent broadcasts" description="Announcements sent to all users.">
           {loading ? (
             <LoadingScreen />
           ) : sent.length === 0 ? (
-            <p className="text-xs text-muted-foreground">No system broadcasts yet.</p>
+            <EmptyState title="No system broadcasts yet." description="Announcements you send will be listed here." />
           ) : (
-            <ul className="space-y-2.5">
+            <ul className="flex flex-col divide-y">
               {sent.slice(0, 5).map((n) => (
-                <li key={n.id} className="p-3.5 rounded-xl bg-muted border border-border">
-                  <p className="text-xs font-medium text-foreground">{n.title}</p>
-                  <p className="text-[11px] text-muted-foreground mt-0.5 line-clamp-2">{n.message}</p>
+                <li key={n.id} className="py-3 first:pt-0">
+                  <p className="flex items-center gap-2 text-xs font-semibold text-navy">
+                    <Megaphone className="size-3.5 shrink-0 text-primary" aria-hidden="true" />
+                    {n.title}
+                  </p>
+                  <p className="mt-1 text-[11px] leading-5 text-muted-foreground">{n.message}</p>
                 </li>
               ))}
             </ul>
           )}
-        </section>
+        </Panel>
       )}
-    </div>
-  );
+    </>
+  )
 }

@@ -1,61 +1,107 @@
-import { Button } from "../../components/ui/button";
-import { Input } from "../../components/ui/input";
-import { useState, useEffect } from "react";
-import { listReferenceData, addReferenceData, removeReferenceData } from "../../shared/services/admin";
-import ConfirmationModal from "../../shared/components/ConfirmationModal";
-import LoadingScreen from "../../shared/components/LoadingScreen";
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Plus } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { listReferenceData, addReferenceData, removeReferenceData } from '@/shared/services/admin'
+import ConfirmationModal from '@/shared/components/ConfirmationModal'
+import LoadingScreen from '@/shared/components/LoadingScreen'
+import { InlineError, SectionCard } from '@/shared/components/dashboard'
+import { PageHeading } from '@/shared/components/design'
 
-const categoryLabels = { employment_type: "Employment Types", education_level: "Education Levels" };
+const categoryLabels = { employment_type: 'Employment Types', education_level: 'Education Levels' }
 
 function Settings() {
-  const [categories, setCategories] = useState({});
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [newValues, setNewValues] = useState({});
-  const [confirmDelete, setConfirmDelete] = useState(null);
+  const [categories, setCategories] = useState({})
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+  const [newValues, setNewValues] = useState({})
+  const [confirmDelete, setConfirmDelete] = useState(null)
   useEffect(() => {
     Promise.all(Object.keys(categoryLabels).map((category) => listReferenceData(category)))
       .then(([employment, education]) => setCategories({ employment_type: employment, education_level: education }))
-      .catch((err) => setError(err.message || "Failed to load settings"))
-      .finally(() => setLoading(false));
-  }, []);
+      .catch((err) => setError(err.message || 'Failed to load settings'))
+      .finally(() => setLoading(false))
+  }, [])
 
-  if (loading) return <LoadingScreen />;
-  if (error) return <div className="py-8 text-center text-sm text-danger">{error}</div>;
+  if (loading) return <LoadingScreen />
+  if (error) return <InlineError message={error} />
 
   async function handleAddCategory(category) {
-    const value = (newValues[category] || "").trim();
-    if (!value) return;
-    await addReferenceData(category, value);
-    const updated = await listReferenceData(category);
-    setCategories((prev) => ({ ...prev, [category]: updated }));
-    setNewValues((prev) => ({ ...prev, [category]: "" }));
+    const value = (newValues[category] || '').trim()
+    if (!value) return
+    await addReferenceData(category, value)
+    const updated = await listReferenceData(category)
+    setCategories((prev) => ({ ...prev, [category]: updated }))
+    setNewValues((prev) => ({ ...prev, [category]: '' }))
   }
 
   async function handleRemoveCategory(category, id) {
-    await removeReferenceData(id);
-    const updated = await listReferenceData(category);
-    setCategories((prev) => ({ ...prev, [category]: updated }));
-    setConfirmDelete(null);
+    await removeReferenceData(id)
+    const updated = await listReferenceData(category)
+    setCategories((prev) => ({ ...prev, [category]: updated }))
+    setConfirmDelete(null)
   }
 
   return (
-    <div className="space-y-6 bg-muted">
-      <header>
-        <div className="flex items-center gap-3"><div className="w-1 h-6 bg-primary rounded-full" /><p className="font-mono text-[11px] tracking-[0.2em] text-primary uppercase">SYSTEM SETTINGS</p></div>
-        <h1 className="mt-1 font-sans text-2xl font-bold text-dark-blue">System Settings</h1>
-        <p className="mt-2 text-sm text-muted-foreground">Manage platform reference data: employment types and education levels</p>
-      </header>
-      {Object.entries(categoryLabels).map(([category, label]) => (
-        <section key={category} className="bg-card border border-primary rounded-lg p-5">
-          <div className="border-l-4 border-primary pl-4 mb-4"><h3 className="text-lg font-semibold text-dark-blue">{label}</h3></div>
-          <div className="space-y-2 mb-4">{(categories[category] || []).map((item) => <div key={item.id} className="flex items-center justify-between py-2 border-b border-border last:border-0"><span className="text-sm text-muted-foreground">{item.value}</span><Button onClick={() => setConfirmDelete({ category, id: item.id, value: item.value })} className="text-xs text-danger hover:underline">Remove</Button></div>)}</div>
-          <div className="flex gap-2"><Input type="text" value={newValues[category] || ""} onChange={(e) => setNewValues((prev) => ({ ...prev, [category]: e.target.value }))} placeholder={`Add ${label.toLowerCase().replace(/s$/, "")}...`} className="flex-1 px-4 py-2.5 text-sm bg-muted border border-border text-foreground placeholder:text-muted-foreground rounded-lg focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30" /><Button onClick={() => handleAddCategory(category)} className="px-4 py-2.5 text-sm font-medium text-white bg-primary hover:bg-primary-hover rounded-lg transition-colors">Add</Button></div>
-        </section>
-      ))}
-      {confirmDelete && <ConfirmationModal message={`Remove "${confirmDelete.value}"?`} onConfirm={() => handleRemoveCategory(confirmDelete.category, confirmDelete.id)} onCancel={() => setConfirmDelete(null)} confirmLabel="Remove" danger />}
-    </div>
-  );
+    <>
+      <PageHeading
+        eyebrow="System settings"
+        title="System Settings"
+        description="Manage platform reference data: employment types and education levels."
+      />
+      <div className="flex flex-col gap-6">
+        {Object.entries(categoryLabels).map(([category, label]) => (
+          <SectionCard
+            key={category}
+            title={label}
+            subtitle="Reference values available across the workspace."
+          >
+            <ul className="flex flex-col divide-y">
+              {(categories[category] || []).map((item) => (
+                <li key={item.id} className="flex items-center justify-between gap-3 py-3 first:pt-0">
+                  <span className="text-xs font-medium text-navy">{item.value}</span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setConfirmDelete({ category, id: item.id, value: item.value })}
+                    className="text-destructive"
+                  >
+                    Remove
+                  </Button>
+                </li>
+              ))}
+            </ul>
+            <form
+              onSubmit={(event) => { event.preventDefault(); handleAddCategory(category) }}
+              className="mt-5 flex flex-col gap-3 sm:flex-row"
+            >
+              <Input
+                type="text"
+                value={newValues[category] || ''}
+                onChange={(e) => setNewValues((prev) => ({ ...prev, [category]: e.target.value }))}
+                placeholder={`Add ${label.toLowerCase().replace(/s$/, '')}...`}
+                aria-label={`Add ${label.toLowerCase().replace(/s$/, '')}`}
+                className="flex-1"
+              />
+              <Button type="submit">
+                <Plus data-icon="inline-start" />
+                Add
+              </Button>
+            </form>
+          </SectionCard>
+        ))}
+      </div>
+      {confirmDelete && (
+        <ConfirmationModal
+          message={`Remove "${confirmDelete.value}"?`}
+          onConfirm={() => handleRemoveCategory(confirmDelete.category, confirmDelete.id)}
+          onCancel={() => setConfirmDelete(null)}
+          confirmLabel="Remove"
+          danger
+        />
+      )}
+    </>
+  )
 }
 
-export default Settings;
+export default Settings

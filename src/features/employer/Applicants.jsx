@@ -1,7 +1,4 @@
 import { Button } from "../../components/ui/button";
-import { Input } from "../../components/ui/input";
-import { Textarea } from "../../components/ui/textarea";
-import { Label } from "../../components/ui/label";
 import { useState, useEffect, useMemo } from "react";
 import {
   Clock,
@@ -16,9 +13,48 @@ import { listByCompany, updateApplicationStatus } from "../../shared/services/ap
 import LoadingScreen from "../../shared/components/LoadingScreen";
 import SeekerProfileCard from "../../shared/components/SeekerProfileCard";
 import ApplicantsShell from "../../shared/components/ApplicantsShell";
+import { TextField } from "../../shared/components/design";
 import { titleCase } from "../../shared/utils/titleCase";
 import { formatFullAddress } from "../../shared/utils/address";
 import { INTERVIEW_ATTIRE, INTERVIEW_BRING } from "../../shared/constants";
+
+const SUMMARY_CARDS = [
+  { value: "all", label: "Active Application", tone: "border-border bg-blue-soft text-primary" },
+  { value: "Under Review", label: "Under Review", tone: "border-border bg-warning-soft text-warning" },
+  { value: "Interview", label: "Interview", tone: "border-border bg-blue-soft text-primary" },
+  { value: "Accepted", label: "Accepted", tone: "border-border bg-success-soft text-success" },
+  { value: "Rejected", label: "Rejected", tone: "border-border bg-danger-soft text-destructive" },
+];
+
+const STATUS_TONES = {
+  Accepted: "bg-success-soft text-success",
+  Interview: "bg-blue-soft text-primary",
+  Rejected: "bg-danger-soft text-destructive",
+  "Under Review": "bg-warning-soft text-warning",
+};
+
+// Micro-label above a small value, as used across the portal cards.
+function Detail({ label, children }) {
+  return (
+    <div className="min-w-0">
+      <p className="text-[10px] text-muted-foreground">{label}</p>
+      <p className="mt-1 truncate text-xs font-medium text-navy">{children}</p>
+    </div>
+  );
+}
+
+function Chip({ label, selected, onToggle }) {
+  return (
+    <Button
+      type="button"
+      aria-pressed={selected}
+      onClick={onToggle}
+      className={`px-3 py-1.5 text-xs font-medium ${selected ? "bg-primary text-white" : "bg-muted text-muted-foreground hover:bg-secondary"}`}
+    >
+      {label}
+    </Button>
+  );
+}
 
 function Applicants() {
   const { user } = useAuth();
@@ -108,15 +144,11 @@ function Applicants() {
 
   if (error) {
     return (
-      <div className="space-y-6">
-        <div className="bg-card border border-rose-100 rounded-2xl p-5 flex items-start gap-3 shadow-[0_2px_16px_-8px_rgba(16,24,40,0.08)]">
-          <div className="shrink-0 mt-0.5 w-8 h-8 rounded-lg bg-rose-50 border border-rose-100 flex items-center justify-center">
-            <AlertTriangle className="w-4 h-4 text-rose-500" strokeWidth={2} />
-          </div>
-          <div className="min-w-0">
-            <p className="text-sm font-semibold text-foreground">Couldn't load applicants</p>
-            <p className="text-sm text-rose-600 mt-0.5">{error}</p>
-          </div>
+      <div role="alert" className="flex items-start gap-3 rounded-lg border border-danger/20 bg-danger-soft p-4 text-sm text-destructive">
+        <AlertTriangle className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+        <div className="min-w-0">
+          <p className="font-semibold">Couldn't load applicants</p>
+          <p className="mt-0.5 text-xs">{error}</p>
         </div>
       </div>
     );
@@ -137,13 +169,10 @@ function Applicants() {
   const hasActiveFilters = filter !== "all" || search.trim() !== "";
   const clearFilters = () => { setFilter("all"); setSearch(""); };
 
-  const summaryCards = [
-    { value: "all", label: "Active Application", count: tracked.length, className: "border-blue-300 bg-blue-50 text-blue-700" },
-    { value: "Under Review", label: "Under Review", count: counts["Under Review"], className: "border-amber-300 bg-amber-50 text-amber-700" },
-    { value: "Interview", label: "Interview", count: counts.Interview, className: "border-purple-300 bg-purple-50 text-purple-700" },
-    { value: "Accepted", label: "Accepted", count: counts.Accepted, className: "border-emerald-300 bg-emerald-50 text-emerald-700" },
-    { value: "Rejected", label: "Rejected", count: counts.Rejected, className: "border-rose-300 bg-rose-50 text-rose-700" },
-  ];
+  const summaryCards = SUMMARY_CARDS.map((card) => ({
+    ...card,
+    count: card.value === "all" ? tracked.length : counts[card.value],
+  }));
 
   return (
     <ApplicantsShell
@@ -163,221 +192,169 @@ function Applicants() {
       activeFilter={filter}
       onFilterChange={setFilter}
     >
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         {filtered.map((applicant) => {
-          const statusStyle =
-            applicant.status === "Accepted"
-              ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-              : applicant.status === "Interview"
-                ? "bg-blue-50 text-blue-700 border-blue-200"
-                : applicant.status === "Rejected"
-                  ? "bg-rose-50 text-rose-700 border-rose-200"
-                  : "bg-amber-50 text-amber-700 border-amber-200";
+          const interviewing = interviewingId === applicant.id;
           return (
-            <article key={applicant.id} className="rounded-lg border border-primary/40 bg-card p-4">
+            <article key={applicant.id} className="rounded-xl border bg-card p-4">
               <div className="flex items-start justify-between gap-3">
-                <p className="text-sm font-bold text-dark-blue truncate">{titleCase(applicant.seeker?.full_name || "")}</p>
-                <Button type="button" onClick={() => toggleProfile(applicant)}
+                <p className="truncate text-sm font-semibold text-navy">{titleCase(applicant.seeker?.full_name || "")}</p>
+                <Button
+                  type="button"
+                  onClick={() => toggleProfile(applicant)}
+                  aria-expanded={expandedId === applicant.id}
                   title={expandedId === applicant.id ? "Hide profile" : "View profile"}
                   data-applicant-profile-action="true"
-                  className="shrink-0 inline-flex items-center whitespace-nowrap rounded-full border border-dark-blue text-dark-blue px-3 py-1 text-[10px] font-semibold uppercase">
-                  {expandedId === applicant.id ? "HIDE PROFILE" : "VIEW PROFILE"} →
+                  variant="outline"
+                  className="shrink-0 text-xs"
+                >
+                  {expandedId === applicant.id ? "Hide profile" : "View profile"}
                 </Button>
               </div>
 
-              <div className="mt-3 grid grid-cols-3 gap-2">
-                <div>
-                  <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Position</p>
-                  <p className="mt-0.5 text-xs font-semibold text-dark-blue truncate">{applicant.job?.title}</p>
-                </div>
-                <div>
-                  <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Status</p>
-                  <span className={`mt-0.5 inline-flex items-center gap-1.5 font-mono text-[10px] tracking-wider px-2 py-0.5 rounded-full uppercase border font-semibold ${statusStyle}`}>
+              <div className="mt-4 grid grid-cols-3 gap-2">
+                <Detail label="Position">{applicant.job?.title}</Detail>
+                <Detail label="Status">
+                  <span className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-medium ${STATUS_TONES[applicant.status] || "bg-secondary text-muted-foreground"}`}>
                     {applicant.status}
                   </span>
-                </div>
-                <div>
-                  <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Applied</p>
-                  <p className="mt-0.5 text-xs text-muted-foreground truncate">
+                </Detail>
+                <Detail label="Applied">
+                  <span className="font-normal text-muted-foreground">
                     {new Date(applicant.applied_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                  </p>
-                </div>
+                  </span>
+                </Detail>
               </div>
 
-              <div className="mt-3 flex flex-wrap gap-1.5">
-                {applicant.status === "Under Review" && (
+              <div className="mt-4 flex flex-wrap gap-2">
+                {applicant.status === "Under Review" ? (
                   <Button type="button" title="Revert to Applied" onClick={() => setStatus(applicant.id, "Applied")}
-                    data-action-tone="neutral"
-                    className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-border bg-muted text-muted-foreground hover:bg-muted transition-colors cursor-pointer">
-                    <RotateCcw className="w-3.5 h-3.5" />
-                    <span className="text-xs font-medium">Undo Review</span>
+                    data-action-tone="neutral" variant="outline" className="gap-1.5 text-xs">
+                    <RotateCcw className="size-3.5" />
+                    Undo Review
                   </Button>
-                )}
-                {applicant.status !== "Under Review" && (
+                ) : (
                   <Button type="button" title="Move back to Under Review" onClick={() => setStatus(applicant.id, "Under Review")}
-                    data-action-tone="warning"
-                    className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100 transition-colors cursor-pointer">
-                    <Clock className="w-3.5 h-3.5" />
-                    <span className="text-xs font-medium">Review</span>
+                    data-action-tone="warning" variant="outline" className="gap-1.5 border-warning/20 bg-warning-soft text-xs text-warning">
+                    <Clock className="size-3.5" />
+                    Review
                   </Button>
                 )}
-                <Button type="button" title={interviewingId === applicant.id ? "Hide interview details" : "Schedule an interview"}
-                  aria-pressed={interviewingId === applicant.id}
-                  onClick={() => (interviewingId === applicant.id ? setInterviewingId(null) : handleInterview(applicant))}
-                  data-action-tone={interviewingId === applicant.id ? "purple-active" : "purple"}
-                  className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border transition-colors cursor-pointer ${
-                    interviewingId === applicant.id
-                      ? "border-purple-600 bg-purple-600 text-white hover:bg-purple-700"
-                      : "border-purple-200 bg-purple-50 text-purple-700 hover:bg-purple-100"
-                  }`}>
-                  <Calendar className="w-3.5 h-3.5" />
-                  <span className="text-xs font-medium">Interview</span>
+                <Button type="button" title={interviewing ? "Hide interview details" : "Schedule an interview"}
+                  aria-pressed={interviewing}
+                  onClick={() => (interviewing ? setInterviewingId(null) : handleInterview(applicant))}
+                  data-action-tone={interviewing ? "purple-active" : "purple"}
+                  variant={interviewing ? "default" : "outline"}
+                  className={`gap-1.5 text-xs ${interviewing ? "" : "border-border bg-secondary text-navy hover:bg-secondary"}`}>
+                  <Calendar className="size-3.5" />
+                  Interview
                 </Button>
                 {applicant.status !== "Accepted" && (
                   <Button type="button" title="Accept candidate" onClick={() => setStatus(applicant.id, "Accepted")}
-                    data-action-tone="success"
-                    className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-colors cursor-pointer">
-                    <CheckCircle2 className="w-3.5 h-3.5" />
-                    <span className="text-xs font-medium">Accept</span>
+                    data-action-tone="success" variant="outline" className="gap-1.5 border-success/20 bg-success-soft text-xs text-success">
+                    <CheckCircle2 className="size-3.5" />
+                    Accept
                   </Button>
                 )}
                 {applicant.status !== "Rejected" && applicant.status !== "Placed" && (
                   <Button type="button" title="Reject candidate" onClick={() => setStatus(applicant.id, "Rejected")}
-                    data-action-tone="danger"
-                    className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100 transition-colors cursor-pointer">
-                    <XCircle className="w-3.5 h-3.5" />
-                    <span className="text-xs font-medium">Reject</span>
+                    data-action-tone="danger" variant="outline" className="gap-1.5 border-danger/20 bg-danger-soft text-xs text-destructive">
+                    <XCircle className="size-3.5" />
+                    Reject
                   </Button>
                 )}
               </div>
               {actionErrors[applicant.id] && (
-                <p role="alert" className="mt-1.5 text-[11px] text-danger">{actionErrors[applicant.id]}</p>
+                <p role="alert" className="mt-2 text-xs text-destructive">{actionErrors[applicant.id]}</p>
               )}
 
               {expandedId === applicant.id && (
-                <div className="mt-3"><SeekerProfileCard applicant={applicant} /></div>
+                <div className="mt-4"><SeekerProfileCard applicant={applicant} /></div>
               )}
-              {interviewingId === applicant.id && (
-                <div className="mt-3">
-                  <div className="bg-card border border-primary/20 rounded-xl p-4 md:p-5 shadow-xs">
-                    <div className="flex items-center gap-2 mb-4">
-                      <div className="w-7 h-7 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
-                        <Calendar className="w-3.5 h-3.5 text-primary" />
-                      </div>
-                      <div>
-                        <p className="text-sm font-semibold text-foreground">Schedule Interview — <span>{titleCase(applicant.seeker?.full_name)}</span></p>
-                        <p className="text-[11px] text-muted-foreground">Pick a date & time and add instructions for the candidate</p>
+              {interviewing && (
+                <div className="mt-4 rounded-xl border bg-muted p-4">
+                  <div className="mb-4 flex items-center gap-3">
+                    <span className="soft-icon size-8 rounded-lg">
+                      <Calendar className="size-4" />
+                    </span>
+                    <div>
+                      <p className="text-xs font-semibold text-navy">Schedule Interview — {titleCase(applicant.seeker?.full_name)}</p>
+                      <p className="mt-0.5 text-[10px] text-muted-foreground">Pick a date &amp; time and add instructions for the candidate</p>
+                    </div>
+                  </div>
+                  <div className="mb-4 flex flex-col gap-3">
+                    <div>
+                      <p className="mb-1.5 text-[10px] text-muted-foreground">
+                        Attire <span className="normal-case">(optional, click to toggle)</span>
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        {INTERVIEW_ATTIRE.map((opt) => (
+                          <Chip
+                            key={opt}
+                            label={opt}
+                            selected={interviewAttire.includes(opt)}
+                            onToggle={() => setInterviewAttire((prev) => (prev.includes(opt) ? prev.filter((x) => x !== opt) : [...prev, opt]))}
+                          />
+                        ))}
                       </div>
                     </div>
-                    <div className="space-y-3 mb-4">
-                      <div>
-                        <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground mb-1.5">
-                          Attire <span className="text-muted-foreground normal-case tracking-normal">(optional, click to toggle)</span>
-                        </p>
-                        <div className="flex flex-wrap gap-2">
-                          {INTERVIEW_ATTIRE.map((opt) => {
-                            const selected = interviewAttire.includes(opt);
-                            return (
-                              <Button
-                                key={opt}
-                                type="button"
-                                onClick={() =>
-                                  setInterviewAttire((prev) => (selected ? prev.filter((x) => x !== opt) : [...prev, opt]))
-                                }
-                                className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors cursor-pointer ${
-                                  selected ? "bg-primary text-white border-primary" : "bg-muted text-muted-foreground border-border hover:border-primary/40"
-                                }`}
-                              >
-                                {opt}
-                              </Button>
-                            );
-                          })}
-                        </div>
-                      </div>
-                      <div>
-                        <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground mb-1.5">
-                          What to Bring <span className="text-muted-foreground normal-case tracking-normal">(optional, click to toggle)</span>
-                        </p>
-                        <div className="flex flex-wrap gap-2">
-                          {INTERVIEW_BRING.map((opt) => {
-                            const selected = interviewBring.includes(opt);
-                            return (
-                              <Button
-                                key={opt}
-                                type="button"
-                                onClick={() =>
-                                  setInterviewBring((prev) => (selected ? prev.filter((x) => x !== opt) : [...prev, opt]))
-                                }
-                                className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors cursor-pointer ${
-                                  selected ? "bg-primary text-white border-primary" : "bg-muted text-muted-foreground border-border hover:border-primary/40"
-                                }`}
-                              >
-                                {opt}
-                              </Button>
-                            );
-                          })}
-                        </div>
+                    <div>
+                      <p className="mb-1.5 text-[10px] text-muted-foreground">
+                        What to Bring <span className="normal-case">(optional, click to toggle)</span>
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        {INTERVIEW_BRING.map((opt) => (
+                          <Chip
+                            key={opt}
+                            label={opt}
+                            selected={interviewBring.includes(opt)}
+                            onToggle={() => setInterviewBring((prev) => (prev.includes(opt) ? prev.filter((x) => x !== opt) : [...prev, opt]))}
+                          />
+                        ))}
                       </div>
                     </div>
-                    <div className="mb-4">
-                      <Label htmlFor={`ivloc-${applicant.id}`} className="block font-mono text-[10px] uppercase tracking-widest text-muted-foreground mb-1.5">
-                        Meeting Location
-                      </Label>
-                      <Input
-                        id={`ivloc-${applicant.id}`}
-                        type="text"
-                        value={interviewLocation}
-                        onChange={(e) => setInterviewLocation(e.target.value)}
-                        placeholder="Company address or meeting venue"
-                        className="w-full min-h-[40px] px-3 rounded-xl text-sm bg-card border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all"
+                  </div>
+                  <div className="flex flex-col gap-3">
+                    <TextField
+                      id={`ivloc-${applicant.id}`}
+                      label="Meeting Location"
+                      value={interviewLocation}
+                      onChange={(e) => setInterviewLocation(e.target.value)}
+                      placeholder="Company address or meeting venue"
+                    />
+                    <div className="grid gap-3 md:grid-cols-3">
+                      <TextField
+                        id={`iv-${applicant.id}`}
+                        label="Interview Date & Time"
+                        type="datetime-local"
+                        value={interviewAt}
+                        min={interviewMin}
+                        onChange={(e) => setInterviewAt(e.target.value)}
+                      />
+                      <TextField
+                        id={`ivn-${applicant.id}`}
+                        label="Instructions"
+                        value={interviewNotes}
+                        onChange={(e) => setInterviewNotes(e.target.value)}
+                        placeholder="Meeting link, address, or any other note…"
+                      />
+                      <TextField
+                        id={`ivnotes-${applicant.id}`}
+                        label="Internal Notes"
+                        multiline
+                        rows={1}
+                        value={interviewEmployerNotes}
+                        onChange={(e) => setInterviewEmployerNotes(e.target.value)}
+                        placeholder="Private notes — only you see these…"
                       />
                     </div>
-                    <div className="flex flex-col md:flex-row md:items-end gap-3">
-                      <div>
-                        <Label htmlFor={`iv-${applicant.id}`} className="block font-mono text-[10px] uppercase tracking-widest text-muted-foreground mb-1.5">Interview Date &amp; Time</Label>
-                        <Input
-                          id={`iv-${applicant.id}`}
-                          type="datetime-local"
-                          value={interviewAt}
-                          min={interviewMin}
-                          onChange={(e) => setInterviewAt(e.target.value)}
-                          className="min-h-[40px] px-3 rounded-xl text-sm bg-card border border-border text-foreground focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all"
-                        />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <Label htmlFor={`ivn-${applicant.id}`} className="block font-mono text-[10px] uppercase tracking-widest text-muted-foreground mb-1.5">Instructions</Label>
-                        <Input
-                          id={`ivn-${applicant.id}`}
-                          type="text"
-                          value={interviewNotes}
-                          onChange={(e) => setInterviewNotes(e.target.value)}
-                          placeholder="Meeting link, address, or any other note…"
-                          className="w-full min-h-[40px] px-3 rounded-xl text-sm bg-card border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all"
-                        />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <Label htmlFor={`ivnotes-${applicant.id}`} className="block font-mono text-[10px] uppercase tracking-widest text-muted-foreground mb-1.5">Internal Notes</Label>
-                        <Textarea
-                          id={`ivnotes-${applicant.id}`}
-                          value={interviewEmployerNotes}
-                          onChange={(e) => setInterviewEmployerNotes(e.target.value)}
-                          placeholder="Private notes — only you see these…"
-                          rows={1}
-                          className="w-full min-h-[40px] px-3 py-2 rounded-xl text-sm bg-card border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all"
-                        />
-                      </div>
-                      <div className="flex gap-2">
-                        <Button
-                          onClick={() => confirmInterview(applicant.id)}
-                          disabled={!interviewAt}
-                          className="px-4 py-2.5 rounded-xl text-xs font-semibold bg-primary text-white hover:bg-primary-hover transition-all disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
-                        >
-                          Schedule
-                        </Button>
-                        <Button onClick={() => setInterviewingId(null)} className="px-4 py-2.5 rounded-xl text-xs font-medium text-muted-foreground hover:text-muted-foreground hover:bg-muted border border-border transition-colors cursor-pointer">
-                          Cancel
-                        </Button>
-                      </div>
+                    <div className="flex gap-2">
+                      <Button onClick={() => confirmInterview(applicant.id)} disabled={!interviewAt} className="text-xs">
+                        Schedule
+                      </Button>
+                      <Button variant="outline" onClick={() => setInterviewingId(null)} className="text-xs">
+                        Cancel
+                      </Button>
                     </div>
                   </div>
                 </div>

@@ -1,8 +1,6 @@
 import { Button } from "../../components/ui/button";
 import { useState, useEffect, useMemo } from "react";
 import {
-  Users,
-  Filter,
   UserMinus,
   UserPlus,
   AlertTriangle,
@@ -14,9 +12,15 @@ import { listByCompany, updateApplicationStatus } from "../../shared/services/ap
 import LoadingScreen from "../../shared/components/LoadingScreen";
 import SeekerProfileCard from "../../shared/components/SeekerProfileCard";
 import ApplicantsShell from "../../shared/components/ApplicantsShell";
-import SearchBar from "../../shared/components/SearchBar";
+import { EmptyState } from "../../shared/components/design";
 
 const EMPLOYEE_STATUSES = ["Accepted", "Terminated"];
+
+const TILES = [
+  { key: "all", label: "Total", title: "Show all employees", tone: "border-border bg-blue-soft text-primary" },
+  { key: "active", label: "Active", title: "Show active employees", tone: "border-border bg-success-soft text-success" },
+  { key: "terminated", label: "Terminated", title: "Show terminated employees", tone: "border-border bg-secondary text-muted-foreground" },
+];
 
 function Employees() {
   const { user } = useAuth();
@@ -54,6 +58,7 @@ function Employees() {
 
   const active = useMemo(() => employees.filter((e) => e.status === "Accepted").length, [employees]);
   const terminated = useMemo(() => employees.filter((e) => e.status === "Terminated").length, [employees]);
+  const totals = { all: employees.length, active, terminated };
 
   // Credentials are fetched by SeekerProfileCard itself once the row expands.
   function toggleProfile(employee) {
@@ -64,15 +69,11 @@ function Employees() {
 
   if (error) {
     return (
-      <div className="space-y-6">
-        <div className="bg-card border border-rose-100 rounded-2xl p-5 flex items-start gap-3 shadow-[0_2px_16px_-8px_rgba(16,24,40,0.08)]">
-          <div className="shrink-0 mt-0.5 w-8 h-8 rounded-lg bg-rose-50 border border-rose-100 flex items-center justify-center">
-            <AlertTriangle className="w-4 h-4 text-rose-500" strokeWidth={2} />
-          </div>
-          <div className="min-w-0">
-            <p className="text-sm font-semibold text-foreground">Couldn't load employees</p>
-            <p className="text-sm text-rose-600 mt-0.5">{error}</p>
-          </div>
+      <div role="alert" className="flex items-start gap-3 rounded-lg border border-danger/20 bg-danger-soft p-4 text-sm text-destructive">
+        <AlertTriangle className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+        <div className="min-w-0">
+          <p className="font-semibold">Couldn't load employees</p>
+          <p className="mt-0.5 text-xs">{error}</p>
         </div>
       </div>
     );
@@ -97,149 +98,109 @@ function Employees() {
     <ApplicantsShell
       title="Employees"
       subtitle="Accepted applicants become employees and move out of the application tracker"
+      search={search}
+      onSearchChange={setSearch}
+      searchPlaceholder="Search by employee name..."
+      searchAriaLabel="Search employees"
+      sort={sortBy}
+      onSortChange={setSortBy}
+      sortAriaLabel="Sort employees"
+      sortOptions={[
+        { value: "newest", label: "Newest First" },
+        { value: "oldest", label: "Oldest First" },
+        { value: "name", label: "Name (A-Z)" },
+      ]}
       sidebar={
-        <>
-          <div className="space-y-3">
-            <Button type="button" data-tone="info" onClick={() => toggleFilter("all")} aria-pressed={statusFilter === "all"} title="Show all employees"
-              className={`w-full text-left rounded-lg border px-4 py-3 cursor-pointer transition-all border-blue-300 bg-blue-50 text-blue-700 ${statusFilter === "all" ? "ring-1 ring-offset-0 ring-current" : ""}`}>
-              <p className="text-2xl font-bold">{employees.length}</p>
-              <p className="mt-0.5 text-[10px] font-semibold uppercase tracking-wider">Total</p>
+        <div className="space-y-3">
+          {TILES.map((tile) => (
+            <Button
+              key={tile.key}
+              type="button"
+              data-tone={tile.key === "active" ? "success" : tile.key === "terminated" ? "neutral" : "info"}
+              onClick={() => toggleFilter(tile.key)}
+              aria-pressed={statusFilter === tile.key}
+              title={tile.title}
+              className={`w-full rounded-lg border px-4 py-3 text-left transition-all ${tile.tone} ${statusFilter === tile.key ? "ring-1 ring-current ring-offset-0" : ""}`}
+            >
+              <p className="text-2xl font-bold">{totals[tile.key]}</p>
+              <p className="mt-0.5 text-[10px] font-semibold uppercase tracking-wider">{tile.label}</p>
             </Button>
-            <Button type="button" data-tone="success" onClick={() => toggleFilter("active")} aria-pressed={statusFilter === "active"} title="Show active employees"
-              className={`w-full text-left rounded-lg border px-4 py-3 cursor-pointer transition-all border-emerald-300 bg-emerald-50 text-emerald-700 ${statusFilter === "active" ? "ring-1 ring-offset-0 ring-current" : ""}`}>
-              <p className="text-2xl font-bold">{active}</p>
-              <p className="mt-0.5 text-[10px] font-semibold uppercase tracking-wider">Active</p>
-            </Button>
-            <Button type="button" data-tone="neutral" onClick={() => toggleFilter("terminated")} aria-pressed={statusFilter === "terminated"} title="Show terminated employees"
-              className={`w-full text-left rounded-lg border px-4 py-3 cursor-pointer transition-all border-gray-300 bg-muted text-muted-foreground ${statusFilter === "terminated" ? "ring-1 ring-offset-0 ring-current" : ""}`}>
-              <p className="text-2xl font-bold">{terminated}</p>
-              <p className="mt-0.5 text-[10px] font-semibold uppercase tracking-wider">Terminated</p>
-            </Button>
-          </div>
-        </>
+          ))}
+        </div>
       }
-      controls={
-        <div className="applicant-list-controls bg-card border border-primary rounded-lg p-2 shadow-xs">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-            <SearchBar value={search} onChange={setSearch} placeholder="Search by employee name..." ariaLabel="Search employees" />
-
-            {/* Sort */}
-            <div className="flex flex-wrap items-center gap-3">
-              <div className="flex items-center gap-2">
-                <Filter className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-                <select
-                  value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value)}
-                  aria-label="Sort employees"
-                  className="px-3 py-2 rounded-xl text-xs bg-muted border border-border text-muted-foreground font-medium focus:outline-none focus:border-primary transition-all cursor-pointer"
-                >
-                  <option value="newest">Newest First</option>
-                  <option value="oldest">Oldest First</option>
-                  <option value="name">Name (A-Z)</option>
-                </select>
+    >
+      {filtered.length === 0 ? (
+        <EmptyState
+          title={employees.length === 0 ? "No employees yet" : "No employees match your filters"}
+          description={
+            employees.length === 0
+              ? "Candidates you accept in the applicant tracker will appear here."
+              : "Try adjusting your search or status filter to find employees."
+          }
+          action={
+            hasActiveFilters ? (
+              <Button variant="outline" onClick={clearFilters} className="text-xs">
+                Clear all filters
+              </Button>
+            ) : null
+          }
+        />
+      ) : (
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          {filtered.map((emp) => (
+            <article key={emp.id} className="rounded-xl border bg-card p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-semibold text-navy">{emp.seeker?.full_name}</p>
+                  <p className="mt-0.5 truncate text-[10px] text-muted-foreground">{emp.seeker?.email}</p>
+                </div>
+                {emp.status === "Accepted" ? (
+                  <Button variant="outline" title="Terminate employee" onClick={() => setStatus(emp.id, "Terminated")} className="shrink-0 gap-1.5 border-danger/20 bg-danger-soft text-xs text-destructive">
+                    <UserMinus className="size-3.5" />
+                    Terminate
+                  </Button>
+                ) : (
+                  <Button variant="outline" title="Reactivate employee" onClick={() => setStatus(emp.id, "Accepted")} className="shrink-0 gap-1.5 border-success/20 bg-success-soft text-xs text-success">
+                    <UserPlus className="size-3.5" />
+                    Reactivate
+                  </Button>
+                )}
               </div>
-              {hasActiveFilters && (
-                <Button
-                  type="button"
-                  onClick={clearFilters}
-                  className="px-3 py-2 rounded-xl text-xs font-medium text-muted-foreground hover:text-muted-foreground hover:bg-muted border border-border transition-colors cursor-pointer"
-                >
-                  Clear filters
-                </Button>
-              )}
-            </div>
-          </div>
-        </div>
-        </div>
-      }>
 
-          {/* Employee cards */}
-          {filtered.length === 0 ? (
-            <div className="text-center py-16 px-6">
-              <div className="w-16 h-16 mx-auto rounded-2xl bg-muted border border-border flex items-center justify-center mb-4">
-                <Users className="w-8 h-8 text-gray-300" strokeWidth={1.5} />
+              <div className="mt-4 grid grid-cols-3 gap-2">
+                <div>
+                  <p className="text-[10px] text-muted-foreground">Position</p>
+                  <p className="mt-1 truncate text-xs font-medium text-navy">{emp.job?.title}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] text-muted-foreground">Status</p>
+                  <p className="mt-1">
+                    <span className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-medium ${emp.status === "Accepted" ? "bg-success-soft text-success" : "bg-secondary text-muted-foreground"}`}>
+                      {emp.status === "Accepted" ? "Active" : emp.status}
+                    </span>
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[10px] text-muted-foreground">Hired</p>
+                  <p className="mt-1 truncate text-xs text-muted-foreground">
+                    {new Date(emp.updated_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                  </p>
+                </div>
               </div>
-              <p className="font-semibold text-foreground mb-1">
-                {employees.length === 0 ? "No employees yet" : "No employees match your filters"}
-              </p>
-              <p className="text-sm text-muted-foreground max-w-sm mx-auto">
-                {employees.length === 0
-                  ? "Candidates you accept in the applicant tracker will appear here."
-                  : "Try adjusting your search or status filter to find employees."}
-              </p>
-              {hasActiveFilters && (
-                <Button
-                  type="button"
-                  onClick={clearFilters}
-                  className="mt-4 px-4 py-2.5 rounded-xl text-xs font-semibold text-primary bg-primary/10 border border-primary/25 hover:bg-primary/20 transition-colors cursor-pointer"
-                >
-                  Clear all filters
-                </Button>
+
+              <button type="button" aria-expanded={expandedId === emp.id} onClick={() => toggleProfile(emp)} className="text-link mt-3 text-xs">
+                {expandedId === emp.id ? <EyeOff className="size-3.5" /> : <Eye className="size-3.5" />}
+                {expandedId === emp.id ? "Hide profile" : "View profile"}
+              </button>
+
+              {expandedId === emp.id && (
+                <div className="mt-3"><SeekerProfileCard applicant={emp} /></div>
               )}
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {filtered.map((emp) => (
-                <article key={emp.id} className="rounded-lg border border-primary/40 bg-card p-4">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="text-sm font-bold text-dark-blue truncate">{emp.seeker?.full_name}</p>
-                      <p className="mt-0.5 text-[11px] text-muted-foreground truncate">{emp.seeker?.email}</p>
-                    </div>
-                    <div className="flex items-center gap-1.5 shrink-0">
-                      {emp.status === "Accepted" ? (
-                        <Button type="button" title="Terminate employee" onClick={() => setStatus(emp.id, "Terminated")} className="inline-flex items-center gap-1.5 p-2 rounded-lg border border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100 transition-colors cursor-pointer">
-                          <UserMinus className="w-3.5 h-3.5" />
-                          <span className="text-xs font-medium">Terminate</span>
-                        </Button>
-                      ) : (
-                        <Button type="button" title="Reactivate employee" onClick={() => setStatus(emp.id, "Accepted")} className="inline-flex items-center gap-1.5 p-2 rounded-lg border border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-colors cursor-pointer">
-                          <UserPlus className="w-3.5 h-3.5" />
-                          <span className="text-xs font-medium">Reactivate</span>
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="mt-3 grid grid-cols-3 gap-2">
-                    <div>
-                      <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Position</p>
-                      <p className="mt-0.5 text-xs font-semibold text-dark-blue truncate">{emp.job?.title}</p>
-                    </div>
-                    <div>
-                      <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Status</p>
-                      <span className={`mt-0.5 inline-flex items-center gap-1.5 font-mono text-[10px] tracking-wider px-2 py-0.5 rounded-full uppercase border font-semibold ${
-                        emp.status === "Accepted"
-                          ? "bg-emerald-50 border-emerald-200 text-emerald-700"
-                          : "bg-muted border-border text-muted-foreground"
-                      }`}>
-                        {emp.status === "Accepted" ? "Active" : emp.status}
-                      </span>
-                    </div>
-                    <div>
-                      <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Hired</p>
-                      <p className="mt-0.5 text-xs text-muted-foreground truncate">
-                        {new Date(emp.updated_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="mt-3">
-                    <Button type="button" onClick={() => toggleProfile(emp)} className="inline-flex items-center gap-1 text-[11px] text-muted-foreground font-medium cursor-pointer">
-                      {expandedId === emp.id ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
-                      {expandedId === emp.id ? "Hide profile" : "View profile"}
-                    </Button>
-                  </div>
-
-                  {expandedId === emp.id && (
-                    <div className="mt-3"><SeekerProfileCard applicant={emp} /></div>
-                  )}
-                </article>
-              ))}
-            </div>
-          )}
-      </ApplicantsShell>
+            </article>
+          ))}
+        </div>
+      )}
+    </ApplicantsShell>
   );
 }
 

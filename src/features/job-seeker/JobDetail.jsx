@@ -1,16 +1,17 @@
-import { Button } from "../../components/ui/button";
-import { Input } from "../../components/ui/input";
-import { Label } from "../../components/ui/label";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import { useState, useEffect } from "react";
 import { Link, Navigate, useParams } from "react-router-dom";
-import { CheckCircle2 } from "lucide-react";
-import useAuth from "../../shared/hooks/useAuth";
-import { getJob } from "../../shared/services/jobs";
-import { applyToJob, listBySeeker } from "../../shared/services/applications";
-import { listResumes, uploadResume, validateFile } from "../../shared/services/documents";
-import LoadingScreen from "../../shared/components/LoadingScreen";
-import { SectionCard } from "../../shared/components/dashboard";
-import { titleCase } from "../../shared/utils/titleCase";
+import { ArrowLeft, ArrowRight, Banknote, BriefcaseBusiness, CalendarDays, Check, CheckCircle2, MapPin, Users } from "lucide-react";
+import useAuth from "@/shared/hooks/useAuth";
+import { getJob } from "@/shared/services/jobs";
+import { applyToJob, listBySeeker } from "@/shared/services/applications";
+import { listResumes, uploadResume, validateFile } from "@/shared/services/documents";
+import LoadingScreen from "@/shared/components/LoadingScreen";
+import { CompanyMark, LinkButton, Panel } from "@/shared/components/design";
+import { titleCase } from "@/shared/utils/titleCase";
 
 function JobDetail() {
   const { jobId } = useParams();
@@ -98,158 +99,158 @@ function JobDetail() {
     ? new Date(`${String(job.deadline).slice(0, 10)}T23:59:59.999`).getTime() < today
     : false;
 
+  const salary = job.salary_min ? `₱${job.salary_min}${job.salary_max ? `–₱${job.salary_max}` : ""}` : "Negotiable";
+  const companyName = titleCase(job.employers?.company_name);
+
   return (
-    <div className="w-full space-y-6">
-      <Link to="/job-seeker/jobs" className="inline-flex items-center text-xs text-muted-foreground hover:text-foreground transition-colors">
-        ← Back to all jobs
+    <div className="w-full pb-12">
+      <Link to="/job-seeker/jobs" className="text-link text-xs">
+        <ArrowLeft className="size-3.5" />
+        Back to all jobs
       </Link>
 
-      <SectionCard
-        titleAs="h1"
-        title={job.title}
-        subtitle={titleCase(job.employers?.company_name)}
-        action={
-          <span className="inline-flex px-3.5 py-1.5 rounded-full bg-primary/10 border border-primary/25 font-mono text-sm text-primary font-semibold shrink-0">
-            {job.salary_min ? `₱${job.salary_min}${job.salary_max ? `–₱${job.salary_max}` : ""}` : "Negotiable"}
-          </span>
-        }
-      >
-        <div className="flex flex-col sm:flex-row sm:items-center gap-3 pb-6 border-b border-border">
-          <span className="font-mono text-[10px] tracking-widest uppercase px-2.5 py-1 rounded-full bg-primary/10 border border-primary/25 text-primary">
-            {job.location} · {job.employment_type}
-          </span>
-        </div>
-
-        <div className="mt-6 grid grid-cols-1 gap-3 p-5 rounded-xl bg-muted border border-border">
-          <div>
-            <p className="font-mono text-[10px] tracking-widest uppercase text-muted-foreground">Compensation</p>
-            <p className="mt-1 font-mono text-sm text-foreground font-medium">{job.salary_min ? `₱${job.salary_min}${job.salary_max ? `–₱${job.salary_max}` : ""}` : "—"}</p>
-          </div>
-          <div>
-            <p className="font-mono text-[10px] tracking-widest uppercase text-muted-foreground">Location</p>
-            <p className="mt-1 text-sm text-foreground font-medium">Brgy. {job.location}</p>
-          </div>
-          <div>
-            <p className="font-mono text-[10px] tracking-widest uppercase text-muted-foreground">Work Arrangement</p>
-            <p className="mt-1 text-sm text-foreground font-medium">{job.work_arrangement || "On-site"}</p>
-          </div>
-          <div>
-            <p className="font-mono text-[10px] tracking-widest uppercase text-muted-foreground">Vacancies</p>
-            <p className="mt-1 text-sm text-foreground font-medium">{job.vacancies ?? "—"}</p>
-          </div>
-          <div>
-            <p className="font-mono text-[10px] tracking-widest uppercase text-muted-foreground">Application Deadline</p>
-            <p className="mt-1 text-sm text-muted-foreground">{job.deadline ? new Date(job.deadline).toLocaleDateString() : "No deadline"}</p>
-          </div>
-          <div>
-            <p className="font-mono text-[10px] tracking-widest uppercase text-muted-foreground">Date Posted</p>
-            <p className="mt-1 text-sm text-muted-foreground">{job.published_at ? new Date(job.published_at).toLocaleDateString() : "—"}</p>
-          </div>
-          <div>
-            <p className="font-mono text-[10px] tracking-widest uppercase text-muted-foreground">Listing Status</p>
-            <p className={`mt-1 text-sm font-medium flex items-center gap-1.5 ${deadlinePassed ? "text-muted-foreground" : "text-emerald-600"}`}>
-              <span className={`w-1.5 h-1.5 rounded-full ${deadlinePassed ? "bg-gray-400" : "bg-emerald-500"}`} />
-              {deadlinePassed ? "Closed — application deadline passed" : "Verified Open"}
-            </p>
-          </div>
-        </div>
-
-        <section className="mt-6">
-          <h2 className="font-mono text-[11px] tracking-[0.2em] text-[#0057B8] uppercase mb-3">Position Overview</h2>
-          <p className="text-sm md:text-base text-muted-foreground leading-relaxed whitespace-pre-line">{job.description || "No description provided for this opening."}</p>
-        </section>
-
-        {requirements.length > 0 && (
-          <section className="mt-6">
-            <h2 className="font-mono text-[11px] tracking-[0.2em] text-[#0057B8] uppercase mb-3">Role Requirements</h2>
-            <ul className="space-y-2.5">
-              {requirements.map((req) => (
-                <li key={req} className="text-sm text-muted-foreground flex items-start gap-3">
-                  <span className="text-[#0057B8] mt-0.5">▪</span>
-                  <span>{req}</span>
-                </li>
-              ))}
-            </ul>
-          </section>
-        )}
-
-        {job.benefits && (
-          <section className="mt-6">
-            <h2 className="font-mono text-[11px] tracking-[0.2em] text-[#0057B8] uppercase mb-3">Benefits</h2>
-            <p className="text-sm text-muted-foreground whitespace-pre-line">{job.benefits}</p>
-          </section>
-        )}
-
-        {job.instructions && (
-          <section className="mt-6">
-            <h2 className="font-mono text-[11px] tracking-[0.2em] text-[#0057B8] uppercase mb-3">Application Instructions</h2>
-            <p className="text-sm text-muted-foreground whitespace-pre-line">{job.instructions}</p>
-          </section>
-        )}
-
-        {tags.length > 0 && (
-          <section className="mt-6">
-            <h2 className="font-mono text-[11px] tracking-[0.2em] text-[#0057B8] uppercase mb-3">Tags</h2>
-            <div className="flex flex-wrap gap-2">
-              {tags.map((tag) => (
-                <span key={tag} className="font-mono text-xs px-2.5 py-1 rounded-full bg-primary/10 border border-primary/25 text-primary">{tag}</span>
-              ))}
+      <div className="surface mt-5">
+        <div className="flex flex-col justify-between gap-5 sm:flex-row">
+          <div className="flex min-w-0 gap-5">
+            <CompanyMark initials={String(job.employers?.company_name || "J").slice(0, 2).toUpperCase()} large />
+            <div className="min-w-0">
+              <h1 className="text-2xl font-semibold tracking-[-.035em] md:text-[30px]">{job.title}</h1>
+              <p className="mt-2 text-sm text-muted-foreground">{companyName}</p>
+              <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-muted-foreground">
+                <span className="flex items-center gap-1.5"><MapPin className="size-3.5" />Brgy. {job.location}, Santa Maria</span>
+                <span className="flex items-center gap-1.5"><BriefcaseBusiness className="size-3.5" />{job.employment_type}</span>
+              </div>
             </div>
-          </section>
-        )}
-
-        <div className="mt-6 pt-6 border-t border-border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-          <div>
-            {alreadyApplied ? (
-              <span className="font-mono text-xs text-emerald-600 font-medium flex items-center gap-1.5">
-                <CheckCircle2 className="w-3.5 h-3.5 shrink-0" aria-hidden="true" /> Application submitted — track updates in "My Applications"
-              </span>
-            ) : (
-              <p className="text-xs text-muted-foreground">Submitting forwards your registered JobLinked profile to the employer.</p>
-            )}
           </div>
+          <p className="text-sm font-semibold text-navy sm:text-right">
+            {salary}
+            <span className="mt-1 block text-[10px] font-normal text-muted-foreground">{job.salary_min ? "per month" : "salary"}</span>
+          </p>
+        </div>
+      </div>
 
-          {!alreadyApplied && (
-            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
-              {resumes.length > 0 && (
+      <div className="mt-6 grid items-start gap-6 lg:grid-cols-[1fr_335px]">
+        <div className="flex min-w-0 flex-col gap-6">
+          <Panel title="Position overview" description="What this role asks of you, day to day.">
+            <p className="prose-copy whitespace-pre-line">{job.description || "No description provided for this opening."}</p>
+
+            {requirements.length > 0 && (
+              <section className="mt-7">
+                <h2 className="mb-3 text-sm font-semibold">Role requirements</h2>
+                <ul className="flex flex-col gap-2.5">
+                  {requirements.map((req) => (
+                    <li key={req} className="flex items-start gap-2.5 text-xs leading-6 text-muted-foreground">
+                      <Check className="mt-1.5 size-3.5 shrink-0 text-teal" />
+                      {req}
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            )}
+
+            {job.benefits && (
+              <section className="mt-7">
+                <h2 className="mb-3 text-sm font-semibold">Benefits</h2>
+                <p className="prose-copy whitespace-pre-line">{job.benefits}</p>
+              </section>
+            )}
+
+            {job.instructions && (
+              <section className="mt-7">
+                <h2 className="mb-3 text-sm font-semibold">Application instructions</h2>
+                <p className="prose-copy whitespace-pre-line">{job.instructions}</p>
+              </section>
+            )}
+
+            {tags.length > 0 && (
+              <section className="mt-7">
+                <h2 className="mb-3 text-sm font-semibold">Skills that make a difference</h2>
+                <div className="flex flex-wrap gap-2">
+                  {tags.map((tag) => <Badge key={tag} variant="secondary">{tag}</Badge>)}
+                </div>
+              </section>
+            )}
+          </Panel>
+        </div>
+
+        <div className="flex flex-col gap-5">
+          <Panel title="The details at a glance">
+            <dl className="flex flex-col gap-5">
+              {[
+                { icon: Banknote, label: "Monthly salary", value: salary },
+                { icon: MapPin, label: "Work location", value: `Brgy. ${job.location}, Santa Maria` },
+                { icon: BriefcaseBusiness, label: "Work arrangement", value: job.work_arrangement || "On-site" },
+                { icon: Users, label: "Openings", value: job.vacancies ?? "—" },
+                { icon: CalendarDays, label: "Apply by", value: job.deadline ? new Date(job.deadline).toLocaleDateString() : "No deadline" },
+                { icon: CalendarDays, label: "Date posted", value: job.published_at ? new Date(job.published_at).toLocaleDateString() : "—" },
+              ].map(({ icon: Icon, label, value }) => (
+                <div className="flex gap-3" key={label}>
+                  <Icon className="mt-0.5 size-4 shrink-0 text-primary" />
+                  <div className="min-w-0">
+                    <dt className="text-[10px] text-muted-foreground">{label}</dt>
+                    <dd className="mt-1 text-xs font-medium text-navy">{value}</dd>
+                  </div>
+                </div>
+              ))}
+              <div className="flex gap-3">
+                <CheckCircle2 className={`mt-0.5 size-4 shrink-0 ${deadlinePassed ? "text-muted-foreground" : "text-success"}`} />
+                <div className="min-w-0">
+                  <dt className="text-[10px] text-muted-foreground">Listing status</dt>
+                  <dd className={`mt-1 text-xs font-medium ${deadlinePassed ? "text-muted-foreground" : "text-success"}`}>
+                    {deadlinePassed ? "Closed — application deadline passed" : "Verified Open"}
+                  </dd>
+                </div>
+              </div>
+            </dl>
+
+            <div className="mt-6 flex flex-col gap-3">
+              {alreadyApplied ? (
                 <>
-                  <Label htmlFor="job-resume-select" className="sr-only">Choose resume</Label>
-                  <select
-                    id="job-resume-select"
-                    value={selectedResume}
-                    onChange={(e) => setSelectedResume(e.target.value)}
-                    className="min-h-[44px] px-4 rounded-xl text-sm bg-muted border border-border text-foreground focus:outline-none focus:border-primary/60 transition-all"
-                  >
-                    {resumes.map((r) => <option key={r.id} value={r.id}>{r.file_name}</option>)}
-                  </select>
+                  <p className="flex items-center gap-1.5 text-xs font-medium text-success">
+                    <CheckCircle2 className="size-3.5 shrink-0" aria-hidden="true" />
+                    Application submitted — track updates in "My Applications"
+                  </p>
+                  <LinkButton href="/job-seeker/applications" variant="outline">
+                    View application status
+                    <ArrowRight data-icon="inline-end" />
+                  </LinkButton>
+                </>
+              ) : (
+                <>
+                  <p className="text-xs leading-5 text-muted-foreground">Submitting forwards your registered JobLinked profile to the employer.</p>
+                  {resumes.length > 0 && (
+                    <>
+                      <Label htmlFor="job-resume-select" className="text-xs">Resume to attach</Label>
+                      <select
+                        id="job-resume-select"
+                        value={selectedResume}
+                        onChange={(e) => setSelectedResume(e.target.value)}
+                        className="form-select"
+                      >
+                        {resumes.map((r) => <option key={r.id} value={r.id}>{r.file_name}</option>)}
+                      </select>
+                    </>
+                  )}
+                  <Input type="file" accept=".pdf,.doc,.docx" onChange={handleResumeUpload} className="hidden" id="job-resume-upload" />
+                  <Label htmlFor="job-resume-upload" className="w-fit cursor-pointer rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground">
+                    {uploading ? "Uploading…" : "Upload new resume"}
+                  </Label>
+                  <p className="text-[10px] leading-5 text-muted-foreground">PDF up to 2 MB; DOC or DOCX up to 5 MB.</p>
+                  {deadlinePassed && (
+                    <p className="text-xs text-danger">Applications are closed — the deadline has passed.</p>
+                  )}
+                  <Button onClick={handleApply} disabled={applying || deadlinePassed}>
+                    {applying ? "Submitting…" : "Submit Application"}
+                    <ArrowRight data-icon="inline-end" />
+                  </Button>
                 </>
               )}
-              <Input type="file" accept=".pdf,.doc,.docx" onChange={handleResumeUpload} className="hidden" id="job-resume-upload" />
-              <Label htmlFor="job-resume-upload" className="inline-flex items-center min-h-[44px] px-4 rounded-xl text-xs font-medium text-muted-foreground hover:text-foreground bg-muted hover:bg-gray-200 border border-border transition-colors cursor-pointer">
-                {uploading ? "Uploading…" : "Upload New Resume"}
-              </Label>
-              <p className="mt-2 text-xs text-muted-foreground">PDF up to 2 MB; DOC or DOCX up to 5 MB.</p>
-              {deadlinePassed && (
-                <p className="text-xs text-danger">Applications are closed — the deadline has passed.</p>
-              )}
-              <Button
-                onClick={handleApply}
-                disabled={applying || deadlinePassed}
-                className="min-h-[44px] px-8 rounded-xl bg-primary text-white text-sm font-medium hover:bg-primary-hover active:scale-[0.98] transition-all shadow-md disabled:opacity-60"
-              >
-                {applying ? "Submitting…" : "Submit Application"}
-              </Button>
+              {applyError && <p className="text-xs text-danger">{applyError}</p>}
+              {uploadError && <p className="text-xs text-danger">{uploadError}</p>}
             </div>
-          )}
-          {alreadyApplied && (
-            <Link to="/job-seeker/applications" className="min-h-[44px] inline-flex items-center px-6 rounded-xl border border-gray-300 text-muted-foreground text-xs font-medium hover:bg-muted transition-colors">
-              View Application Status →
-            </Link>
-          )}
+          </Panel>
         </div>
-        {applyError && <p className="mt-3 text-xs text-danger">{applyError}</p>}
-        {uploadError && <p className="mt-3 text-xs text-danger">{uploadError}</p>}
-      </SectionCard>
+      </div>
     </div>
   );
 }

@@ -1,33 +1,34 @@
-import { Button } from "../../components/ui/button";
-import { Input } from "../../components/ui/input";
-import { Textarea } from "../../components/ui/textarea";
-import { Label } from "../../components/ui/label";
-import { useState, useEffect } from "react";
-import { createPortal } from "react-dom";
-import { listAllJobs, editJob, publishJob, unpublishJob } from "../../shared/services/admin";
-import { changeJobStatus } from "../../shared/services/jobs";
-import ConfirmationModal from "../../shared/components/ConfirmationModal";
-import LoadingScreen from "../../shared/components/LoadingScreen";
-import { Pager } from "../../shared/components/dashboard";
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
+import { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
+import { listAllJobs, editJob, publishJob, unpublishJob } from '@/shared/services/admin'
+import { changeJobStatus } from '@/shared/services/jobs'
+import ConfirmationModal from '@/shared/components/ConfirmationModal'
+import LoadingScreen from '@/shared/components/LoadingScreen'
+import { InlineError, Pager } from '@/shared/components/dashboard'
+import { EmptyState, PageHeading, Panel, StatusBadge, TextField } from '@/shared/components/design'
 
 // Minimal admin edit modal (prefill → PATCH admin/jobs/:id). The employer
 // JobForm lives inside the employer page and can't be imported without
 // dragging employer logic along — this covers admin corrections.
 function EditModal({ job, onClose, onSaved }) {
   const [form, setForm] = useState({
-    title: job.title || "",
-    location: job.location || "",
+    title: job.title || '',
+    location: job.location || '',
     vacancies: job.vacancies || 1,
-    deadline: job.deadline ? job.deadline.split("T")[0] : "",
-    description: job.description || "",
-  });
-  const [error, setError] = useState("");
-  const [saving, setSaving] = useState(false);
+    deadline: job.deadline ? job.deadline.split('T')[0] : '',
+    description: job.description || '',
+  })
+  const [error, setError] = useState('')
+  const [saving, setSaving] = useState(false)
 
   async function handleSave() {
-    if (!form.title.trim()) { setError("Job title is required"); return; }
-    setError("");
-    setSaving(true);
+    if (!form.title.trim()) { setError('Job title is required'); return }
+    setError('')
+    setSaving(true)
     try {
       const payload = {
         title: form.title.trim(),
@@ -35,155 +36,158 @@ function EditModal({ job, onClose, onSaved }) {
         vacancies: Number(form.vacancies) || 1,
         deadline: form.deadline || null,
         description: form.description.trim(),
-      };
-      const updated = await editJob(job.id, payload);
-      onSaved(updated || { ...job, ...payload });
+      }
+      const updated = await editJob(job.id, payload)
+      onSaved(updated || { ...job, ...payload })
     } catch (err) {
-      setError(err.message || "Failed to save job");
+      setError(err.message || 'Failed to save job')
     } finally {
-      setSaving(false);
+      setSaving(false)
     }
   }
 
-  const inputClass = "w-full min-h-[38px] px-3.5 rounded-xl text-sm bg-muted border border-border text-gray-800 placeholder:text-muted-foreground focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all";
-
   return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
-      <div className="bg-card w-full max-w-lg max-h-[90vh] overflow-y-auto border border-primary rounded-lg shadow-xl p-5 md:p-6">
-        <span className="font-mono text-[10px] tracking-widest text-primary uppercase">Edit job post</span>
-        <h2 className="mt-1 text-xl font-bold text-foreground">Correct listing</h2>
-        <div className="mt-4 space-y-4">
-          <div>
-            <Label htmlFor="edit-title" className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase mb-1.5">Job title</Label>
-            <Input id="edit-title" type="text" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} className={inputClass} />
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/60 p-4">
+      <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl border bg-card p-5 shadow-xl md:p-6">
+        <p className="eyebrow">Edit job post</p>
+        <h2 className="mt-2 text-xl font-semibold tracking-tight text-navy">Correct listing</h2>
+        <div className="mt-5 flex flex-col gap-4">
+          <TextField
+            id="edit-title"
+            label="Job title"
+            type="text"
+            value={form.title}
+            onChange={(e) => setForm({ ...form, title: e.target.value })}
+          />
+          <TextField
+            id="edit-location"
+            label="Location"
+            type="text"
+            value={form.location}
+            onChange={(e) => setForm({ ...form, location: e.target.value })}
+          />
+          <div className="grid gap-4 sm:grid-cols-2">
+            <TextField
+              id="edit-vacancies"
+              label="Vacancies"
+              type="number"
+              min="1"
+              value={form.vacancies}
+              onChange={(e) => setForm({ ...form, vacancies: e.target.value })}
+            />
+            <TextField
+              id="edit-deadline"
+              label="Deadline"
+              type="date"
+              value={form.deadline}
+              onChange={(e) => setForm({ ...form, deadline: e.target.value })}
+            />
           </div>
-          <div>
-            <Label htmlFor="edit-location" className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase mb-1.5">Location</Label>
-            <Input id="edit-location" type="text" value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} className={inputClass} />
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <Label htmlFor="edit-vacancies" className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase mb-1.5">Vacancies</Label>
-              <Input id="edit-vacancies" type="number" min="1" value={form.vacancies} onChange={(e) => setForm({ ...form, vacancies: e.target.value })} className={inputClass} />
-            </div>
-            <div>
-              <Label htmlFor="edit-deadline" className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase mb-1.5">Deadline</Label>
-              <Input id="edit-deadline" type="date" value={form.deadline} onChange={(e) => setForm({ ...form, deadline: e.target.value })} className={inputClass} />
-            </div>
-          </div>
-          <div>
-            <Label htmlFor="edit-description" className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase mb-1.5">Description</Label>
-            <Textarea id="edit-description" rows={4} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} className={inputClass} />
-          </div>
+          <TextField
+            id="edit-description"
+            label="Description"
+            multiline
+            rows={4}
+            value={form.description}
+            onChange={(e) => setForm({ ...form, description: e.target.value })}
+          />
         </div>
-        {error && <p className="mt-2 text-xs text-danger">{error}</p>}
-        <div className="mt-5 flex justify-end gap-2">
-          <Button onClick={onClose} className="px-4 py-2 text-xs font-medium rounded-xl border border-border text-muted-foreground hover:bg-muted transition-colors">Cancel</Button>
-          <Button onClick={handleSave} disabled={saving} className="px-4 py-2 text-xs font-medium rounded-xl bg-primary text-white hover:bg-primary-hover transition-colors disabled:opacity-60">
-            {saving ? "Saving…" : "Save changes"}
-          </Button>
+        {error && <p role="alert" className="mt-3 text-xs text-destructive">{error}</p>}
+        <div className="mt-6 flex justify-end gap-2">
+          <Button variant="outline" onClick={onClose}>Cancel</Button>
+          <Button onClick={handleSave} disabled={saving}>{saving ? 'Saving…' : 'Save changes'}</Button>
         </div>
       </div>
     </div>,
     document.body
-  );
+  )
 }
 
 function JobPosts() {
-  const [jobs, setJobs] = useState([]);
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(0);
-  const [total, setTotal] = useState(0);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
-  const [search, setSearch] = useState("");
-  const [confirmArchiveId, setConfirmArchiveId] = useState(null);
-  const [editing, setEditing] = useState(null);
-  const [actionError, setActionError] = useState("");
+  const [jobs, setJobs] = useState([])
+  const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(0)
+  const [total, setTotal] = useState(0)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+  const [statusFilter, setStatusFilter] = useState('all')
+  const [search, setSearch] = useState('')
+  const [confirmArchiveId, setConfirmArchiveId] = useState(null)
+  const [editing, setEditing] = useState(null)
+  const [actionError, setActionError] = useState('')
 
   // Jobs arrive as the { data, total, page, pageSize } envelope (C2).
   useEffect(() => {
     listAllJobs({ page })
-      .then((res) => { setJobs(res.data); setTotal(res.total); setPageSize(res.pageSize); })
-      .catch((err) => setError(err.message || "Failed to load jobs"))
-      .finally(() => setLoading(false));
-  }, [page]);
+      .then((res) => { setJobs(res.data); setTotal(res.total); setPageSize(res.pageSize) })
+      .catch((err) => setError(err.message || 'Failed to load jobs'))
+      .finally(() => setLoading(false))
+  }, [page])
 
-  if (loading) return <LoadingScreen />;
-  if (error) return <div className="py-8 text-center text-sm text-danger">{error}</div>;
+  if (loading) return <LoadingScreen />
+  if (error) return <InlineError message={error} />
 
   async function handleAction(job, action) {
     try {
-      await changeJobStatus(job.id, action);
-      setJobs((prev) => prev.map((j) => (j.id === job.id ? { ...j, status: action, remarks: null } : j)));
+      await changeJobStatus(job.id, action)
+      setJobs((prev) => prev.map((j) => (j.id === job.id ? { ...j, status: action, remarks: null } : j)))
     } catch (err) {
-      setError(err.message);
+      setError(err.message)
     }
   }
 
   // Admin publish/unpublish (POST admin/jobs/:id/publish|unpublish).
   // 404 = backend item missing → graceful error state, no invented fallback.
   async function handlePublishToggle(job) {
-    setActionError("");
+    setActionError('')
     try {
-      const updated = job.status === "published" ? await unpublishJob(job.id) : await publishJob(job.id);
-      const next = updated?.status || (job.status === "published" ? "draft" : "published");
-      setJobs((prev) => prev.map((j) => (j.id === job.id ? { ...j, ...updated, status: next } : j)));
+      const updated = job.status === 'published' ? await unpublishJob(job.id) : await publishJob(job.id)
+      const next = updated?.status || (job.status === 'published' ? 'draft' : 'published')
+      setJobs((prev) => prev.map((j) => (j.id === job.id ? { ...j, ...updated, status: next } : j)))
     } catch (err) {
-      setActionError(err.message || "Failed to update publish state");
+      setActionError(err.message || 'Failed to update publish state')
     }
   }
 
   async function confirmArchive() {
-    await handleAction(jobs.find((j) => j.id === confirmArchiveId), "archived");
-    setConfirmArchiveId(null);
+    await handleAction(jobs.find((j) => j.id === confirmArchiveId), 'archived')
+    setConfirmArchiveId(null)
   }
 
-  const isExpired = (j) => Boolean(j.deadline) && new Date(j.deadline) < new Date() && j.status !== "archived";
+  const isExpired = (j) => Boolean(j.deadline) && new Date(j.deadline) < new Date() && j.status !== 'archived'
   const filtered = jobs.filter((j) => {
-    const matchesStatus = statusFilter === "all" ? true : statusFilter === "expired" ? isExpired(j) : j.status === statusFilter;
-    const matchesSearch = !search || j.title?.toLowerCase().includes(search.toLowerCase()) || j.employers?.company_name?.toLowerCase().includes(search.toLowerCase());
-    return matchesStatus && matchesSearch;
-  });
+    const matchesStatus = statusFilter === 'all' ? true : statusFilter === 'expired' ? isExpired(j) : j.status === statusFilter
+    const matchesSearch = !search || j.title?.toLowerCase().includes(search.toLowerCase()) || j.employers?.company_name?.toLowerCase().includes(search.toLowerCase())
+    return matchesStatus && matchesSearch
+  })
 
   const statusLabel = (status) => {
-    const map = { draft: "Draft", pending: "Pending", approved: "Approved", rejected: "Rejected", published: "Published", closed: "Closed", archived: "Archived" };
-    return map[status] || status;
-  };
-
-  const statusBadge = (status) => {
-    if (status === "published") return "bg-emerald-50 border-emerald-200 text-emerald-700";
-    if (status === "pending") return "bg-amber-50 border-amber-200 text-amber-700";
-    if (status === "approved") return "bg-blue-50 border-blue-200 text-blue-700";
-    if (status === "rejected") return "bg-danger/10 border-danger/20 text-danger";
-    return "bg-muted border-border text-muted-foreground";
-  };
+    const map = { draft: 'Draft', pending: 'Pending', approved: 'Approved', rejected: 'Rejected', published: 'Published', closed: 'Closed', archived: 'Archived' }
+    return map[status] || status
+  }
 
   return (
-    <div className="space-y-6">
-      <header>
-        <div className="flex items-center gap-2.5">
-          <div className="w-1 h-5 bg-primary rounded-full" />
-          <p className="font-mono text-[11px] tracking-[0.2em] text-primary uppercase font-medium">CENTRAL BULLETIN</p>
-        </div>
-        <h1 className="mt-1 text-xl md:text-2xl font-bold tracking-tight text-dark-blue">All Municipal Job Postings</h1>
-        <p className="mt-2 text-sm text-muted-foreground">Monitor active job listings from accredited Santa Maria employers</p>
-      </header>
+    <>
+      <PageHeading
+        eyebrow="Central bulletin"
+        title="All Municipal Job Postings"
+        description="Monitor active job listings from accredited Santa Maria employers."
+      />
 
-      {actionError && (
-        <div className="text-sm text-danger bg-danger/10 border border-danger/20 px-4 py-3 rounded-xl">{actionError}</div>
-      )}
+      {actionError && <InlineError message={actionError} />}
 
-      <section className="bg-card border border-primary rounded-lg shadow-xs">
-        {/* Filter bar */}
-        <div className="px-5 py-4 flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-3 border-b border-border">
-          <div className="flex-1 min-w-[160px]">
+      <Panel
+        title="Job postings"
+        description="Publish or unpublish a listing to control what job seekers can see."
+      >
+        <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
+          <div className="sm:w-56">
+            <Label htmlFor="job-status-filter" className="mb-2 text-xs text-muted-foreground">Status</Label>
             <select
+              id="job-status-filter"
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              aria-label="Filter by status"
-              className="w-full min-h-[38px] px-3.5 rounded-xl text-sm bg-muted border border-border text-gray-800 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all cursor-pointer"
+              className="form-select"
             >
               <option value="all">All Statuses</option>
               <option value="draft">Draft</option>
@@ -196,79 +200,73 @@ function JobPosts() {
               <option value="archived">Archived</option>
             </select>
           </div>
-          <div className="flex-1 min-w-[200px]">
+          <div className="flex-1 sm:min-w-[200px]">
+            <Label htmlFor="job-search" className="mb-2 text-xs text-muted-foreground">Search</Label>
             <Input
+              id="job-search"
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search by title or company…"
-              className="w-full min-h-[38px] px-3.5 rounded-xl text-sm bg-muted border border-border text-gray-800 placeholder:text-muted-foreground focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all"
             />
           </div>
-          <span className="self-center ml-auto text-xs text-muted-foreground font-medium whitespace-nowrap">{filtered.length} records</span>
+          <p className="text-xs text-muted-foreground sm:ml-auto">{filtered.length} records</p>
         </div>
 
-        {/* Table */}
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm table-fixed">
+        {filtered.length === 0 ? (
+          <EmptyState title="No job posts found." description="Try another status filter or search term." />
+        ) : (
+          <Table className="table-fixed">
             <colgroup>
               <col />
-              <col style={{ width: "180px" }} />
-              <col style={{ width: "150px" }} />
-              <col style={{ width: "110px" }} />
-              <col style={{ width: "140px" }} />
+              <col style={{ width: '180px' }} />
+              <col style={{ width: '150px' }} />
+              <col style={{ width: '130px' }} />
+              <col style={{ width: '140px' }} />
             </colgroup>
-            <thead>
-              <tr className="border-b border-border font-mono text-[10px] tracking-widest text-muted-foreground uppercase">
-                <th className="text-left py-3 pl-5 pr-3 font-medium">Job Title</th>
-                <th className="text-left py-3 px-3 font-medium">Company</th>
-                <th className="text-left py-3 px-3 font-medium">Location</th>
-                <th className="text-left py-3 px-3 font-medium">Status</th>
-                <th className="text-right py-3 px-3 pr-5 font-medium">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.length === 0 ? (
-                <tr>
-                  <td colSpan={5} className="py-8 text-center text-sm text-muted-foreground">No job posts found.</td>
-                </tr>
-              ) : filtered.map((post) => (
-                <tr key={post.id} className="border-t border-border hover:bg-muted/60 transition-colors">
-                  <td className="py-3 pl-5 pr-3 text-foreground font-medium text-xs">{post.title}</td>
-                  <td className="py-3 px-3 text-xs text-muted-foreground uppercase">{post.employers?.company_name}</td>
-                  <td className="py-3 px-3 text-xs text-muted-foreground">{post.location}</td>
-                  <td className="py-3 px-3">
-                    <span className={`font-mono text-[10px] tracking-wider px-2.5 py-0.5 rounded-full uppercase border ${statusBadge(post.status)}`}>
-                      {statusLabel(post.status)}
-                    </span>
-                  </td>
-                  <td className="py-3 px-3 pr-5">
-                    <div className="flex items-center justify-end gap-2 whitespace-nowrap">
-                    {post.status === "published" ? (
-                      <Button onClick={() => handlePublishToggle(post)} className="rounded-lg border border-rose-300 px-2.5 py-1.5 text-xs font-medium text-rose-700 hover:bg-rose-50 dark:border-rose-500/50 dark:bg-rose-500/10 dark:text-rose-300 dark:hover:bg-rose-500/20 cursor-pointer">Unpublish</Button>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Job Title</TableHead>
+                <TableHead>Company</TableHead>
+                <TableHead>Location</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filtered.map((post) => (
+                <TableRow key={post.id}>
+                  <TableCell className="whitespace-normal text-xs font-medium text-navy">{post.title}</TableCell>
+                  <TableCell className="truncate text-[11px] uppercase text-muted-foreground">{post.employers?.company_name}</TableCell>
+                  <TableCell className="truncate text-[11px] text-muted-foreground">{post.location}</TableCell>
+                  <TableCell>
+                    <StatusBadge status={statusLabel(post.status)} />
+                  </TableCell>
+                  <TableCell className="text-right">
+                    {post.status === 'published' ? (
+                      <Button variant="outline" size="sm" onClick={() => handlePublishToggle(post)}>Unpublish</Button>
                     ) : (
-                      post.status !== "archived" && (
-                        <Button onClick={() => handlePublishToggle(post)} className="rounded-lg border border-emerald-300 px-2.5 py-1.5 text-xs font-medium text-emerald-700 hover:bg-emerald-50 dark:border-emerald-500/50 dark:bg-emerald-500/10 dark:text-emerald-300 dark:hover:bg-emerald-500/20 cursor-pointer">Publish</Button>
+                      post.status !== 'archived' && (
+                        <Button size="sm" onClick={() => handlePublishToggle(post)}>Publish</Button>
                       )
                     )}
-                    </div>
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               ))}
-            </tbody>
-          </table>
-        </div>
-      </section>
+            </TableBody>
+          </Table>
+        )}
 
-      <Pager page={page} pageSize={pageSize} total={total} onChange={setPage} />
+        <Pager page={page} pageSize={pageSize} total={total} onChange={setPage} />
+      </Panel>
 
       {editing && (
         <EditModal
           job={editing}
           onClose={() => setEditing(null)}
           onSaved={(updated) => {
-            setJobs((prev) => prev.map((j) => (j.id === updated.id ? { ...j, ...updated } : j)));
-            setEditing(null);
+            setJobs((prev) => prev.map((j) => (j.id === updated.id ? { ...j, ...updated } : j)))
+            setEditing(null)
           }}
         />
       )}
@@ -282,8 +280,8 @@ function JobPosts() {
           danger
         />
       )}
-    </div>
-  );
+    </>
+  )
 }
 
-export default JobPosts;
+export default JobPosts

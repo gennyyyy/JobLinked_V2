@@ -1,10 +1,18 @@
-import { Button } from "../../components/ui/button";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { useEffect, useState } from "react";
-import useAuth from "../../shared/hooks/useAuth";
-import LoadingScreen from "../../shared/components/LoadingScreen";
-import { listEmployment } from "../../shared/services/seekers";
-import { SectionCard } from "../../shared/components/dashboard";
-import ApplicantsShell from "../../shared/components/ApplicantsShell";
+import useAuth from "@/shared/hooks/useAuth";
+import LoadingScreen from "@/shared/components/LoadingScreen";
+import { listEmployment } from "@/shared/services/seekers";
+import { SectionCard } from "@/shared/components/dashboard";
+import { EmptyState } from "@/shared/components/design";
+import ApplicantsShell from "@/shared/components/ApplicantsShell";
+
+const TILE_TONES = {
+  all: "border-primary/15 bg-blue-soft text-primary",
+  current: "border-success/20 bg-success-soft text-success",
+  past: "border-border bg-muted text-muted-foreground",
+};
 
 function Employment() {
   const { user } = useAuth();
@@ -39,9 +47,9 @@ function Employment() {
   });
 
   const summaryTiles = [
-    { id: "all", label: "Total", value: employments.length, hint: "All employment records", title: "Show all employment records", tone: "bg-primary/5 border-primary/40 text-primary" },
-    { id: "current", label: "Current", value: currentCount, hint: "Currently employed", title: "Show current employment", tone: "bg-emerald-100 border-emerald-400 text-emerald-900" },
-    { id: "past", label: "Past", value: employments.length - currentCount, hint: "Past employment", title: "Show past employment", tone: "bg-purple-100 border-purple-400 text-purple-900" },
+    { id: "all", label: "Total", value: employments.length, hint: "All employment records", title: "Show all employment records" },
+    { id: "current", label: "Current", value: currentCount, hint: "Currently employed", title: "Show current employment" },
+    { id: "past", label: "Past", value: employments.length - currentCount, hint: "Past employment", title: "Show past employment" },
   ];
 
   return (
@@ -61,47 +69,58 @@ function Employment() {
       ]}
       sortAriaLabel="Sort employment"
       sidebar={
-        <div className="space-y-3">
-          {summaryTiles.map((tile) => (
-            <Button key={tile.id} type="button" data-tone={tile.id === "current" ? "success" : tile.id === "past" ? "purple" : "info"} onClick={() => toggleFilter(tile.id)} aria-pressed={statusFilter === tile.id} title={tile.title}
-              className={`w-full text-left rounded-lg border px-4 py-3 cursor-pointer transition-all ${tile.tone} ${statusFilter === tile.id ? "ring-1 ring-offset-0 ring-current" : ""}`}>
-              <p className="text-2xl md:text-3xl font-bold leading-none">{tile.value}</p>
-              <p className="mt-2 font-mono text-[11px] tracking-widest uppercase font-bold">{tile.label}</p>
-              <p className="mt-1 text-xs italic opacity-80">{tile.hint}</p>
-            </Button>
-          ))}
-        </div>
+        <>
+          {summaryTiles.map((tile) => {
+            const selected = statusFilter === tile.id;
+            return (
+              <Button
+                key={tile.id}
+                type="button"
+                onClick={() => toggleFilter(tile.id)}
+                aria-pressed={selected}
+                title={tile.title}
+                className={`w-full justify-start rounded-xl px-4 py-3 text-left ${TILE_TONES[tile.id]} ${selected ? "ring-2 ring-current" : ""}`}
+              >
+                <span className="flex min-w-0 flex-col items-start">
+                  <span className="text-3xl font-semibold leading-none">{tile.value}</span>
+                  <span className="mt-2 text-[10px] font-semibold uppercase tracking-[.08em]">{tile.label}</span>
+                  <span className="mt-1 text-[10px] font-normal opacity-80">{tile.hint}</span>
+                </span>
+              </Button>
+            );
+          })}
+        </>
       }
     >
       {employments.length === 0 ? (
-        <SectionCard title="Employment Record" subtitle="Accepted applications and employment records will appear here">
-          <div className="py-8 text-center">
-            <p className="text-base text-muted-foreground">No employment records yet.</p>
-          </div>
+        <SectionCard title="Employment record" subtitle="Accepted applications and employment records will appear here">
+          <EmptyState
+            title="No employment records yet."
+            description="When a verified employer confirms a hire, the linked employment record appears here."
+          />
         </SectionCard>
       ) : filtered.length === 0 ? (
-        <SectionCard title="Employment Record" subtitle="No records match this filter">
-          <div className="py-8 text-center text-sm text-muted-foreground">
-            No employment records match this filter.{" "}
-            <Button onClick={() => setStatusFilter("all")} className="text-primary hover:underline underline-offset-4 font-medium">Clear filter</Button>
-          </div>
+        <SectionCard title="Employment record" subtitle="No records match this filter">
+          <EmptyState
+            title="No employment records match this filter."
+            description="Try another search or clear the filter to see every record."
+            action={<Button type="button" variant="outline" onClick={() => setStatusFilter("all")}>Clear filter</Button>}
+          />
         </SectionCard>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-4">
           {filtered.map((employment) => (
             <SectionCard
               key={employment.id}
               title={employment.employer_name}
               subtitle={employment.position}
               action={
-                <span className={`shrink-0 font-mono text-[10px] tracking-wider px-2.5 py-1 rounded-full uppercase border ${
-                  employment.is_current ? "bg-emerald-50 border-emerald-200 text-emerald-700" : "bg-muted border-border text-muted-foreground"
-                }`}>
+                <Badge variant="secondary" className={employment.is_current ? "bg-success-soft text-success" : "bg-muted text-muted-foreground"}>
                   {employment.is_current ? "Current" : "Past"}
-                </span>
+                </Badge>
               }
             >
-              <div className="space-y-2 text-xs text-muted-foreground italic">
+              <div className="flex flex-col gap-1 text-xs text-muted-foreground">
                 {employment.start_date && <p>Started on {new Date(employment.start_date).toLocaleDateString(undefined, { month: "long", day: "numeric", year: "numeric" })}</p>}
                 {employment.end_date && <p>Ended on {new Date(employment.end_date).toLocaleDateString(undefined, { month: "long", day: "numeric", year: "numeric" })}</p>}
               </div>

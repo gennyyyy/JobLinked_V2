@@ -1,30 +1,30 @@
-import { Button } from "../../components/ui/button";
-import { Input } from "../../components/ui/input";
-import { Label } from "../../components/ui/label";
-import { useEffect, useMemo, useState } from "react";
-import { listAllJobs, listAllApplications, listUsers } from "../../shared/services/admin";
-import LoadingScreen from "../../shared/components/LoadingScreen";
-import { PageHeader, StatCard, SectionCard } from "../../shared/components/dashboard";
+import { Button } from '@/components/ui/button'
+import { useEffect, useMemo, useState } from 'react'
+import { Download } from 'lucide-react'
+import { listAllJobs, listAllApplications, listUsers } from '@/shared/services/admin'
+import LoadingScreen from '@/shared/components/LoadingScreen'
+import { InlineError, SectionCard, StatCard } from '@/shared/components/dashboard'
+import { PageHeading, TextField } from '@/shared/components/design'
 
 const REPORTS = [
-  { id: "referral", label: "Referral", eyebrow: "Referral activity", description: "Track applicants referred through PESO services." },
-  { id: "placement", label: "Placement Summary", eyebrow: "Employment outcomes", description: "Review applicants marked as placed and their hiring details." },
-  { id: "registration", label: "Applicant Registration", eyebrow: "Applicant growth", description: "See job seeker registrations within the selected period." },
-  { id: "vacancy", label: "Vacancy Solicitation", eyebrow: "Employer demand", description: "Review vacancies posted by participating employers." },
-];
-const PAGE_SIZE = 10;
-const dateValue = (value) => value ? new Date(value).toLocaleDateString() : "—";
+  { id: 'referral', label: 'Referral', eyebrow: 'Referral activity', description: 'Track applicants referred through PESO services.' },
+  { id: 'placement', label: 'Placement Summary', eyebrow: 'Employment outcomes', description: 'Review applicants marked as placed and their hiring details.' },
+  { id: 'registration', label: 'Applicant Registration', eyebrow: 'Applicant growth', description: 'See job seeker registrations within the selected period.' },
+  { id: 'vacancy', label: 'Vacancy Solicitation', eyebrow: 'Employer demand', description: 'Review vacancies posted by participating employers.' },
+]
+const PAGE_SIZE = 10
+const dateValue = (value) => value ? new Date(value).toLocaleDateString() : '—'
 
 function Reports() {
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [jobs, setJobs] = useState([]);
-  const [applications, setApplications] = useState([]);
-  const [users, setUsers] = useState([]);
-  const [active, setActive] = useState("referral");
-  const [from, setFrom] = useState("");
-  const [to, setTo] = useState("");
-  const [page, setPage] = useState(1);
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+  const [jobs, setJobs] = useState([])
+  const [applications, setApplications] = useState([])
+  const [users, setUsers] = useState([])
+  const [active, setActive] = useState('referral')
+  const [from, setFrom] = useState('')
+  const [to, setTo] = useState('')
+  const [page, setPage] = useState(1)
 
   useEffect(() => {
     // ponytail: the stat cards aggregate client-side, so the page asks for the
@@ -35,198 +35,204 @@ function Reports() {
       listUsers({ pageSize: 500 }),
     ])
       .then(([jobRows, applicationRows, userRows]) => {
-        setJobs(jobRows.data);
-        setApplications(applicationRows.data);
-        setUsers(userRows.data);
+        setJobs(jobRows.data)
+        setApplications(applicationRows.data)
+        setUsers(userRows.data)
       })
-      .catch((err) => setError(err.message || "Could not load report data."))
-      .finally(() => setLoading(false));
-  }, []);
+      .catch((err) => setError(err.message || 'Could not load report data.'))
+      .finally(() => setLoading(false))
+  }, [])
 
   const inRange = (value) => {
-    if (!value) return true;
-    const day = value.slice(0, 10);
-    return (!from || day >= from) && (!to || day <= to);
-  };
-  const seekers = users.filter((user) => user.role === "job-seeker" && inRange(user.created_at));
-  const vacancies = jobs.filter((job) => inRange(job.created_at));
-  const periodApplications = applications.filter((application) => inRange(application.applied_at));
-  const placed = periodApplications.filter((application) => application.status?.toLowerCase() === "placed");
+    if (!value) return true
+    const day = value.slice(0, 10)
+    return (!from || day >= from) && (!to || day <= to)
+  }
+  const seekers = users.filter((user) => user.role === 'job-seeker' && inRange(user.created_at))
+  const vacancies = jobs.filter((job) => inRange(job.created_at))
+  const periodApplications = applications.filter((application) => inRange(application.applied_at))
+  const placed = periodApplications.filter((application) => application.status?.toLowerCase() === 'placed')
 
   const reportRows = useMemo(() => {
-    if (active === "placement") return placed;
-    if (active === "registration") return seekers;
-    if (active === "vacancy") return vacancies;
-    return [];
-  }, [active, placed, seekers, vacancies]);
-  const pages = Math.max(1, Math.ceil(reportRows.length / PAGE_SIZE));
-  const visibleRows = reportRows.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
-  const current = REPORTS.find((item) => item.id === active);
+    if (active === 'placement') return placed
+    if (active === 'registration') return seekers
+    if (active === 'vacancy') return vacancies
+    return []
+  }, [active, placed, seekers, vacancies])
+  const pages = Math.max(1, Math.ceil(reportRows.length / PAGE_SIZE))
+  const visibleRows = reportRows.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+  const current = REPORTS.find((item) => item.id === active)
 
   function downloadCSV() {
-    const fields = active === "placement"
-      ? [["Applicant", "Vacancy", "Employer", "Placed date"], placed.map((row) => [row.seeker?.full_name, row.job?.title, row.job?.employers?.company_name, row.applied_at])]
-      : active === "registration"
-        ? [["Applicant", "Email", "Barangay", "Registered"], seekers.map((row) => [row.full_name, row.email, row.barangay_district, row.created_at])]
-        : active === "vacancy"
-          ? [["Vacancy", "Employer", "Location", "Status", "Posted"], vacancies.map((row) => [row.title, row.employers?.company_name, row.location, row.status, row.created_at])]
-          : [["Referral", "Status", "Date"], []];
-    const csv = [fields[0], ...fields[1]].map((row) => row.map((cell) => `"${String(cell || "").replaceAll('"', '""')}"`).join(",")).join("\n");
-    const url = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `${active}-report.csv`;
-    link.click();
-    URL.revokeObjectURL(url);
+    const fields = active === 'placement'
+      ? [['Applicant', 'Vacancy', 'Employer', 'Placed date'], placed.map((row) => [row.seeker?.full_name, row.job?.title, row.job?.employers?.company_name, row.applied_at])]
+      : active === 'registration'
+        ? [['Applicant', 'Email', 'Barangay', 'Registered'], seekers.map((row) => [row.full_name, row.email, row.barangay_district, row.created_at])]
+        : active === 'vacancy'
+          ? [['Vacancy', 'Employer', 'Location', 'Status', 'Posted'], vacancies.map((row) => [row.title, row.employers?.company_name, row.location, row.status, row.created_at])]
+          : [['Referral', 'Status', 'Date'], []]
+    const csv = [fields[0], ...fields[1]].map((row) => row.map((cell) => `"${String(cell || '').replaceAll('"', '""')}"`).join(',')).join('\n')
+    const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }))
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `${active}-report.csv`
+    link.click()
+    URL.revokeObjectURL(url)
   }
 
-  if (loading) return <LoadingScreen />;
-  if (error) return <div className="py-8 text-center text-sm text-danger">{error}</div>;
+  if (loading) return <LoadingScreen />
+  if (error) return <InlineError message={error} />
 
   return (
-    <div className="space-y-6 bg-muted">
-      <PageHeader
-        eyebrow="REPORTS & ANALYTICS"
+    <>
+      <PageHeading
+        eyebrow="Reports & analytics"
         title="Reports"
-        subtitle="A clear view of referrals, employment outcomes, applicant growth, and employer demand."
+        description="A clear view of referrals, employment outcomes, applicant growth, and employer demand."
+        action={(
+          <Button type="button" variant="outline" onClick={downloadCSV}>
+            <Download data-icon="inline-start" />
+            Download CSV
+          </Button>
+        )}
       />
 
-      <nav aria-label="Report types" className="grid grid-cols-2 gap-2 md:grid-cols-4">
+      <nav aria-label="Report types" className="mb-6 grid grid-cols-2 gap-2 md:grid-cols-4">
         {REPORTS.map((report) => (
           <Button
             key={report.id}
             type="button"
-            onClick={() => { setActive(report.id); setPage(1); }}
-            aria-current={active === report.id ? "page" : undefined}
-            className={`rounded-xl px-4 py-3 text-left transition-colors focus:outline-none focus:ring-2 focus:ring-primary ${active === report.id ? "bg-primary text-white" : "bg-card border border-border text-muted-foreground hover:bg-muted"}`}
+            variant="outline"
+            onClick={() => { setActive(report.id); setPage(1) }}
+            aria-current={active === report.id ? 'page' : undefined}
+            className={`h-auto flex-col items-start justify-start px-4 py-3 text-left ${active === report.id ? 'border-primary bg-blue-soft' : ''}`}
           >
-            <span className="block text-sm font-semibold">{report.label}</span>
-            <span className={`mt-0.5 block text-xs ${active === report.id ? "text-white/70" : "text-muted-foreground"}`}>{report.eyebrow}</span>
+            <span className={`block text-xs font-semibold ${active === report.id ? 'text-primary' : 'text-navy'}`}>{report.label}</span>
+            <span className="mt-0.5 block text-[10px] font-normal text-muted-foreground">{report.eyebrow}</span>
           </Button>
         ))}
       </nav>
 
-      <section className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <p className="text-xs font-medium tracking-[0.15em] text-primary uppercase">{current.eyebrow}</p>
-          <h2 className="mt-1 text-xl font-semibold text-dark-blue">{current.label}</h2>
-          <p className="mt-1 text-sm text-muted-foreground">{current.description}</p>
+      <div className="surface mb-6">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <p className="eyebrow">{current.eyebrow}</p>
+            <h2 className="mt-2 text-lg font-semibold tracking-tight text-navy">{current.label}</h2>
+            <p className="mt-1 text-xs leading-5 text-muted-foreground">{current.description}</p>
+          </div>
+          <div className="flex flex-wrap items-end gap-3">
+            <div className="w-40">
+              <TextField label="From" type="date" aria-label="From date" value={from} onChange={(event) => { setFrom(event.target.value); setPage(1) }} />
+            </div>
+            <div className="w-40">
+              <TextField label="To" type="date" aria-label="To date" value={to} onChange={(event) => { setTo(event.target.value); setPage(1) }} />
+            </div>
+          </div>
         </div>
-        <div className="flex flex-wrap items-end gap-3">
-          <Label className="grid gap-1 text-xs text-muted-foreground">
-            From
-            <Input aria-label="From date" type="date" value={from} onChange={(event) => { setFrom(event.target.value); setPage(1); }} className="rounded-xl border border-border bg-muted px-3 py-2 text-sm text-dark-blue focus:border-primary/60 focus:outline-none focus:ring-1 focus:ring-primary/30" />
-          </Label>
-          <Label className="grid gap-1 text-xs text-muted-foreground">
-            To
-            <Input aria-label="To date" type="date" value={to} onChange={(event) => { setTo(event.target.value); setPage(1); }} className="rounded-xl border border-border bg-muted px-3 py-2 text-sm text-dark-blue focus:border-primary/60 focus:outline-none focus:ring-1 focus:ring-primary/30" />
-          </Label>
-          <Button type="button" onClick={downloadCSV} className="rounded-xl bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary-hover focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2">
-            Download CSV
-          </Button>
-        </div>
-      </section>
+      </div>
 
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
-        {active === "placement" && (
+      <div className="mb-6 grid grid-cols-2 gap-4 md:grid-cols-3">
+        {active === 'placement' && (
           <>
             <StatCard label="Placed applicants" value={placed.length} />
             <StatCard label="Applications reviewed" value={periodApplications.length} />
             <StatCard label="Placement rate (of applications in period)" value={`${periodApplications.length ? Math.round(placed.length / periodApplications.length * 100) : 0}%`} />
           </>
         )}
-        {active === "registration" && (
+        {active === 'registration' && (
           <>
             <StatCard label="New applicants" value={seekers.length} />
-            <StatCard label="All applicants" value={users.filter((user) => user.role === "job-seeker").length} />
-            <StatCard label="Period" value={from || to ? "Selected" : "All time"} />
+            <StatCard label="All applicants" value={users.filter((user) => user.role === 'job-seeker').length} />
+            <StatCard label="Period" value={from || to ? 'Selected' : 'All time'} />
           </>
         )}
-        {active === "vacancy" && (
+        {active === 'vacancy' && (
           <>
             <StatCard label="Vacancies posted" value={vacancies.length} />
-            <StatCard label="Open vacancies" value={vacancies.filter((job) => job.status === "published").length} />
+            <StatCard label="Open vacancies" value={vacancies.filter((job) => job.status === 'published').length} />
             <StatCard label="Employers posting" value={new Set(vacancies.map((job) => job.company_id).filter(Boolean)).size} />
           </>
         )}
-        {active === "referral" && (
+        {active === 'referral' && (
           <>
             <StatCard label="Referrals recorded" value="—" />
             <StatCard label="Applicants referred" value="—" />
-            <StatCard label="Period" value={from || to ? "Selected" : "All time"} />
+            <StatCard label="Period" value={from || to ? 'Selected' : 'All time'} />
           </>
         )}
       </div>
 
-      <SectionCard title="Report details" subtitle={`${reportRows.length} records`}>
-        {active === "referral" ? (
+      <SectionCard className="p-0" title="Report details" subtitle={`${reportRows.length} records`}>
+        {active === 'referral' ? (
           <div className="py-10 text-center">
-            <p className="text-base font-semibold text-dark-blue">Referral data is not available yet</p>
-            <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">Once referral activity is recorded, this report will show applicants, referring source, and referral date.</p>
+            <p className="text-sm font-semibold text-navy">Referral data is not available yet</p>
+            <p className="mx-auto mt-2 max-w-md text-xs leading-5 text-muted-foreground">
+              Once referral activity is recorded, this report will show applicants, referring source, and referral date.
+            </p>
           </div>
         ) : reportRows.length === 0 ? (
           <div className="py-10 text-center">
-            <p className="text-sm font-medium text-dark-blue">No records in this period</p>
-            <p className="mt-1 text-sm text-muted-foreground">Adjust the date range to see more results.</p>
+            <p className="text-sm font-semibold text-navy">No records in this period</p>
+            <p className="mt-1 text-xs text-muted-foreground">Adjust the date range to see more results.</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
               <thead>
-                <tr className="border-b border-border font-mono text-[10px] tracking-widest text-muted-foreground uppercase">
-                  {active === "placement" && (
+                <tr className="border-b text-[10px] uppercase tracking-[.14em] text-muted-foreground">
+                  {active === 'placement' && (
                     <>
-                      <th scope="col" className="px-4 py-3 font-medium first:pl-0">Applicant</th>
-                      <th scope="col" className="px-4 py-3 font-medium">Vacancy</th>
-                      <th scope="col" className="px-4 py-3 font-medium">Employer</th>
-                      <th scope="col" className="px-4 py-3 font-medium last:pr-0">Placed</th>
+                      <th scope="col" className="px-2 py-3 font-medium first:pl-0">Applicant</th>
+                      <th scope="col" className="px-2 py-3 font-medium">Vacancy</th>
+                      <th scope="col" className="px-2 py-3 font-medium">Employer</th>
+                      <th scope="col" className="px-2 py-3 font-medium last:pr-0">Placed</th>
                     </>
                   )}
-                  {active === "registration" && (
+                  {active === 'registration' && (
                     <>
-                      <th scope="col" className="px-4 py-3 font-medium first:pl-0">Applicant</th>
-                      <th scope="col" className="px-4 py-3 font-medium">Email</th>
-                      <th scope="col" className="px-4 py-3 font-medium">Barangay</th>
-                      <th scope="col" className="px-4 py-3 font-medium last:pr-0">Registered</th>
+                      <th scope="col" className="px-2 py-3 font-medium first:pl-0">Applicant</th>
+                      <th scope="col" className="px-2 py-3 font-medium">Email</th>
+                      <th scope="col" className="px-2 py-3 font-medium">Barangay</th>
+                      <th scope="col" className="px-2 py-3 font-medium last:pr-0">Registered</th>
                     </>
                   )}
-                  {active === "vacancy" && (
+                  {active === 'vacancy' && (
                     <>
-                      <th scope="col" className="px-4 py-3 font-medium first:pl-0">Vacancy</th>
-                      <th scope="col" className="px-4 py-3 font-medium">Employer</th>
-                      <th scope="col" className="px-4 py-3 font-medium">Location</th>
-                      <th scope="col" className="px-4 py-3 font-medium">Status</th>
-                      <th scope="col" className="px-4 py-3 font-medium last:pr-0">Posted</th>
+                      <th scope="col" className="px-2 py-3 font-medium first:pl-0">Vacancy</th>
+                      <th scope="col" className="px-2 py-3 font-medium">Employer</th>
+                      <th scope="col" className="px-2 py-3 font-medium">Location</th>
+                      <th scope="col" className="px-2 py-3 font-medium">Status</th>
+                      <th scope="col" className="px-2 py-3 font-medium last:pr-0">Posted</th>
                     </>
                   )}
                 </tr>
               </thead>
               <tbody>
                 {visibleRows.map((row) => (
-                  <tr key={row.id} className="border-t border-border transition-colors hover:bg-muted/60">
-                    {active === "placement" && (
+                  <tr key={row.id} className="border-t transition-colors hover:bg-muted/50">
+                    {active === 'placement' && (
                       <>
-                        <th scope="row" className="px-4 py-4 font-medium text-dark-blue text-left first:pl-0">{row.seeker?.full_name || "—"}</th>
-                        <td className="px-4 py-4 text-muted-foreground">{row.job?.title || "—"}</td>
-                        <td className="px-4 py-4 text-muted-foreground">{row.job?.employers?.company_name || "—"}</td>
-                        <td className="px-4 py-4 text-muted-foreground last:pr-0">{dateValue(row.applied_at)}</td>
+                        <th scope="row" className="px-2 py-3 text-left text-xs font-medium text-navy first:pl-0">{row.seeker?.full_name || '—'}</th>
+                        <td className="px-2 py-3 text-xs text-muted-foreground">{row.job?.title || '—'}</td>
+                        <td className="px-2 py-3 text-xs text-muted-foreground">{row.job?.employers?.company_name || '—'}</td>
+                        <td className="px-2 py-3 text-xs text-muted-foreground last:pr-0">{dateValue(row.applied_at)}</td>
                       </>
                     )}
-                    {active === "registration" && (
+                    {active === 'registration' && (
                       <>
-                        <th scope="row" className="px-4 py-4 font-medium text-dark-blue text-left first:pl-0">{row.full_name || "—"}</th>
-                        <td className="px-4 py-4 text-muted-foreground">{row.email || "—"}</td>
-                        <td className="px-4 py-4 text-muted-foreground">{row.barangay_district || "—"}</td>
-                        <td className="px-4 py-4 text-muted-foreground last:pr-0">{dateValue(row.created_at)}</td>
+                        <th scope="row" className="px-2 py-3 text-left text-xs font-medium text-navy first:pl-0">{row.full_name || '—'}</th>
+                        <td className="px-2 py-3 text-xs text-muted-foreground">{row.email || '—'}</td>
+                        <td className="px-2 py-3 text-xs text-muted-foreground">{row.barangay_district || '—'}</td>
+                        <td className="px-2 py-3 text-xs text-muted-foreground last:pr-0">{dateValue(row.created_at)}</td>
                       </>
                     )}
-                    {active === "vacancy" && (
+                    {active === 'vacancy' && (
                       <>
-                        <th scope="row" className="px-4 py-4 font-medium text-dark-blue text-left first:pl-0">{row.title || "—"}</th>
-                        <td className="px-4 py-4 text-muted-foreground">{row.employers?.company_name || "—"}</td>
-                        <td className="px-4 py-4 text-muted-foreground">{row.location || "—"}</td>
-                        <td className="px-4 py-4 text-muted-foreground">{row.status || "—"}</td>
-                        <td className="px-4 py-4 text-muted-foreground last:pr-0">{dateValue(row.created_at)}</td>
+                        <th scope="row" className="px-2 py-3 text-left text-xs font-medium text-navy first:pl-0">{row.title || '—'}</th>
+                        <td className="px-2 py-3 text-xs text-muted-foreground">{row.employers?.company_name || '—'}</td>
+                        <td className="px-2 py-3 text-xs text-muted-foreground">{row.location || '—'}</td>
+                        <td className="px-2 py-3 text-xs text-muted-foreground">{row.status || '—'}</td>
+                        <td className="px-2 py-3 text-xs text-muted-foreground last:pr-0">{dateValue(row.created_at)}</td>
                       </>
                     )}
                   </tr>
@@ -235,18 +241,18 @@ function Reports() {
             </table>
           </div>
         )}
-        {active !== "referral" && reportRows.length > PAGE_SIZE && (
-          <div className="mt-4 flex items-center justify-between border-t border-border pt-3 text-xs text-muted-foreground">
+        {active !== 'referral' && reportRows.length > PAGE_SIZE && (
+          <div className="mt-4 flex items-center justify-between border-t pt-3 text-xs text-muted-foreground">
             <span>Page {page} of {pages}</span>
             <div className="flex gap-2">
-              <Button type="button" disabled={page <= 1} onClick={() => setPage((value) => value - 1)} className="rounded-xl border border-border bg-card px-3 py-1.5 disabled:opacity-40">Previous</Button>
-              <Button type="button" disabled={page >= pages} onClick={() => setPage((value) => value + 1)} className="rounded-xl border border-border bg-card px-3 py-1.5 disabled:opacity-40">Next</Button>
+              <Button type="button" variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage((value) => value - 1)}>Previous</Button>
+              <Button type="button" variant="outline" size="sm" disabled={page >= pages} onClick={() => setPage((value) => value + 1)}>Next</Button>
             </div>
           </div>
         )}
       </SectionCard>
-    </div>
-  );
+    </>
+  )
 }
 
-export default Reports;
+export default Reports
