@@ -6,13 +6,13 @@ import { displayName, initialsOf } from "../utils/accountName";
 
 export function PageHeader({ eyebrow, title, subtitle, action, logo, className = "" }) {
   return (
-    <header className={`rounded-lg bg-navy p-5 md:p-6 text-white flex flex-col md:flex-row md:items-center justify-between gap-4 ${className}`}>
-      <div className="min-w-0 flex items-center gap-4">
+    <header className={`flex flex-col justify-between gap-4 sm:flex-row sm:items-end ${className}`}>
+      <div className="flex min-w-0 items-center gap-4">
         {logo ? <div className="shrink-0">{logo}</div> : null}
         <div className="min-w-0">
-          <p className="font-mono text-[11px] tracking-[0.2em] uppercase text-accent">{eyebrow}</p>
-          <h1 className="mt-1 font-sans text-xl md:text-2xl font-bold tracking-tight">{title}</h1>
-          {subtitle ? <p className="mt-2 text-sm text-white/80 max-w-2xl">{subtitle}</p> : null}
+          {eyebrow ? <p className="eyebrow mb-2">{eyebrow}</p> : null}
+          <h1 className="text-2xl font-semibold tracking-[-.035em] text-navy md:text-[30px]">{title}</h1>
+          {subtitle ? <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">{subtitle}</p> : null}
         </div>
       </div>
       {action}
@@ -24,7 +24,7 @@ export function PageHeader({ eyebrow, title, subtitle, action, logo, className =
 // different variants across the portals.
 export function InlineError({ message, onRetry }) {
   return (
-    <div role="alert" className="flex items-start gap-3 rounded-lg border border-danger/20 bg-danger-subtle p-4 text-sm text-danger">
+    <div role="alert" className="flex items-start gap-3 rounded-lg border border-danger/20 bg-danger-soft p-4 text-sm text-destructive">
       <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
       <p className="min-w-0 flex-1">{message}</p>
       {onRetry ? (

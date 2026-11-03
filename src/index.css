@@ -648,6 +648,7 @@
   --color-popover: var(--card);
   --color-popover-foreground: var(--foreground);
   --color-primary: var(--primary);
+  --color-primary-hover: #1d4ed8;
   --color-primary-foreground: #fff;
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--navy);
@@ -661,6 +662,7 @@
   --color-ring: var(--primary);
   --color-navy: var(--navy);
   --color-dark-blue: var(--navy);
+  --color-danger: var(--destructive);
   --color-teal: var(--teal);
   --color-teal-soft: #eaf8f4;
   --color-blue-soft: #edf4ff;
