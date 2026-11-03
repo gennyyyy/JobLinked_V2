@@ -4,6 +4,7 @@ import { Briefcase, Handshake, GraduationCap, Search, ArrowRight, ChevronDown } 
 import teamImage from "../../assets/team.png";
 import landingBg from "../../assets/landing_page_bg.png";
 import lpSample from "../../assets/lp_page_sample.png";
+import { Button } from "../../components/ui/button";
 import SkipLink from "../../shared/components/SkipLink";
 import SiteHeader from "../../shared/components/SiteHeader";
 import SiteFooter from "../../shared/components/SiteFooter";
@@ -75,7 +76,7 @@ function Landing() {
   }
 
   return (
-    <div className="landing-page min-h-screen bg-[#dbeafe] text-gray-900 font-sans">
+    <div className="landing-page min-h-screen bg-background text-foreground font-sans">
       <SkipLink />
 
       <SiteHeader
@@ -98,14 +99,14 @@ function Landing() {
                   id="how-it-works-menu"
                   ref={menuRef}
                   aria-label="How It Works"
-                  className="absolute right-0 top-full mt-2 w-44 rounded-lg border border-gray-100 bg-white shadow-lg py-2 z-20"
+                  className="absolute right-0 top-full mt-2 w-44 rounded-lg border border-border bg-card shadow-lg py-2 z-20"
                 >
                   {howItWorksItems.map((item) => (
                     <Link
                       key={item.to}
                       to={item.to}
                       onClick={() => setOpen(false)}
-                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                      className="block px-4 py-2 text-sm text-muted-foreground hover:bg-muted hover:text-primary transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                     >
                       {item.label}
                     </Link>
@@ -144,15 +145,15 @@ function Landing() {
                 <br />
                 <span className="text-danger">TOMORROWS.</span>
               </h1>
-              <p className="mt-3 text-sm md:text-base text-gray-800 max-w-xl whitespace-nowrap">Discover local government jobs and build your community with <span className="font-bold text-primary">JobLinked</span>.</p>
+              <p className="mt-3 text-sm md:text-base text-foreground max-w-xl whitespace-nowrap">Discover local government jobs and build your community with <span className="font-bold text-primary">JobLinked</span>.</p>
 
               {/* Tabs */}
-              <div className="mt-8 flex gap-1 border-b border-gray-300 max-w-xl">
+              <div className="mt-8 flex gap-1 border-b border-border max-w-xl">
                 <button
                   onClick={() => setActiveTab("seeker")}
                   className={`px-4 py-2.5 text-sm font-semibold border-b-[3px] -mb-px transition-colors ${activeTab === "seeker"
                     ? "text-primary border-primary"
-                    : "text-gray-500 border-transparent hover:text-gray-700"
+                    : "text-muted-foreground border-transparent hover:text-muted-foreground"
                     }`}
                 >
                   Find a Job
@@ -161,7 +162,7 @@ function Landing() {
                   onClick={() => setActiveTab("employer")}
                   className={`px-4 py-2.5 text-sm font-semibold border-b-[3px] -mb-px transition-colors ${activeTab === "employer"
                     ? "text-primary border-primary"
-                    : "text-gray-500 border-transparent hover:text-gray-700"
+                    : "text-muted-foreground border-transparent hover:text-muted-foreground"
                     }`}
                 >
                   For Employers
@@ -171,25 +172,25 @@ function Landing() {
               {/* Search bar */}
               <form
                 onSubmit={handleQuickSearch}
-                className="mt-6 bg-white rounded-xl shadow-lg p-2 flex flex-col sm:flex-row gap-2 max-w-xl"
+                className="mt-6 bg-card rounded-xl shadow-lg p-2 flex flex-col sm:flex-row gap-2 max-w-xl"
               >
                 <div className="flex items-center gap-2 flex-1 px-3">
-                  <Search className="w-5 h-5 text-gray-400 shrink-0" />
+                  <Search className="w-5 h-5 text-muted-foreground shrink-0" />
                   <input
                     id="q"
                     value={keyword}
                     onChange={(e) => setKeyword(e.target.value)}
                     placeholder="Job Title, skills, or company"
-                    className="flex-1 min-h-[48px] text-sm bg-transparent border-none text-gray-900 italic placeholder:italic placeholder:text-gray-500 focus:outline-none"
+                    className="flex-1 min-h-[48px] text-sm bg-transparent border-none text-gray-900 italic placeholder:italic placeholder:text-muted-foreground focus:outline-none"
                   />
                 </div>
-                <button
+                <Button
                   type="submit"
                   className="min-h-[48px] px-6 rounded-lg bg-primary text-white text-sm font-bold hover:bg-primary-hover active:scale-[0.98] transition-all shadow-md flex items-center justify-center gap-2 whitespace-nowrap"
                 >
                   Search Jobs
                   <ArrowRight className="w-4 h-4" />
-                </button>
+                </Button>
               </form>
             </div>
 
@@ -227,7 +228,7 @@ function Landing() {
             {/* Left - text container */}
             <div className="min-h-[70vh] flex items-center">
               <div>
-                <p className="text-lg font-semibold uppercase tracking-widest text-gray-500">
+                <p className="text-lg font-semibold uppercase tracking-widest text-muted-foreground">
                   About JobLinked
                 </p>
                 <h2 className="mt-6 text-6xl md:text-7xl font-black text-gray-900 leading-tight">
@@ -272,3 +273,4 @@ function Landing() {
 }
 
 export default Landing;
+
