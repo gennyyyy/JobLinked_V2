@@ -5,8 +5,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { resetPassword } from "../../shared/services/auth";
 import SkipLink from "../../shared/components/SkipLink";
-import PublicHeader from "../../shared/components/PublicHeader";
-import PublicFooter from "../../shared/components/PublicFooter";
+import PublicShell from "../../shared/components/PublicShell";
 
 function ForgotPassword() {
   const [email, setEmail] = useState("");
@@ -36,8 +35,7 @@ function ForgotPassword() {
   return (
     <div className="min-h-screen bg-muted text-foreground flex flex-col font-sans">
       <SkipLink />
-      <PublicHeader />
-
+      <PublicShell>
       <main id="main-content" tabIndex={-1}
         className="flex-1 flex items-center justify-center p-[5%]">
         <div className="w-full max-w-md bg-card border border-primary rounded-lg p-6 md:p-9 shadow-xl">
@@ -92,8 +90,7 @@ function ForgotPassword() {
           </form>
         </div>
       </main>
-
-      <PublicFooter />
+      </PublicShell>
     </div>
   );
 }

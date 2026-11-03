@@ -13,7 +13,8 @@ const links = [['Home', '/'], ['Find Jobs', '/jobs'], ['How It Works', '/how-it-
 export function PublicShell({ children }) {
   const { pathname } = useLocation();
   const [menu, setMenu] = useState(false);
-  const { user } = useAuth();
+  const auth = useAuth();
+  const user = auth?.user;
   return (
     <div className="flex min-h-screen flex-col">
       <div className="bg-navy text-white">
