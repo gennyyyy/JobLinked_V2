@@ -16,6 +16,15 @@ function getCardTone(className = "") {
   return "info";
 }
 
+const TONE_CLASSES = {
+  success: "bg-success-soft border-border text-success",
+  warning: "bg-warning-soft border-border text-warning",
+  danger: "bg-danger-soft border-border text-destructive",
+  info: "bg-blue-soft border-border text-primary",
+  purple: "bg-blue-soft border-border text-primary",
+  neutral: "bg-muted border-border text-muted-foreground",
+};
+
 export default function ApplicantsShell({
   title = "Applicant Tracking",
   subtitle,
@@ -52,7 +61,7 @@ export default function ApplicantsShell({
           data-tone={getCardTone(card.className)}
           aria-pressed={activeFilter === card.value}
           onClick={() => onFilterChange?.(card.value)}
-          className={`w-full text-left rounded-lg border px-4 py-3 transition-all cursor-pointer ${card.className} ${activeFilter === card.value ? "ring-1 ring-offset-0 ring-current" : ""}`}
+          className={`w-full rounded-xl border px-4 py-3 text-left transition-all cursor-pointer ${TONE_CLASSES[getCardTone(card.className)]} ${activeFilter === card.value ? "ring-1 ring-current" : ""}`}
         >
           <p className="text-2xl font-bold">{card.count}</p>
           <p className="mt-0.5 text-[10px] font-semibold uppercase tracking-wider">{card.label}</p>

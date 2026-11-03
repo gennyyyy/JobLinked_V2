@@ -2,7 +2,7 @@ import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { Link } from "react-router-dom";
-import { Bell, Search, AlertTriangle } from "lucide-react";
+import { Search, AlertTriangle } from "lucide-react";
 import useAuth from "../hooks/useAuth";
 import { resolveNotificationLink } from "../utils/notificationLinks";
 import { getNotificationVisual } from "../utils/notificationVisual";
@@ -10,6 +10,7 @@ import { listNotifications, markRead, markAllRead, deleteNotification } from "..
 import LoadingScreen from "./LoadingScreen";
 import ConfirmationModal from "./ConfirmationModal";
 import Toast from "./Toast";
+import { EmptyState } from "./design";
 
 function NotificationItem({ n, onMarkRead, selected, onToggleSelect, role }) {
   const visual = getNotificationVisual(n);
@@ -19,8 +20,7 @@ function NotificationItem({ n, onMarkRead, selected, onToggleSelect, role }) {
   return (
     <div
       title={n.message}
-      className={`rounded-lg border border-dark-blue bg-card pl-3 pr-4 py-3 flex items-center gap-3 ${!n.is_read ? "bg-primary/[0.03]" : ""
-        }`}
+      className={`flex items-center gap-3 rounded-2xl border bg-card p-3 ${!n.is_read ? "border-primary/25 bg-blue-soft/40" : ""}`}
     >
       <Input
         type="checkbox"
@@ -38,7 +38,7 @@ function NotificationItem({ n, onMarkRead, selected, onToggleSelect, role }) {
       </div>
 
       <div className="min-w-0 flex-1">
-        <p className="text-sm font-bold text-dark-blue truncate">{n.title}</p>
+        <p className="truncate text-sm font-semibold text-navy">{n.title}</p>
         <p className="text-[11px] text-muted-foreground">{visual.badgeText || "Notification"}</p>
       </div>
 
@@ -46,7 +46,7 @@ function NotificationItem({ n, onMarkRead, selected, onToggleSelect, role }) {
         <Link
           to={link}
           onClick={() => !n.is_read && onMarkRead?.(n.id)}
-          className="inline-flex items-center whitespace-nowrap rounded-full border border-dark-blue text-dark-blue px-3 py-1 text-[10px] font-semibold uppercase shrink-0"
+          className="inline-flex shrink-0 items-center whitespace-nowrap text-[11px] font-medium text-primary"
         >
           View details &rarr;
         </Link>
@@ -154,8 +154,9 @@ export default function NotificationsPage({ title = "Notifications", subtitle = 
       )}
       {/* Header Section */}
       <header>
-        <h1 className="text-xl md:text-2xl font-bold tracking-tight text-dark-blue">{title}</h1>
-        <p className="mt-1 text-sm text-muted-foreground italic">{subtitle}</p>
+        <p className="eyebrow mb-2">Your activity</p>
+        <h1 className="text-2xl font-semibold tracking-[-.035em] text-navy md:text-[30px]">{title}</h1>
+        <p className="mt-2 text-sm leading-6 text-muted-foreground">{subtitle}</p>
       </header>
 
       {error && (
@@ -171,7 +172,7 @@ export default function NotificationsPage({ title = "Notifications", subtitle = 
       )}
 
       {/* Toolbar */}
-      <div className="rounded-lg bg-primary/5 border border-primary/20 p-3 flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+      <div className="flex flex-col justify-between gap-3 rounded-2xl border bg-white p-3 lg:flex-row lg:items-center">
         <div className="flex flex-wrap items-center gap-2">
           <Input
             type="checkbox"
@@ -242,17 +243,12 @@ export default function NotificationsPage({ title = "Notifications", subtitle = 
       {/* Notification list */}
       <div className="space-y-3">
         {notifications.length === 0 ? (
-          <div className="text-center py-16 px-6">
-            <div className="w-16 h-16 mx-auto rounded-2xl bg-muted border border-border flex items-center justify-center mb-4">
-              <Bell className="w-8 h-8 text-gray-300" strokeWidth={1.5} />
-            </div>
-            <p className="font-semibold text-foreground mb-1">No notifications yet.</p>
-            <p className="text-sm text-muted-foreground max-w-sm mx-auto">
-              {unreadOnly
-                ? "You have read all your notifications."
-                : "Updates regarding your accreditations, jobs, and system notices will appear here."}
-            </p>
-          </div>
+          <EmptyState
+            title="No notifications yet."
+            description={unreadOnly
+              ? 'You have read all your notifications.'
+              : 'Updates regarding your accreditations, jobs, and system notices will appear here.'}
+          />
         ) : filtered.length === 0 && search ? (
           <div className="text-center py-16 px-6">
             <p className="font-semibold text-foreground mb-1">No notifications match your search</p>
