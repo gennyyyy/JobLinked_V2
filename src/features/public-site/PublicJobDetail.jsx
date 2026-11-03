@@ -39,19 +39,19 @@ function PublicJobDetail() {
         <article className="bg-white border border-primary rounded-lg p-6 md:p-10">
           <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 pb-6 border-b border-border">
             <div>
-              <span className="font-mono text-[10px] tracking-widest uppercase px-2.5 py-1 rounded-full bg-primary/10 border border-primary/25 text-primary">{job.location} · {job.employment_type}</span>
+              <span className="font-mono text-[10px] tracking-widest uppercase px-2.5 py-1 rounded-full bg-primary/10 border border-primary/25 text-primary">{job.location} ï¿½ {job.employment_type}</span>
               <h1 className="mt-3 text-xl md:text-2xl font-bold tracking-tight text-navy">{job.title}</h1>
               <p className="mt-1 text-sm text-muted-foreground font-medium">{titleCase(job.employers?.company_name)}</p>
             </div>
             <span className="inline-flex px-3.5 py-1.5 rounded-full bg-primary/10 border border-primary/25 font-mono text-sm text-primary font-semibold self-start">
-              {job.salary_min ? `?${job.salary_min}${job.salary_max ? `–?${job.salary_max}` : ""}` : "Negotiable"}
+              {job.salary_min ? `?${job.salary_min}${job.salary_max ? `ï¿½?${job.salary_max}` : ""}` : "Negotiable"}
             </span>
           </div>
 
           <div className="mt-8 grid grid-cols-1 gap-3 p-5 rounded-xl bg-muted border border-border">
             <div>
               <p className="font-mono text-[10px] tracking-widest uppercase text-muted-foreground">Compensation</p>
-              <p className="mt-1 font-mono text-sm text-foreground font-medium">{job.salary_min ? `?${job.salary_min}${job.salary_max ? `–?${job.salary_max}` : ""}` : "—"}</p>
+              <p className="mt-1 font-mono text-sm text-foreground font-medium">{job.salary_min ? `?${job.salary_min}${job.salary_max ? `ï¿½?${job.salary_max}` : ""}` : "ï¿½"}</p>
             </div>
             <div>
               <p className="font-mono text-[10px] tracking-widest uppercase text-muted-foreground">Location</p>
@@ -59,7 +59,7 @@ function PublicJobDetail() {
             </div>
             <div>
               <p className="font-mono text-[10px] tracking-widest uppercase text-muted-foreground">Vacancies</p>
-              <p className="mt-1 text-sm text-foreground font-medium">{job.vacancies ?? "—"}</p>
+              <p className="mt-1 text-sm text-foreground font-medium">{job.vacancies ?? "ï¿½"}</p>
             </div>
             <div>
               <p className="font-mono text-[10px] tracking-widest uppercase text-muted-foreground">Application Deadline</p>
@@ -67,7 +67,7 @@ function PublicJobDetail() {
             </div>
             <div>
               <p className="font-mono text-[10px] tracking-widest uppercase text-muted-foreground">Date Posted</p>
-              <p className="mt-1 text-sm text-gray-600">{job.published_at ? new Date(job.published_at).toLocaleDateString() : "—"}</p>
+              <p className="mt-1 text-sm text-gray-600">{job.published_at ? new Date(job.published_at).toLocaleDateString() : "ï¿½"}</p>
             </div>
             <div>
               <p className="font-mono text-[10px] tracking-widest uppercase text-muted-foreground">PESO Verification</p>
