@@ -34,7 +34,7 @@ const footerColumns = [
 
 function SiteFooter() {
   return (
-    <footer className="bg-white text-foreground shadow-[0_-8px_20px_-4px_rgba(0,0,0,0.18)]">
+    <footer className="bg-card text-foreground shadow-[0_-8px_20px_-4px_rgba(0,0,0,0.18)]">
       <div className="w-full px-[42px] py-4">
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-6 gap-8">
           {footerColumns.map((col) => (

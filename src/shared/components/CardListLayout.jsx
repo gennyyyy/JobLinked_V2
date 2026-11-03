@@ -15,7 +15,7 @@ function StandardControls({
   controlAction = null,
 }) {
   return (
-    <div className="applicant-list-controls bg-white border border-primary rounded-lg p-2 shadow-xs">
+    <div className="applicant-list-controls bg-card border border-primary rounded-lg p-2 shadow-xs">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="flex flex-col sm:flex-row sm:items-center gap-3">
           <SearchBar value={search} onChange={onSearchChange} placeholder={searchPlaceholder} ariaLabel={searchAriaLabel} />
@@ -25,7 +25,7 @@ function StandardControls({
               value={sort}
               onChange={(e) => onSortChange(e.target.value)}
               aria-label={sortAriaLabel}
-              className="px-3 py-2 rounded-lg text-xs bg-white border border-gray-200 text-gray-700 font-medium focus:outline-none focus:border-primary transition-all cursor-pointer"
+              className="px-3 py-2 rounded-lg text-xs bg-card border border-border text-muted-foreground font-medium focus:outline-none focus:border-primary transition-all cursor-pointer"
             >
               {sortOptions.map((opt) => (
                 <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -68,7 +68,7 @@ export default function CardListLayout({
       <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="min-w-0">
           <h1 className="text-xl md:text-2xl font-bold text-dark-blue">{title}</h1>
-          {subtitle && <p className="mt-1 text-sm italic text-gray-500">{subtitle}</p>}
+          {subtitle && <p className="mt-1 text-sm italic text-muted-foreground">{subtitle}</p>}
         </div>
         {headerAction}
       </header>

@@ -9,11 +9,11 @@ function SidebarAccount({ user, profileTo, roleLabel, onNavigate, onLogout }) {
 
   return (
     <div className="p-4 border-t border-white/10 bg-navy">
-      <div className="flex items-center gap-2 rounded-xl bg-white/5 border border-white/10 p-2">
+      <div className="flex items-center gap-2 rounded-xl bg-card/5 border border-white/10 p-2">
         <Link
           to={profileTo}
           onClick={onNavigate}
-          className="min-w-0 flex-1 flex items-center gap-2.5 rounded-lg px-1.5 py-1 text-left hover:bg-white/10 transition-colors"
+          className="min-w-0 flex-1 flex items-center gap-2.5 rounded-lg px-1.5 py-1 text-left hover:bg-card/10 transition-colors"
         >
           <span className="w-8 h-8 shrink-0 rounded-lg bg-accent/20 border border-accent/30 text-accent flex items-center justify-center text-xs font-bold">
             {initials || "U"}
@@ -28,7 +28,7 @@ function SidebarAccount({ user, profileTo, roleLabel, onNavigate, onLogout }) {
           onClick={onLogout}
           aria-label="Sign out"
           title="Sign out"
-          className="shrink-0 p-2 rounded-lg text-white/60 hover:text-danger hover:bg-white/10 transition-colors cursor-pointer"
+          className="shrink-0 p-2 rounded-lg text-white/60 hover:text-danger hover:bg-card/10 transition-colors cursor-pointer"
         >
           <LogOut className="w-4 h-4" />
         </button>

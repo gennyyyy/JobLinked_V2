@@ -81,7 +81,7 @@ function Reports() {
   if (error) return <div className="py-8 text-center text-sm text-danger">{error}</div>;
 
   return (
-    <div className="space-y-6 bg-gray-50">
+    <div className="space-y-6 bg-muted">
       <PageHeader
         eyebrow="REPORTS & ANALYTICS"
         title="Reports"
@@ -95,10 +95,10 @@ function Reports() {
             type="button"
             onClick={() => { setActive(report.id); setPage(1); }}
             aria-current={active === report.id ? "page" : undefined}
-            className={`rounded-xl px-4 py-3 text-left transition-colors focus:outline-none focus:ring-2 focus:ring-primary ${active === report.id ? "bg-primary text-white" : "bg-white border border-gray-200 text-gray-600 hover:bg-gray-50"}`}
+            className={`rounded-xl px-4 py-3 text-left transition-colors focus:outline-none focus:ring-2 focus:ring-primary ${active === report.id ? "bg-primary text-white" : "bg-card border border-border text-muted-foreground hover:bg-muted"}`}
           >
             <span className="block text-sm font-semibold">{report.label}</span>
-            <span className={`mt-0.5 block text-xs ${active === report.id ? "text-white/70" : "text-gray-500"}`}>{report.eyebrow}</span>
+            <span className={`mt-0.5 block text-xs ${active === report.id ? "text-white/70" : "text-muted-foreground"}`}>{report.eyebrow}</span>
           </button>
         ))}
       </nav>
@@ -107,16 +107,16 @@ function Reports() {
         <div>
           <p className="text-xs font-medium tracking-[0.15em] text-primary uppercase">{current.eyebrow}</p>
           <h2 className="mt-1 text-xl font-semibold text-dark-blue">{current.label}</h2>
-          <p className="mt-1 text-sm text-gray-500">{current.description}</p>
+          <p className="mt-1 text-sm text-muted-foreground">{current.description}</p>
         </div>
         <div className="flex flex-wrap items-end gap-3">
-          <label className="grid gap-1 text-xs text-gray-500">
+          <label className="grid gap-1 text-xs text-muted-foreground">
             From
-            <input aria-label="From date" type="date" value={from} onChange={(event) => { setFrom(event.target.value); setPage(1); }} className="rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-dark-blue focus:border-primary/60 focus:outline-none focus:ring-1 focus:ring-primary/30" />
+            <input aria-label="From date" type="date" value={from} onChange={(event) => { setFrom(event.target.value); setPage(1); }} className="rounded-xl border border-border bg-muted px-3 py-2 text-sm text-dark-blue focus:border-primary/60 focus:outline-none focus:ring-1 focus:ring-primary/30" />
           </label>
-          <label className="grid gap-1 text-xs text-gray-500">
+          <label className="grid gap-1 text-xs text-muted-foreground">
             To
-            <input aria-label="To date" type="date" value={to} onChange={(event) => { setTo(event.target.value); setPage(1); }} className="rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-dark-blue focus:border-primary/60 focus:outline-none focus:ring-1 focus:ring-primary/30" />
+            <input aria-label="To date" type="date" value={to} onChange={(event) => { setTo(event.target.value); setPage(1); }} className="rounded-xl border border-border bg-muted px-3 py-2 text-sm text-dark-blue focus:border-primary/60 focus:outline-none focus:ring-1 focus:ring-primary/30" />
           </label>
           <button type="button" onClick={downloadCSV} className="rounded-xl bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary-hover focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2">
             Download CSV
@@ -159,18 +159,18 @@ function Reports() {
         {active === "referral" ? (
           <div className="py-10 text-center">
             <p className="text-base font-semibold text-dark-blue">Referral data is not available yet</p>
-            <p className="mx-auto mt-2 max-w-md text-sm text-gray-500">Once referral activity is recorded, this report will show applicants, referring source, and referral date.</p>
+            <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">Once referral activity is recorded, this report will show applicants, referring source, and referral date.</p>
           </div>
         ) : reportRows.length === 0 ? (
           <div className="py-10 text-center">
             <p className="text-sm font-medium text-dark-blue">No records in this period</p>
-            <p className="mt-1 text-sm text-gray-500">Adjust the date range to see more results.</p>
+            <p className="mt-1 text-sm text-muted-foreground">Adjust the date range to see more results.</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
               <thead>
-                <tr className="border-b border-gray-200 font-mono text-[10px] tracking-widest text-gray-500 uppercase">
+                <tr className="border-b border-border font-mono text-[10px] tracking-widest text-muted-foreground uppercase">
                   {active === "placement" && (
                     <>
                       <th scope="col" className="px-4 py-3 font-medium first:pl-0">Applicant</th>
@@ -200,30 +200,30 @@ function Reports() {
               </thead>
               <tbody>
                 {visibleRows.map((row) => (
-                  <tr key={row.id} className="border-t border-gray-100 transition-colors hover:bg-gray-50/60">
+                  <tr key={row.id} className="border-t border-border transition-colors hover:bg-muted/60">
                     {active === "placement" && (
                       <>
                         <th scope="row" className="px-4 py-4 font-medium text-dark-blue text-left first:pl-0">{row.seeker?.full_name || "—"}</th>
-                        <td className="px-4 py-4 text-gray-600">{row.job?.title || "—"}</td>
-                        <td className="px-4 py-4 text-gray-600">{row.job?.employers?.company_name || "—"}</td>
-                        <td className="px-4 py-4 text-gray-500 last:pr-0">{dateValue(row.applied_at)}</td>
+                        <td className="px-4 py-4 text-muted-foreground">{row.job?.title || "—"}</td>
+                        <td className="px-4 py-4 text-muted-foreground">{row.job?.employers?.company_name || "—"}</td>
+                        <td className="px-4 py-4 text-muted-foreground last:pr-0">{dateValue(row.applied_at)}</td>
                       </>
                     )}
                     {active === "registration" && (
                       <>
                         <th scope="row" className="px-4 py-4 font-medium text-dark-blue text-left first:pl-0">{row.full_name || "—"}</th>
-                        <td className="px-4 py-4 text-gray-600">{row.email || "—"}</td>
-                        <td className="px-4 py-4 text-gray-600">{row.barangay_district || "—"}</td>
-                        <td className="px-4 py-4 text-gray-500 last:pr-0">{dateValue(row.created_at)}</td>
+                        <td className="px-4 py-4 text-muted-foreground">{row.email || "—"}</td>
+                        <td className="px-4 py-4 text-muted-foreground">{row.barangay_district || "—"}</td>
+                        <td className="px-4 py-4 text-muted-foreground last:pr-0">{dateValue(row.created_at)}</td>
                       </>
                     )}
                     {active === "vacancy" && (
                       <>
                         <th scope="row" className="px-4 py-4 font-medium text-dark-blue text-left first:pl-0">{row.title || "—"}</th>
-                        <td className="px-4 py-4 text-gray-600">{row.employers?.company_name || "—"}</td>
-                        <td className="px-4 py-4 text-gray-600">{row.location || "—"}</td>
-                        <td className="px-4 py-4 text-gray-600">{row.status || "—"}</td>
-                        <td className="px-4 py-4 text-gray-500 last:pr-0">{dateValue(row.created_at)}</td>
+                        <td className="px-4 py-4 text-muted-foreground">{row.employers?.company_name || "—"}</td>
+                        <td className="px-4 py-4 text-muted-foreground">{row.location || "—"}</td>
+                        <td className="px-4 py-4 text-muted-foreground">{row.status || "—"}</td>
+                        <td className="px-4 py-4 text-muted-foreground last:pr-0">{dateValue(row.created_at)}</td>
                       </>
                     )}
                   </tr>
@@ -233,11 +233,11 @@ function Reports() {
           </div>
         )}
         {active !== "referral" && reportRows.length > PAGE_SIZE && (
-          <div className="mt-4 flex items-center justify-between border-t border-gray-100 pt-3 text-xs text-gray-500">
+          <div className="mt-4 flex items-center justify-between border-t border-border pt-3 text-xs text-muted-foreground">
             <span>Page {page} of {pages}</span>
             <div className="flex gap-2">
-              <button type="button" disabled={page <= 1} onClick={() => setPage((value) => value - 1)} className="rounded-xl border border-gray-200 bg-white px-3 py-1.5 disabled:opacity-40">Previous</button>
-              <button type="button" disabled={page >= pages} onClick={() => setPage((value) => value + 1)} className="rounded-xl border border-gray-200 bg-white px-3 py-1.5 disabled:opacity-40">Next</button>
+              <button type="button" disabled={page <= 1} onClick={() => setPage((value) => value - 1)} className="rounded-xl border border-border bg-card px-3 py-1.5 disabled:opacity-40">Previous</button>
+              <button type="button" disabled={page >= pages} onClick={() => setPage((value) => value + 1)} className="rounded-xl border border-border bg-card px-3 py-1.5 disabled:opacity-40">Next</button>
             </div>
           </div>
         )}

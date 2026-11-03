@@ -12,8 +12,8 @@ import { titleCase } from "../../shared/utils/titleCase";
 function InfoRow({ label, value }) {
   return (
     <div>
-      <p className="font-mono text-[10px] tracking-wider text-gray-500 uppercase">{label}</p>
-      <p className="mt-1 text-sm text-gray-900 font-medium">{value || "—"}</p>
+      <p className="font-mono text-[10px] tracking-wider text-muted-foreground uppercase">{label}</p>
+      <p className="mt-1 text-sm text-foreground font-medium">{value || "—"}</p>
     </div>
   );
 }
@@ -57,21 +57,21 @@ function DetailModal({ accreditation, onClose }) {
 
   return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
-      <div className="bg-white w-full max-w-2xl max-h-[90vh] overflow-y-auto border border-primary rounded-lg shadow-xl p-5 md:p-6">
-        <div className="flex items-start justify-between gap-3 pb-4 border-b border-gray-200">
+      <div className="bg-card w-full max-w-2xl max-h-[90vh] overflow-y-auto border border-primary rounded-lg shadow-xl p-5 md:p-6">
+        <div className="flex items-start justify-between gap-3 pb-4 border-b border-border">
           <div>
             <span className="font-mono text-[10px] tracking-widest text-[#0057B8] uppercase">APPLICATION DOCUMENTS</span>
-            <h2 className="mt-1 text-xl font-bold text-gray-900">{titleCase(company?.company_name)}</h2>
-            <p className="mt-1 text-xs text-gray-500">
+            <h2 className="mt-1 text-xl font-bold text-foreground">{titleCase(company?.company_name)}</h2>
+            <p className="mt-1 text-xs text-muted-foreground">
               Submitted {new Date(accreditation.submitted_at).toLocaleString("en-PH", { dateStyle: "medium", timeStyle: "short" })}
             </p>
           </div>
-          <button onClick={onClose} className="p-1 rounded-lg text-gray-400 hover:text-gray-900 hover:bg-gray-100 transition-colors" aria-label="Close"><X className="w-4 h-4" aria-hidden="true" /></button>
+          <button onClick={onClose} className="p-1 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors" aria-label="Close"><X className="w-4 h-4" aria-hidden="true" /></button>
         </div>
 
         <section className="mt-6">
           <h3 className="font-mono text-[11px] tracking-[0.2em] text-[#0057B8] uppercase mb-4">Company Information</h3>
-          <div className="grid grid-cols-1 gap-3 p-4 rounded-xl bg-gray-50 border border-gray-200">
+          <div className="grid grid-cols-1 gap-3 p-4 rounded-xl bg-muted border border-border">
             <InfoRow label="Company Name" value={company?.company_name} />
             <InfoRow label="Barangay" value={company?.barangay_district} />
             <InfoRow label="Business Address" value={formatFullAddress(company)} />
@@ -82,18 +82,18 @@ function DetailModal({ accreditation, onClose }) {
 
         <section className="mt-6">
           <h3 className="font-mono text-[11px] tracking-[0.2em] text-[#0057B8] uppercase mb-4">Accreditation Documents</h3>
-          <div className="p-4 rounded-xl bg-gray-50 border border-gray-200">
+          <div className="p-4 rounded-xl bg-muted border border-border">
             {loading ? (
-              <p className="text-xs text-gray-400">Loading documents…</p>
+              <p className="text-xs text-muted-foreground">Loading documents…</p>
             ) : docs.length === 0 ? (
-              <p className="text-xs text-gray-400">No documents uploaded.</p>
+              <p className="text-xs text-muted-foreground">No documents uploaded.</p>
             ) : (
               <ul className="space-y-3">
                 {docs.map((doc) => (
-                  <li key={doc.id} className="flex items-center justify-between text-xs py-2 border-b border-gray-200 last:border-0">
+                  <li key={doc.id} className="flex items-center justify-between text-xs py-2 border-b border-border last:border-0">
                     <div>
-                      <p className="text-gray-700 font-medium">{doc.doc_type}</p>
-                      <p className="text-gray-400">{doc.file_name}</p>
+                      <p className="text-muted-foreground font-medium">{doc.doc_type}</p>
+                      <p className="text-muted-foreground">{doc.file_name}</p>
                     </div>
                     <div className="flex items-center gap-2">
                       <span className={`font-mono text-[10px] px-2 py-0.5 rounded-full uppercase border ${doc.status === "verified" ? "bg-emerald-50 border-emerald-200 text-emerald-700"
@@ -114,8 +114,8 @@ function DetailModal({ accreditation, onClose }) {
         </section>
         {error && <p role="alert" className="mt-2 text-[11px] text-danger">{error}</p>}
 
-        <div className="mt-8 pt-5 border-t border-gray-200 flex justify-end">
-          <button onClick={onClose} className="px-5 py-2 text-xs font-medium rounded-xl border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors">
+        <div className="mt-8 pt-5 border-t border-border flex justify-end">
+          <button onClick={onClose} className="px-5 py-2 text-xs font-medium rounded-xl border border-border text-muted-foreground hover:bg-muted transition-colors">
             Close Documents
           </button>
         </div>
@@ -264,21 +264,21 @@ function Accreditation() {
   const viewingAcc = viewingId ? pending.find((a) => a.id === viewingId) : null;
 
   return (
-    <div className="accreditation-page space-y-6 bg-gray-50">
+    <div className="accreditation-page space-y-6 bg-muted">
       <header>
         <div className="flex items-center gap-3">
           <div className="w-1 h-6 bg-primary rounded-full" />
           <p className="font-mono text-[11px] tracking-[0.2em] text-primary uppercase">EMPLOYER DIRECTORY</p>
         </div>
         <h1 className="mt-1 font-sans text-xl md:text-2xl font-bold tracking-tight text-dark-blue">Accreditation Management</h1>
-        <p className="mt-2 text-sm text-gray-500">Verify municipal employer applications and manage compliance statuses</p>
+        <p className="mt-2 text-sm text-muted-foreground">Verify municipal employer applications and manage compliance statuses</p>
       </header>
 
       {actionError && (
         <div role="alert" className="text-sm text-danger bg-danger/10 border border-danger/20 px-4 py-3 rounded-lg">{actionError}</div>
       )}
 
-      <section className="bg-white border border-primary rounded-lg p-5">
+      <section className="bg-card border border-primary rounded-lg p-5">
         <div className="flex items-center gap-3 mb-6 border-l-4 border-primary pl-4">
           <div className="flex items-center gap-2.5">
             <h2 className="text-lg font-semibold text-dark-blue">Pending Accreditation</h2>
@@ -289,17 +289,17 @@ function Accreditation() {
         </div>
 
         {pending.length === 0 ? (
-          <div className="py-10 text-center text-sm text-gray-400">No employers currently waiting for accreditation verification.</div>
+          <div className="py-10 text-center text-sm text-muted-foreground">No employers currently waiting for accreditation verification.</div>
         ) : (
           <div className="divide-y divide-gray-100">
             {pending.map((acc) => (
               <div key={acc.id} className="py-5 first:pt-0 last:pb-0 flex flex-col lg:flex-row lg:items-center justify-between gap-3">
                 <div className="min-w-0">
-                  <p className="text-base font-semibold text-gray-900">{titleCase(acc.employers?.company_name)}</p>
-                  <p className="mt-1 text-xs text-gray-500">
+                  <p className="text-base font-semibold text-foreground">{titleCase(acc.employers?.company_name)}</p>
+                  <p className="mt-1 text-xs text-muted-foreground">
                     {formatFullAddress(acc.employers) || "Address not provided"}
                   </p>
-                  <p className="mt-1 text-xs text-gray-500">
+                  <p className="mt-1 text-xs text-muted-foreground">
                     Submitted {new Date(acc.submitted_at).toLocaleDateString("en-PH", { dateStyle: "medium" })}
                   </p>
                 </div>
@@ -307,41 +307,41 @@ function Accreditation() {
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 shrink-0">
                   {requestingId === acc.id ? (
                     <div className="flex flex-col gap-2 w-full sm:w-72">
-                      <label htmlFor={`request-docs-${acc.id}`} className="font-mono text-[10px] tracking-wider text-gray-500 uppercase">Documents required</label>
+                      <label htmlFor={`request-docs-${acc.id}`} className="font-mono text-[10px] tracking-wider text-muted-foreground uppercase">Documents required</label>
                       <textarea
                         id={`request-docs-${acc.id}`}
                         value={requestNote}
                         onChange={(e) => { setRequestNote(e.target.value); setRequestError(""); }}
                         rows={2}
                         placeholder="List the missing or deficient documents…"
-                        className="w-full px-3 py-2 text-xs bg-gray-50 border border-amber-300 rounded-xl text-gray-900 placeholder:text-gray-600 focus:outline-none"
+                        className="w-full px-3 py-2 text-xs bg-muted border border-amber-300 rounded-xl text-foreground placeholder:text-muted-foreground focus:outline-none"
                       />
                       {requestError && <p className="text-[11px] text-danger">{requestError}</p>}
                       <div className="flex gap-2">
                         <button onClick={() => confirmRequestDocs(acc)} className="flex-1 px-3 py-1.5 text-xs font-medium rounded-lg bg-amber-600 text-white hover:bg-amber-700 transition-colors">Confirm Request</button>
-                        <button onClick={() => { setRequestingId(null); setRequestError(""); }} className="px-3 py-1.5 text-xs rounded-lg text-gray-500 hover:text-gray-900 transition-colors">Cancel</button>
+                        <button onClick={() => { setRequestingId(null); setRequestError(""); }} className="px-3 py-1.5 text-xs rounded-lg text-muted-foreground hover:text-foreground transition-colors">Cancel</button>
                       </div>
                     </div>
                   ) : rejectingId === acc.id ? (
                     <div className="flex flex-col gap-2 w-full sm:w-72">
-                      <label htmlFor={`reject-note-${acc.id}`} className="font-mono text-[10px] tracking-wider text-gray-500 uppercase">Rejection reason</label>
+                      <label htmlFor={`reject-note-${acc.id}`} className="font-mono text-[10px] tracking-wider text-muted-foreground uppercase">Rejection reason</label>
                       <textarea
                         id={`reject-note-${acc.id}`}
                         value={rejectNote}
                         onChange={(e) => { setRejectNote(e.target.value); setRejectError(false); }}
                         rows={2}
                         placeholder="Reason for rejection or required changes..."
-                        className="w-full px-3 py-2 text-xs bg-gray-50 border border-danger/40 rounded-xl text-gray-900 placeholder:text-gray-600 focus:outline-none"
+                        className="w-full px-3 py-2 text-xs bg-muted border border-danger/40 rounded-xl text-foreground placeholder:text-muted-foreground focus:outline-none"
                       />
                       {rejectError && <p className="text-[11px] text-danger">Please enter a rejection reason.</p>}
                       <div className="flex gap-2">
                         <button onClick={() => confirmReject(acc)} className="flex-1 px-3 py-1.5 text-xs font-medium rounded-lg bg-danger text-white hover:bg-danger/90 transition-colors">Confirm Rejection</button>
-                        <button onClick={() => setRejectingId(null)} className="px-3 py-1.5 text-xs rounded-lg text-gray-500 hover:text-gray-900 transition-colors">Cancel</button>
+                        <button onClick={() => setRejectingId(null)} className="px-3 py-1.5 text-xs rounded-lg text-muted-foreground hover:text-foreground transition-colors">Cancel</button>
                       </div>
                     </div>
                   ) : (
                     <div className="flex items-center gap-2">
-                      <button onClick={() => setViewingId(acc.id)} className="px-3.5 py-2 text-xs font-medium rounded-xl border border-gray-200 text-gray-600 hover:text-gray-900 hover:bg-gray-50 transition-colors">View Documents</button>
+                      <button onClick={() => setViewingId(acc.id)} className="px-3.5 py-2 text-xs font-medium rounded-xl border border-border text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">View Documents</button>
                       <button onClick={() => handleApprove(acc)} className="px-4 py-2 text-xs font-medium rounded-xl bg-primary text-white hover:bg-primary-hover transition-colors shadow-[0_2px_8px_rgba(0,87,184,0.25)]">Accredit</button>
                       <button onClick={() => { setRequestingId(acc.id); setRequestNote(""); setRequestError(""); }} className="px-3.5 py-2 text-xs font-medium rounded-xl border border-amber-300 text-amber-700 hover:bg-amber-50 transition-colors">Request Documents</button>
                       <button onClick={() => startReject(acc)} className="px-3.5 py-2 text-xs font-medium rounded-xl border border-danger/30 text-danger hover:bg-danger/10 transition-colors">Reject</button>
@@ -355,7 +355,7 @@ function Accreditation() {
         <Pager page={accPage} pageSize={accPageSize} total={accTotal} onChange={setAccPage} />
       </section>
 
-      <section className="bg-white border border-primary rounded-lg p-5">
+      <section className="bg-card border border-primary rounded-lg p-5">
         <div className="flex items-center gap-3 mb-6 border-l-4 border-primary pl-4">
           <h2 className="text-lg font-semibold text-dark-blue">Registered Employers ({companyTotal})</h2>
         </div>
@@ -363,7 +363,7 @@ function Accreditation() {
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-gray-200 font-mono text-[10px] tracking-widest text-gray-500 uppercase">
+              <tr className="border-b border-border font-mono text-[10px] tracking-widest text-muted-foreground uppercase">
                 <th className="text-left py-3 px-4 font-medium">Company</th>
                 <th className="text-left py-3 px-4 font-medium">Owner</th>
                 <th className="text-left py-3 px-4 font-medium">Email</th>
@@ -375,13 +375,13 @@ function Accreditation() {
             <tbody className="divide-y divide-gray-100">
               {companies.map((company) => (
                 <tr key={company.id} className="hover:bg-primary/5 transition-colors">
-                  <td className="py-3.5 px-4 text-gray-900 font-medium">{titleCase(company.company_name)}</td>
-                  <td className="py-3.5 px-4 font-mono text-xs text-gray-500">{titleCase(company.full_name)}</td>
-                  <td className="py-3.5 px-4 font-mono text-xs text-gray-500">{company.email}</td>
+                  <td className="py-3.5 px-4 text-foreground font-medium">{titleCase(company.company_name)}</td>
+                  <td className="py-3.5 px-4 font-mono text-xs text-muted-foreground">{titleCase(company.full_name)}</td>
+                  <td className="py-3.5 px-4 font-mono text-xs text-muted-foreground">{company.email}</td>
                   <td className="py-3.5 px-4">
                     <span className={`font-mono text-[10px] tracking-wider px-2.5 py-0.5 rounded-full uppercase border ${company.status === "active" ? "bg-emerald-50 border-emerald-200 text-emerald-700"
                       : company.status === "suspended" ? "bg-amber-50 border-amber-200 text-amber-700"
-                        : "bg-gray-100 border-gray-200 text-gray-500"
+                        : "bg-muted border-border text-muted-foreground"
                       }`}>
                       {company.status}
                     </span>
@@ -396,7 +396,7 @@ function Accreditation() {
                           ? "bg-amber-50 border-amber-200 text-amber-700"
                           : status === "rejected" || status === "revoked"
                             ? "bg-danger/10 border-danger/20 text-danger"
-                            : "bg-gray-100 border-gray-200 text-gray-500";
+                            : "bg-muted border-border text-muted-foreground";
                       return (
                         <span className={`font-mono text-[10px] tracking-wider px-2.5 py-0.5 rounded-full uppercase border ${styles}`}>
                           {status}
@@ -417,14 +417,14 @@ function Accreditation() {
                       {latestByCompany[company.id]?.status === "revoked" && (
                         <button
                           onClick={() => reinstate(latestByCompany[company.id])}
-                          className="text-xs font-mono text-[#0057B8] hover:text-gray-900 transition-colors"
+                          className="text-xs font-mono text-[#0057B8] hover:text-foreground transition-colors"
                         >
                           Reinstate
                         </button>
                       )}
                       <button
                         onClick={() => toggleCompanyStatus(company)}
-                        className={`text-xs font-mono transition-colors ${company.status === "suspended" ? "text-[#0057B8] hover:text-gray-900" : "text-danger hover:text-danger"
+                        className={`text-xs font-mono transition-colors ${company.status === "suspended" ? "text-[#0057B8] hover:text-foreground" : "text-danger hover:text-danger"
                           }`}
                       >
                         {company.status === "suspended" ? "Activate" : "Suspend"}

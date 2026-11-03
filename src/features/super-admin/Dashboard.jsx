@@ -44,7 +44,7 @@ function Dashboard() {
   ];
 
   return (
-    <div className="space-y-6 bg-gray-50">
+    <div className="space-y-6 bg-muted">
       <h1 className="text-xl md:text-2xl font-bold text-dark-blue">Dashboard</h1>
       <DashboardHero
         user={user}
@@ -66,22 +66,22 @@ function Dashboard() {
       >
 
         {recentAccreditations.length === 0 ? (
-          <div className="py-8 text-center text-sm text-gray-500">No employer applications submitted yet.</div>
+          <div className="py-8 text-center text-sm text-muted-foreground">No employer applications submitted yet.</div>
         ) : (
           <div className="grid md:grid-cols-2 gap-3">
             {recentAccreditations.map((acc) => (
               <div key={acc.id} className="border border-primary/40 rounded-lg p-4 flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <p className="text-sm font-medium text-gray-900 truncate uppercase">{acc.employers?.company_name}</p>
-                  <p className="mt-1 text-xs text-gray-500 truncate">Barangay <span className="uppercase">{acc.employers?.barangay_district}</span></p>
-                  <p className="mt-1 text-xs text-gray-500">Applied on {new Date(acc.submitted_at).toLocaleDateString("en-PH", { dateStyle: "long" })}</p>
+                  <p className="text-sm font-medium text-foreground truncate uppercase">{acc.employers?.company_name}</p>
+                  <p className="mt-1 text-xs text-muted-foreground truncate">Barangay <span className="uppercase">{acc.employers?.barangay_district}</span></p>
+                  <p className="mt-1 text-xs text-muted-foreground">Applied on {new Date(acc.submitted_at).toLocaleDateString("en-PH", { dateStyle: "long" })}</p>
                 </div>
                 <span
                   className={`shrink-0 font-mono text-[10px] tracking-wider px-2.5 py-1 rounded-full uppercase border ${
                     acc.status === "pending" ? "bg-amber-50 border-amber-200 text-amber-700"
                     : acc.status === "approved" ? "bg-emerald-50 border-emerald-200 text-emerald-700"
                     : acc.status === "rejected" ? "bg-danger/10 border-danger/20 text-danger"
-                    : "bg-gray-100 border-gray-200 text-gray-500"
+                    : "bg-muted border-border text-muted-foreground"
                   }`}
                 >
                   {acc.status}

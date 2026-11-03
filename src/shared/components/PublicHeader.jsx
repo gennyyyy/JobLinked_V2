@@ -37,7 +37,7 @@ function PublicHeader() {
   }, [open]);
 
   return (
-    <header className="sticky top-0 z-20 bg-white border-b border-border shadow-sm">
+    <header className="sticky top-0 z-20 bg-card border-b border-border shadow-sm">
       <div className="w-full px-[28px] h-16 flex items-center justify-between">
         <Link to="/" className="flex items-center gap-2">
           <img src={logoImage} alt="JobLinked" className="h-12 w-auto" />
@@ -63,7 +63,7 @@ function PublicHeader() {
                 id="how-it-works-menu"
                 ref={menuRef}
                 aria-label="How It Works"
-                className="absolute right-0 top-full mt-2 w-44 rounded-lg border border-border bg-white shadow-lg py-2 z-20"
+                className="absolute right-0 top-full mt-2 w-44 rounded-lg border border-border bg-card shadow-lg py-2 z-20"
               >
                 {howItWorksItems.map((item) => (
                   <Link

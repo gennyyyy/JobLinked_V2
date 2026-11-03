@@ -75,12 +75,12 @@ function Employment() {
       {employments.length === 0 ? (
         <SectionCard title="Employment Record" subtitle="Accepted applications and employment records will appear here">
           <div className="py-8 text-center">
-            <p className="text-base text-gray-600">No employment records yet.</p>
+            <p className="text-base text-muted-foreground">No employment records yet.</p>
           </div>
         </SectionCard>
       ) : filtered.length === 0 ? (
         <SectionCard title="Employment Record" subtitle="No records match this filter">
-          <div className="py-8 text-center text-sm text-gray-400">
+          <div className="py-8 text-center text-sm text-muted-foreground">
             No employment records match this filter.{" "}
             <button onClick={() => setStatusFilter("all")} className="text-primary hover:underline underline-offset-4 font-medium">Clear filter</button>
           </div>
@@ -94,13 +94,13 @@ function Employment() {
               subtitle={employment.position}
               action={
                 <span className={`shrink-0 font-mono text-[10px] tracking-wider px-2.5 py-1 rounded-full uppercase border ${
-                  employment.is_current ? "bg-emerald-50 border-emerald-200 text-emerald-700" : "bg-gray-100 border-gray-200 text-gray-500"
+                  employment.is_current ? "bg-emerald-50 border-emerald-200 text-emerald-700" : "bg-muted border-border text-muted-foreground"
                 }`}>
                   {employment.is_current ? "Current" : "Past"}
                 </span>
               }
             >
-              <div className="space-y-2 text-xs text-gray-500 italic">
+              <div className="space-y-2 text-xs text-muted-foreground italic">
                 {employment.start_date && <p>Started on {new Date(employment.start_date).toLocaleDateString(undefined, { month: "long", day: "numeric", year: "numeric" })}</p>}
                 {employment.end_date && <p>Ended on {new Date(employment.end_date).toLocaleDateString(undefined, { month: "long", day: "numeric", year: "numeric" })}</p>}
               </div>

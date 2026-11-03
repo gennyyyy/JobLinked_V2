@@ -17,7 +17,7 @@ function NotificationItem({ n, onMarkRead, selected, onToggleSelect, role }) {
   return (
     <div
       title={n.message}
-      className={`rounded-lg border border-dark-blue bg-white pl-3 pr-4 py-3 flex items-center gap-3 ${!n.is_read ? "bg-primary/[0.03]" : ""
+      className={`rounded-lg border border-dark-blue bg-card pl-3 pr-4 py-3 flex items-center gap-3 ${!n.is_read ? "bg-primary/[0.03]" : ""
         }`}
     >
       <input
@@ -37,7 +37,7 @@ function NotificationItem({ n, onMarkRead, selected, onToggleSelect, role }) {
 
       <div className="min-w-0 flex-1">
         <p className="text-sm font-bold text-dark-blue truncate">{n.title}</p>
-        <p className="text-[11px] text-gray-500">{visual.badgeText || "Notification"}</p>
+        <p className="text-[11px] text-muted-foreground">{visual.badgeText || "Notification"}</p>
       </div>
 
       {link && (
@@ -153,16 +153,16 @@ export default function NotificationsPage({ title = "Notifications", subtitle = 
       {/* Header Section */}
       <header>
         <h1 className="text-xl md:text-2xl font-bold tracking-tight text-dark-blue">{title}</h1>
-        <p className="mt-1 text-sm text-gray-500 italic">{subtitle}</p>
+        <p className="mt-1 text-sm text-muted-foreground italic">{subtitle}</p>
       </header>
 
       {error && (
-        <div className="bg-white border border-rose-100 rounded-2xl p-5 flex items-start gap-3 shadow-[0_2px_16px_-8px_rgba(16,24,40,0.08)]">
+        <div className="bg-card border border-rose-100 rounded-2xl p-5 flex items-start gap-3 shadow-[0_2px_16px_-8px_rgba(16,24,40,0.08)]">
           <div className="shrink-0 mt-0.5 w-8 h-8 rounded-lg bg-rose-50 border border-rose-100 flex items-center justify-center">
             <AlertTriangle className="w-4 h-4 text-rose-500" strokeWidth={2} />
           </div>
           <div className="min-w-0">
-            <p className="text-sm font-semibold text-gray-900">Notification Notice</p>
+            <p className="text-sm font-semibold text-foreground">Notification Notice</p>
             <p className="text-sm text-rose-600 mt-0.5">{error}</p>
           </div>
         </div>
@@ -191,7 +191,7 @@ export default function NotificationsPage({ title = "Notifications", subtitle = 
             }}
             className={`text-xs font-semibold rounded-lg px-3 py-2 border transition-colors cursor-pointer disabled:opacity-50 ${unreadOnly
               ? "bg-primary text-white border-primary"
-              : "bg-white text-gray-600 border-gray-200"
+              : "bg-card text-muted-foreground border-border"
               }`}
           >
             Unread
@@ -199,7 +199,7 @@ export default function NotificationsPage({ title = "Notifications", subtitle = 
           <button
             type="button"
             onClick={handleMarkAllRead}
-            className="text-xs font-semibold rounded-lg px-3 py-2 bg-white border border-gray-200 text-gray-900 transition-colors cursor-pointer disabled:opacity-50"
+            className="text-xs font-semibold rounded-lg px-3 py-2 bg-card border border-border text-foreground transition-colors cursor-pointer disabled:opacity-50"
           >
             Mark as Read
           </button>
@@ -218,19 +218,19 @@ export default function NotificationsPage({ title = "Notifications", subtitle = 
           className="flex items-stretch min-w-[220px] sm:w-64"
         >
           <div className="relative flex-1">
-            <Search className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+            <Search className="w-4 h-4 text-muted-foreground absolute left-3.5 top-1/2 -translate-y-1/2" />
             <input
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search notifications..."
               aria-label="Search notifications"
-              className="w-full h-full pl-10 pr-3 py-2 rounded-l-lg rounded-r-none text-sm bg-white border border-gray-200 text-gray-900 placeholder:text-gray-600 focus:outline-none focus:border-primary transition-all"
+              className="w-full h-full pl-10 pr-3 py-2 rounded-l-lg rounded-r-none text-sm bg-card border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary transition-all"
             />
           </div>
           <button
             type="submit"
-            className="bg-dark-blue text-white text-sm font-semibold px-4 rounded-r-lg cursor-pointer"
+            className="bg-navy text-white text-sm font-semibold px-4 rounded-r-lg cursor-pointer"
           >
             Search
           </button>
@@ -241,11 +241,11 @@ export default function NotificationsPage({ title = "Notifications", subtitle = 
       <div className="space-y-3">
         {notifications.length === 0 ? (
           <div className="text-center py-16 px-6">
-            <div className="w-16 h-16 mx-auto rounded-2xl bg-gray-50 border border-gray-200 flex items-center justify-center mb-4">
+            <div className="w-16 h-16 mx-auto rounded-2xl bg-muted border border-border flex items-center justify-center mb-4">
               <Bell className="w-8 h-8 text-gray-300" strokeWidth={1.5} />
             </div>
-            <p className="font-semibold text-gray-900 mb-1">No notifications yet.</p>
-            <p className="text-sm text-gray-500 max-w-sm mx-auto">
+            <p className="font-semibold text-foreground mb-1">No notifications yet.</p>
+            <p className="text-sm text-muted-foreground max-w-sm mx-auto">
               {unreadOnly
                 ? "You have read all your notifications."
                 : "Updates regarding your accreditations, jobs, and system notices will appear here."}
@@ -253,14 +253,14 @@ export default function NotificationsPage({ title = "Notifications", subtitle = 
           </div>
         ) : filtered.length === 0 && search ? (
           <div className="text-center py-16 px-6">
-            <p className="font-semibold text-gray-900 mb-1">No notifications match your search</p>
-            <p className="text-sm text-gray-500 max-w-sm mx-auto">
+            <p className="font-semibold text-foreground mb-1">No notifications match your search</p>
+            <p className="text-sm text-muted-foreground max-w-sm mx-auto">
               Try searching for a different keyword or clear the search filter.
             </p>
             <button
               type="button"
               onClick={() => setSearch("")}
-              className="mt-4 px-3 py-2 rounded-xl text-xs font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 border border-gray-200 transition-colors cursor-pointer"
+              className="mt-4 px-3 py-2 rounded-xl text-xs font-medium text-muted-foreground bg-muted hover:bg-gray-200 border border-border transition-colors cursor-pointer"
             >
               Clear search
             </button>

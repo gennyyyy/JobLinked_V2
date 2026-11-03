@@ -38,17 +38,17 @@ function Settings() {
   }
 
   return (
-    <div className="space-y-6 bg-gray-50">
+    <div className="space-y-6 bg-muted">
       <header>
         <div className="flex items-center gap-3"><div className="w-1 h-6 bg-primary rounded-full" /><p className="font-mono text-[11px] tracking-[0.2em] text-primary uppercase">SYSTEM SETTINGS</p></div>
         <h1 className="mt-1 font-sans text-2xl font-bold text-dark-blue">System Settings</h1>
-        <p className="mt-2 text-sm text-gray-500">Manage platform reference data: employment types and education levels</p>
+        <p className="mt-2 text-sm text-muted-foreground">Manage platform reference data: employment types and education levels</p>
       </header>
       {Object.entries(categoryLabels).map(([category, label]) => (
-        <section key={category} className="bg-white border border-primary rounded-lg p-5">
+        <section key={category} className="bg-card border border-primary rounded-lg p-5">
           <div className="border-l-4 border-primary pl-4 mb-4"><h3 className="text-lg font-semibold text-dark-blue">{label}</h3></div>
-          <div className="space-y-2 mb-4">{(categories[category] || []).map((item) => <div key={item.id} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-0"><span className="text-sm text-gray-700">{item.value}</span><button onClick={() => setConfirmDelete({ category, id: item.id, value: item.value })} className="text-xs text-danger hover:underline">Remove</button></div>)}</div>
-          <div className="flex gap-2"><input type="text" value={newValues[category] || ""} onChange={(e) => setNewValues((prev) => ({ ...prev, [category]: e.target.value }))} placeholder={`Add ${label.toLowerCase().replace(/s$/, "")}...`} className="flex-1 px-4 py-2.5 text-sm bg-gray-50 border border-gray-200 text-gray-900 placeholder:text-gray-600 rounded-lg focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30" /><button onClick={() => handleAddCategory(category)} className="px-4 py-2.5 text-sm font-medium text-white bg-primary hover:bg-primary-hover rounded-lg transition-colors">Add</button></div>
+          <div className="space-y-2 mb-4">{(categories[category] || []).map((item) => <div key={item.id} className="flex items-center justify-between py-2 border-b border-border last:border-0"><span className="text-sm text-muted-foreground">{item.value}</span><button onClick={() => setConfirmDelete({ category, id: item.id, value: item.value })} className="text-xs text-danger hover:underline">Remove</button></div>)}</div>
+          <div className="flex gap-2"><input type="text" value={newValues[category] || ""} onChange={(e) => setNewValues((prev) => ({ ...prev, [category]: e.target.value }))} placeholder={`Add ${label.toLowerCase().replace(/s$/, "")}...`} className="flex-1 px-4 py-2.5 text-sm bg-muted border border-border text-foreground placeholder:text-muted-foreground rounded-lg focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30" /><button onClick={() => handleAddCategory(category)} className="px-4 py-2.5 text-sm font-medium text-white bg-primary hover:bg-primary-hover rounded-lg transition-colors">Add</button></div>
         </section>
       ))}
       {confirmDelete && <ConfirmationModal message={`Remove "${confirmDelete.value}"?`} onConfirm={() => handleRemoveCategory(confirmDelete.category, confirmDelete.id)} onCancel={() => setConfirmDelete(null)} confirmLabel="Remove" danger />}

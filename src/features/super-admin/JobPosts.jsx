@@ -41,40 +41,40 @@ function EditModal({ job, onClose, onSaved }) {
     }
   }
 
-  const inputClass = "w-full min-h-[38px] px-3.5 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-800 placeholder:text-gray-600 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all";
+  const inputClass = "w-full min-h-[38px] px-3.5 rounded-xl text-sm bg-muted border border-border text-gray-800 placeholder:text-muted-foreground focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all";
 
   return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
-      <div className="bg-white w-full max-w-lg max-h-[90vh] overflow-y-auto border border-primary rounded-lg shadow-xl p-5 md:p-6">
+      <div className="bg-card w-full max-w-lg max-h-[90vh] overflow-y-auto border border-primary rounded-lg shadow-xl p-5 md:p-6">
         <span className="font-mono text-[10px] tracking-widest text-primary uppercase">Edit job post</span>
-        <h2 className="mt-1 text-xl font-bold text-gray-900">Correct listing</h2>
+        <h2 className="mt-1 text-xl font-bold text-foreground">Correct listing</h2>
         <div className="mt-4 space-y-4">
           <div>
-            <label htmlFor="edit-title" className="block font-mono text-[11px] tracking-wider text-gray-500 uppercase mb-1.5">Job title</label>
+            <label htmlFor="edit-title" className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase mb-1.5">Job title</label>
             <input id="edit-title" type="text" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} className={inputClass} />
           </div>
           <div>
-            <label htmlFor="edit-location" className="block font-mono text-[11px] tracking-wider text-gray-500 uppercase mb-1.5">Location</label>
+            <label htmlFor="edit-location" className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase mb-1.5">Location</label>
             <input id="edit-location" type="text" value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} className={inputClass} />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label htmlFor="edit-vacancies" className="block font-mono text-[11px] tracking-wider text-gray-500 uppercase mb-1.5">Vacancies</label>
+              <label htmlFor="edit-vacancies" className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase mb-1.5">Vacancies</label>
               <input id="edit-vacancies" type="number" min="1" value={form.vacancies} onChange={(e) => setForm({ ...form, vacancies: e.target.value })} className={inputClass} />
             </div>
             <div>
-              <label htmlFor="edit-deadline" className="block font-mono text-[11px] tracking-wider text-gray-500 uppercase mb-1.5">Deadline</label>
+              <label htmlFor="edit-deadline" className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase mb-1.5">Deadline</label>
               <input id="edit-deadline" type="date" value={form.deadline} onChange={(e) => setForm({ ...form, deadline: e.target.value })} className={inputClass} />
             </div>
           </div>
           <div>
-            <label htmlFor="edit-description" className="block font-mono text-[11px] tracking-wider text-gray-500 uppercase mb-1.5">Description</label>
+            <label htmlFor="edit-description" className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase mb-1.5">Description</label>
             <textarea id="edit-description" rows={4} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} className={inputClass} />
           </div>
         </div>
         {error && <p className="mt-2 text-xs text-danger">{error}</p>}
         <div className="mt-5 flex justify-end gap-2">
-          <button onClick={onClose} className="px-4 py-2 text-xs font-medium rounded-xl border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors">Cancel</button>
+          <button onClick={onClose} className="px-4 py-2 text-xs font-medium rounded-xl border border-border text-muted-foreground hover:bg-muted transition-colors">Cancel</button>
           <button onClick={handleSave} disabled={saving} className="px-4 py-2 text-xs font-medium rounded-xl bg-primary text-white hover:bg-primary-hover transition-colors disabled:opacity-60">
             {saving ? "Saving…" : "Save changes"}
           </button>
@@ -153,7 +153,7 @@ function JobPosts() {
     if (status === "pending") return "bg-amber-50 border-amber-200 text-amber-700";
     if (status === "approved") return "bg-blue-50 border-blue-200 text-blue-700";
     if (status === "rejected") return "bg-danger/10 border-danger/20 text-danger";
-    return "bg-gray-50 border-gray-200 text-gray-500";
+    return "bg-muted border-border text-muted-foreground";
   };
 
   return (
@@ -164,22 +164,22 @@ function JobPosts() {
           <p className="font-mono text-[11px] tracking-[0.2em] text-primary uppercase font-medium">CENTRAL BULLETIN</p>
         </div>
         <h1 className="mt-1 text-xl md:text-2xl font-bold tracking-tight text-dark-blue">All Municipal Job Postings</h1>
-        <p className="mt-2 text-sm text-gray-500">Monitor active job listings from accredited Santa Maria employers</p>
+        <p className="mt-2 text-sm text-muted-foreground">Monitor active job listings from accredited Santa Maria employers</p>
       </header>
 
       {actionError && (
         <div className="text-sm text-danger bg-danger/10 border border-danger/20 px-4 py-3 rounded-xl">{actionError}</div>
       )}
 
-      <section className="bg-white border border-primary rounded-lg shadow-xs">
+      <section className="bg-card border border-primary rounded-lg shadow-xs">
         {/* Filter bar */}
-        <div className="px-5 py-4 flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-3 border-b border-gray-100">
+        <div className="px-5 py-4 flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-3 border-b border-border">
           <div className="flex-1 min-w-[160px]">
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
               aria-label="Filter by status"
-              className="w-full min-h-[38px] px-3.5 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-800 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all cursor-pointer"
+              className="w-full min-h-[38px] px-3.5 rounded-xl text-sm bg-muted border border-border text-gray-800 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all cursor-pointer"
             >
               <option value="all">All Statuses</option>
               <option value="draft">Draft</option>
@@ -198,10 +198,10 @@ function JobPosts() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search by title or company…"
-              className="w-full min-h-[38px] px-3.5 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-800 placeholder:text-gray-600 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all"
+              className="w-full min-h-[38px] px-3.5 rounded-xl text-sm bg-muted border border-border text-gray-800 placeholder:text-muted-foreground focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all"
             />
           </div>
-          <span className="self-center ml-auto text-xs text-gray-500 font-medium whitespace-nowrap">{filtered.length} records</span>
+          <span className="self-center ml-auto text-xs text-muted-foreground font-medium whitespace-nowrap">{filtered.length} records</span>
         </div>
 
         {/* Table */}
@@ -215,7 +215,7 @@ function JobPosts() {
               <col style={{ width: "140px" }} />
             </colgroup>
             <thead>
-              <tr className="border-b border-gray-200 font-mono text-[10px] tracking-widest text-gray-500 uppercase">
+              <tr className="border-b border-border font-mono text-[10px] tracking-widest text-muted-foreground uppercase">
                 <th className="text-left py-3 pl-5 pr-3 font-medium">Job Title</th>
                 <th className="text-left py-3 px-3 font-medium">Company</th>
                 <th className="text-left py-3 px-3 font-medium">Location</th>
@@ -226,13 +226,13 @@ function JobPosts() {
             <tbody>
               {filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="py-8 text-center text-sm text-gray-500">No job posts found.</td>
+                  <td colSpan={5} className="py-8 text-center text-sm text-muted-foreground">No job posts found.</td>
                 </tr>
               ) : filtered.map((post) => (
-                <tr key={post.id} className="border-t border-gray-100 hover:bg-gray-50/60 transition-colors">
-                  <td className="py-3 pl-5 pr-3 text-gray-900 font-medium text-xs">{post.title}</td>
-                  <td className="py-3 px-3 text-xs text-gray-500 uppercase">{post.employers?.company_name}</td>
-                  <td className="py-3 px-3 text-xs text-gray-500">{post.location}</td>
+                <tr key={post.id} className="border-t border-border hover:bg-muted/60 transition-colors">
+                  <td className="py-3 pl-5 pr-3 text-foreground font-medium text-xs">{post.title}</td>
+                  <td className="py-3 px-3 text-xs text-muted-foreground uppercase">{post.employers?.company_name}</td>
+                  <td className="py-3 px-3 text-xs text-muted-foreground">{post.location}</td>
                   <td className="py-3 px-3">
                     <span className={`font-mono text-[10px] tracking-wider px-2.5 py-0.5 rounded-full uppercase border ${statusBadge(post.status)}`}>
                       {statusLabel(post.status)}

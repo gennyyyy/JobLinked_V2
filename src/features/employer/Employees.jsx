@@ -64,12 +64,12 @@ function Employees() {
   if (error) {
     return (
       <div className="space-y-6">
-        <div className="bg-white border border-rose-100 rounded-2xl p-5 flex items-start gap-3 shadow-[0_2px_16px_-8px_rgba(16,24,40,0.08)]">
+        <div className="bg-card border border-rose-100 rounded-2xl p-5 flex items-start gap-3 shadow-[0_2px_16px_-8px_rgba(16,24,40,0.08)]">
           <div className="shrink-0 mt-0.5 w-8 h-8 rounded-lg bg-rose-50 border border-rose-100 flex items-center justify-center">
             <AlertTriangle className="w-4 h-4 text-rose-500" strokeWidth={2} />
           </div>
           <div className="min-w-0">
-            <p className="text-sm font-semibold text-gray-900">Couldn't load employees</p>
+            <p className="text-sm font-semibold text-foreground">Couldn't load employees</p>
             <p className="text-sm text-rose-600 mt-0.5">{error}</p>
           </div>
         </div>
@@ -110,7 +110,7 @@ function Employees() {
               <p className="mt-0.5 text-[10px] font-semibold uppercase tracking-wider">Active</p>
             </button>
             <button type="button" data-tone="neutral" onClick={() => toggleFilter("terminated")} aria-pressed={statusFilter === "terminated"} title="Show terminated employees"
-              className={`w-full text-left rounded-lg border px-4 py-3 cursor-pointer transition-all border-gray-300 bg-gray-50 text-gray-700 ${statusFilter === "terminated" ? "ring-1 ring-offset-0 ring-current" : ""}`}>
+              className={`w-full text-left rounded-lg border px-4 py-3 cursor-pointer transition-all border-gray-300 bg-muted text-muted-foreground ${statusFilter === "terminated" ? "ring-1 ring-offset-0 ring-current" : ""}`}>
               <p className="text-2xl font-bold">{terminated}</p>
               <p className="mt-0.5 text-[10px] font-semibold uppercase tracking-wider">Terminated</p>
             </button>
@@ -118,7 +118,7 @@ function Employees() {
         </>
       }
       controls={
-        <div className="applicant-list-controls bg-white border border-primary rounded-lg p-2 shadow-xs">
+        <div className="applicant-list-controls bg-card border border-primary rounded-lg p-2 shadow-xs">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex flex-col sm:flex-row sm:items-center gap-3">
             <SearchBar value={search} onChange={setSearch} placeholder="Search by employee name..." ariaLabel="Search employees" />
@@ -126,12 +126,12 @@ function Employees() {
             {/* Sort */}
             <div className="flex flex-wrap items-center gap-3">
               <div className="flex items-center gap-2">
-                <Filter className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+                <Filter className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
                 <select
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value)}
                   aria-label="Sort employees"
-                  className="px-3 py-2 rounded-xl text-xs bg-gray-50 border border-gray-200 text-gray-700 font-medium focus:outline-none focus:border-primary transition-all cursor-pointer"
+                  className="px-3 py-2 rounded-xl text-xs bg-muted border border-border text-muted-foreground font-medium focus:outline-none focus:border-primary transition-all cursor-pointer"
                 >
                   <option value="newest">Newest First</option>
                   <option value="oldest">Oldest First</option>
@@ -142,7 +142,7 @@ function Employees() {
                 <button
                   type="button"
                   onClick={clearFilters}
-                  className="px-3 py-2 rounded-xl text-xs font-medium text-gray-500 hover:text-gray-700 hover:bg-gray-100 border border-gray-200 transition-colors cursor-pointer"
+                  className="px-3 py-2 rounded-xl text-xs font-medium text-muted-foreground hover:text-muted-foreground hover:bg-muted border border-border transition-colors cursor-pointer"
                 >
                   Clear filters
                 </button>
@@ -156,13 +156,13 @@ function Employees() {
           {/* Employee cards */}
           {filtered.length === 0 ? (
             <div className="text-center py-16 px-6">
-              <div className="w-16 h-16 mx-auto rounded-2xl bg-gray-50 border border-gray-200 flex items-center justify-center mb-4">
+              <div className="w-16 h-16 mx-auto rounded-2xl bg-muted border border-border flex items-center justify-center mb-4">
                 <Users className="w-8 h-8 text-gray-300" strokeWidth={1.5} />
               </div>
-              <p className="font-semibold text-gray-900 mb-1">
+              <p className="font-semibold text-foreground mb-1">
                 {employees.length === 0 ? "No employees yet" : "No employees match your filters"}
               </p>
-              <p className="text-sm text-gray-500 max-w-sm mx-auto">
+              <p className="text-sm text-muted-foreground max-w-sm mx-auto">
                 {employees.length === 0
                   ? "Candidates you accept in the applicant tracker will appear here."
                   : "Try adjusting your search or status filter to find employees."}
@@ -180,11 +180,11 @@ function Employees() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {filtered.map((emp) => (
-                <article key={emp.id} className="rounded-lg border border-primary/40 bg-white p-4">
+                <article key={emp.id} className="rounded-lg border border-primary/40 bg-card p-4">
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
                       <p className="text-sm font-bold text-dark-blue truncate">{emp.seeker?.full_name}</p>
-                      <p className="mt-0.5 text-[11px] text-gray-500 truncate">{emp.seeker?.email}</p>
+                      <p className="mt-0.5 text-[11px] text-muted-foreground truncate">{emp.seeker?.email}</p>
                     </div>
                     <div className="flex items-center gap-1.5 shrink-0">
                       {emp.status === "Accepted" ? (
@@ -203,29 +203,29 @@ function Employees() {
 
                   <div className="mt-3 grid grid-cols-3 gap-2">
                     <div>
-                      <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-500">Position</p>
+                      <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Position</p>
                       <p className="mt-0.5 text-xs font-semibold text-dark-blue truncate">{emp.job?.title}</p>
                     </div>
                     <div>
-                      <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-500">Status</p>
+                      <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Status</p>
                       <span className={`mt-0.5 inline-flex items-center gap-1.5 font-mono text-[10px] tracking-wider px-2 py-0.5 rounded-full uppercase border font-semibold ${
                         emp.status === "Accepted"
                           ? "bg-emerald-50 border-emerald-200 text-emerald-700"
-                          : "bg-gray-100 border-gray-200 text-gray-500"
+                          : "bg-muted border-border text-muted-foreground"
                       }`}>
                         {emp.status === "Accepted" ? "Active" : emp.status}
                       </span>
                     </div>
                     <div>
-                      <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-500">Hired</p>
-                      <p className="mt-0.5 text-xs text-gray-700 truncate">
+                      <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Hired</p>
+                      <p className="mt-0.5 text-xs text-muted-foreground truncate">
                         {new Date(emp.updated_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
                       </p>
                     </div>
                   </div>
 
                   <div className="mt-3">
-                    <button type="button" onClick={() => toggleProfile(emp)} className="inline-flex items-center gap-1 text-[11px] text-gray-500 font-medium cursor-pointer">
+                    <button type="button" onClick={() => toggleProfile(emp)} className="inline-flex items-center gap-1 text-[11px] text-muted-foreground font-medium cursor-pointer">
                       {expandedId === emp.id ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
                       {expandedId === emp.id ? "Hide profile" : "View profile"}
                     </button>

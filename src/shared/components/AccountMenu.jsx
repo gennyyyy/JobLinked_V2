@@ -54,12 +54,12 @@ export default function AccountMenu({ user, profileTo, roleLabel, onLogout }) {
         <div
           id={panelId}
           ref={panelRef}
-          className="absolute right-0 top-full mt-2 w-56 rounded-lg border border-border  bg-white shadow-lg py-2 z-20"
+          className="absolute right-0 top-full mt-2 w-56 rounded-lg border border-border  bg-card shadow-lg py-2 z-20"
         >
           <div className="px-3 py-2 border-b border-border">
             <p className="text-sm font-semibold text-gray-800 truncate">{name}</p>
             {roleLabel && (
-              <p className="text-[10px] text-gray-500 uppercase tracking-wider">{roleLabel}</p>
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{roleLabel}</p>
             )}
           </div>
           <Link

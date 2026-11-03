@@ -97,7 +97,7 @@ function JobDetail() {
 
   return (
     <div className="w-full space-y-6">
-      <Link to="/job-seeker/jobs" className="inline-flex items-center text-xs text-gray-500 hover:text-gray-900 transition-colors">
+      <Link to="/job-seeker/jobs" className="inline-flex items-center text-xs text-muted-foreground hover:text-foreground transition-colors">
         ← Back to all jobs
       </Link>
 
@@ -111,40 +111,40 @@ function JobDetail() {
           </span>
         }
       >
-        <div className="flex flex-col sm:flex-row sm:items-center gap-3 pb-6 border-b border-gray-100">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3 pb-6 border-b border-border">
           <span className="font-mono text-[10px] tracking-widest uppercase px-2.5 py-1 rounded-full bg-primary/10 border border-primary/25 text-primary">
             {job.location} · {job.employment_type}
           </span>
         </div>
 
-        <div className="mt-6 grid grid-cols-1 gap-3 p-5 rounded-xl bg-gray-50 border border-gray-200">
+        <div className="mt-6 grid grid-cols-1 gap-3 p-5 rounded-xl bg-muted border border-border">
           <div>
-            <p className="font-mono text-[10px] tracking-widest uppercase text-gray-400">Compensation</p>
-            <p className="mt-1 font-mono text-sm text-gray-900 font-medium">{job.salary_min ? `₱${job.salary_min}${job.salary_max ? `–₱${job.salary_max}` : ""}` : "—"}</p>
+            <p className="font-mono text-[10px] tracking-widest uppercase text-muted-foreground">Compensation</p>
+            <p className="mt-1 font-mono text-sm text-foreground font-medium">{job.salary_min ? `₱${job.salary_min}${job.salary_max ? `–₱${job.salary_max}` : ""}` : "—"}</p>
           </div>
           <div>
-            <p className="font-mono text-[10px] tracking-widest uppercase text-gray-400">Location</p>
-            <p className="mt-1 text-sm text-gray-900 font-medium">Brgy. {job.location}</p>
+            <p className="font-mono text-[10px] tracking-widest uppercase text-muted-foreground">Location</p>
+            <p className="mt-1 text-sm text-foreground font-medium">Brgy. {job.location}</p>
           </div>
           <div>
-            <p className="font-mono text-[10px] tracking-widest uppercase text-gray-400">Work Arrangement</p>
-            <p className="mt-1 text-sm text-gray-900 font-medium">{job.work_arrangement || "On-site"}</p>
+            <p className="font-mono text-[10px] tracking-widest uppercase text-muted-foreground">Work Arrangement</p>
+            <p className="mt-1 text-sm text-foreground font-medium">{job.work_arrangement || "On-site"}</p>
           </div>
           <div>
-            <p className="font-mono text-[10px] tracking-widest uppercase text-gray-400">Vacancies</p>
-            <p className="mt-1 text-sm text-gray-900 font-medium">{job.vacancies ?? "—"}</p>
+            <p className="font-mono text-[10px] tracking-widest uppercase text-muted-foreground">Vacancies</p>
+            <p className="mt-1 text-sm text-foreground font-medium">{job.vacancies ?? "—"}</p>
           </div>
           <div>
-            <p className="font-mono text-[10px] tracking-widest uppercase text-gray-400">Application Deadline</p>
-            <p className="mt-1 text-sm text-gray-600">{job.deadline ? new Date(job.deadline).toLocaleDateString() : "No deadline"}</p>
+            <p className="font-mono text-[10px] tracking-widest uppercase text-muted-foreground">Application Deadline</p>
+            <p className="mt-1 text-sm text-muted-foreground">{job.deadline ? new Date(job.deadline).toLocaleDateString() : "No deadline"}</p>
           </div>
           <div>
-            <p className="font-mono text-[10px] tracking-widest uppercase text-gray-400">Date Posted</p>
-            <p className="mt-1 text-sm text-gray-600">{job.published_at ? new Date(job.published_at).toLocaleDateString() : "—"}</p>
+            <p className="font-mono text-[10px] tracking-widest uppercase text-muted-foreground">Date Posted</p>
+            <p className="mt-1 text-sm text-muted-foreground">{job.published_at ? new Date(job.published_at).toLocaleDateString() : "—"}</p>
           </div>
           <div>
-            <p className="font-mono text-[10px] tracking-widest uppercase text-gray-400">Listing Status</p>
-            <p className={`mt-1 text-sm font-medium flex items-center gap-1.5 ${deadlinePassed ? "text-gray-600" : "text-emerald-600"}`}>
+            <p className="font-mono text-[10px] tracking-widest uppercase text-muted-foreground">Listing Status</p>
+            <p className={`mt-1 text-sm font-medium flex items-center gap-1.5 ${deadlinePassed ? "text-muted-foreground" : "text-emerald-600"}`}>
               <span className={`w-1.5 h-1.5 rounded-full ${deadlinePassed ? "bg-gray-400" : "bg-emerald-500"}`} />
               {deadlinePassed ? "Closed — application deadline passed" : "Verified Open"}
             </p>
@@ -153,7 +153,7 @@ function JobDetail() {
 
         <section className="mt-6">
           <h2 className="font-mono text-[11px] tracking-[0.2em] text-[#0057B8] uppercase mb-3">Position Overview</h2>
-          <p className="text-sm md:text-base text-gray-600 leading-relaxed whitespace-pre-line">{job.description || "No description provided for this opening."}</p>
+          <p className="text-sm md:text-base text-muted-foreground leading-relaxed whitespace-pre-line">{job.description || "No description provided for this opening."}</p>
         </section>
 
         {requirements.length > 0 && (
@@ -161,7 +161,7 @@ function JobDetail() {
             <h2 className="font-mono text-[11px] tracking-[0.2em] text-[#0057B8] uppercase mb-3">Role Requirements</h2>
             <ul className="space-y-2.5">
               {requirements.map((req) => (
-                <li key={req} className="text-sm text-gray-600 flex items-start gap-3">
+                <li key={req} className="text-sm text-muted-foreground flex items-start gap-3">
                   <span className="text-[#0057B8] mt-0.5">▪</span>
                   <span>{req}</span>
                 </li>
@@ -173,14 +173,14 @@ function JobDetail() {
         {job.benefits && (
           <section className="mt-6">
             <h2 className="font-mono text-[11px] tracking-[0.2em] text-[#0057B8] uppercase mb-3">Benefits</h2>
-            <p className="text-sm text-gray-600 whitespace-pre-line">{job.benefits}</p>
+            <p className="text-sm text-muted-foreground whitespace-pre-line">{job.benefits}</p>
           </section>
         )}
 
         {job.instructions && (
           <section className="mt-6">
             <h2 className="font-mono text-[11px] tracking-[0.2em] text-[#0057B8] uppercase mb-3">Application Instructions</h2>
-            <p className="text-sm text-gray-600 whitespace-pre-line">{job.instructions}</p>
+            <p className="text-sm text-muted-foreground whitespace-pre-line">{job.instructions}</p>
           </section>
         )}
 
@@ -195,14 +195,14 @@ function JobDetail() {
           </section>
         )}
 
-        <div className="mt-6 pt-6 border-t border-gray-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+        <div className="mt-6 pt-6 border-t border-border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           <div>
             {alreadyApplied ? (
               <span className="font-mono text-xs text-emerald-600 font-medium flex items-center gap-1.5">
                 <CheckCircle2 className="w-3.5 h-3.5 shrink-0" aria-hidden="true" /> Application submitted — track updates in "My Applications"
               </span>
             ) : (
-              <p className="text-xs text-gray-400">Submitting forwards your registered JobLinked profile to the employer.</p>
+              <p className="text-xs text-muted-foreground">Submitting forwards your registered JobLinked profile to the employer.</p>
             )}
           </div>
 
@@ -215,17 +215,17 @@ function JobDetail() {
                     id="job-resume-select"
                     value={selectedResume}
                     onChange={(e) => setSelectedResume(e.target.value)}
-                    className="min-h-[44px] px-4 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 focus:outline-none focus:border-primary/60 transition-all"
+                    className="min-h-[44px] px-4 rounded-xl text-sm bg-muted border border-border text-foreground focus:outline-none focus:border-primary/60 transition-all"
                   >
                     {resumes.map((r) => <option key={r.id} value={r.id}>{r.file_name}</option>)}
                   </select>
                 </>
               )}
               <input type="file" accept=".pdf,.doc,.docx" onChange={handleResumeUpload} className="hidden" id="job-resume-upload" />
-              <label htmlFor="job-resume-upload" className="inline-flex items-center min-h-[44px] px-4 rounded-xl text-xs font-medium text-gray-600 hover:text-gray-900 bg-gray-100 hover:bg-gray-200 border border-gray-200 transition-colors cursor-pointer">
+              <label htmlFor="job-resume-upload" className="inline-flex items-center min-h-[44px] px-4 rounded-xl text-xs font-medium text-muted-foreground hover:text-foreground bg-muted hover:bg-gray-200 border border-border transition-colors cursor-pointer">
                 {uploading ? "Uploading…" : "Upload New Resume"}
               </label>
-              <p className="mt-2 text-xs text-gray-400">PDF up to 2 MB; DOC or DOCX up to 5 MB.</p>
+              <p className="mt-2 text-xs text-muted-foreground">PDF up to 2 MB; DOC or DOCX up to 5 MB.</p>
               {deadlinePassed && (
                 <p className="text-xs text-danger">Applications are closed — the deadline has passed.</p>
               )}
@@ -239,7 +239,7 @@ function JobDetail() {
             </div>
           )}
           {alreadyApplied && (
-            <Link to="/job-seeker/applications" className="min-h-[44px] inline-flex items-center px-6 rounded-xl border border-gray-300 text-gray-700 text-xs font-medium hover:bg-gray-100 transition-colors">
+            <Link to="/job-seeker/applications" className="min-h-[44px] inline-flex items-center px-6 rounded-xl border border-gray-300 text-muted-foreground text-xs font-medium hover:bg-muted transition-colors">
               View Application Status →
             </Link>
           )}

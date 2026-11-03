@@ -11,14 +11,14 @@ function ConfirmationModal({ message, onConfirm, onCancel, confirmLabel = "Confi
         role="dialog"
         aria-modal="true"
         aria-describedby="confirmation-message"
-        className="bg-white border border-primary rounded-lg p-5 w-full max-w-md shadow-2xl"
+        className="bg-card border border-primary rounded-lg p-5 w-full max-w-md shadow-2xl"
       >
-        <p id="confirmation-message" className="text-sm text-gray-700 mb-6">{message}</p>
+        <p id="confirmation-message" className="text-sm text-muted-foreground mb-6">{message}</p>
         {children}
         <div className="flex gap-3 justify-end">
           <button
             onClick={onCancel}
-            className="px-4 py-2 text-sm font-medium rounded-xl border border-gray-200 text-gray-600 hover:bg-gray-100 transition-colors cursor-pointer"
+            className="px-4 py-2 text-sm font-medium rounded-xl border border-border text-muted-foreground hover:bg-muted transition-colors cursor-pointer"
           >
             {cancelLabel}
           </button>

@@ -5,7 +5,7 @@ import { displayName, initialsOf } from "../utils/accountName";
 
 export function PageHeader({ eyebrow, title, subtitle, action, logo, className = "" }) {
   return (
-    <header className={`rounded-lg bg-dark-blue p-5 md:p-6 text-white flex flex-col md:flex-row md:items-center justify-between gap-4 ${className}`}>
+    <header className={`rounded-lg bg-navy p-5 md:p-6 text-white flex flex-col md:flex-row md:items-center justify-between gap-4 ${className}`}>
       <div className="min-w-0 flex items-center gap-4">
         {logo ? <div className="shrink-0">{logo}</div> : null}
         <div className="min-w-0">
@@ -54,11 +54,11 @@ export function StatCard({ label, value, highlight, icon, valueClassName = "text
   const valueText = themed ? themed.text : valueClassName;
   const iconText = themed ? themed.text : "text-primary";
   return (
-    <div className={`${themed ? themed.card : "bg-white border border-primary"} dark:border-[var(--theme-border)] rounded-lg p-4`}>
+    <div className={`${themed ? themed.card : "bg-card border border-primary"}  rounded-lg p-4`}>
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className={`font-sans text-2xl md:text-3xl font-bold leading-none ${valueText}`}>{value}</p>
-          <p className="mt-3 font-mono text-[10px] md:text-[11px] tracking-widest text-gray-500 uppercase">{label}</p>
+          <p className="mt-3 font-mono text-[10px] md:text-[11px] tracking-widest text-muted-foreground uppercase">{label}</p>
         </div>
         {icon ? <span className={`grid place-items-center w-10 h-10 rounded-lg bg-primary-subtle ${iconText}`}>{icon}</span> : null}
       </div>
@@ -74,8 +74,8 @@ export function DashboardHero({ user, fallback = "Job Seeker", initialsFallback 
   const hour = new Date().getHours();
   const greeting = hour < 12 ? "Good Morning!" : hour < 18 ? "Good Afternoon!" : "Good Evening!";
   return (
-    <section className="flex items-center gap-4 rounded-xl bg-dark-blue p-5 md:p-6 shadow-md">
-      <div className="grid h-16 w-16 shrink-0 place-items-center rounded-full border-4 border-white bg-white shadow-md md:h-20 md:w-20">
+    <section className="flex items-center gap-4 rounded-xl bg-navy p-5 md:p-6 shadow-md">
+      <div className="grid h-16 w-16 shrink-0 place-items-center rounded-full border-4 border-white bg-card shadow-md md:h-20 md:w-20">
         <span className="text-2xl font-bold text-primary">{initialsOf(user, initialsFallback)}</span>
       </div>
       <div className="min-w-0">
@@ -90,13 +90,13 @@ export function DashboardHero({ user, fallback = "Job Seeker", initialsFallback 
 export function SectionCard({ title, subtitle, action, children, className = "", titleAs = "h2" }) {
   const TitleTag = titleAs;
   return (
-    <section className={`bg-white border border-primary dark:border-[var(--theme-border)] rounded-lg overflow-hidden ${className}`}>
-      <div className="flex items-center justify-between gap-3 px-5 py-3 bg-gray-50 border-b border-gray-100 dark:border-[var(--theme-border)]">
+    <section className={`bg-card border border-primary  rounded-lg overflow-hidden ${className}`}>
+      <div className="flex items-center justify-between gap-3 px-5 py-3 bg-muted border-b border-border ">
         <div className="flex items-center gap-3 min-w-0">
           <span className="w-1 h-6 bg-primary rounded-full shrink-0" />
           <div className="min-w-0">
             <TitleTag className="text-base font-semibold text-dark-blue dark:text-gray-200 truncate">{title}</TitleTag>
-            {subtitle ? <p className="text-xs text-gray-500 mt-0.5">{subtitle}</p> : null}
+            {subtitle ? <p className="text-xs text-muted-foreground mt-0.5">{subtitle}</p> : null}
           </div>
         </div>
         {action}
@@ -113,11 +113,11 @@ export function Pager({ page, pageSize, total, onChange }) {
   if (!total || !pageSize || total <= pageSize) return null;
   const pages = Math.ceil(total / pageSize);
   return (
-    <div className="mt-4 flex items-center justify-between border-t border-gray-100 pt-3 text-xs text-gray-500">
+    <div className="mt-4 flex items-center justify-between border-t border-border pt-3 text-xs text-muted-foreground">
       <span>Page {page} of {pages}</span>
       <div className="flex gap-2">
-        <button type="button" disabled={page <= 1} onClick={() => onChange(page - 1)} className="rounded-xl border border-gray-200 bg-white px-3 py-1.5 cursor-pointer disabled:opacity-40">Previous</button>
-        <button type="button" disabled={page >= pages} onClick={() => onChange(page + 1)} className="rounded-xl border border-gray-200 bg-white px-3 py-1.5 cursor-pointer disabled:opacity-40">Next</button>
+        <button type="button" disabled={page <= 1} onClick={() => onChange(page - 1)} className="rounded-xl border border-border bg-card px-3 py-1.5 cursor-pointer disabled:opacity-40">Previous</button>
+        <button type="button" disabled={page >= pages} onClick={() => onChange(page + 1)} className="rounded-xl border border-border bg-card px-3 py-1.5 cursor-pointer disabled:opacity-40">Next</button>
       </div>
     </div>
   );

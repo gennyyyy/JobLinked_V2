@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import ProtectedRoute from './shared/components/ProtectedRoute'
 import LoadingScreen from './shared/components/LoadingScreen'
 import ErrorBoundary from './shared/components/ErrorBoundary'
+import useAuth from './shared/hooks/useAuth'
 import { Toaster } from './components/ui/sonner'
 import { ThemeProvider } from './shared/context/ThemeProvider'
 

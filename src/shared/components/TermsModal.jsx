@@ -86,17 +86,17 @@ function TermsModal({ open, onClose, onRead, title = "Data Collection Terms & Pr
         role="dialog"
         aria-modal="true"
         aria-labelledby="terms-title"
-        className="bg-white border border-primary rounded-lg p-5 max-w-lg w-[calc(100%-2rem)] max-h-[80vh] flex flex-col shadow-2xl"
+        className="bg-card border border-primary rounded-lg p-5 max-w-lg w-[calc(100%-2rem)] max-h-[80vh] flex flex-col shadow-2xl"
       >
         <h2 id="terms-title" className="text-base font-bold text-dark-blue mb-3">
           {title}
         </h2>
-        <div ref={bodyRef} onScroll={handleScroll} tabIndex={0} role="document" aria-labelledby="terms-title" className="text-sm text-gray-700 whitespace-pre-line overflow-y-auto flex-1 mb-6">
+        <div ref={bodyRef} onScroll={handleScroll} tabIndex={0} role="document" aria-labelledby="terms-title" className="text-sm text-muted-foreground whitespace-pre-line overflow-y-auto flex-1 mb-6">
           {body}
         </div>
         <div className="flex gap-3 items-center justify-end">
           {onRead && !read && (
-            <span className="mr-auto text-xs text-gray-500">Scroll to the bottom to enable agreement.</span>
+            <span className="mr-auto text-xs text-muted-foreground">Scroll to the bottom to enable agreement.</span>
           )}
           <button
             type="button"

@@ -154,12 +154,12 @@ function RoleManagement() {
               SYSTEM ADMINISTRATION
             </span>
             <span className="w-1.5 h-1.5 rounded-full bg-primary" />
-            <span className="text-xs text-gray-500 font-medium">Santa Maria PESO</span>
+            <span className="text-xs text-muted-foreground font-medium">Santa Maria PESO</span>
           </div>
-          <h1 className="mt-1 font-sans text-xl md:text-2xl font-bold tracking-tight text-gray-900">
+          <h1 className="mt-1 font-sans text-xl md:text-2xl font-bold tracking-tight text-foreground">
             Roles
           </h1>
-          <p className="mt-1 text-sm text-gray-500">
+          <p className="mt-1 text-sm text-muted-foreground">
             Define roles and their permissions — assign them to people from the Users page
           </p>
         </div>
@@ -169,12 +169,12 @@ function RoleManagement() {
         <div className="shrink-0 text-sm text-emerald-700 bg-emerald-50 border border-emerald-200 px-4 py-3 rounded-xl">{flash}</div>
       )}
       {error && (
-        <div className="shrink-0 bg-white border border-rose-100 rounded-2xl p-5 flex items-start gap-3 shadow-[0_2px_16px_-8px_rgba(16,24,40,0.08)]">
+        <div className="shrink-0 bg-card border border-rose-100 rounded-2xl p-5 flex items-start gap-3 shadow-[0_2px_16px_-8px_rgba(16,24,40,0.08)]">
           <div className="shrink-0 mt-0.5 w-8 h-8 rounded-lg bg-rose-50 border border-rose-100 flex items-center justify-center">
             <Lock className="w-4 h-4 text-rose-500" strokeWidth={2} />
           </div>
           <div className="min-w-0">
-            <p className="text-sm font-semibold text-gray-900">Role management hit a snag</p>
+            <p className="text-sm font-semibold text-foreground">Role management hit a snag</p>
             <p className="text-sm text-rose-600 mt-0.5">{error}</p>
           </div>
         </div>
@@ -189,45 +189,45 @@ function RoleManagement() {
         ].map((c) => {
           const MetricIcon = c.icon;
           return (
-            <div key={c.label} className="p-4 rounded-lg border bg-white border-gray-200">
+            <div key={c.label} className="p-4 rounded-lg border bg-card border-border">
               <div className="flex items-center justify-between">
-                <p className="text-2xl font-bold text-gray-900">{c.count}</p>
-                <MetricIcon className="w-4 h-4 text-gray-400" />
+                <p className="text-2xl font-bold text-foreground">{c.count}</p>
+                <MetricIcon className="w-4 h-4 text-muted-foreground" />
               </div>
-              <p className="text-xs font-mono uppercase tracking-wider text-gray-500 mt-1">{c.label}</p>
+              <p className="text-xs font-mono uppercase tracking-wider text-muted-foreground mt-1">{c.label}</p>
             </div>
           );
         })}
       </div>
 
-      <section className="min-h-0 flex-1 flex flex-col overflow-y-auto bg-white border border-primary rounded-lg p-4 shadow-xs">
+      <section className="min-h-0 flex-1 flex flex-col overflow-y-auto bg-card border border-primary rounded-lg p-4 shadow-xs">
         {/* System Roles — fixed by auth, read-only */}
         <div className="shrink-0 space-y-3 pb-4">
-          <div className="flex items-center justify-between gap-3 pb-3 border-b border-gray-100">
+          <div className="flex items-center justify-between gap-3 pb-3 border-b border-border">
           <div>
-            <h2 className="text-base font-semibold text-gray-900">System Roles</h2>
+            <h2 className="text-base font-semibold text-foreground">System Roles</h2>
           </div>
-          <span className="inline-flex items-center gap-1.5 font-mono text-[10px] tracking-wider px-2.5 py-1 rounded-full uppercase border font-semibold bg-gray-100 border-gray-200 text-gray-500 shrink-0">
+          <span className="inline-flex items-center gap-1.5 font-mono text-[10px] tracking-wider px-2.5 py-1 rounded-full uppercase border font-semibold bg-muted border-border text-muted-foreground shrink-0">
             <Lock className="w-3 h-3" />
             Read-only
           </span>
         </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
           {SYSTEM_ROLES.map((role) => (
-            <div key={role.key} className="bg-gray-50 border border-gray-200 rounded-xl p-3">
+            <div key={role.key} className="bg-muted border border-border rounded-xl p-3">
               <div className="flex items-center gap-2.5">
                 <div className="w-8 h-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
                   <Shield className="w-4 h-4 text-primary" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-semibold text-gray-900">{role.label}</h3>
-                  <p className="font-mono text-[10px] tracking-wider text-gray-400 uppercase">{role.key}</p>
+                  <h3 className="text-sm font-semibold text-foreground">{role.label}</h3>
+                  <p className="font-mono text-[10px] tracking-wider text-muted-foreground uppercase">{role.key}</p>
                 </div>
               </div>
-              <p className="text-xs text-gray-500 mt-2 leading-relaxed">{role.description}</p>
+              <p className="text-xs text-muted-foreground mt-2 leading-relaxed">{role.description}</p>
               <div className="flex flex-wrap gap-1.5 mt-2">
                 {role.capabilities.map((cap) => (
-                  <span key={cap} className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-medium bg-white border border-gray-200 text-gray-600">
+                  <span key={cap} className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-medium bg-card border border-border text-muted-foreground">
                     {cap}
                   </span>
                 ))}
@@ -238,11 +238,11 @@ function RoleManagement() {
         </div>
 
         {/* Custom Roles — the super-admin's catalog (assign from Users page) */}
-        <div className="shrink-0 flex flex-col gap-5 border-t border-gray-100 pt-4">
-        <div className="shrink-0 flex items-center justify-between gap-3 pb-4 border-b border-gray-100">
+        <div className="shrink-0 flex flex-col gap-5 border-t border-border pt-4">
+        <div className="shrink-0 flex items-center justify-between gap-3 pb-4 border-b border-border">
           <div>
-            <h2 className="text-base font-semibold text-gray-900">Custom Roles ({customRoles.length})</h2>
-            <p className="text-xs text-gray-500 mt-0.5">Roles you define — pick a base portal and the permissions it gets</p>
+            <h2 className="text-base font-semibold text-foreground">Custom Roles ({customRoles.length})</h2>
+            <p className="text-xs text-muted-foreground mt-0.5">Roles you define — pick a base portal and the permissions it gets</p>
           </div>
           <button
             type="button"
@@ -256,11 +256,11 @@ function RoleManagement() {
 
         {customRoles.length === 0 ? (
           <div className="text-center py-16 px-6">
-            <div className="w-16 h-16 mx-auto rounded-2xl bg-gray-50 border border-gray-200 flex items-center justify-center mb-4">
+            <div className="w-16 h-16 mx-auto rounded-2xl bg-muted border border-border flex items-center justify-center mb-4">
               <Shield className="w-8 h-8 text-gray-300" strokeWidth={1.5} />
             </div>
-            <p className="font-semibold text-gray-900 mb-1">No custom roles yet</p>
-            <p className="text-sm text-gray-500 max-w-sm mx-auto">
+            <p className="font-semibold text-foreground mb-1">No custom roles yet</p>
+            <p className="text-sm text-muted-foreground max-w-sm mx-auto">
               Create a Custom Role with the permissions you choose, then assign it to users from the Users page.
             </p>
             <button
@@ -276,7 +276,7 @@ function RoleManagement() {
             {customRoles.map((role) => (
               <article
                 key={role.id}
-                className="rounded-xl bg-white border border-gray-200 hover:border-primary/40 hover:shadow-[0_8px_24px_-12px_rgba(16,24,40,0.25)] transition-all p-5 flex flex-col min-h-[170px]"
+                className="rounded-xl bg-card border border-border hover:border-primary/40 hover:shadow-[0_8px_24px_-12px_rgba(16,24,40,0.25)] transition-all p-5 flex flex-col min-h-[170px]"
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-start gap-3 min-w-0">
@@ -284,19 +284,19 @@ function RoleManagement() {
                       <Shield className="w-5 h-5 text-primary" />
                     </div>
                     <div className="min-w-0">
-                      <h3 className="font-semibold text-gray-900 line-clamp-1">{role.name}</h3>
-                      <p className="font-mono text-[10px] tracking-wider text-gray-400 uppercase mt-0.5">
+                      <h3 className="font-semibold text-foreground line-clamp-1">{role.name}</h3>
+                      <p className="font-mono text-[10px] tracking-wider text-muted-foreground uppercase mt-0.5">
                         base · {BASE_ROLE_OPTIONS.find((b) => b.key === role.base_role)?.label || role.base_role}
                       </p>
                     </div>
                   </div>
                 </div>
-                <p className="text-sm text-gray-500 line-clamp-2 mt-3 flex-1">
+                <p className="text-sm text-muted-foreground line-clamp-2 mt-3 flex-1">
                   {role.description || "No description provided."}
                 </p>
                 <div className="flex flex-wrap gap-1.5 mt-3">
                   {(role.permissions || []).length === 0 ? (
-                    <span className="text-[11px] text-gray-400 italic">No permissions selected</span>
+                    <span className="text-[11px] text-muted-foreground italic">No permissions selected</span>
                   ) : (
                     role.permissions.map((p) => (
                       <span key={p} className="inline-flex items-center px-2.5 py-1 rounded-full font-mono text-[10px] uppercase tracking-wider bg-emerald-50 border border-emerald-200 text-emerald-700 font-semibold">
@@ -305,11 +305,11 @@ function RoleManagement() {
                     ))
                   )}
                 </div>
-                <div className="flex items-center justify-end gap-2 pt-4 mt-4 border-t border-gray-100">
+                <div className="flex items-center justify-end gap-2 pt-4 mt-4 border-t border-border">
                   <button
                     type="button"
                     onClick={() => openEdit(role)}
-                    className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 hover:text-gray-900 text-xs font-medium transition-colors cursor-pointer"
+                    className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-border bg-card text-muted-foreground hover:bg-muted hover:text-foreground text-xs font-medium transition-colors cursor-pointer"
                   >
                     <Pencil className="w-3.5 h-3.5" />
                     Edit
@@ -332,14 +332,14 @@ function RoleManagement() {
       {/* Create / Edit modal */}
       {formOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
-          <div className="w-full max-w-lg bg-white rounded-2xl border border-gray-200 shadow-xl max-h-[90vh] overflow-y-auto">
+          <div className="w-full max-w-lg bg-card rounded-2xl border border-border shadow-xl max-h-[90vh] overflow-y-auto">
             <form onSubmit={handleSave} className="p-5 md:p-6 space-y-4">
               <div className="flex items-center justify-between gap-3">
                 <div>
                   <p className="font-mono text-[10px] tracking-[0.2em] text-primary uppercase font-semibold">
                     {editingId ? "Edit Role" : "New Role"}
                   </p>
-                  <h2 className="text-lg font-bold text-gray-900 mt-0.5">
+                  <h2 className="text-lg font-bold text-foreground mt-0.5">
                     {editingId ? form.name || "Untitled role" : "Create a custom role"}
                   </h2>
                 </div>
@@ -347,7 +347,7 @@ function RoleManagement() {
                   type="button"
                   onClick={() => setFormOpen(false)}
                   aria-label="Close"
-                  className="p-2 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors cursor-pointer"
+                  className="p-2 rounded-lg text-muted-foreground hover:text-muted-foreground hover:bg-muted transition-colors cursor-pointer"
                 >
                   <X className="w-4 h-4" aria-hidden="true" />
                 </button>
@@ -358,7 +358,7 @@ function RoleManagement() {
               )}
 
               <div>
-                <label htmlFor="role-name" className="block font-mono text-[11px] tracking-wider text-gray-600 uppercase font-semibold mb-1.5">
+                <label htmlFor="role-name" className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase font-semibold mb-1.5">
                   Role Name <span className="text-rose-500">*</span>
                 </label>
                 <input
@@ -367,13 +367,13 @@ function RoleManagement() {
                   value={form.name}
                   onChange={(e) => setForm((prev) => ({ ...prev, name: e.target.value }))}
                   placeholder="e.g. HR Officer, PESO Staff"
-                  className="w-full min-h-[44px] px-4 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 placeholder:text-gray-600 focus:outline-none focus:bg-white focus:border-primary transition-all"
+                  className="w-full min-h-[44px] px-4 rounded-xl text-sm bg-muted border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:bg-card focus:border-primary transition-all"
                 />
               </div>
 
               <div>
-                <label htmlFor="role-desc" className="block font-mono text-[11px] tracking-wider text-gray-600 uppercase font-semibold mb-1.5">
-                  Description <span className="text-gray-400 font-normal lowercase">(optional)</span>
+                <label htmlFor="role-desc" className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase font-semibold mb-1.5">
+                  Description <span className="text-muted-foreground font-normal lowercase">(optional)</span>
                 </label>
                 <textarea
                   id="role-desc"
@@ -381,30 +381,30 @@ function RoleManagement() {
                   value={form.description}
                   onChange={(e) => setForm((prev) => ({ ...prev, description: e.target.value }))}
                   placeholder="What is this role for?"
-                  className="w-full min-h-[44px] px-4 py-2.5 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 placeholder:text-gray-600 focus:outline-none focus:bg-white focus:border-primary transition-all"
+                  className="w-full min-h-[44px] px-4 py-2.5 rounded-xl text-sm bg-muted border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:bg-card focus:border-primary transition-all"
                 />
               </div>
 
               <div>
-                <label htmlFor="role-base" className="block font-mono text-[11px] tracking-wider text-gray-600 uppercase font-semibold mb-1.5">
+                <label htmlFor="role-base" className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase font-semibold mb-1.5">
                   Base Portal <span className="text-rose-500">*</span>
                 </label>
                 <select
                   id="role-base"
                   value={form.base_role}
                   onChange={(e) => setForm((prev) => ({ ...prev, base_role: e.target.value }))}
-                  className="w-full min-h-[44px] px-4 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 focus:outline-none focus:bg-white focus:border-primary transition-all cursor-pointer"
+                  className="w-full min-h-[44px] px-4 rounded-xl text-sm bg-muted border border-border text-foreground focus:outline-none focus:bg-card focus:border-primary transition-all cursor-pointer"
                 >
                   {BASE_ROLE_OPTIONS.map((opt) => (
                     <option key={opt.key} value={opt.key}>{opt.label} portal</option>
                   ))}
                 </select>
-                <p className="text-[11px] text-gray-400 mt-1.5">Which portal holders of this role use to sign in.</p>
+                <p className="text-[11px] text-muted-foreground mt-1.5">Which portal holders of this role use to sign in.</p>
               </div>
 
               <div>
-                <p className="font-mono text-[11px] tracking-wider text-gray-600 uppercase font-semibold mb-2">
-                  Permissions <span className="text-gray-400 font-normal lowercase">({form.permissions.length} selected)</span>
+                <p className="font-mono text-[11px] tracking-wider text-muted-foreground uppercase font-semibold mb-2">
+                  Permissions <span className="text-muted-foreground font-normal lowercase">({form.permissions.length} selected)</span>
                 </p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   {permissionCatalog.map((perm) => {
@@ -414,7 +414,7 @@ function RoleManagement() {
                         key={perm.key}
                         className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl border text-xs font-medium cursor-pointer transition-colors ${checked
                           ? "bg-primary/10 border-primary/40 text-primary"
-                          : "bg-gray-50 border-gray-200 text-gray-600 hover:border-gray-300"
+                          : "bg-muted border-border text-muted-foreground hover:border-gray-300"
                           }`}
                       >
                         <input
@@ -428,7 +428,7 @@ function RoleManagement() {
                     );
                   })}
                 </div>
-                <p className="text-[11px] text-gray-400 mt-1.5">
+                <p className="text-[11px] text-muted-foreground mt-1.5">
                   Permissions gate super-admin pages — they do not replace API role checks.
                 </p>
               </div>
@@ -444,7 +444,7 @@ function RoleManagement() {
                 <button
                   type="button"
                   onClick={() => setFormOpen(false)}
-                  className="px-4 py-2.5 rounded-xl text-sm font-medium text-gray-500 hover:text-gray-700 hover:bg-gray-100 border border-gray-200 transition-colors cursor-pointer"
+                  className="px-4 py-2.5 rounded-xl text-sm font-medium text-muted-foreground hover:text-muted-foreground hover:bg-muted border border-border transition-colors cursor-pointer"
                 >
                   Cancel
                 </button>

@@ -15,7 +15,7 @@ const EMPTY_INVITE = {
   suffix: "", phone: "", company_name: "",
 };
 
-const INVITE_INPUT_CLASS = "w-full min-h-[38px] px-3.5 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-800 placeholder:text-gray-600 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all";
+const INVITE_INPUT_CLASS = "w-full min-h-[38px] px-3.5 rounded-xl text-sm bg-muted border border-border text-gray-800 placeholder:text-muted-foreground focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all";
 
 function UserManagement() {
   const { user: currentUser } = useAuth();
@@ -180,7 +180,7 @@ function UserManagement() {
           <p className="font-mono text-[11px] tracking-[0.2em] text-primary uppercase font-medium">SYSTEM ADMINISTRATION</p>
         </div>
         <h1 className="mt-1 text-xl md:text-2xl font-bold tracking-tight text-dark-blue">User Management</h1>
-        <p className="mt-2 text-sm text-gray-500">Manage system users and assign them to roles</p>
+        <p className="mt-2 text-sm text-muted-foreground">Manage system users and assign them to roles</p>
       </header>
 
       {success && (
@@ -190,16 +190,16 @@ function UserManagement() {
         <div role="alert" className="shrink-0 text-sm text-rose-600 bg-rose-50 border border-rose-200 px-4 py-3 rounded-xl">{actionError}</div>
       )}
 
-      <section className="bg-white border border-primary rounded-lg shadow-xs min-h-0 flex-1 flex flex-col overflow-hidden">
+      <section className="bg-card border border-primary rounded-lg shadow-xs min-h-0 flex-1 flex flex-col overflow-hidden">
         {/* Filter bar */}
-        <div className="shrink-0 px-5 py-4 flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-3 border-b border-gray-100">
+        <div className="shrink-0 px-5 py-4 flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-3 border-b border-border">
           <div className="flex-1 min-w-[160px]">
             <select
               id="role-filter"
               value={filterRole}
               onChange={(e) => { setFilterRole(e.target.value); setPage(1); }}
               aria-label="Filter by role"
-              className="w-full min-h-[38px] px-3.5 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-800 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all cursor-pointer"
+              className="w-full min-h-[38px] px-3.5 rounded-xl text-sm bg-muted border border-border text-gray-800 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all cursor-pointer"
             >
               {roleOptions.map((o) => (
                 <option key={o.value} value={o.value}>{o.label}</option>
@@ -213,10 +213,10 @@ function UserManagement() {
               value={searchTerm}
               onChange={(e) => { setSearchTerm(e.target.value); setPage(1); }}
               placeholder="Search by name or email…"
-              className="w-full min-h-[38px] px-3.5 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-800 placeholder:text-gray-600 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all"
+              className="w-full min-h-[38px] px-3.5 rounded-xl text-sm bg-muted border border-border text-gray-800 placeholder:text-muted-foreground focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all"
             />
           </div>
-          <span className="self-center ml-auto text-xs text-gray-500 font-medium whitespace-nowrap">{total} records</span>
+          <span className="self-center ml-auto text-xs text-muted-foreground font-medium whitespace-nowrap">{total} records</span>
           <button
             type="button"
             onClick={() => { setActionError(""); setShowInvite(true); }}
@@ -239,7 +239,7 @@ function UserManagement() {
               <col style={{ width: "100px" }} />
             </colgroup>
             <thead>
-              <tr className="sticky top-0 z-10 bg-white border-b border-gray-200 font-mono text-[10px] tracking-widest text-gray-500 uppercase">
+              <tr className="sticky top-0 z-10 bg-card border-b border-border font-mono text-[10px] tracking-widest text-muted-foreground uppercase">
                 <th className="text-left py-3 pl-5 pr-3 font-medium">Name</th>
                 <th className="text-left py-3 px-3 font-medium">Email</th>
                 <th className="text-left py-3 px-3 font-medium">Role</th>
@@ -252,16 +252,16 @@ function UserManagement() {
             <tbody>
               {users.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="py-8 text-center text-sm text-gray-500">No users found.</td>
+                  <td colSpan={7} className="py-8 text-center text-sm text-muted-foreground">No users found.</td>
                 </tr>
               ) : users.map((user) => (
-                <tr key={user.id} className="border-t border-gray-100 hover:bg-gray-50/60 transition-colors">
-                  <td className="py-3 pl-5 pr-3 text-gray-900 font-medium text-xs">{titleCase(user.full_name)}</td>
-                  <td className="py-3 px-3 text-xs text-gray-500 break-all">{user.email}</td>
+                <tr key={user.id} className="border-t border-border hover:bg-muted/60 transition-colors">
+                  <td className="py-3 pl-5 pr-3 text-foreground font-medium text-xs">{titleCase(user.full_name)}</td>
+                  <td className="py-3 px-3 text-xs text-muted-foreground break-all">{user.email}</td>
                   <td className="py-3 px-3">
                     {currentUser && user.id === currentUser.id ? (
                       <div className="space-y-1">
-                        <span className="inline-block px-2 py-1 rounded-lg bg-gray-100 text-gray-600 text-[10px] capitalize">
+                        <span className="inline-block px-2 py-1 rounded-lg bg-muted text-muted-foreground text-[10px] capitalize">
                           {SYSTEM_ROLE_LABELS[user.role] || user.role}
                         </span>
                         {user.custom_role_id && (
@@ -269,7 +269,7 @@ function UserManagement() {
                             {customRoles.find((r) => String(r.id) === String(user.custom_role_id))?.name || "Custom role"}
                           </span>
                         )}
-                        <span className="block font-mono text-[9px] uppercase tracking-wider text-gray-500">You — role locked</span>
+                        <span className="block font-mono text-[9px] uppercase tracking-wider text-muted-foreground">You — role locked</span>
                       </div>
                     ) : (
                       <div className="space-y-1">
@@ -279,7 +279,7 @@ function UserManagement() {
                           value={user.custom_role_id ? `custom:${user.custom_role_id}` : `sys:${user.role}`}
                           disabled={savingId === user.id}
                           onChange={(e) => handleAssignRole(user, e.target.value)}
-                          className="min-h-[36px] max-w-[170px] px-2.5 rounded-xl text-xs bg-gray-50 border border-gray-200 text-gray-800 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all cursor-pointer disabled:opacity-50"
+                          className="min-h-[36px] max-w-[170px] px-2.5 rounded-xl text-xs bg-muted border border-border text-gray-800 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all cursor-pointer disabled:opacity-50"
                         >
                           <optgroup label="System roles">
                             {Object.entries(SYSTEM_ROLE_LABELS).map(([key, label]) => (
@@ -297,7 +297,7 @@ function UserManagement() {
                             <option value="clear-custom">Clear custom role…</option>
                           )}
                         </select>
-                        {savingId === user.id && <span className="block text-[10px] text-gray-500">Saving…</span>}
+                        {savingId === user.id && <span className="block text-[10px] text-muted-foreground">Saving…</span>}
                       </div>
                     )}
                   </td>
@@ -305,7 +305,7 @@ function UserManagement() {
                     <span className={`inline-block px-2 py-1 rounded-full font-medium text-[10px] uppercase border ${
                       user.status === "active" ? "bg-emerald-50 border-emerald-200 text-emerald-700"
                       : user.status === "suspended" ? "bg-amber-50 border-amber-200 text-amber-700"
-                      : "bg-gray-100 border-gray-200 text-gray-500"
+                      : "bg-muted border-border text-muted-foreground"
                     }`}>
                       {user.status}
                     </span>
@@ -322,11 +322,11 @@ function UserManagement() {
                           ? "bg-amber-50 border-amber-200 text-amber-700"
                           : status === "rejected" || status === "revoked"
                             ? "bg-danger/10 border-danger/20 text-danger"
-                            : "bg-gray-100 border-gray-200 text-gray-500";
+                            : "bg-muted border-border text-muted-foreground";
                       return <span className={`inline-block px-2 py-1 rounded-full font-medium text-[10px] uppercase border ${styles}`}>{status}</span>;
-                    })() : <span className="text-gray-500 text-xs">—</span>}
+                    })() : <span className="text-muted-foreground text-xs">—</span>}
                   </td>
-                  <td className="py-3 px-3 text-xs text-gray-500">
+                  <td className="py-3 px-3 text-xs text-muted-foreground">
                     {new Date(user.created_at).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })}
                   </td>
                   <td className="py-3 px-3 pr-5 text-right">
@@ -357,26 +357,26 @@ function UserManagement() {
             role="dialog"
             aria-modal="true"
             aria-labelledby="invite-title"
-            className="bg-white w-full max-w-lg max-h-[90vh] overflow-y-auto border border-primary rounded-lg shadow-xl p-5"
+            className="bg-card w-full max-w-lg max-h-[90vh] overflow-y-auto border border-primary rounded-lg shadow-xl p-5"
           >
-            <div className="flex items-start justify-between gap-3 pb-4 border-b border-gray-200">
+            <div className="flex items-start justify-between gap-3 pb-4 border-b border-border">
               <div>
                 <span className="font-mono text-[10px] tracking-widest text-primary uppercase">INVITE</span>
-                <h2 id="invite-title" className="mt-1 text-xl font-bold text-gray-900">Add user</h2>
-                <p className="mt-1 text-xs text-gray-500">Send an invitation email to onboard a new municipal user or partner.</p>
+                <h2 id="invite-title" className="mt-1 text-xl font-bold text-foreground">Add user</h2>
+                <p className="mt-1 text-xs text-muted-foreground">Send an invitation email to onboard a new municipal user or partner.</p>
               </div>
-              <button type="button" onClick={() => setShowInvite(false)} className="p-1 rounded-lg text-gray-500 hover:text-gray-900 hover:bg-gray-100 transition-colors cursor-pointer" aria-label="Close">
+              <button type="button" onClick={() => setShowInvite(false)} className="p-1 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer" aria-label="Close">
                 <X className="w-4 h-4" aria-hidden="true" />
               </button>
             </div>
 
             <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="sm:col-span-2">
-                <label htmlFor="invite-email" className="block text-xs font-medium text-gray-700 mb-1">Email</label>
+                <label htmlFor="invite-email" className="block text-xs font-medium text-muted-foreground mb-1">Email</label>
                 <input id="invite-email" type="email" required placeholder="e.g. juan.delacruz@example.com" value={inviteForm.email} onChange={(e) => setInviteField("email", e.target.value)} className={INVITE_INPUT_CLASS} />
               </div>
               <div className="sm:col-span-2">
-                <label htmlFor="invite-role" className="block text-xs font-medium text-gray-700 mb-1">Role</label>
+                <label htmlFor="invite-role" className="block text-xs font-medium text-muted-foreground mb-1">Role</label>
                 <select id="invite-role" required value={inviteForm.role} onChange={(e) => setInviteField("role", e.target.value)} className={`${INVITE_INPUT_CLASS} cursor-pointer`}>
                   <option value="" disabled>Select a role…</option>
                   <optgroup label="System roles">
@@ -394,28 +394,28 @@ function UserManagement() {
                 </select>
               </div>
               <div>
-                <label htmlFor="invite-first" className="block text-xs font-medium text-gray-700 mb-1">First name</label>
+                <label htmlFor="invite-first" className="block text-xs font-medium text-muted-foreground mb-1">First name</label>
                 <input id="invite-first" type="text" required placeholder="e.g. Juan" value={inviteForm.first_name} onChange={(e) => setInviteField("first_name", e.target.value)} className={INVITE_INPUT_CLASS} />
               </div>
               <div>
-                <label htmlFor="invite-middle" className="block text-xs font-medium text-gray-700 mb-1">Middle name</label>
+                <label htmlFor="invite-middle" className="block text-xs font-medium text-muted-foreground mb-1">Middle name</label>
                 <input id="invite-middle" type="text" placeholder="e.g. Santos (optional)" value={inviteForm.middle_name} onChange={(e) => setInviteField("middle_name", e.target.value)} className={INVITE_INPUT_CLASS} />
               </div>
               <div>
-                <label htmlFor="invite-last" className="block text-xs font-medium text-gray-700 mb-1">Last name</label>
+                <label htmlFor="invite-last" className="block text-xs font-medium text-muted-foreground mb-1">Last name</label>
                 <input id="invite-last" type="text" required placeholder="e.g. Dela Cruz" value={inviteForm.last_name} onChange={(e) => setInviteField("last_name", e.target.value)} className={INVITE_INPUT_CLASS} />
               </div>
               <div>
-                <label htmlFor="invite-suffix" className="block text-xs font-medium text-gray-700 mb-1">Suffix</label>
+                <label htmlFor="invite-suffix" className="block text-xs font-medium text-muted-foreground mb-1">Suffix</label>
                 <input id="invite-suffix" type="text" placeholder="e.g. Jr., III (optional)" value={inviteForm.suffix} onChange={(e) => setInviteField("suffix", e.target.value)} className={INVITE_INPUT_CLASS} />
               </div>
               <div className="sm:col-span-2">
-                <label htmlFor="invite-phone" className="block text-xs font-medium text-gray-700 mb-1">Phone</label>
+                <label htmlFor="invite-phone" className="block text-xs font-medium text-muted-foreground mb-1">Phone</label>
                 <input id="invite-phone" type="tel" placeholder="e.g. 0917 123 4567" value={inviteForm.phone} onChange={(e) => setInviteField("phone", e.target.value)} className={INVITE_INPUT_CLASS} />
               </div>
               {inviteBaseRole === "employer" && (
                 <div className="sm:col-span-2">
-                  <label htmlFor="invite-company" className="block text-xs font-medium text-gray-700 mb-1">Company name</label>
+                  <label htmlFor="invite-company" className="block text-xs font-medium text-muted-foreground mb-1">Company name</label>
                   <input id="invite-company" type="text" required placeholder="e.g. San Miguel Corporation" value={inviteForm.company_name} onChange={(e) => setInviteField("company_name", e.target.value)} className={INVITE_INPUT_CLASS} />
                 </div>
               )}
@@ -423,8 +423,8 @@ function UserManagement() {
 
             {actionError && <div className="mt-4 text-sm text-danger bg-danger/10 border border-danger/20 px-4 py-3 rounded-lg">{actionError}</div>}
 
-            <div className="mt-6 pt-5 border-t border-gray-200 flex justify-end gap-3">
-              <button type="button" onClick={() => setShowInvite(false)} className="px-5 py-2 text-xs font-medium rounded-xl border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors cursor-pointer">
+            <div className="mt-6 pt-5 border-t border-border flex justify-end gap-3">
+              <button type="button" onClick={() => setShowInvite(false)} className="px-5 py-2 text-xs font-medium rounded-xl border border-border text-muted-foreground hover:bg-muted transition-colors cursor-pointer">
                 Cancel
               </button>
               <button type="submit" disabled={inviting} className="px-5 py-2 text-xs font-medium rounded-xl bg-primary text-white hover:bg-primary-hover transition-colors cursor-pointer disabled:opacity-50">

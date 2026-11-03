@@ -35,7 +35,7 @@ export default function PortalLayout({ navItems, badge, eyebrow, subhead, profil
       <SkipLink />
       <header className="md:hidden sticky top-0 z-30 bg-card border-b border-border px-4 h-14 flex items-center justify-between shrink-0">
         <div className="flex items-center gap-2.5">
-          <div className="brand-mark-surface bg-white rounded-lg px-3.5 py-1.5 flex items-center shadow-xs">
+          <div className="brand-mark-surface bg-card rounded-lg px-3.5 py-1.5 flex items-center shadow-xs">
             <Link to={home}><img src={TextBasedLogo} alt="JobLinked" width={480} height={160} className="h-6 w-auto object-contain" /></Link>
           </div>
           <span className="font-mono text-[10px] tracking-wider px-2 py-0.5 rounded-full bg-primary/10 border border-primary/25 text-primary">
@@ -46,7 +46,7 @@ export default function PortalLayout({ navItems, badge, eyebrow, subhead, profil
           <NotificationBell />
           <button
             onClick={() => setMobileOpen(!mobileOpen)}
-            className="p-2 rounded-lg text-gray-600 hover:text-gray-900 hover:bg-gray-100 border border-gray-200 cursor-pointer"
+            className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted border border-border cursor-pointer"
             aria-label="Toggle navigation"
             aria-expanded={mobileOpen}
             aria-controls="portal-mobile-nav"
@@ -67,10 +67,10 @@ export default function PortalLayout({ navItems, badge, eyebrow, subhead, profil
           mobileOpen ? 'translate-x-0 shadow-xl' : '-translate-x-full'
         }`}
       >
-        <div className="h-16 shrink-0 sticky top-0 flex items-center justify-between px-4 border-b border-white/10 bg-dark-blue">
+        <div className="h-16 shrink-0 sticky top-0 flex items-center justify-between px-4 border-b border-white/10 bg-navy">
           <div className="flex items-center gap-2.5">
             <Link to={home} className="flex items-center">
-              <div className="brand-mark-surface bg-white rounded-lg px-3.5 py-1.5 flex items-center shadow-xs">
+              <div className="brand-mark-surface bg-card rounded-lg px-3.5 py-1.5 flex items-center shadow-xs">
                 <img src={TextBasedLogo} alt="JobLinked" width={480} height={160} className="h-5 w-auto object-contain" />
               </div>
             </Link>
@@ -108,8 +108,8 @@ export default function PortalLayout({ navItems, badge, eyebrow, subhead, profil
               onClick={() => setMobileOpen(false)}
               className={({ isActive }) =>
                 `flex items-center px-3.5 py-2.5 rounded-xl text-xs font-medium transition-all ${isActive
-                  ? 'bg-white/20 text-white border border-white/20 shadow-md'
-                  : 'text-white/60 hover:text-white hover:bg-white/10 border border-transparent'
+                  ? 'bg-card/20 text-white border border-white/20 shadow-md'
+                  : 'text-white/60 hover:text-white hover:bg-card/10 border border-transparent'
                 }`
               }
             >
@@ -149,16 +149,16 @@ export default function PortalLayout({ navItems, badge, eyebrow, subhead, profil
             role="dialog"
             aria-modal="true"
             aria-labelledby="afk-title"
-            className="bg-white border border-primary rounded-lg p-5 max-w-sm mx-4 shadow-xl"
+            className="bg-card border border-primary rounded-lg p-5 max-w-sm mx-4 shadow-xl"
           >
-            <h3 id="afk-title" className="text-lg font-bold text-gray-900 mb-2">Session Expiring</h3>
-            <p className="text-sm text-gray-600 mb-6">
+            <h3 id="afk-title" className="text-lg font-bold text-foreground mb-2">Session Expiring</h3>
+            <p className="text-sm text-muted-foreground mb-6">
               You will be logged out in 1 minute due to inactivity. Move your mouse or press a key to stay signed in.
             </p>
             <div className="flex gap-2">
               <button
                 onClick={handleLogout}
-                className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-600 hover:text-gray-900 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-lg transition-colors"
+                className="flex-1 px-4 py-2.5 text-sm font-medium text-muted-foreground hover:text-foreground bg-muted hover:bg-muted border border-border rounded-lg transition-colors"
               >
                 Sign Out
               </button>

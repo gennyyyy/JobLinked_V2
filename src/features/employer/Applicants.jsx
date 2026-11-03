@@ -105,12 +105,12 @@ function Applicants() {
   if (error) {
     return (
       <div className="space-y-6">
-        <div className="bg-white border border-rose-100 rounded-2xl p-5 flex items-start gap-3 shadow-[0_2px_16px_-8px_rgba(16,24,40,0.08)]">
+        <div className="bg-card border border-rose-100 rounded-2xl p-5 flex items-start gap-3 shadow-[0_2px_16px_-8px_rgba(16,24,40,0.08)]">
           <div className="shrink-0 mt-0.5 w-8 h-8 rounded-lg bg-rose-50 border border-rose-100 flex items-center justify-center">
             <AlertTriangle className="w-4 h-4 text-rose-500" strokeWidth={2} />
           </div>
           <div className="min-w-0">
-            <p className="text-sm font-semibold text-gray-900">Couldn't load applicants</p>
+            <p className="text-sm font-semibold text-foreground">Couldn't load applicants</p>
             <p className="text-sm text-rose-600 mt-0.5">{error}</p>
           </div>
         </div>
@@ -170,7 +170,7 @@ function Applicants() {
                   ? "bg-rose-50 text-rose-700 border-rose-200"
                   : "bg-amber-50 text-amber-700 border-amber-200";
           return (
-            <article key={applicant.id} className="rounded-lg border border-primary/40 bg-white p-4">
+            <article key={applicant.id} className="rounded-lg border border-primary/40 bg-card p-4">
               <div className="flex items-start justify-between gap-3">
                 <p className="text-sm font-bold text-dark-blue truncate">{titleCase(applicant.seeker?.full_name || "")}</p>
                 <button type="button" onClick={() => toggleProfile(applicant)}
@@ -183,18 +183,18 @@ function Applicants() {
 
               <div className="mt-3 grid grid-cols-3 gap-2">
                 <div>
-                  <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-500">Position</p>
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Position</p>
                   <p className="mt-0.5 text-xs font-semibold text-dark-blue truncate">{applicant.job?.title}</p>
                 </div>
                 <div>
-                  <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-500">Status</p>
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Status</p>
                   <span className={`mt-0.5 inline-flex items-center gap-1.5 font-mono text-[10px] tracking-wider px-2 py-0.5 rounded-full uppercase border font-semibold ${statusStyle}`}>
                     {applicant.status}
                   </span>
                 </div>
                 <div>
-                  <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-500">Applied</p>
-                  <p className="mt-0.5 text-xs text-gray-700 truncate">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Applied</p>
+                  <p className="mt-0.5 text-xs text-muted-foreground truncate">
                     {new Date(applicant.applied_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                   </p>
                 </div>
@@ -204,7 +204,7 @@ function Applicants() {
                 {applicant.status === "Under Review" && (
                   <button type="button" title="Revert to Applied" onClick={() => setStatus(applicant.id, "Applied")}
                     data-action-tone="neutral"
-                    className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-gray-200 bg-gray-50 text-gray-600 hover:bg-gray-100 transition-colors cursor-pointer">
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-border bg-muted text-muted-foreground hover:bg-muted transition-colors cursor-pointer">
                     <RotateCcw className="w-3.5 h-3.5" />
                     <span className="text-xs font-medium">Undo Review</span>
                   </button>
@@ -255,20 +255,20 @@ function Applicants() {
               )}
               {interviewingId === applicant.id && (
                 <div className="mt-3">
-                  <div className="bg-white border border-primary/20 rounded-xl p-4 md:p-5 shadow-xs">
+                  <div className="bg-card border border-primary/20 rounded-xl p-4 md:p-5 shadow-xs">
                     <div className="flex items-center gap-2 mb-4">
                       <div className="w-7 h-7 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
                         <Calendar className="w-3.5 h-3.5 text-primary" />
                       </div>
                       <div>
-                        <p className="text-sm font-semibold text-gray-900">Schedule Interview — <span>{titleCase(applicant.seeker?.full_name)}</span></p>
-                        <p className="text-[11px] text-gray-500">Pick a date & time and add instructions for the candidate</p>
+                        <p className="text-sm font-semibold text-foreground">Schedule Interview — <span>{titleCase(applicant.seeker?.full_name)}</span></p>
+                        <p className="text-[11px] text-muted-foreground">Pick a date & time and add instructions for the candidate</p>
                       </div>
                     </div>
                     <div className="space-y-3 mb-4">
                       <div>
-                        <p className="font-mono text-[10px] uppercase tracking-widest text-gray-500 mb-1.5">
-                          Attire <span className="text-gray-400 normal-case tracking-normal">(optional, click to toggle)</span>
+                        <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground mb-1.5">
+                          Attire <span className="text-muted-foreground normal-case tracking-normal">(optional, click to toggle)</span>
                         </p>
                         <div className="flex flex-wrap gap-2">
                           {INTERVIEW_ATTIRE.map((opt) => {
@@ -281,7 +281,7 @@ function Applicants() {
                                   setInterviewAttire((prev) => (selected ? prev.filter((x) => x !== opt) : [...prev, opt]))
                                 }
                                 className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors cursor-pointer ${
-                                  selected ? "bg-primary text-white border-primary" : "bg-gray-50 text-gray-600 border-gray-200 hover:border-primary/40"
+                                  selected ? "bg-primary text-white border-primary" : "bg-muted text-muted-foreground border-border hover:border-primary/40"
                                 }`}
                               >
                                 {opt}
@@ -291,8 +291,8 @@ function Applicants() {
                         </div>
                       </div>
                       <div>
-                        <p className="font-mono text-[10px] uppercase tracking-widest text-gray-500 mb-1.5">
-                          What to Bring <span className="text-gray-400 normal-case tracking-normal">(optional, click to toggle)</span>
+                        <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground mb-1.5">
+                          What to Bring <span className="text-muted-foreground normal-case tracking-normal">(optional, click to toggle)</span>
                         </p>
                         <div className="flex flex-wrap gap-2">
                           {INTERVIEW_BRING.map((opt) => {
@@ -305,7 +305,7 @@ function Applicants() {
                                   setInterviewBring((prev) => (selected ? prev.filter((x) => x !== opt) : [...prev, opt]))
                                 }
                                 className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors cursor-pointer ${
-                                  selected ? "bg-primary text-white border-primary" : "bg-gray-50 text-gray-600 border-gray-200 hover:border-primary/40"
+                                  selected ? "bg-primary text-white border-primary" : "bg-muted text-muted-foreground border-border hover:border-primary/40"
                                 }`}
                               >
                                 {opt}
@@ -316,7 +316,7 @@ function Applicants() {
                       </div>
                     </div>
                     <div className="mb-4">
-                      <label htmlFor={`ivloc-${applicant.id}`} className="block font-mono text-[10px] uppercase tracking-widest text-gray-500 mb-1.5">
+                      <label htmlFor={`ivloc-${applicant.id}`} className="block font-mono text-[10px] uppercase tracking-widest text-muted-foreground mb-1.5">
                         Meeting Location
                       </label>
                       <input
@@ -325,41 +325,41 @@ function Applicants() {
                         value={interviewLocation}
                         onChange={(e) => setInterviewLocation(e.target.value)}
                         placeholder="Company address or meeting venue"
-                        className="w-full min-h-[40px] px-3 rounded-xl text-sm bg-white border border-gray-200 text-gray-900 placeholder:text-gray-600 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all"
+                        className="w-full min-h-[40px] px-3 rounded-xl text-sm bg-card border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all"
                       />
                     </div>
                     <div className="flex flex-col md:flex-row md:items-end gap-3">
                       <div>
-                        <label htmlFor={`iv-${applicant.id}`} className="block font-mono text-[10px] uppercase tracking-widest text-gray-500 mb-1.5">Interview Date &amp; Time</label>
+                        <label htmlFor={`iv-${applicant.id}`} className="block font-mono text-[10px] uppercase tracking-widest text-muted-foreground mb-1.5">Interview Date &amp; Time</label>
                         <input
                           id={`iv-${applicant.id}`}
                           type="datetime-local"
                           value={interviewAt}
                           min={interviewMin}
                           onChange={(e) => setInterviewAt(e.target.value)}
-                          className="min-h-[40px] px-3 rounded-xl text-sm bg-white border border-gray-200 text-gray-900 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all"
+                          className="min-h-[40px] px-3 rounded-xl text-sm bg-card border border-border text-foreground focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all"
                         />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <label htmlFor={`ivn-${applicant.id}`} className="block font-mono text-[10px] uppercase tracking-widest text-gray-500 mb-1.5">Instructions</label>
+                        <label htmlFor={`ivn-${applicant.id}`} className="block font-mono text-[10px] uppercase tracking-widest text-muted-foreground mb-1.5">Instructions</label>
                         <input
                           id={`ivn-${applicant.id}`}
                           type="text"
                           value={interviewNotes}
                           onChange={(e) => setInterviewNotes(e.target.value)}
                           placeholder="Meeting link, address, or any other note…"
-                          className="w-full min-h-[40px] px-3 rounded-xl text-sm bg-white border border-gray-200 text-gray-900 placeholder:text-gray-600 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all"
+                          className="w-full min-h-[40px] px-3 rounded-xl text-sm bg-card border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all"
                         />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <label htmlFor={`ivnotes-${applicant.id}`} className="block font-mono text-[10px] uppercase tracking-widest text-gray-500 mb-1.5">Internal Notes</label>
+                        <label htmlFor={`ivnotes-${applicant.id}`} className="block font-mono text-[10px] uppercase tracking-widest text-muted-foreground mb-1.5">Internal Notes</label>
                         <textarea
                           id={`ivnotes-${applicant.id}`}
                           value={interviewEmployerNotes}
                           onChange={(e) => setInterviewEmployerNotes(e.target.value)}
                           placeholder="Private notes — only you see these…"
                           rows={1}
-                          className="w-full min-h-[40px] px-3 py-2 rounded-xl text-sm bg-white border border-gray-200 text-gray-900 placeholder:text-gray-600 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all"
+                          className="w-full min-h-[40px] px-3 py-2 rounded-xl text-sm bg-card border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all"
                         />
                       </div>
                       <div className="flex gap-2">
@@ -370,7 +370,7 @@ function Applicants() {
                         >
                           Schedule
                         </button>
-                        <button onClick={() => setInterviewingId(null)} className="px-4 py-2.5 rounded-xl text-xs font-medium text-gray-500 hover:text-gray-700 hover:bg-gray-100 border border-gray-200 transition-colors cursor-pointer">
+                        <button onClick={() => setInterviewingId(null)} className="px-4 py-2.5 rounded-xl text-xs font-medium text-muted-foreground hover:text-muted-foreground hover:bg-muted border border-border transition-colors cursor-pointer">
                           Cancel
                         </button>
                       </div>

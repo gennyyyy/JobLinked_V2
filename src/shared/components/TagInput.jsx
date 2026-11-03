@@ -35,7 +35,7 @@ export function TagInput({ value, onChange, placeholder, id, className = "", max
   return (
     <div
       onClick={() => inputRef.current?.focus()}
-      className={`w-full min-h-[44px] px-3 py-2 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-900 focus-within:border-primary/60 focus-within:ring-1 focus-within:ring-primary/30 transition-all flex flex-col cursor-text ${className}`}
+      className={`w-full min-h-[44px] px-3 py-2 rounded-xl text-sm bg-muted border border-border text-foreground focus-within:border-primary/60 focus-within:ring-1 focus-within:ring-primary/30 transition-all flex flex-col cursor-text ${className}`}
     >
       <div className="flex flex-wrap items-center gap-1.5 content-start">
         {tags.map((tag) => (
@@ -70,7 +70,7 @@ export function TagInput({ value, onChange, placeholder, id, className = "", max
           }}
           onBlur={() => commit(draft)}
           placeholder={tags.length ? "" : placeholder}
-          className="flex-1 min-w-[140px] bg-transparent outline-none placeholder:text-gray-600 py-1"
+          className="flex-1 min-w-[140px] bg-transparent outline-none placeholder:text-muted-foreground py-1"
         />
       </div>
     </div>

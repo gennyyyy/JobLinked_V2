@@ -21,7 +21,7 @@ function requirementLines(requirements) {
 
 function salaryLabel(job) {
   return job.salary_min
-    ? `?${job.salary_min}${job.salary_max ? `–?${job.salary_max}` : ""}`
+    ? `?${job.salary_min}${job.salary_max ? `ï¿½?${job.salary_max}` : ""}`
     : "Negotiable";
 }
 
@@ -178,7 +178,7 @@ function BrowseJobs({ jobHref, initialKeyword = "", initialLocation = "", initia
           {loading ? (
             <div className="flex items-center justify-center gap-3 rounded-lg border border-primary bg-card py-10 text-sm text-muted-foreground">
               <span className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" aria-hidden="true" />
-              Loading jobs…
+              Loading jobsï¿½
             </div>
           ) : error ? (
             <InlineError message={error} />

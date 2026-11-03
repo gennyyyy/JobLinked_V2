@@ -62,11 +62,11 @@ function Dashboard() {
   const logo = !logoFailed && typeof company?.logo_path === "string" && company.logo_path ? company.logo_path : null;
 
   return (
-    <div className="space-y-6 bg-gray-50">
+    <div className="space-y-6 bg-muted">
       <h1 className="text-xl md:text-2xl font-bold text-dark-blue">Dashboard</h1>
 
-      <section className="flex items-center gap-4 rounded-xl bg-dark-blue p-5 md:p-6 shadow-md">
-        <div className="grid h-16 w-16 shrink-0 place-items-center overflow-hidden rounded-full border-4 border-white bg-white shadow-md md:h-20 md:w-20">
+      <section className="flex items-center gap-4 rounded-xl bg-navy p-5 md:p-6 shadow-md">
+        <div className="grid h-16 w-16 shrink-0 place-items-center overflow-hidden rounded-full border-4 border-white bg-card shadow-md md:h-20 md:w-20">
           {logo ? (
             <img src={logo} alt="" className="w-full h-full object-cover" onError={() => setLogoFailed(true)} />
           ) : (
@@ -88,24 +88,24 @@ function Dashboard() {
         ))}
       </div>
 
-      <section className="rounded-lg border border-primary/40 bg-white p-5">
+      <section className="rounded-lg border border-primary/40 bg-card p-5">
         <h2 className="text-sm font-bold text-dark-blue">Recent Candidate Applications</h2>
-        <p className="mt-0.5 text-xs italic text-gray-500">Latest job seekers who applied to your verified listings</p>
+        <p className="mt-0.5 text-xs italic text-muted-foreground">Latest job seekers who applied to your verified listings</p>
 
         {recent.length === 0 ? (
-          <div className="py-8 text-center text-sm text-gray-500">
+          <div className="py-8 text-center text-sm text-muted-foreground">
             No applicant submissions received yet.{" "}
             <Link to="/employer/job-posts" className="text-primary hover:underline">Post a job →</Link>
           </div>
         ) : (
           <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {recent.map((item) => (
-              <div key={item.id} className="rounded-lg border border-primary/40 bg-white px-4 py-3">
+              <div key={item.id} className="rounded-lg border border-primary/40 bg-card px-4 py-3">
                 <p className="text-sm font-bold text-dark-blue truncate">{titleCase(item.seeker_full_name)}</p>
-                <p className="mt-1 text-xs italic text-gray-500 truncate">
-                  Applied for <span className="text-gray-700">{item.job_title}</span>
+                <p className="mt-1 text-xs italic text-muted-foreground truncate">
+                  Applied for <span className="text-muted-foreground">{item.job_title}</span>
                 </p>
-                <p className="mt-0.5 text-[11px] text-gray-400">
+                <p className="mt-0.5 text-[11px] text-muted-foreground">
                   Applied on {new Date(item.applied_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
                 </p>
               </div>

@@ -48,7 +48,7 @@ function NavGroup({ item, pathname }) {
         <ChevronDown aria-hidden="true" className={`h-4 w-4 transition-transform ${open ? 'rotate-180' : ''}`} />
       </button>
       {open && (
-        <div className="absolute right-0 top-full z-30 mt-2 min-w-48 rounded-xl border border-border bg-white p-1.5 shadow-lg ">
+        <div className="absolute right-0 top-full z-30 mt-2 min-w-48 rounded-xl border border-border bg-card p-1.5 shadow-lg ">
           {item.children.map((child) => (
             <NavLink
               key={child.to}
@@ -131,7 +131,7 @@ export default function TopNavLayout({ navItems = [], profileTo, roleLabel, home
             role="dialog"
             aria-modal="true"
             aria-labelledby="afk-title"
-            className="bg-white border border-primary rounded-lg p-5 max-w-sm mx-4 shadow-xl"
+            className="bg-card border border-primary rounded-lg p-5 max-w-sm mx-4 shadow-xl"
           >
             <h3 id="afk-title" className="text-lg font-bold text-foreground mb-2">Session Expiring</h3>
             <p className="text-sm text-muted-foreground mb-6">

@@ -21,7 +21,7 @@ export default defineConfig([
   {
     files: ['src/shared/services/__tests__/*.test.js', 'src/test/*.js'],
     languageOptions: {
-      globals: { describe: 'readonly', it: 'readonly', expect: 'readonly', vi: 'readonly' },
+      globals: { describe: 'readonly', it: 'readonly', expect: 'readonly', vi: 'readonly', test: 'readonly' },
     },
   },
   {

@@ -79,9 +79,9 @@ export default function ApplicantsShell({
     >
       {isEmpty ? (
         <div className="text-center py-16 px-6">
-          <div className="w-16 h-16 mx-auto rounded-2xl bg-gray-50 border border-gray-200 flex items-center justify-center mb-4">{icon}</div>
-          <p className="font-semibold text-gray-900 mb-1">{emptyTitle}</p>
-          {emptyBody ? (typeof emptyBody === "string" ? <p className="text-sm text-gray-500 max-w-sm mx-auto">{emptyBody}</p> : emptyBody) : null}
+          <div className="w-16 h-16 mx-auto rounded-2xl bg-muted border border-border flex items-center justify-center mb-4">{icon}</div>
+          <p className="font-semibold text-foreground mb-1">{emptyTitle}</p>
+          {emptyBody ? (typeof emptyBody === "string" ? <p className="text-sm text-muted-foreground max-w-sm mx-auto">{emptyBody}</p> : emptyBody) : null}
           {emptyAction ? <div className="mt-4">{emptyAction}</div> : null}
           {onClearFilters ? <button type="button" onClick={onClearFilters} className="mt-4 px-4 py-2.5 rounded-xl text-xs font-semibold text-primary bg-primary/10 border border-primary/25 hover:bg-primary/20 transition-colors cursor-pointer">Clear all filters</button> : null}
         </div>

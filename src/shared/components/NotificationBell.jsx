@@ -102,7 +102,7 @@ function NotificationBell({ dark = false, align = "right" }) {
         aria-controls={open ? panelId : undefined}
         className={`relative p-2 rounded-lg border cursor-pointer ${
           dark
-            ? "text-white/70 hover:text-white hover:bg-white/10 border-white/20"
+            ? "text-white/70 hover:text-white hover:bg-card/10 border-white/20"
             : "text-muted-foreground hover:text-foreground hover:bg-muted border-border"
         }`}
       >
@@ -122,14 +122,14 @@ function NotificationBell({ dark = false, align = "right" }) {
         <div
           id={panelId}
           ref={panelRef}
-          className={`absolute top-full mt-2 w-72 sm:w-80 rounded-xl border-2 border-dark-blue  bg-white shadow-lg z-30 p-3 animate-[dropdown-in_150ms_ease-out] ${
+          className={`absolute top-full mt-2 w-72 sm:w-80 rounded-xl border-2 border-dark-blue  bg-card shadow-lg z-30 p-3 animate-[dropdown-in_150ms_ease-out] ${
             align === "left" ? "left-0 origin-top-left" : "right-0 origin-top-right"
           }`}
         >
           <div className="flex items-start justify-between gap-3 px-1 pb-2">
             <div>
               <h2 className="text-sm font-bold text-dark-blue">Notification</h2>
-              <p className="text-[10px] uppercase tracking-wider text-gray-500">Latest</p>
+              <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Latest</p>
             </div>
             <Link
               to={`/${role}/notifications`}
@@ -141,7 +141,7 @@ function NotificationBell({ dark = false, align = "right" }) {
           </div>
 
           {rows.length === 0 ? (
-            <p className="px-1 py-2 text-xs text-gray-500">No notifications yet.</p>
+            <p className="px-1 py-2 text-xs text-muted-foreground">No notifications yet.</p>
           ) : (
             <ul className="space-y-2">
               {rows.slice(0, 5).map((n) => {
@@ -151,7 +151,7 @@ function NotificationBell({ dark = false, align = "right" }) {
                     <button
                       type="button"
                       onClick={() => handleRowClick(n)}
-                      className={`w-full cursor-pointer text-left rounded-lg border border-dark-blue bg-white pl-2.5 pr-4 py-3 flex items-center gap-3 ${
+                      className={`w-full cursor-pointer text-left rounded-lg border border-dark-blue bg-card pl-2.5 pr-4 py-3 flex items-center gap-3 ${
                         !n.is_read ? "bg-primary/[0.03]" : ""
                       }`}
                     >

@@ -20,10 +20,10 @@ class ErrorBoundary extends Component {
   render() {
     if (!this.state.error) return this.props.children;
     return (
-      <div className="min-h-screen flex items-center justify-center p-6 bg-gray-50">
-        <div className="w-full max-w-md bg-white border border-gray-200 rounded-lg p-6 text-center space-y-3">
-          <h1 className="text-lg font-semibold text-gray-900">Something went wrong</h1>
-          <p className="text-sm text-gray-600">This page could not be displayed. Reloading usually fixes it.</p>
+      <div className="min-h-screen flex items-center justify-center p-6 bg-muted">
+        <div className="w-full max-w-md bg-card border border-border rounded-lg p-6 text-center space-y-3">
+          <h1 className="text-lg font-semibold text-foreground">Something went wrong</h1>
+          <p className="text-sm text-muted-foreground">This page could not be displayed. Reloading usually fixes it.</p>
           <p className="text-xs text-danger break-words">{this.state.error.message || "Unknown error"}</p>
           <button
             type="button"

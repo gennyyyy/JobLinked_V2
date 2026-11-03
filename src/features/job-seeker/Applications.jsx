@@ -189,14 +189,14 @@ function Applications() {
       {applications.length === 0 ? (
         <SectionCard title="My Applications" subtitle="Browse verified municipal listings and apply with a single tap">
           <div className="py-8 text-center">
-            <p className="text-base text-gray-600">You haven't submitted any job applications yet.</p>
+            <p className="text-base text-muted-foreground">You haven't submitted any job applications yet.</p>
             <Link to="/job-seeker/jobs" className="inline-flex mt-6 min-h-[44px] items-center px-6 rounded-xl bg-primary text-white text-xs font-medium hover:bg-primary-hover transition-colors">
               Explore Openings →
             </Link>
           </div>
         </SectionCard>
       ) : filtered.length === 0 ? (
-        <div className="rounded-lg border border-primary bg-white py-8 text-center text-sm text-gray-400">
+        <div className="rounded-lg border border-primary bg-card py-8 text-center text-sm text-muted-foreground">
           No applications match this filter.{" "}
           <button onClick={() => setStatusFilter("all")} className="text-primary hover:underline underline-offset-4 font-medium cursor-pointer">Clear filter</button>
         </div>
@@ -227,7 +227,7 @@ function Applications() {
                   className={`rounded-lg border p-5 transition-colors ${
                     status === "Rejected" || status === "Terminated"
                       ? "border-amber-300 bg-amber-50"
-                      : "border-primary bg-white"
+                      : "border-primary bg-card"
                   }`}
                 >
                   <div
@@ -255,13 +255,13 @@ function Applications() {
 
                       <ChevronDown
                         className={`ml-auto w-3.5 h-3.5 shrink-0 transition-transform duration-200 ${
-                          isExpanded ? "rotate-180 text-primary" : "text-gray-400"
+                          isExpanded ? "rotate-180 text-primary" : "text-muted-foreground"
                         }`}
                       />
                     </div>
 
-                    <p className="mt-1 flex items-center gap-1.5 text-xs font-medium text-gray-700">
-                      <Building className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+                    <p className="mt-1 flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+                      <Building className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
                       {titleCase(application.job?.employers?.company_name || "")}
                     </p>
 
@@ -286,20 +286,20 @@ function Applications() {
                                     ? "bg-danger text-white"
                                     : isReached
                                       ? "bg-primary text-white"
-                                      : "bg-white border-2 border-primary/40"
+                                      : "bg-card border-2 border-primary/40"
                                 }`}
                               >
                                 {isFinalRejected ? <X className="w-4 h-4" /> : isReached ? <Check className="w-4 h-4" /> : null}
                               </div>
                               <p
                                 className={`mt-2 text-xs font-semibold leading-tight ${
-                                  isFinalRejected ? "text-danger" : isReached ? "text-dark-blue" : "text-gray-400"
+                                  isFinalRejected ? "text-danger" : isReached ? "text-dark-blue" : "text-muted-foreground"
                                 }`}
                               >
                                 {stage.label}
                               </p>
                               {stage.date ? (
-                                <p className="mt-0.5 text-[11px] text-gray-500 leading-tight">{stage.date}</p>
+                                <p className="mt-0.5 text-[11px] text-muted-foreground leading-tight">{stage.date}</p>
                               ) : null}
                             </div>
                           </Fragment>
@@ -311,12 +311,12 @@ function Applications() {
                     {isExpanded && (
                       <div
                         onClick={(e) => e.stopPropagation()}
-                        className="mt-4 pt-4 border-t border-gray-100 space-y-4 animate-fadeIn"
+                        className="mt-4 pt-4 border-t border-border space-y-4 animate-fadeIn"
                       >
                         {hasInterview ? (
-                          <div className="bg-gray-50/70 border border-gray-200 rounded-xl p-4 sm:p-5 space-y-4">
+                          <div className="bg-muted/70 border border-border rounded-xl p-4 sm:p-5 space-y-4">
                             {/* Interview Header Banner */}
-                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-3 border-b border-gray-200/80">
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-3 border-b border-border/80">
                               <div className="flex items-center gap-2">
                                 <div className="w-8 h-8 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-700">
                                   <Calendar className="w-4 h-4" />
@@ -325,7 +325,7 @@ function Applications() {
                                   <p className="font-mono text-[10px] tracking-wider uppercase text-amber-800 font-bold">
                                     Interview Scheduled
                                   </p>
-                                  <p className="text-sm font-bold text-gray-900">
+                                  <p className="text-sm font-bold text-foreground">
                                     {interviewFormatted ? interviewFormatted.full : "Schedule to be confirmed"}
                                   </p>
                                 </div>
@@ -339,11 +339,11 @@ function Applications() {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                               {/* Location */}
                               {parsedInstructions.location && (
-                                <div className="bg-white border border-gray-200 rounded-xl p-3.5 shadow-2xs">
-                                  <div className="flex items-center gap-1.5 text-xs font-mono font-semibold text-gray-500 uppercase tracking-wider mb-1">
+                                <div className="bg-card border border-border rounded-xl p-3.5 shadow-2xs">
+                                  <div className="flex items-center gap-1.5 text-xs font-mono font-semibold text-muted-foreground uppercase tracking-wider mb-1">
                                     <MapPin className="w-3.5 h-3.5 text-primary" /> Location / Venue
                                   </div>
-                                  <p className="text-sm font-semibold text-gray-900 break-words">
+                                  <p className="text-sm font-semibold text-foreground break-words">
                                     {parsedInstructions.location}
                                   </p>
                                 </div>
@@ -351,8 +351,8 @@ function Applications() {
 
                               {/* Recommended Attire */}
                               {parsedInstructions.attire && (
-                                <div className="bg-white border border-gray-200 rounded-xl p-3.5 shadow-2xs">
-                                  <div className="flex items-center gap-1.5 text-xs font-mono font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
+                                <div className="bg-card border border-border rounded-xl p-3.5 shadow-2xs">
+                                  <div className="flex items-center gap-1.5 text-xs font-mono font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
                                     <Shirt className="w-3.5 h-3.5 text-accent" /> Recommended Attire
                                   </div>
                                   <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-primary/10 text-primary border border-primary/20">
@@ -363,8 +363,8 @@ function Applications() {
 
                               {/* Items to Bring */}
                               {parsedInstructions.bring.length > 0 && (
-                                <div className="md:col-span-2 bg-white border border-gray-200 rounded-xl p-3.5 shadow-2xs">
-                                  <div className="flex items-center gap-1.5 text-xs font-mono font-semibold text-gray-500 uppercase tracking-wider mb-2">
+                                <div className="md:col-span-2 bg-card border border-border rounded-xl p-3.5 shadow-2xs">
+                                  <div className="flex items-center gap-1.5 text-xs font-mono font-semibold text-muted-foreground uppercase tracking-wider mb-2">
                                     <CheckSquare className="w-3.5 h-3.5 text-emerald-600" />
                                     What to Bring ({parsedInstructions.bring.length})
                                   </div>
@@ -392,11 +392,11 @@ function Applications() {
 
                               {/* Extra notes from instructions */}
                               {parsedInstructions.notes.length > 0 && (
-                                <div className="md:col-span-2 bg-white border border-gray-200 rounded-xl p-3.5 shadow-2xs">
-                                  <div className="flex items-center gap-1.5 text-xs font-mono font-semibold text-gray-500 uppercase tracking-wider mb-1">
-                                    <Info className="w-3.5 h-3.5 text-gray-400" /> Instructions & Notes
+                                <div className="md:col-span-2 bg-card border border-border rounded-xl p-3.5 shadow-2xs">
+                                  <div className="flex items-center gap-1.5 text-xs font-mono font-semibold text-muted-foreground uppercase tracking-wider mb-1">
+                                    <Info className="w-3.5 h-3.5 text-muted-foreground" /> Instructions & Notes
                                   </div>
-                                  <p className="text-xs text-gray-700 whitespace-pre-line leading-relaxed">
+                                  <p className="text-xs text-muted-foreground whitespace-pre-line leading-relaxed">
                                     {parsedInstructions.notes.join("\n")}
                                   </p>
                                 </div>
@@ -416,13 +416,13 @@ function Applications() {
                             )}
                           </div>
                         ) : (
-                          <div className="bg-gray-50/70 border border-gray-200 rounded-xl p-4 space-y-3">
+                          <div className="bg-muted/70 border border-border rounded-xl p-4 space-y-3">
                             <div className="flex items-start gap-3">
                               <div className="p-2 rounded-lg bg-primary/10 text-primary shrink-0">
                                 <Info className="w-4 h-4" />
                               </div>
                               <div className="flex-1 min-w-0">
-                                <p className="text-sm font-semibold text-gray-900">
+                                <p className="text-sm font-semibold text-foreground">
                                   {application.status === "Applied" && "Application Received"}
                                   {application.status === "Under Review" && "Under Review by Employer"}
                                   {application.status === "Accepted" && "Application Accepted"}
@@ -430,7 +430,7 @@ function Applications() {
                                   {application.status === "Rejected" && "Application Not Selected"}
                                   {application.status === "Terminated" && "Engagement Ended"}
                                 </p>
-                                <p className="text-xs text-gray-500 mt-0.5">
+                                <p className="text-xs text-muted-foreground mt-0.5">
                                   {application.status === "Applied" && "Your profile and documents were submitted to the employer. You will receive an update once they review it."}
                                   {application.status === "Under Review" && "The employer is currently reviewing candidate qualifications and credentials for this position."}
                                   {application.status === "Accepted" && "Congratulations! You have been accepted for this position. The employer may reach out with onboarding steps."}
@@ -442,9 +442,9 @@ function Applications() {
                             </div>
 
                             {application.employer_notes && (
-                              <div className="bg-white border border-gray-200 rounded-lg p-3 text-xs">
-                                <p className="font-mono text-[10px] uppercase font-semibold text-gray-400 mb-1">Employer Note</p>
-                                <p className="text-gray-700 whitespace-pre-line">{application.employer_notes}</p>
+                              <div className="bg-card border border-border rounded-lg p-3 text-xs">
+                                <p className="font-mono text-[10px] uppercase font-semibold text-muted-foreground mb-1">Employer Note</p>
+                                <p className="text-muted-foreground whitespace-pre-line">{application.employer_notes}</p>
                               </div>
                             )}
                           </div>

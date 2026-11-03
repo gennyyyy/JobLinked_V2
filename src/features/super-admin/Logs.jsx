@@ -74,8 +74,8 @@ function InfoRow({ label, value }) {
   if (!value) return null;
   return (
     <div>
-      <p className="font-mono text-[10px] tracking-wider text-gray-500 uppercase">{label}</p>
-      <p className="mt-1 text-sm text-gray-900 font-medium">{value}</p>
+      <p className="font-mono text-[10px] tracking-wider text-muted-foreground uppercase">{label}</p>
+      <p className="mt-1 text-sm text-foreground font-medium">{value}</p>
     </div>
   );
 }
@@ -96,20 +96,20 @@ function UserModal({ email, onClose }) {
   if (!email) return null;
   return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" onClick={onClose}>
-      <div ref={panelRef} className="bg-white w-full max-w-md max-h-[90vh] overflow-y-auto border border-primary rounded-lg shadow-xl p-5" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="logs-user-title">
-        <div className="flex items-start justify-between gap-3 pb-4 border-b border-gray-200">
+      <div ref={panelRef} className="bg-card w-full max-w-md max-h-[90vh] overflow-y-auto border border-primary rounded-lg shadow-xl p-5" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="logs-user-title">
+        <div className="flex items-start justify-between gap-3 pb-4 border-b border-border">
           <div>
             <span className="font-mono text-[10px] tracking-widest text-primary uppercase">USER PROFILE</span>
-            <h2 id="logs-user-title" className="mt-1 text-xl font-bold text-gray-900 uppercase">{loading ? email : user?.full_name || email}</h2>
-            {user?.role && <span className="mt-2 inline-block px-2 py-1 rounded-lg bg-gray-100 text-gray-600 text-xs capitalize">{user.role.replace("-", " ")}</span>}
+            <h2 id="logs-user-title" className="mt-1 text-xl font-bold text-foreground uppercase">{loading ? email : user?.full_name || email}</h2>
+            {user?.role && <span className="mt-2 inline-block px-2 py-1 rounded-lg bg-muted text-muted-foreground text-xs capitalize">{user.role.replace("-", " ")}</span>}
           </div>
-          <button type="button" onClick={onClose} className="p-1 rounded-lg text-gray-500 hover:text-gray-900 hover:bg-gray-100 transition-colors cursor-pointer" aria-label="Close"><X className="w-4 h-4" aria-hidden="true" /></button>
+          <button type="button" onClick={onClose} className="p-1 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer" aria-label="Close"><X className="w-4 h-4" aria-hidden="true" /></button>
         </div>
-        <div className="mt-4 grid grid-cols-1 gap-3 p-4 rounded-xl bg-gray-50 border border-gray-200">
+        <div className="mt-4 grid grid-cols-1 gap-3 p-4 rounded-xl bg-muted border border-border">
           {loading ? (
-            <p className="text-xs text-gray-500">Loading profile…</p>
+            <p className="text-xs text-muted-foreground">Loading profile…</p>
           ) : !user ? (
-            <p className="text-sm text-gray-500">No profile found for this email.</p>
+            <p className="text-sm text-muted-foreground">No profile found for this email.</p>
           ) : (
             <>
               <InfoRow label="Email" value={user.email} />
@@ -122,8 +122,8 @@ function UserModal({ email, onClose }) {
             </>
           )}
         </div>
-        <div className="mt-6 pt-5 border-t border-gray-200 flex justify-end">
-          <button type="button" onClick={onClose} className="px-5 py-2 text-xs font-medium rounded-xl border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors cursor-pointer">
+        <div className="mt-6 pt-5 border-t border-border flex justify-end">
+          <button type="button" onClick={onClose} className="px-5 py-2 text-xs font-medium rounded-xl border border-border text-muted-foreground hover:bg-muted transition-colors cursor-pointer">
             Close
           </button>
         </div>
@@ -184,20 +184,20 @@ function Logs() {
           <p className="font-mono text-[11px] tracking-[0.2em] text-primary uppercase font-medium">SYSTEM AUDIT</p>
         </div>
         <h1 className="mt-1 text-xl md:text-2xl font-bold tracking-tight text-dark-blue">Activity Logs</h1>
-        <p className="mt-2 text-sm text-gray-500">Review user actions and system activity across the platform</p>
+        <p className="mt-2 text-sm text-muted-foreground">Review user actions and system activity across the platform</p>
       </header>
 
 
 
-      <section className="bg-white border border-primary rounded-lg shadow-xs min-h-0 flex-1 flex flex-col overflow-hidden">
+      <section className="bg-card border border-primary rounded-lg shadow-xs min-h-0 flex-1 flex flex-col overflow-hidden">
         {/* Filter bar */}
-        <div className="shrink-0 px-5 py-4 flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-3 border-b border-gray-100">
+        <div className="shrink-0 px-5 py-4 flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-3 border-b border-border">
           <div className="flex-1 min-w-[150px]">
             <select
               value={filters.userId}
               onChange={(e) => updateFilter("userId", e.target.value)}
               aria-label="Filter by user"
-              className="w-full min-h-[38px] px-3.5 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-800 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all cursor-pointer"
+              className="w-full min-h-[38px] px-3.5 rounded-xl text-sm bg-muted border border-border text-gray-800 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all cursor-pointer"
             >
               <option value="">All users</option>
               {users.map((user) => <option key={user.id} value={user.id}>{user.full_name || user.email}</option>)}
@@ -208,7 +208,7 @@ function Logs() {
               value={filters.action}
               onChange={(e) => updateFilter("action", e.target.value)}
               aria-label="Filter by activity"
-              className="w-full min-h-[38px] px-3.5 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-800 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all cursor-pointer"
+              className="w-full min-h-[38px] px-3.5 rounded-xl text-sm bg-muted border border-border text-gray-800 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all cursor-pointer"
             >
               <option value="">All activities</option>
               <option value="auth.">auth.* (all auth events)</option>
@@ -220,14 +220,14 @@ function Logs() {
             value={filters.from}
             onChange={(e) => updateFilter("from", e.target.value)}
             aria-label="From date"
-            className="min-h-[38px] px-3.5 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-800 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all"
+            className="min-h-[38px] px-3.5 rounded-xl text-sm bg-muted border border-border text-gray-800 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all"
           />
           <input
             type="date"
             value={filters.to}
             onChange={(e) => updateFilter("to", e.target.value)}
             aria-label="To date"
-            className="min-h-[38px] px-3.5 rounded-xl text-sm bg-gray-50 border border-gray-200 text-gray-800 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all"
+            className="min-h-[38px] px-3.5 rounded-xl text-sm bg-muted border border-border text-gray-800 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all"
           />
           <button
             type="button"
@@ -246,11 +246,11 @@ function Logs() {
           <button
             type="button"
             onClick={() => { const nextFilters = { userId: "", action: "", from: "", to: "" }; setFilters(nextFilters); loadLogs(nextFilters); }}
-            className="min-h-[38px] px-4 rounded-xl border border-gray-200 bg-white text-xs font-semibold text-gray-700 hover:bg-gray-50 active:scale-[0.99] transition-all cursor-pointer"
+            className="min-h-[38px] px-4 rounded-xl border border-border bg-card text-xs font-semibold text-muted-foreground hover:bg-muted active:scale-[0.99] transition-all cursor-pointer"
           >
             Clear
           </button>
-          <span className="self-center ml-auto text-xs text-gray-500 font-medium whitespace-nowrap">{logs.length} records</span>
+          <span className="self-center ml-auto text-xs text-muted-foreground font-medium whitespace-nowrap">{logs.length} records</span>
         </div>
         {/* Table */}
         <div className="overflow-auto min-h-0 flex-1">
@@ -261,7 +261,7 @@ function Logs() {
               <col style={{ width: "190px" }} />
             </colgroup>
             <thead>
-              <tr className="sticky top-0 bg-white z-10 border-b border-gray-200 font-mono text-[10px] tracking-widest text-gray-500 uppercase">
+              <tr className="sticky top-0 bg-card z-10 border-b border-border font-mono text-[10px] tracking-widest text-muted-foreground uppercase">
                 <th scope="col" className="text-left py-3 pl-5 pr-3 font-medium">Date</th>
                 <th scope="col" className="text-left py-3 px-3 font-medium">User</th>
                 <th scope="col" className="text-left py-3 px-3 pr-5 font-medium">Activity</th>
@@ -269,8 +269,8 @@ function Logs() {
             </thead>
             <tbody>
               {logs.map((log) => (
-                <tr key={log.id} className="border-t border-gray-100 hover:bg-gray-50/60 transition-colors align-top">
-                  <th scope="row" className="py-3 pl-5 pr-3 text-left whitespace-nowrap text-xs text-gray-500">{formatDate(log.created_at)}</th>
+                <tr key={log.id} className="border-t border-border hover:bg-muted/60 transition-colors align-top">
+                  <th scope="row" className="py-3 pl-5 pr-3 text-left whitespace-nowrap text-xs text-muted-foreground">{formatDate(log.created_at)}</th>
                   <td className="py-3 px-3 text-xs">
                     {log.actor_email ? (
                       <button
@@ -281,7 +281,7 @@ function Logs() {
                         {log.actor_email}
                       </button>
                     ) : (
-                      <span className="text-gray-500">{log.actor_name || "—"}</span>
+                      <span className="text-muted-foreground">{log.actor_name || "—"}</span>
                     )}
                   </td>
                   <td className="py-3 px-3 pr-5">
@@ -291,7 +291,7 @@ function Logs() {
               ))}
             </tbody>
           </table>
-          {logs.length === 0 && <div className="py-8 text-center text-sm text-gray-500">No activity logs match these filters.</div>}
+          {logs.length === 0 && <div className="py-8 text-center text-sm text-muted-foreground">No activity logs match these filters.</div>}
         </div>
       </section>
       {selectedEmail && <UserModal email={selectedEmail} onClose={() => setSelectedEmail("")} />}
