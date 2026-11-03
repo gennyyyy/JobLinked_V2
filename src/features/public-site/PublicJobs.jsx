@@ -1,7 +1,6 @@
 import { useSearchParams } from "react-router-dom";
 import SkipLink from "../../shared/components/SkipLink";
-import PublicHeader from "../../shared/components/PublicHeader";
-import PublicFooter from "../../shared/components/PublicFooter";
+import PublicShell from "../../shared/components/PublicShell";
 import BrowseJobs from "../../shared/components/BrowseJobs";
 
 function PublicJobs() {
@@ -10,8 +9,7 @@ function PublicJobs() {
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col font-sans">
       <SkipLink />
-      <PublicHeader />
-
+<PublicShell>
       <main id="main-content" tabIndex={-1}
         className="flex-1 w-full p-[5%]">
         <div className="mb-8">
@@ -28,8 +26,7 @@ function PublicJobs() {
           initialLocation={searchParams.get("location") || ""}
         />
       </main>
-
-      <PublicFooter />
+      </PublicShell>
     </div>
   );
 }
