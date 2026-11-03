@@ -10,7 +10,6 @@ const mocks = vi.hoisted(() => ({ role: 'job-seeker', fetch: vi.fn() }));
 
 vi.mock('../db.js', () => ({ pool: { query: vi.fn() } }));
 vi.mock('../auth.js', () => ({
-    requirePermission: (t) => (_r, _s, n) => n(),
   auth: (req, res, next) => {
     if (!mocks.role) {
       return res.status(401).json({ error: { code: 'UNAUTHORIZED', message: 'Missing access token' } });

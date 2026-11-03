@@ -17,7 +17,6 @@ vi.mock('../db.js', () => ({
   },
 }));
 vi.mock('../auth.js', () => ({
-    requirePermission: (t) => (_r, _s, n) => n(),
   tokenAuth: (req, _res, next) => {
     req.user = { id: 'user-1', email: 'u@x.com', app_metadata: mocks.appMetadata };
     next();

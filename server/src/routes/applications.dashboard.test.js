@@ -17,7 +17,6 @@ const src = srv('src/routes/applications.js');
 const mocks = vi.hoisted(() => ({ poolQuery: vi.fn(), role: 'employer', userId: '22222222-2222-2222-2222-222222222222' }));
 vi.mock('../db.js', () => ({ pool: { query: mocks.poolQuery } }));
 vi.mock('../auth.js', () => ({
-    requirePermission: (t) => (_r, _s, n) => n(),
   auth: (req, _res, next) => { req.user = { id: mocks.userId, email: 'e@x.com', role: mocks.role }; next(); },
   optionalAuth: (_req, _res, next) => next(),
   requireRole: (...roles) => (req, res, next) =>

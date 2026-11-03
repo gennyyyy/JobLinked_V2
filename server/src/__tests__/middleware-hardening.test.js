@@ -30,10 +30,10 @@ describe('L2 — CORS preflight caching', () => {
   it('answers OPTIONS with Access-Control-Max-Age: 86400', async () => {
     const res = await request(app)
       .options('/api/jobs')
-      .set('Origin', 'http://localhost:3000')
+      .set('Origin', 'http://localhost:5173')
       .set('Access-Control-Request-Method', 'GET');
     expect(res.status).toBe(204);
-    expect(res.headers['access-control-allow-origin']).toBe('http://localhost:3000');
+    expect(res.headers['access-control-allow-origin']).toBe('http://localhost:5173');
     expect(res.headers['access-control-max-age']).toBe('86400');
   });
 });

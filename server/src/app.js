@@ -10,9 +10,6 @@ import adminRoutes from './routes/admin.js';
 import reportsRoutes from './routes/reports.js';
 import aiRoutes from './routes/ai.js';
 import health from './routes/health.js';
-import savedJobsRoutes from './routes/saved-jobs.js';
-import announcementsRoutes from './routes/announcements.js';
-import correctionsRoutes from './routes/corrections.js';
 import { authLimiter, uploadLimiter, apiLimiter, stricterLimiterPaths } from './middleware/rateLimit.js';
 import requestId from './middleware/requestId.js';
 import requestLog from './middleware/requestLog.js';
@@ -50,7 +47,7 @@ export function createApp() {
   // Fail closed: a forgotten CORS_ORIGIN must not reflect every origin.
   const corsOrigins = process.env.CORS_ORIGIN?.split(',').filter(Boolean);
   // L2: cache the preflight for a day so browsers stop re-OPTIONSing.
-  app.use(cors({ origin: corsOrigins?.length ? corsOrigins : ['http://localhost:3000'], maxAge: 86400 }));
+  app.use(cors({ origin: corsOrigins?.length ? corsOrigins : ['http://localhost:5173'], maxAge: 86400 }));
   // L3: before the limiters so even 429 answers carry the correlation id.
   app.use(requestId);
   // H5: one JSON access line per request, wrapped around everything below.
@@ -71,7 +68,7 @@ export function createApp() {
   // auth/upload limiters (which keep their stricter buckets via apiLimiter's
   // skip) and after /api/health so load balancer probes stay unlimited.
   app.use('/api', apiLimiter);
-  app.use('/api', authRoutes, jobsRoutes, applicationsRoutes, profilesRoutes, adminRoutes, reportsRoutes, aiRoutes, savedJobsRoutes, announcementsRoutes, correctionsRoutes);
+  app.use('/api', authRoutes, jobsRoutes, applicationsRoutes, profilesRoutes, adminRoutes, reportsRoutes, aiRoutes);
 
   app.use('/api', (_req, res) => err(res, 404, 'NOT_FOUND', 'Route not found'));
   // eslint-disable-next-line no-unused-vars

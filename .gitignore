@@ -11,25 +11,9 @@ node_modules
 server/node_modules
 server/.env
 server/uploads/
-.next/
-.env*.local
 dist
 dist-ssr
 *.local
-
-# Playwright
-test-results/
-playwright-report/
-blob-report/
-
-# v0 sandbox internal files
-__v0_runtime_loader.js
-__v0_devtools.tsx
-__v0_jsx-dev-runtime.ts
-.snowflake/
-.design-cache/
-.v0-trash/
-.vercel/
 
 # Editor directories and files
 .vscode/*

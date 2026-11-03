@@ -1,8 +1,6 @@
 import { Router } from 'express';
 import { pool } from '../db.js';
 import { auth, requireRole, supa } from '../auth.js';
-import * as _authNs from '../auth.js';
-const requirePermission = _authNs.requirePermission || ((token) => (_req, _res, next) => next());
 import { ah, err, audit, notifyUser, buildFullName, isUuid, isNumericId, likeEscape, pageParams, withTransaction } from '../util.js';
 import { notifyMatchingSeekers } from './jobs.js';
 import logger from '../logger.js';
@@ -59,7 +57,7 @@ const APPLICATION_STATUSES = ['Applied', 'Under Review', 'Interview', 'Accepted'
 // B15: LIKE metacharacters in a search must match literally.
 const likeFilter = (value) => `%${likeEscape(value)}%`;
 
-router.get('/admin/users', ...admin, requirePermission('roles'), ah(async (req, res) => {
+router.get('/admin/users', ...admin, ah(async (req, res) => {
   const { role = null, search = '', status = null } = req.query;
   const tables = role ? [USER_TABLES[role] || null] : Object.values(USER_TABLES);
   if (role && !tables[0]) return err(res, 400, 'BAD_REQUEST', 'Invalid role filter');
@@ -122,7 +120,7 @@ export async function findUserTable(id) {
   return row ? { table: row.tbl, profile: { ...row.profile, role: ROLE_BY_TABLE[row.tbl] } } : {};
 }
 
-router.patch('/admin/users/:id', ...admin, requirePermission('roles'), ah(async (req, res) => {
+router.patch('/admin/users/:id', ...admin, ah(async (req, res) => {
   const body = { ...(req.body || {}) };
   // Lone super-admin footgun: suspending or re-tagging yourself here (unlike
   // the dedicated /role and /custom-role endpoints) has no second admin to
@@ -168,7 +166,7 @@ router.patch('/admin/users/:id', ...admin, requirePermission('roles'), ah(async 
 
 // Admin-initiated invite (ADR-024). No DB row here — the invitee's role row is
 // created lazily by POST /auth/provision when they accept (see AcceptInvite.jsx).
-router.post('/admin/users/invite', ...admin, requirePermission('roles'), ah(async (req, res) => {
+router.post('/admin/users/invite', ...admin, ah(async (req, res) => {
   const INVITE_BASE_ROLES = ['job-seeker', 'employer', 'super-admin'];
   const b = req.body || {};
   const email = String(b.email || '').trim();
@@ -242,7 +240,7 @@ router.get('/admin/companies', ...admin, ah(async (req, res) => {
   res.json({ data: rows, total, page: pg.page, pageSize: pg.pageSize });
 }));
 
-router.get('/admin/jobs', ...admin, requirePermission('jobs'), ah(async (req, res) => {
+router.get('/admin/jobs', ...admin, ah(async (req, res) => {
   const pg = pageParams(res, req.query, 25, 500);
   if (!pg) return;
   const vals = [];
@@ -285,7 +283,7 @@ router.get('/admin/applications', ...admin, ah(async (req, res) => {
   res.json({ data: rows, total, page: pg.page, pageSize: pg.pageSize });
 }));
 
-router.get('/admin/employees', ...admin, requirePermission('employees'), ah(async (req, res) => {
+router.get('/admin/employees', ...admin, ah(async (req, res) => {
   const { rows } = await pool.query(
     `select a.*, json_build_object('id', j.id, 'title', j.title, 'company_id', j.company_id,
        'employers', json_build_object('id', e.id, 'company_name', e.company_name)) as job,
@@ -296,7 +294,7 @@ router.get('/admin/employees', ...admin, requirePermission('employees'), ah(asyn
   res.json(rows);
 }));
 
-router.get('/admin/referrals', ...admin, requirePermission('employees'), ah(async (req, res) => {
+router.get('/admin/referrals', ...admin, ah(async (req, res) => {
   const { rows } = await pool.query(
     `select a.*, json_build_object('id', j.id, 'title', j.title,
        'employers', json_build_object('company_name', e.company_name)) as job,
@@ -307,7 +305,7 @@ router.get('/admin/referrals', ...admin, requirePermission('employees'), ah(asyn
   res.json(rows);
 }));
 
-router.get('/admin/accreditations', ...admin, requirePermission('accreditation'), ah(async (req, res) => {
+router.get('/admin/accreditations', ...admin, ah(async (req, res) => {
   const pg = pageParams(res, req.query, 25, 500);
   if (!pg) return;
   const base = `from employer_accreditations a left join employers e on e.id = a.company_id
@@ -346,7 +344,7 @@ if (process.env.RETENTION_DISABLE !== '1') {
   }, RETENTION_INTERVAL_MS).unref?.();
 }
 
-router.get('/admin/audit-logs', ...admin, requirePermission('audit'), ah(async (req, res) => {
+router.get('/admin/audit-logs', ...admin, ah(async (req, res) => {
   const { limit = 500, userId = '', action = '', from = '', to = '' } = req.query;
   const vals = [];
   const conds = [];
@@ -446,17 +444,17 @@ async function roleNameTaken(name, excludeId = null) {
   return rows.length > 0;
 }
 
-router.get('/admin/permissions', ...admin, requirePermission('roles'), ah(async (_req, res) => {
+router.get('/admin/permissions', ...admin, ah(async (_req, res) => {
   res.json(ROLE_PERMISSIONS);
 }));
 
-router.get('/admin/roles', ...admin, requirePermission('roles'), ah(async (req, res) => {
+router.get('/admin/roles', ...admin, ah(async (req, res) => {
   const { rows } = await pool.query(
     `select * from reference_data where category = 'custom_role' order by sort_order, value`);
   res.json(rows.map(parseCustomRole));
 }));
 
-router.post('/admin/roles', ...admin, requirePermission('roles'), ah(async (req, res) => {
+router.post('/admin/roles', ...admin, ah(async (req, res) => {
   const checked = validateRolePayload(req.body);
   if (checked.error) return err(res, 400, 'BAD_REQUEST', checked.error);
   if (await roleNameTaken(checked.value.name)) return err(res, 409, 'CONFLICT', 'A role with this name already exists');
@@ -469,7 +467,7 @@ router.post('/admin/roles', ...admin, requirePermission('roles'), ah(async (req,
   res.status(201).json(parseCustomRole(rows[0]));
 }));
 
-router.patch('/admin/roles/:id', ...admin, requirePermission('roles'), ah(async (req, res) => {
+router.patch('/admin/roles/:id', ...admin, ah(async (req, res) => {
   if (!isNumericId(req.params.id)) return err(res, 400, 'BAD_REQUEST', 'Invalid id');
   const { rows: existing } = await pool.query(
     `select * from reference_data where id = $1 and category = 'custom_role'`, [req.params.id]);
@@ -485,7 +483,7 @@ router.patch('/admin/roles/:id', ...admin, requirePermission('roles'), ah(async 
   res.json(parseCustomRole(rows[0]));
 }));
 
-router.delete('/admin/roles/:id', ...admin, requirePermission('roles'), ah(async (req, res) => {
+router.delete('/admin/roles/:id', ...admin, ah(async (req, res) => {
   if (!isNumericId(req.params.id)) return err(res, 400, 'BAD_REQUEST', 'Invalid id');
   const { rows: existing } = await pool.query(
     `select * from reference_data where id = $1 and category = 'custom_role'`, [req.params.id]);
@@ -499,7 +497,7 @@ router.delete('/admin/roles/:id', ...admin, requirePermission('roles'), ah(async
 }));
 
 // Tag a user with a custom role (assignment lives on the Users page only).
-router.post('/admin/users/:id/custom-role', ...admin, requirePermission('roles'), ah(async (req, res) => {
+router.post('/admin/users/:id/custom-role', ...admin, ah(async (req, res) => {
   if (req.params.id === req.user.id) return err(res, 403, 'FORBIDDEN', 'You cannot change your own role');
   const { table, profile } = await findUserTable(req.params.id);
   if (!profile) return err(res, 404, 'NOT_FOUND', 'User account not found');
@@ -586,7 +584,7 @@ async function adminWriteStatus(client, jobId, status, remarks, changedBy) {
     [jobId, status, remarks, changedBy]);
 }
 
-router.patch('/admin/jobs/:id', ...admin, requirePermission('jobs'), ah(async (req, res) => {
+router.patch('/admin/jobs/:id', ...admin, ah(async (req, res) => {
   if (!isUuid(req.params.id)) return err(res, 404, 'NOT_FOUND', 'Job not found');
   const { rows: jrows } = await pool.query('select * from job_vacancies where id = $1', [req.params.id]);
   if (!jrows[0]) return err(res, 404, 'NOT_FOUND', 'Job not found');
@@ -646,15 +644,15 @@ const adminJobPublish = (status, title) => ah(async (req, res) => {
   if (status === 'published') void notifyMatchingSeekers(rows[0]);
   res.json(rows[0]);
 });
-router.post('/admin/jobs/:id/publish', ...admin, requirePermission('jobs'), adminJobPublish('published', 'Job published'));
-router.post('/admin/jobs/:id/unpublish', ...admin, requirePermission('jobs'), adminJobPublish('draft', 'Job unpublished'));
+router.post('/admin/jobs/:id/publish', ...admin, adminJobPublish('published', 'Job published'));
+router.post('/admin/jobs/:id/unpublish', ...admin, adminJobPublish('draft', 'Job unpublished'));
 
 // System broadcast: one 'system' row per ACTIVE user (fan-out, never a NULL
 // user_id — the column is NOT NULL). expires_at lives only in the audit
 // details jsonb (notifications has no details column — adding one is DDL,
 // needs arch approval).
 // ponytail: single multi-row INSERT; per-user queue table if user count explodes
-router.post('/admin/system-notifications', ...admin, requirePermission('announcements'), ah(async (req, res) => {
+router.post('/admin/system-notifications', ...admin, ah(async (req, res) => {
   const { title, message, link = null, expires_at = null } = req.body || {};
   if (!title || !message) return err(res, 400, 'BAD_REQUEST', 'title and message are required');
   const { rowCount } = await pool.query(
@@ -677,7 +675,7 @@ router.post('/admin/system-notifications', ...admin, requirePermission('announce
 // row reactivates it instead of hitting the PK (the original B2 500).
 // Deactivate and upsert share one transaction; a same-email row already in
 // the target table is a 409. 403 on self-move (lockout footgun).
-router.post('/admin/users/:id/role', ...admin, requirePermission('roles'), ah(async (req, res) => {
+router.post('/admin/users/:id/role', ...admin, ah(async (req, res) => {
   if (req.params.id === req.user.id) return err(res, 403, 'FORBIDDEN', 'You cannot change your own role');
   const { role } = req.body || {};
   if (!USER_TABLES[role]) return err(res, 400, 'BAD_REQUEST', 'Invalid role');

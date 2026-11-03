@@ -43,13 +43,8 @@ const ownOrAdmin = async (req, res, app) => {
 };
 
 router.post('/applications', auth, requireRole('job-seeker'), ah(async (req, res) => {
-  const { job_id, resume_id = null, cover_letter = null } = req.body || {};
+  const { job_id, resume_id = null } = req.body || {};
   if (!job_id) return err(res, 400, 'BAD_REQUEST', 'job_id is required');
-  if (cover_letter !== null && cover_letter !== undefined) {
-    if (typeof cover_letter !== 'string') return err(res, 400, 'BAD_REQUEST', 'cover_letter must be a string');
-    if (cover_letter.length > 3000) return err(res, 400, 'BAD_REQUEST', 'cover_letter must be at most 3000 characters');
-  }
-  const cl = (typeof cover_letter === 'string' && cover_letter.trim()) ? cover_letter.trim() : null;
   const job = await loadJob(job_id);
   if (!job) return err(res, 404, 'NOT_FOUND', 'Job not found');
   if (job.status !== 'published') return err(res, 400, 'BAD_REQUEST', 'This job is not accepting applications');
@@ -68,14 +63,14 @@ router.post('/applications', auth, requireRole('job-seeker'), ah(async (req, res
     // application through — no check-then-act TOCTOU. current_date in SQL
     // avoids the JS-vs-Postgres timezone question on a DATE column.
     const r = await pool.query(
-      `insert into job_applications (job_id, seeker_id, resume_id, cover_letter)
-       select $1, $2, $3, $4
+      `insert into job_applications (job_id, seeker_id, resume_id)
+       select $1, $2, $3
         where exists (
           select 1 from job_vacancies
            where id = $1 and status = 'published'
              and (deadline is null or deadline >= current_date))
-       returning id, job_id, seeker_id, resume_id, status, cover_letter, applied_at, updated_at`,
-      [job_id, req.user.id, resume_id, cl]);
+       returning id, job_id, seeker_id, resume_id, status, applied_at, updated_at`,
+      [job_id, req.user.id, resume_id]);
     row = r.rows[0];
     if (!row) return err(res, 400, 'BAD_REQUEST', 'The application deadline for this job has passed.');
   } catch (e) {

@@ -173,18 +173,7 @@ router.get('/auth/me', tokenAuth, ah(async (req, res) => {
   const found = await resolveRole(req.user.id);
   if (!found) return err(res, 404, 'NOT_FOUND', 'Profile not found for this account');
   if (found.profile.status !== 'active') return err(res, 403, 'FORBIDDEN', 'This account has been suspended or deactivated. Contact PESO.');
-  const payload = { ...found.profile, role: found.role };
-  if (found.role === 'super-admin') {
-    const crId = found.profile.custom_role_id ?? null;
-    if (crId) {
-      const { rows } = await pool.query(`select id, value, details from reference_data where id = $1`, [crId]);
-      const r = rows[0];
-      payload.custom_role = r ? { id: r.id, name: r.value, permissions: (r.details && r.details.permissions) || [] } : null;
-    } else {
-      payload.custom_role = null;
-    }
-  }
-  res.json(payload);
+  res.json({ ...found.profile, role: found.role });
 }));
 
 export default router;
