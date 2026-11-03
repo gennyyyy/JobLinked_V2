@@ -5,7 +5,6 @@ import LoadingScreen from './shared/components/LoadingScreen'
 import ErrorBoundary from './shared/components/ErrorBoundary'
 import useAuth from './shared/hooks/useAuth'
 import { Toaster } from './components/ui/sonner'
-import { ThemeProvider } from './shared/context/ThemeProvider'
 
 // Route-level code splitting: each page is its own chunk, so a visitor on the
 // public site never downloads the admin / employer / seeker bundles.
@@ -53,11 +52,10 @@ const NotificationsPage = lazy(() => import('./shared/components/NotificationsPa
 function App() {
   return (
     <ErrorBoundary>
-      <ThemeProvider>
-        <BrowserRouter>
-          <Suspense fallback={<LoadingScreen />}>
-            <Toaster position="top-center" />
-            <Routes>
+      <BrowserRouter>
+        <Suspense fallback={<LoadingScreen />}>
+          <Toaster position="top-center" />
+          <Routes>
             <Route path="/" element={<PublicRoute><Landing /></PublicRoute>} />
             <Route path="/jobs" element={<PublicRoute><PublicJobs /></PublicRoute>} />
             <Route path="/jobs/:jobId" element={<PublicRoute><PublicJobDetail /></PublicRoute>} />
@@ -137,8 +135,7 @@ function App() {
             </Routes>
           </Suspense>
         </BrowserRouter>
-      </ThemeProvider>
-    </ErrorBoundary>
+      </ErrorBoundary>
   )
 }
 
