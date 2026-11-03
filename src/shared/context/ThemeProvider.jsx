@@ -59,3 +59,7 @@ export function useTheme() {
   if (!context) throw new Error('useTheme must be used within ThemeProvider')
   return context
 }
+
+// Exported for consumers that render outside the provider and must degrade
+// gracefully instead of throwing (ThemeToggle in isolated test renders).
+export { ThemeContext }

@@ -1,8 +1,21 @@
+import { useContext } from 'react'
 import { Moon, Sun } from 'lucide-react'
-import { useTheme } from '../hooks/useTheme'
+import { ThemeContext } from '../context/ThemeProvider'
+
+// Outside a ThemeProvider (isolated shells/tests) the system preference is
+// shown and the toggle degrades to a no-op instead of crashing the render.
+function useThemeState() {
+  const context = useContext(ThemeContext)
+  if (context) return context
+  const dark =
+    typeof window !== 'undefined' &&
+    typeof window.matchMedia === 'function' &&
+    window.matchMedia('(prefers-color-scheme: dark)').matches
+  return { resolved: dark ? 'dark' : 'light', setTheme: () => {} }
+}
 
 export default function ThemeToggle() {
-  const { resolved, setTheme } = useTheme()
+  const { resolved, setTheme } = useThemeState()
   const isDark = resolved === 'dark'
 
   return (

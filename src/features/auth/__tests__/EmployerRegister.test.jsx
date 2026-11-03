@@ -54,6 +54,9 @@ describe('EmployerRegister address', () => {
     fillRequired()
     fireEvent.change(screen.getByLabelText(/barangay/i), { target: { value: 'Pulong Buhangin' } })
     fireEvent.change(screen.getByLabelText(/postal/i), { target: { value: '3022' } })
+    // Term gate ships disabled until the modal is opened: open + agree first.
+    fireEvent.click(screen.getByRole('button', { name: /view terms/i }))
+    fireEvent.click(screen.getByLabelText(/agree to the municipal data collection terms/i))
     submit()
 
     await waitFor(() => expect(signUp).toHaveBeenCalled())
@@ -72,6 +75,9 @@ describe('EmployerRegister address', () => {
     signUp.mockResolvedValue({ id: 'employer-1', emailConfirmationRequired: false })
     renderPage()
     fillRequired()
+    // Term gate ships disabled until the modal is opened: open + agree first.
+    fireEvent.click(screen.getByRole('button', { name: /view terms/i }))
+    fireEvent.click(screen.getByLabelText(/agree to the municipal data collection terms/i))
     submit()
 
     await waitFor(() => expect(signUp).toHaveBeenCalled())

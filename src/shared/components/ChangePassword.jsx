@@ -35,7 +35,7 @@ function ChangePassword() {
     <details className="group profile-panel bg-white border border-primary rounded-lg p-5 md:p-6">
       <summary className="flex cursor-pointer list-none items-center justify-between gap-4 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 [&::-webkit-details-marker]:hidden">
         <span className="border-l-4 border-primary pl-4">
-          <span className="block text-lg font-semibold text-gray-900">Change Password</span>
+          <h3 className="text-lg font-semibold text-gray-900">Change Password</h3>
           <span className="mt-1 block text-xs text-gray-500">Use a new password with at least 8 characters.</span>
         </span>
         <span aria-hidden="true" className="text-xl leading-none text-primary transition-transform group-open:rotate-45">+</span>
