@@ -660,6 +660,7 @@
   --color-input: var(--border);
   --color-ring: var(--primary);
   --color-navy: var(--navy);
+  --color-dark-blue: var(--navy);
   --color-teal: var(--teal);
   --color-teal-soft: #eaf8f4;
   --color-blue-soft: #edf4ff;

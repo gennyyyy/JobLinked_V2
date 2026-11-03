@@ -1,157 +1,107 @@
-import { Button } from "../../components/ui/button";
-import { Input } from "../../components/ui/input";
-import { Label } from "../../components/ui/label";
-import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { supabase } from "../../shared/lib/supabase";
-import { getProfile, provision } from "../../shared/services/auth";
-import useAuth from "../../shared/hooks/useAuth";
-import LoadingScreen from "../../shared/components/LoadingScreen";
-import SkipLink from "../../shared/components/SkipLink";
-import PublicShell from "../../shared/components/PublicShell";
+import { useEffect, useState } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
+import { ArrowRight, Loader2 } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { FieldGroup, Field, FieldLabel } from '@/components/ui/field'
+import { InputGroup, InputGroupInput } from '@/components/ui/input-group'
+import { supabase } from '@/shared/lib/supabase'
+import { getProfile, provision } from '@/shared/services/auth'
+import useAuth from '@/shared/hooks/useAuth'
+import LoadingScreen from '@/shared/components/LoadingScreen'
+import PublicShell from '@/shared/components/PublicShell'
+import AuthFrame from './AuthFrame'
 
-const INVALID = "This invite link is invalid or expired.";
+const INVALID = 'This invite link is invalid or expired.'
 
-function AcceptInvite() {
-  const navigate = useNavigate();
-  const { refreshUser } = useAuth();
-  const [session, setSession] = useState(null);
-  const [profile, setProfile] = useState(null);
-  const [error, setError] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirm, setConfirm] = useState("");
-  const [busy, setBusy] = useState(false);
+export default function AcceptInvite() {
+  const navigate = useNavigate()
+  const { refreshUser } = useAuth()
+  const [session, setSession] = useState(null)
+  const [profile, setProfile] = useState(null)
+  const [error, setError] = useState('')
+  const [password, setPassword] = useState('')
+  const [confirm, setConfirm] = useState('')
+  const [busy, setBusy] = useState(false)
 
   useEffect(() => {
-    let active = true;
-    (async () => {
-      const { data: { session: sess }, error: authError } = await supabase.auth.getSession();
-      if (authError) throw authError;
-      if (!sess?.user) throw new Error(INVALID);
-
-      let current = await getProfile(sess.user.id);
-      if (!current) {
-        current = await provision({ ...sess.user.user_metadata, email: sess.user.email });
-      }
-      if (!current?.role) throw new Error(INVALID);
-      if (active) { setSession(sess); setProfile(current); }
-    })().catch((err) => active && setError(err.message || INVALID));
-    return () => { active = false; };
-  }, []);
+    let active = true
+    ;(async () => {
+      const { data: { session: sess }, error: authError } = await supabase.auth.getSession()
+      if (authError) throw authError
+      if (!sess?.user) throw new Error(INVALID)
+      let current = await getProfile(sess.user.id)
+      if (!current) current = await provision({ ...sess.user.user_metadata, email: sess.user.email })
+      if (!current?.role) throw new Error(INVALID)
+      if (active) { setSession(sess); setProfile(current) }
+    })().catch((err) => active && setError(err.message || INVALID))
+    return () => { active = false }
+  }, [])
 
   async function handleSubmit(event) {
-    event.preventDefault();
-    setError("");
+    event.preventDefault()
+    setError('')
     if (!password || password.length < 8) {
-      setError("Password must be at least 8 characters");
-      return;
+      setError('Password must be at least 8 characters')
+      return
     }
     if (password !== confirm) {
-      setError("Passwords do not match");
-      return;
+      setError('Passwords do not match')
+      return
     }
-    setBusy(true);
+    setBusy(true)
     try {
-      const { error: updateError } = await supabase.auth.updateUser({ password });
-      if (updateError) throw updateError;
-      await refreshUser(session.user);
-      navigate(`/${profile.role}`, { replace: true });
+      const { error: updateError } = await supabase.auth.updateUser({ password })
+      if (updateError) throw updateError
+      await refreshUser(session.user)
+      navigate(`/${profile.role}`, { replace: true })
     } catch (err) {
-      setError(err.message || "Could not set your password. The invite may have expired.");
+      setError(err.message || 'Could not set your password. The invite may have expired.')
     } finally {
-      setBusy(false);
+      setBusy(false)
     }
   }
 
   if (error && !profile) {
     return (
-      <main className="min-h-screen flex items-center justify-center bg-muted p-6">
-        <div className="max-w-md rounded-lg border border-primary bg-card p-6 text-center shadow-xl">
-          <h1 className="text-xl font-bold text-dark-blue">Invite link issue</h1>
-          <p className="mt-3 text-sm text-muted-foreground">{error}</p>
-          <Link to="/portals" className="mt-6 inline-flex min-h-[44px] items-center rounded-xl bg-primary px-6 text-sm font-semibold text-white">
-            Go to sign in
-          </Link>
-        </div>
-      </main>
-    );
+      <PublicShell>
+        <AuthFrame title="Invite link issue." subtitle="We couldn’t open this invitation.">
+          <div className="flex flex-col gap-5">
+            <p role="alert" className="text-xs leading-6 text-destructive">{error}</p>
+            <Link to="/portals" className="text-xs font-medium text-primary">Go to sign in</Link>
+          </div>
+        </AuthFrame>
+      </PublicShell>
+    )
   }
 
-  if (!profile) return <LoadingScreen />;
+  if (!profile) return <LoadingScreen />
 
   return (
-    <div className="min-h-screen bg-muted text-foreground flex flex-col font-sans">
-      <SkipLink />
-      <PublicShell>
-      <main id="main-content" tabIndex={-1}
-        className="flex-1 flex items-center justify-center p-[5%]">
-        <div className="w-full max-w-md bg-card border border-primary rounded-lg p-6 md:p-9 shadow-xl">
-          <div className="flex items-center justify-between mb-6">
-            <Link to="/portals" className="text-xs text-muted-foreground hover:text-primary transition-colors">
-              ← Portals
-            </Link>
-            <span className="font-mono text-[10px] tracking-widest uppercase px-2.5 py-1 rounded-full bg-primary/10 border border-primary/25 text-primary">
-              Welcome
-            </span>
-          </div>
-
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight text-dark-blue">Set your password</h1>
-            <p className="mt-2 text-sm text-muted-foreground">
-              Your invite is ready. Choose a password to activate your account.
-            </p>
-          </div>
-
-          <form onSubmit={handleSubmit} className="mt-7 space-y-4">
-            {error && (
-              <div className="text-sm text-danger bg-danger/10 border border-danger/20 px-4 py-3 rounded-lg">{error}</div>
-            )}
-
-            <div>
-              <Label htmlFor="invite-password" className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase mb-1.5">
-                New Password
-              </Label>
-              <Input
-                id="invite-password"
-                name="password"
-                type="password"
-                placeholder="Min. 8 characters"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full min-h-[44px] px-4 rounded-xl text-sm bg-muted border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all"
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="invite-confirm" className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase mb-1.5">
-                Confirm Password
-              </Label>
-              <Input
-                id="invite-confirm"
-                name="confirm"
-                type="password"
-                placeholder="Re-enter password"
-                required
-                value={confirm}
-                onChange={(e) => setConfirm(e.target.value)}
-                className="w-full min-h-[44px] px-4 rounded-xl text-sm bg-muted border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all"
-              />
-            </div>
-
-            <Button
-              type="submit"
-              disabled={busy}
-              className="w-full mt-6 min-h-[44px] px-6 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-primary-hover active:scale-[0.98] transition-all shadow-md disabled:opacity-60"
-            >
-              {busy ? "Saving…" : "Save New Password"}
-            </Button>
-          </form>
-        </div>
-      </main>
-      </PublicShell>
-    </div>
-  );
+    <PublicShell>
+      <AuthFrame title="Set your password." subtitle="Your invite is ready. Choose a password to activate your account.">
+        <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+          <FieldGroup>
+            <Field>
+              <FieldLabel htmlFor="invite-password">New Password</FieldLabel>
+              <InputGroup>
+                <InputGroupInput id="invite-password" name="password" type="password" autoComplete="new-password" placeholder="Min. 8 characters" required value={password} onChange={(e) => setPassword(e.target.value)} />
+              </InputGroup>
+            </Field>
+            <Field>
+              <FieldLabel htmlFor="invite-confirm">Confirm Password</FieldLabel>
+              <InputGroup>
+                <InputGroupInput id="invite-confirm" name="confirm" type="password" autoComplete="new-password" placeholder="Re-enter password" required value={confirm} onChange={(e) => setConfirm(e.target.value)} />
+              </InputGroup>
+            </Field>
+          </FieldGroup>
+          {error && <p role="alert" className="text-xs leading-6 text-destructive">{error}</p>}
+          <Button type="submit" disabled={busy}>
+            {busy ? <Loader2 data-icon="inline-start" className="animate-spin" /> : null}
+            {busy ? 'Saving…' : 'Save New Password'}
+            <ArrowRight data-icon="inline-end" />
+          </Button>
+        </form>
+      </AuthFrame>
+    </PublicShell>
+  )
 }
-
-export default AcceptInvite;

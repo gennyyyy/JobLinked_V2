@@ -1,98 +1,119 @@
-import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
-import { getStats, listAllAccreditations } from "../../shared/services/admin";
-import LoadingScreen from "../../shared/components/LoadingScreen";
-import { Users, Clock, Building2, Briefcase, FileText, Globe, BadgeCheck, ClipboardList, UserCheck } from "lucide-react";
-import { DashboardHero, StatCard, SectionCard, InlineError } from "../../shared/components/dashboard";
-import useAuth from "../../shared/hooks/useAuth";
+import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
+import { ArrowRight, BriefcaseBusiness, Building2, ChartNoAxesCombined, ClipboardCheck, Handshake, ShieldCheck, Users } from 'lucide-react'
+import { getStats, listAllAccreditations, listAuditLogs } from '@/shared/services/admin'
+import LoadingScreen from '@/shared/components/LoadingScreen'
+import { InlineError } from '@/shared/components/dashboard'
+import useAuth from '@/shared/hooks/useAuth'
+import { CompanyMark, EmptyState, LinkButton, PageHeading, Panel, StatCards, StatusBadge } from '@/shared/components/design'
+import { titleCase } from '@/shared/utils/titleCase'
 
-function Dashboard() {
-  const { user } = useAuth() || {};
-  const [stats, setStats] = useState(null);
-  const [recentAccreditations, setRecentAccreditations] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+export default function Dashboard() {
+  const { user } = useAuth() || {}
+  const [stats, setStats] = useState(null)
+  const [accreditations, setAccreditations] = useState([])
+  const [logs, setLogs] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
 
   useEffect(() => {
-    Promise.all([getStats(), listAllAccreditations()])
-      .then(([statsData, accs]) => {
-        setStats(statsData);
-        setRecentAccreditations(accs.data.slice(0, 5));
+    Promise.all([getStats(), listAllAccreditations(), listAuditLogs({ limit: 5 })])
+      .then(([statsData, accs, audit]) => {
+        setStats(statsData)
+        setAccreditations((accs.data || []).slice(0, 5))
+        setLogs(Array.isArray(audit) ? audit.slice(0, 5) : (audit?.data || []).slice(0, 5))
       })
-      .catch((err) => setError(err.message || "Failed to load dashboard"))
-      .finally(() => setLoading(false));
-  }, []);
+      .catch((err) => setError(err.message || 'Failed to load dashboard'))
+      .finally(() => setLoading(false))
+  }, [])
 
-  if (loading) return <LoadingScreen />;
-  if (error) return <InlineError message={error} />;
-  if (!stats) return null;
+  if (loading) return <LoadingScreen />
+  if (error) return <InlineError message={error} />
+  if (!stats) return null
 
-  const statCards = [
-    { label: "Job Seekers", value: stats.seekers, highlight: false, icon: <Users size={18} /> },
-    { label: "Pending Accreditation", value: stats.pendingAccreditations, highlight: stats.pendingAccreditations > 0, icon: <Clock size={18} /> },
-    { label: "Employers", value: stats.employers, highlight: false, icon: <Building2 size={18} /> },
-    { label: "Job Posts", value: stats.jobs, highlight: false, icon: <Briefcase size={18} /> },
-    { label: "Applications", value: stats.applications, highlight: false, icon: <FileText size={18} /> },
-    { label: "Companies", value: stats.companies, highlight: false, icon: <Globe size={18} /> },
-    // Extended GET admin/stats keys — render only keys present at runtime.
-    ...[
-      { label: "Accredited", value: stats.accreditedEmployers, icon: <BadgeCheck size={18} /> },
-      { label: "Pending Jobs", value: stats.pendingJobs, icon: <ClipboardList size={18} /> },
-      { label: "Accepted", value: stats.acceptedApplicants, icon: <UserCheck size={18} /> },
-      { label: "Placed", value: stats.placedApplicants, icon: <BadgeCheck size={18} /> },
-    ].filter((c) => c.value !== undefined && c.value !== null).map((c) => ({ ...c, highlight: false })),
-  ];
+  const pending = accreditations.filter((item) => item.status === 'pending')
+  const firstName = user?.first_name || String(user?.full_name || user?.name || 'reviewer').split(' ')[0]
 
   return (
-    <div className="space-y-6 bg-muted">
-      <h1 className="text-xl md:text-2xl font-bold text-dark-blue">Dashboard</h1>
-      <DashboardHero
-        user={user}
-        fallback="Super Administrator"
-        initialsFallback="SA"
-        subtitle="Real-time municipal statistics, accreditations, and system activities"
+    <>
+      <PageHeading
+        eyebrow="Connect people. Strengthen community."
+        title="A clearer picture of local opportunity."
+        description={`Welcome, ${firstName}. Here’s your Santa Maria employment workspace at a glance.`}
+        action={<LinkButton href="/super-admin/reports" variant="outline"><ChartNoAxesCombined data-icon="inline-start" />View reports</LinkButton>}
       />
-
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
-        {statCards.map((stat) => (
-          <StatCard key={stat.label} label={stat.label} value={stat.value} highlight={stat.highlight} icon={stat.icon} />
+      <StatCards
+        stats={[
+          { label: 'Registered job seekers', value: stats.seekers ?? 0, icon: Users },
+          { label: 'Local employers', value: stats.employers ?? 0, icon: Building2 },
+          { label: 'Pending accreditations', value: stats.pendingAccreditations ?? 0, icon: ShieldCheck, note: 'submissions awaiting review', tone: 'teal' },
+          { label: 'Total job posts', value: stats.jobs ?? 0, icon: BriefcaseBusiness, tone: 'teal' },
+        ]}
+      />
+      <div className="mb-6 grid gap-4 sm:grid-cols-3">
+        {[
+          { label: 'Applications', value: stats.applications ?? 0, icon: ClipboardCheck },
+          ...(stats.accreditedEmployers !== undefined ? [{ label: 'Accredited employers', value: stats.accreditedEmployers, icon: Handshake }] : []),
+          ...(stats.placedApplicants !== undefined ? [{ label: 'Placements', value: stats.placedApplicants, icon: Users }] : []),
+        ].map(({ label, value, icon: Icon }) => (
+          <div key={label} className="flex items-center gap-4 rounded-xl border bg-card px-5 py-4">
+            <span className="teal-icon"><Icon className="size-5" /></span>
+            <div>
+              <p className="text-xl font-semibold text-navy">{value}</p>
+              <p className="mt-1 text-[11px] text-muted-foreground">{label}</p>
+            </div>
+          </div>
         ))}
       </div>
-
-      <SectionCard
-        title="Recent Employer Applications"
-        subtitle="Review and act on business accreditation requests"
-        action={<Link to="/super-admin/accreditation" className="text-xs font-mono text-primary hover:underline underline-offset-4">Manage all →</Link>}
-      >
-
-        {recentAccreditations.length === 0 ? (
-          <div className="py-8 text-center text-sm text-muted-foreground">No employer applications submitted yet.</div>
-        ) : (
-          <div className="grid md:grid-cols-2 gap-3">
-            {recentAccreditations.map((acc) => (
-              <div key={acc.id} className="border border-primary/40 rounded-lg p-4 flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <p className="text-sm font-medium text-foreground truncate uppercase">{acc.employers?.company_name}</p>
-                  <p className="mt-1 text-xs text-muted-foreground truncate">Barangay <span className="uppercase">{acc.employers?.barangay_district}</span></p>
-                  <p className="mt-1 text-xs text-muted-foreground">Applied on {new Date(acc.submitted_at).toLocaleDateString("en-PH", { dateStyle: "long" })}</p>
-                </div>
-                <span
-                  className={`shrink-0 font-mono text-[10px] tracking-wider px-2.5 py-1 rounded-full uppercase border ${
-                    acc.status === "pending" ? "bg-amber-50 border-amber-200 text-amber-700"
-                    : acc.status === "approved" ? "bg-emerald-50 border-emerald-200 text-emerald-700"
-                    : acc.status === "rejected" ? "bg-danger/10 border-danger/20 text-danger"
-                    : "bg-muted border-border text-muted-foreground"
-                  }`}
-                >
-                  {acc.status}
-                </span>
-              </div>
-            ))}
+      <div className="portal-grid">
+        <div className="flex min-w-0 flex-col gap-6">
+          <Panel
+            title="Accreditation review queue"
+            description="Help local employers take the next step."
+            action={<Link className="text-link text-[11px]" to="/super-admin/accreditation">Open queue<ArrowRight className="size-3" /></Link>}
+          >
+            {accreditations.length ? (
+              <ul className="flex flex-col divide-y">
+                {accreditations.map((item) => (
+                  <li key={item.id} className="flex flex-wrap items-center gap-3 py-4">
+                    <CompanyMark initials={String(item.employers?.company_name || 'E').slice(0, 2).toUpperCase()} />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs font-semibold text-navy">{titleCase(item.employers?.company_name)}</p>
+                      <p className="mt-1 text-[10px] text-muted-foreground">Brgy. {item.employers?.barangay_district} · Submitted {new Date(item.submitted_at).toLocaleDateString('en-PH', { month: 'short', day: 'numeric' })}</p>
+                    </div>
+                    <StatusBadge status={item.status} />
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <EmptyState title="No employer applications submitted yet." description="New accreditation requests will appear here." />
+            )}
+          </Panel>
+        </div>
+        <div className="flex min-w-0 flex-col gap-6">
+          <div className="rounded-2xl bg-navy p-6 text-white">
+            <p className="text-[10px] font-medium uppercase tracking-widest text-white/65">One municipality. Many possibilities.</p>
+            <h2 className="mt-4 text-xl font-semibold text-white">Every connection matters.</h2>
+            <p className="mt-3 text-xs leading-6 text-white/70">Explore opportunities across Santa Maria’s 24 barangays. All numbers represent provided records, not actual municipal statistics.</p>
+            <LinkButton href="/super-admin/reports" variant="secondary" className="mt-5">Explore barangay insights<ArrowRight data-icon="inline-end" /></LinkButton>
           </div>
-        )}
-      </SectionCard>
-    </div>
-  );
+          <Panel title="Recent workspace activity" description="Changes across all three roles.">
+            <ol className="flex flex-col gap-5">
+              {logs.length ? logs.map((log) => (
+                <li key={log.id} className="flex gap-3">
+                  <span className="mt-2 size-1.5 shrink-0 rounded-full bg-primary" />
+                  <div>
+                    <p className="text-xs font-medium leading-5 text-navy">{log.action}</p>
+                    <p className="mt-1 text-[10px] leading-5 text-muted-foreground">{log.target} · {log.actor}</p>
+                    <time className="text-[10px] text-muted-foreground" dateTime={log.date}>{new Date(log.date).toLocaleDateString('en-PH', { month: 'short', day: 'numeric' })}</time>
+                  </div>
+                </li>
+              )) : <li className="text-xs text-muted-foreground">Activity will appear here.</li>}
+            </ol>
+            <Link to="/super-admin/logs" className="text-link mt-4 text-xs">View full audit log<ArrowRight className="size-3" /></Link>
+          </Panel>
+        </div>
+      </div>
+    </>
+  )
 }
-
-export default Dashboard;

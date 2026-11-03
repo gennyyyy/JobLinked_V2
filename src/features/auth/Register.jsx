@@ -1,90 +1,82 @@
-import { Link } from "react-router-dom";
-import SkipLink from "../../shared/components/SkipLink";
-import PublicHeader from "../../shared/components/PublicHeader";
-import PublicFooter from "../../shared/components/PublicFooter";
+import { Link } from 'react-router-dom'
+import { ArrowRight, Building2, Check, Users } from 'lucide-react'
+import PublicShell from '@/shared/components/PublicShell'
+import { LinkButton, Notice } from '@/shared/components/design'
 
-const accountTypes = [
+const journeys = [
   {
-    to: "/register/job-seeker",
-    title: "Job Seeker",
-    badge: "FREE APPLICANT ACCOUNT",
-    description:
-      "Create an account to browse Santa Maria verified openings, apply in one tap without walk-ins, and track your PESO status live.",
-    cta: "Register as Job Seeker",
+    icon: Users,
+    title: 'I’m looking for work',
+    desc: 'Find opportunities that fit your skills and your life.',
+    items: [
+      'Discover verified local vacancies',
+      'Create one organized profile',
+      'Apply and track every update',
+    ],
+    href: '/register/job-seeker',
+    label: 'Join as a job seeker',
   },
   {
-    to: "/register/employer",
-    title: "Employer",
-    badge: "BUSINESS ACCREDITATION",
-    description:
-      "Post job openings, reach local barangay talent, and review applicant credentials. Requires municipal accreditation review.",
-    cta: "Register as Employer",
+    icon: Building2,
+    title: 'I’m building a team',
+    desc: 'Connect with motivated talent in your community.',
+    items: [
+      'Register and submit accreditation',
+      'Post jobs after PESO approval',
+      'Manage candidates in one place',
+    ],
+    href: '/register/employer',
+    label: 'Join as an employer',
   },
-];
+]
 
-function Register() {
+export default function Register() {
   return (
-    <div className="min-h-screen bg-muted text-foreground flex flex-col font-sans">
-      <SkipLink />
-      <PublicHeader />
-
-      <main id="main-content" tabIndex={-1}
-        className="flex-1 flex flex-col items-center justify-center p-[5%]">
-        <div className="w-full">
-          <header className="text-center mb-10 md:mb-12">
-            <p className="font-mono text-[11px] tracking-[0.2em] text-primary uppercase font-semibold">
-              NEW REGISTRATION
-            </p>
-            <h1 className="mt-3 font-sans text-2xl md:text-3xl font-bold tracking-tight text-dark-blue">
-              Create your account
-            </h1>
-            <p className="mt-3 text-sm md:text-base text-muted-foreground">
-              Select your role to begin registration with the Public Employment Service Office
-            </p>
-          </header>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {accountTypes.map((type) => (
-              <div
-                key={type.title}
-                className="bg-card border border-primary rounded-lg p-6 flex flex-col justify-between hover:border-primary/40 transition-all duration-300"
-              >
-                <div>
-                  <span className="font-mono text-[10px] tracking-widest uppercase px-2.5 py-1 rounded-full bg-primary/10 border border-primary/25 text-primary font-semibold">
-                    {type.badge}
+    <PublicShell>
+      <div className="bg-muted/60">
+        <div className="page-container py-14">
+          <div className="mx-auto max-w-3xl">
+            <div className="mb-9 text-center">
+              <p className="eyebrow mb-3">A place for your next chapter</p>
+              <h1 className="text-4xl font-semibold tracking-[-.045em]">How can we help you grow?</h1>
+              <p className="mt-4 text-sm leading-7 text-muted-foreground">Choose the journey that feels right for you.</p>
+            </div>
+            <div className="grid gap-6 sm:grid-cols-2">
+              {journeys.map(({ icon: Icon, title, desc, items, href, label }) => (
+                <div className="surface flex flex-col p-7" key={href}>
+                  <span className="soft-icon">
+                    <Icon className="size-5" />
                   </span>
-                  <h2 className="mt-4 text-2xl font-bold text-dark-blue">
-                    {type.title}
-                  </h2>
-                  <p className="mt-3 text-sm text-muted-foreground leading-relaxed">
-                    {type.description}
-                  </p>
+                  <h2 className="mt-6 text-xl font-semibold">{title}</h2>
+                  <p className="mt-3 text-xs leading-6 text-muted-foreground">{desc}</p>
+                  <ul className="my-7 flex flex-col gap-3">
+                    {items.map((item) => (
+                      <li key={item} className="flex gap-2 text-xs text-muted-foreground">
+                        <Check className="size-4 shrink-0 text-teal" />
+                        {item}
+                      </li>
+                    ))}
+                  </ul>
+                  <LinkButton href={href} className="mt-auto">
+                    {label}
+                    <ArrowRight className="size-4" />
+                  </LinkButton>
                 </div>
-
-                <div className="mt-8 pt-6 border-t border-border">
-                  <Link
-                    to={type.to}
-                    className="w-full min-h-[44px] inline-flex items-center justify-center px-6 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-primary-hover active:scale-[0.98] transition-all shadow-md"
-                  >
-                    {type.cta} →
-                  </Link>
-                </div>
-              </div>
-            ))}
+              ))}
+            </div>
+            <div className="mt-7">
+              <Notice title="PESO administrator access is provisioned">
+                There is no public administrator registration. Authorized personnel receive access from the
+                responsible organization.
+              </Notice>
+            </div>
+            <p className="mt-7 text-center text-xs text-muted-foreground">
+              Already have an account?{' '}
+              <Link to="/portals" className="font-medium text-primary">Log in</Link>
+            </p>
           </div>
-
-          <p className="mt-10 text-center text-xs text-muted-foreground">
-            Already have an account?{" "}
-            <Link to="/portals" className="text-primary hover:underline underline-offset-4 font-medium">
-              Log in to your portal
-            </Link>
-          </p>
         </div>
-      </main>
-
-      <PublicFooter />
-    </div>
-  );
+      </div>
+    </PublicShell>
+  )
 }
-
-export default Register;

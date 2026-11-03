@@ -3,10 +3,11 @@ import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { MapPin, Search, SearchX } from "lucide-react";
+import { BriefcaseBusiness, Check, MapPin, Search, SearchX } from "lucide-react";
 import { listJobs } from "../services/jobs";
 import { TagInput } from "./TagInput";
 import { InlineError, Pager } from "./dashboard";
+import { CompanyMark } from "./design";
 
 const PAGE_SIZE = 10;
 const EMPLOYMENT_TYPES = ["Full-time", "Part-time", "Contractual", "Seasonal", "Job Order"];
@@ -24,7 +25,7 @@ function requirementLines(requirements) {
 
 function salaryLabel(job) {
   return job.salary_min
-    ? `?${job.salary_min}${job.salary_max ? `�?${job.salary_max}` : ""}`
+    ? `₱${job.salary_min}${job.salary_max ? ` – ₱${job.salary_max}` : ""}`
     : "Negotiable";
 }
 
@@ -145,9 +146,9 @@ function BrowseJobs({ jobHref, initialKeyword = "", initialLocation = "", initia
       </form>
 
       <div className="grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-6 items-start">
-        <aside className="bg-card border border-primary rounded-lg p-5 space-y-5">
+        <aside className="surface space-y-5 p-5">
           <div>
-            <h2 className="text-base font-semibold text-dark-blue">Filter by Skills:</h2>
+            <h2 className="text-base font-semibold text-navy">Filter by Skills:</h2>
             <p className="mt-1 font-mono text-[10px] tracking-widest text-muted-foreground uppercase">Select up to {MAX_SKILLS} skills</p>
           </div>
           <div>
@@ -181,7 +182,7 @@ function BrowseJobs({ jobHref, initialKeyword = "", initialLocation = "", initia
           {loading ? (
             <div className="flex items-center justify-center gap-3 rounded-lg border border-primary bg-card py-10 text-sm text-muted-foreground">
               <span className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" aria-hidden="true" />
-              Loading jobs�
+              Loading jobs…
             </div>
           ) : error ? (
             <InlineError message={error} />
@@ -202,23 +203,33 @@ function BrowseJobs({ jobHref, initialKeyword = "", initialLocation = "", initia
             <ul className="space-y-3">
               {jobs.map((job) => {
                 const bullets = requirementLines(job.requirements);
+                const company = job.employers?.company_name || "Verified employer";
                 return (
                   <li key={job.id}>
-                    <article className="rounded-lg border border-primary bg-card p-5">
-                      <h3 className="text-base font-bold text-danger">
-                        <Link to={jobHref(job.id)} className="hover:underline">{job.title}</Link>
+                    <article className="surface p-5">
+                      <div className="flex items-start gap-3">
+                        <CompanyMark initials={String(company).split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]).join('').toUpperCase()} />
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-[11px] font-medium text-muted-foreground">{company}</p>
+                          <span className="mt-1 flex items-center gap-1 text-[10px] text-teal"><Check className="size-3" />Verified employer</span>
+                        </div>
+                        <span className="shrink-0 text-[10px] text-muted-foreground">{formatPosted(job.created_at)}</span>
+                      </div>
+                      <h3 className="mt-4 text-[17px] font-semibold leading-6 tracking-[-.025em]">
+                        <Link to={jobHref(job.id)} className="transition-colors hover:text-primary">{job.title}</Link>
                       </h3>
-                      <p className="mt-1 text-[11px] text-muted-foreground">Posted on {formatPosted(job.created_at)}</p>
-                      <p className="mt-2 text-xs text-muted-foreground">
-                        <span className="font-semibold">Salary</span> {salaryLabel(job)}
-                      </p>
-                      {job.description && <p className="mt-2 text-sm text-muted-foreground line-clamp-2">{job.description}</p>}
+                      <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
+                        <span className="flex items-center gap-1"><MapPin className="size-3" />{job.location}</span>
+                        <span className="flex items-center gap-1"><BriefcaseBusiness className="size-3" />{job.employment_type}</span>
+                      </div>
+                      <p className="mt-4 text-[15px] font-semibold text-navy">{salaryLabel(job)}</p>
+                      {job.description && <p className="mt-2 line-clamp-2 text-xs leading-6 text-muted-foreground">{job.description}</p>}
                       {bullets.length > 0 && (
-                        <ul className="mt-2 list-disc pl-5 space-y-0.5 text-xs text-muted-foreground">
+                        <ul className="mt-3 list-disc space-y-0.5 pl-5 text-xs text-muted-foreground">
                           {bullets.map((line) => <li key={line}>{line}</li>)}
                         </ul>
                       )}
-                      <Link to={jobHref(job.id)} className="mt-3 inline-block text-xs italic text-danger hover:underline">See more</Link>
+                      <Link to={jobHref(job.id)} className="mt-4 inline-flex min-h-9 items-center text-[11px] font-medium text-primary">See more →</Link>
                     </article>
                   </li>
                 );

@@ -1,139 +1,156 @@
-import { useState, useEffect } from "react";
-import { Link, Navigate, useParams } from "react-router-dom";
-import { getJob } from "../../shared/services/jobs";
-import LoadingScreen from "../../shared/components/LoadingScreen";
-import { titleCase } from "../../shared/utils/titleCase";
-import SkipLink from "../../shared/components/SkipLink";
-import PublicShell from "../../shared/components/PublicShell";
+import { useEffect, useState } from 'react'
+import { Link, Navigate, useParams } from 'react-router-dom'
+import { ArrowLeft, Banknote, BriefcaseBusiness, CalendarDays, MapPin, Users } from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { getJob } from '@/shared/services/jobs'
+import LoadingScreen from '@/shared/components/LoadingScreen'
+import PublicShell from '@/shared/components/PublicShell'
+import { CompanyMark, LinkButton, Panel, VerifiedBadge } from '@/shared/components/design'
+import { titleCase } from '@/shared/utils/titleCase'
 
-function PublicJobDetail() {
-  const { jobId } = useParams();
-  const [job, setJob] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+function money(value) {
+  if (!value) return 'Negotiable'
+  return new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP', maximumFractionDigits: 0 }).format(Number(value))
+}
+
+function companyInitials(name) {
+  return String(name || 'Company')
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0])
+    .join('')
+    .toUpperCase()
+}
+
+export default function PublicJobDetail() {
+  const { jobId } = useParams()
+  const [job, setJob] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
 
   useEffect(() => {
     getJob(jobId)
       .then(setJob)
-      .catch((err) => setError(err.message || "Failed to load job"))
-      .finally(() => setLoading(false));
-  }, [jobId]);
+      .catch((err) => setError(err.message || 'Failed to load job'))
+      .finally(() => setLoading(false))
+  }, [jobId])
 
-  if (loading) return <LoadingScreen />;
-  if (error) return <div className="py-8 text-center text-sm text-danger">{error}</div>;
-  if (!job) return <Navigate to="/jobs" replace />;
+  if (loading) return <LoadingScreen />
+  if (error) return <div className="py-8 text-center text-sm text-destructive">{error}</div>
+  if (!job) return <Navigate to="/jobs" replace />
 
-  const requirements = job.requirements ? job.requirements.split("\n").filter(Boolean) : [];
-  const tags = Array.isArray(job.tags) ? job.tags.filter(Boolean) : [];
+  const requirements = job.requirements ? job.requirements.split('\n').filter(Boolean) : []
+  const benefits = job.benefits ? job.benefits.split('\n').filter(Boolean) : []
+  const tags = Array.isArray(job.tags) ? job.tags.filter(Boolean) : []
+  const company = titleCase(job.employers?.company_name) || 'Verified employer'
 
   return (
-    <div className="min-h-screen bg-background text-foreground flex flex-col font-sans">
-      <SkipLink />
-<PublicShell>
-      <main id="main-content" tabIndex={-1}
-        className="flex-1 w-full p-[5%]">
-        <Link to="/jobs" className="inline-flex items-center text-xs text-muted-foreground hover:text-foreground transition-colors mb-6">? Back to all postings</Link>
+    <PublicShell>
+      <div className="bg-muted/60">
+        <div className="page-container py-8">
+          <Link to="/jobs" className="text-link text-xs">
+            <ArrowLeft className="size-3.5" />
+            Back to opportunities
+          </Link>
 
-        <article className="bg-white border border-primary rounded-lg p-6 md:p-10">
-          <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 pb-6 border-b border-border">
-            <div>
-              <span className="font-mono text-[10px] tracking-widest uppercase px-2.5 py-1 rounded-full bg-primary/10 border border-primary/25 text-primary">{job.location} � {job.employment_type}</span>
-              <h1 className="mt-3 text-xl md:text-2xl font-bold tracking-tight text-navy">{job.title}</h1>
-              <p className="mt-1 text-sm text-muted-foreground font-medium">{titleCase(job.employers?.company_name)}</p>
-            </div>
-            <span className="inline-flex px-3.5 py-1.5 rounded-full bg-primary/10 border border-primary/25 font-mono text-sm text-primary font-semibold self-start">
-              {job.salary_min ? `?${job.salary_min}${job.salary_max ? `�?${job.salary_max}` : ""}` : "Negotiable"}
-            </span>
-          </div>
-
-          <div className="mt-8 grid grid-cols-1 gap-3 p-5 rounded-xl bg-muted border border-border">
-            <div>
-              <p className="font-mono text-[10px] tracking-widest uppercase text-muted-foreground">Compensation</p>
-              <p className="mt-1 font-mono text-sm text-foreground font-medium">{job.salary_min ? `?${job.salary_min}${job.salary_max ? `�?${job.salary_max}` : ""}` : "�"}</p>
-            </div>
-            <div>
-              <p className="font-mono text-[10px] tracking-widest uppercase text-muted-foreground">Location</p>
-              <p className="mt-1 text-sm text-foreground font-medium">Brgy. {job.location}</p>
-            </div>
-            <div>
-              <p className="font-mono text-[10px] tracking-widest uppercase text-muted-foreground">Vacancies</p>
-              <p className="mt-1 text-sm text-foreground font-medium">{job.vacancies ?? "�"}</p>
-            </div>
-            <div>
-              <p className="font-mono text-[10px] tracking-widest uppercase text-muted-foreground">Application Deadline</p>
-              <p className="mt-1 text-sm text-gray-600">{job.deadline ? new Date(job.deadline).toLocaleDateString() : "No deadline"}</p>
-            </div>
-            <div>
-              <p className="font-mono text-[10px] tracking-widest uppercase text-muted-foreground">Date Posted</p>
-              <p className="mt-1 text-sm text-gray-600">{job.published_at ? new Date(job.published_at).toLocaleDateString() : "�"}</p>
-            </div>
-            <div>
-              <p className="font-mono text-[10px] tracking-widest uppercase text-muted-foreground">PESO Verification</p>
-              <p className="mt-1 text-sm text-emerald-700 font-medium flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />Verified Active
-              </p>
-            </div>
-          </div>
-
-          <section className="mt-8">
-            <h2 className="font-mono text-[11px] tracking-[0.2em] text-[#0057B8] uppercase mb-3">Job Description</h2>
-            <p className="text-sm md:text-base text-gray-600 leading-relaxed whitespace-pre-line">{job.description || "No description provided for this opening."}</p>
-          </section>
-
-          {requirements.length > 0 && (
-            <section className="mt-8">
-              <h2 className="font-mono text-[11px] tracking-[0.2em] text-[#0057B8] uppercase mb-3">Key Requirements & Qualifications</h2>
-              <ul className="space-y-2.5">
-                {requirements.map((req) => (
-                  <li key={req} className="text-sm text-gray-600 flex items-start gap-3">
-                    <span className="text-[#0057B8] mt-0.5">?</span>
-                    <span>{req}</span>
-                  </li>
-                ))}
-              </ul>
-            </section>
-          )}
-
-          {job.benefits && (
-            <section className="mt-8">
-              <h2 className="font-mono text-[11px] tracking-[0.2em] text-[#0057B8] uppercase mb-3">Benefits</h2>
-              <p className="text-sm text-gray-600 whitespace-pre-line">{job.benefits}</p>
-            </section>
-          )}
-
-          {job.instructions && (
-            <section className="mt-8">
-              <h2 className="font-mono text-[11px] tracking-[0.2em] text-[#0057B8] uppercase mb-3">Application Instructions</h2>
-              <p className="text-sm text-gray-600 whitespace-pre-line">{job.instructions}</p>
-            </section>
-          )}
-
-          {tags.length > 0 && (
-            <section className="mt-8">
-              <h2 className="font-mono text-[11px] tracking-[0.2em] text-[#0057B8] uppercase mb-3">Tags</h2>
-              <div className="flex flex-wrap gap-2">
-                {tags.map((tag) => (
-                  <span key={tag} className="font-mono text-xs px-2.5 py-1 rounded-full bg-primary/10 border border-primary/25 text-primary">{tag}</span>
-                ))}
+          <div className="surface mt-5">
+            <div className="flex flex-col justify-between gap-5 sm:flex-row">
+              <div className="flex gap-5">
+                <CompanyMark initials={companyInitials(company)} large />
+                <div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <VerifiedBadge />
+                    <Badge variant="secondary" className="bg-blue-soft text-primary">Local opportunity</Badge>
+                  </div>
+                  <h1 className="mt-3 text-2xl font-semibold tracking-tight sm:text-3xl">{job.title}</h1>
+                  <p className="mt-2 text-sm text-muted-foreground">{company}</p>
+                  <div className="mt-4 flex flex-wrap gap-4 text-xs text-muted-foreground">
+                    <span className="flex items-center gap-1.5"><MapPin className="size-3.5" />{job.location || 'Santa Maria'}, Santa Maria</span>
+                    <span className="flex items-center gap-1.5"><BriefcaseBusiness className="size-3.5" />{job.employment_type || 'Full-time'}</span>
+                  </div>
+                </div>
               </div>
-            </section>
-          )}
-
-          <div className="mt-10 pt-8 border-t border-border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-            <div>
-              <p className="text-sm font-medium text-foreground">Interested in this position?</p>
-              <p className="text-xs text-muted-foreground mt-0.5">Apply online through your PESO Job Seeker account.</p>
             </div>
-            <Link to="/job-seeker/login" className="min-h-[44px] inline-flex items-center px-7 rounded-xl bg-primary text-white text-sm font-medium hover:bg-primary-hover active:scale-[0.98] transition-all">
-              Log in to Apply ?
-            </Link>
           </div>
-        </article>
-      </main>
-      </PublicShell>
-    </div>
-  );
+
+          <div className="mt-6 grid items-start gap-6 lg:grid-cols-[1fr_335px]">
+            <div className="flex flex-col gap-6">
+              <Panel title="A little about this opportunity">
+                <p className="prose-copy whitespace-pre-line">{job.description || 'No description provided for this opening.'}</p>
+                {requirements.length > 0 && (
+                  <section className="mt-7">
+                    <h2 className="mb-3 text-sm font-semibold">What you’ll bring</h2>
+                    <ul className="flex flex-col gap-2.5">
+                      {requirements.map((req) => (
+                        <li key={req} className="flex items-start gap-2 text-xs leading-6 text-muted-foreground">
+                          <span className="mt-2 size-1.5 shrink-0 rounded-full bg-teal" />
+                          {req}
+                        </li>
+                      ))}
+                    </ul>
+                  </section>
+                )}
+                {benefits.length > 0 && (
+                  <section className="mt-7">
+                    <h2 className="mb-3 text-sm font-semibold">What’s in it for you</h2>
+                    <ul className="flex flex-col gap-2.5">
+                      {benefits.map((benefit) => (
+                        <li key={benefit} className="flex items-start gap-2 text-xs leading-6 text-muted-foreground">
+                          <span className="mt-2 size-1.5 shrink-0 rounded-full bg-teal" />
+                          {benefit}
+                        </li>
+                      ))}
+                    </ul>
+                  </section>
+                )}
+                {tags.length > 0 && (
+                  <div className="mt-7 flex flex-wrap gap-2">
+                    {tags.map((tag) => (
+                      <Badge key={tag} variant="secondary" className="bg-muted text-muted-foreground">{tag}</Badge>
+                    ))}
+                  </div>
+                )}
+              </Panel>
+            </div>
+
+            <Card className="lg:sticky lg:top-24">
+              <CardHeader>
+                <CardTitle>At a glance</CardTitle>
+              </CardHeader>
+              <CardContent className="flex flex-col gap-5">
+                <div className="flex items-start gap-3">
+                  <Banknote className="mt-0.5 size-4 text-teal" />
+                  <div>
+                    <p className="text-[10px] font-medium uppercase tracking-[.14em] text-muted-foreground">Compensation</p>
+                    <p className="mt-1 text-sm font-medium text-navy">{money(job.salary_min)}{job.salary_max ? ` – ${money(job.salary_max)}` : job.salary_min ? '+' : ''}</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <Users className="mt-0.5 size-4 text-teal" />
+                  <div>
+                    <p className="text-[10px] font-medium uppercase tracking-[.14em] text-muted-foreground">Vacancies</p>
+                    <p className="mt-1 text-sm font-medium text-navy">{job.vacancies ?? '—'}</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <CalendarDays className="mt-0.5 size-4 text-teal" />
+                  <div>
+                    <p className="text-[10px] font-medium uppercase tracking-[.14em] text-muted-foreground">Application deadline</p>
+                    <p className="mt-1 text-sm font-medium text-navy">{job.deadline ? new Date(job.deadline).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' }) : 'No deadline'}</p>
+                  </div>
+                </div>
+                <div className="rounded-xl bg-muted p-4">
+                  <p className="text-xs font-medium text-navy">Interested in this position?</p>
+                  <p className="mt-1 text-[11px] leading-5 text-muted-foreground">Apply online through your PESO Job Seeker account.</p>
+                  <LinkButton href="/job-seeker/login" className="mt-4 w-full">Log in to Apply</LinkButton>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </div>
+    </PublicShell>
+  )
 }
-
-export default PublicJobDetail;
-

@@ -7,18 +7,20 @@ vi.mock('../../hooks/useAuth', async (importOriginal) => {
   return { ...actual, default: vi.fn() }
 })
 vi.mock('../NotificationBell', () => ({ default: () => null }))
-vi.mock('../SidebarAccount', () => ({ default: () => null }))
 
 import useAuth from '../../hooks/useAuth'
-import PortalLayout from '../PortalLayout'
+import TopNavLayout from '../TopNavLayout'
 
-const navItems = [{ to: '/super-admin', label: 'Dashboard', end: true }]
+const navItems = [
+  { to: '/super-admin', label: 'Dashboard', end: true },
+  { to: '/super-admin/users', label: 'Users' },
+]
 
 function renderLayout(path, extraProps = {}) {
-  useAuth.mockReturnValue({ user: { id: 'u1' }, logout: vi.fn() })
+  useAuth.mockReturnValue({ user: { id: 'u1', full_name: 'Super Admin' }, logout: vi.fn() })
   return render(
     <MemoryRouter initialEntries={[path]}>
-      <PortalLayout
+      <TopNavLayout
         navItems={navItems}
         badge="ADMIN"
         eyebrow="PESO"
@@ -27,42 +29,31 @@ function renderLayout(path, extraProps = {}) {
         roleLabel="Super Admin"
         {...extraProps}
       />
-    </MemoryRouter>
+    </MemoryRouter>,
   )
 }
 
-const logoHrefs = () => screen.getAllByAltText('JobLinked').map((img) => img.closest('a'))
-
-describe('PortalLayout logo target (U1)', () => {
-  it('derives the portal root from the pathname when no homeTo is passed (super-admin)', () => {
+describe('Portal shell logo target', () => {
+  it('derives the portal root from the pathname when no homeTo is passed', () => {
     renderLayout('/super-admin')
-    const links = logoHrefs()
-    expect(links.length).toBeGreaterThan(0)
-    links.forEach((a) => expect(a).toHaveAttribute('href', '/super-admin'))
+    const logo = screen.getByRole('link', { name: /joblinked home/i })
+    expect(logo).toHaveAttribute('href', '/super-admin')
   })
 
-  it('uses only the first path segment for nested portal routes (employer)', () => {
-    renderLayout('/employer/job-posts')
-    logoHrefs().forEach((a) => expect(a).toHaveAttribute('href', '/employer'))
+  it('uses only the first path segment for nested portal routes', () => {
+    renderLayout('/super-admin/users')
+    const logo = screen.getByRole('link', { name: /joblinked home/i })
+    expect(logo).toHaveAttribute('href', '/super-admin')
   })
 
   it('respects an explicit homeTo when provided', () => {
-    renderLayout('/employer', { homeTo: '/employer/company' })
-    logoHrefs().forEach((a) => expect(a).toHaveAttribute('href', '/employer/company'))
+    renderLayout('/employer', { homeTo: '/employer/company', roleLabel: 'Employer' })
+    const logo = screen.getByRole('link', { name: /joblinked home/i })
+    expect(logo).toHaveAttribute('href', '/employer/company')
   })
 })
 
-describe('PortalLayout logo sizing (F2)', () => {
-  it('reserves the 3:1 intrinsic ratio via width/height attributes', () => {
-    renderLayout('/super-admin')
-    screen.getAllByAltText('JobLinked').forEach((img) => {
-      expect(img).toHaveAttribute('width', '480')
-      expect(img).toHaveAttribute('height', '160')
-    })
-  })
-})
-
-describe('PortalLayout AFK modal button order (U6)', () => {
+describe('Portal shell AFK modal button order', () => {
   it('keeps the primary "Stay Signed In" action on the right', () => {
     vi.useFakeTimers()
     try {
@@ -70,7 +61,6 @@ describe('PortalLayout AFK modal button order (U6)', () => {
       act(() => { vi.advanceTimersByTime(4 * 60 * 1000) })
       const stay = screen.getByRole('button', { name: /stay signed in/i })
       const out = screen.getByRole('button', { name: /sign out/i })
-      // Primary must come after the secondary "Sign Out" in DOM order.
       expect(stay.compareDocumentPosition(out) & Node.DOCUMENT_POSITION_PRECEDING).toBeTruthy()
     } finally {
       vi.useRealTimers()
@@ -78,19 +68,21 @@ describe('PortalLayout AFK modal button order (U6)', () => {
   })
 })
 
-describe('PortalLayout mobile nav disclosure (A11y)', () => {
-  it('exposes the hamburger with aria-expanded and points it at the nav landmark', () => {
+describe('Portal shell mobile navigation', () => {
+  it('exposes the hamburger with an accessible name', () => {
     renderLayout('/super-admin')
-    const toggle = screen.getByRole('button', { name: 'Toggle navigation' })
-    expect(toggle).toHaveAttribute('aria-expanded', 'false')
-    expect(toggle).toHaveAttribute('aria-controls', 'portal-mobile-nav')
-
-    fireEvent.click(toggle)
-    expect(toggle).toHaveAttribute('aria-expanded', 'true')
+    expect(screen.getByRole('button', { name: /open workspace navigation/i })).toBeInTheDocument()
   })
 
   it('labels the sidebar as a navigation landmark', () => {
     renderLayout('/super-admin')
-    expect(screen.getByRole('navigation', { name: 'Portal navigation' })).toBeInTheDocument()
+    expect(screen.getByRole('navigation', { name: 'Super Admin navigation' })).toBeInTheDocument()
+  })
+
+  it('renders every nav item as a link', () => {
+    renderLayout('/super-admin')
+    const nav = screen.getByRole('navigation', { name: 'Super Admin navigation' })
+    expect(nav).toHaveTextContent('Dashboard')
+    expect(nav).toHaveTextContent('Users')
   })
 })

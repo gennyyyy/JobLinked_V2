@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { supabase } from '../../shared/lib/supabase';
-import { getProfile, provision } from '../../shared/services/auth';
-import useAuth from '../../shared/hooks/useAuth';
-import LoadingScreen from '../../shared/components/LoadingScreen';
-import { PORTALS } from '../../shared/constants';
+import { supabase } from '@/shared/lib/supabase';
+import { getProfile, provision } from '@/shared/services/auth';
+import useAuth from '@/shared/hooks/useAuth';
+import LoadingScreen from '@/shared/components/LoadingScreen';
+import PublicShell from '@/shared/components/PublicShell';
+import { PORTALS } from '@/shared/constants';
+import AuthFrame from './AuthFrame';
 
 export default function AuthCallback() {
   const navigate = useNavigate();
@@ -35,14 +37,15 @@ export default function AuthCallback() {
     return () => { active = false; };
   }, [navigate, refreshUser]);
 
-  if (!error) return <LoadingScreen />;
+  if (!error) return <LoadingScreen />
   return (
-    <main className="min-h-screen flex items-center justify-center bg-muted p-6">
-      <div className="max-w-md rounded-lg border border-primary bg-card p-6 text-center shadow-xl">
-        <h1 className="text-xl font-bold text-dark-blue">Verification link issue</h1>
-        <p className="mt-3 text-sm text-muted-foreground">{error}</p>
-        <Link to="/job-seeker/login" className="mt-6 inline-flex min-h-[44px] items-center rounded-xl bg-primary px-6 text-sm font-semibold text-white">Go to sign in</Link>
-      </div>
-    </main>
-  );
+    <PublicShell>
+      <AuthFrame title="Verification link issue." subtitle="We couldn’t verify this email link.">
+        <div className="flex flex-col gap-5">
+          <p role="alert" className="text-xs leading-6 text-destructive">{error}</p>
+          <Link to="/login" className="text-xs font-medium text-primary">Go to sign in</Link>
+        </div>
+      </AuthFrame>
+    </PublicShell>
+  )
 }

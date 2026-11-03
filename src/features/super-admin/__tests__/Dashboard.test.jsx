@@ -2,11 +2,12 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import Dashboard from '../Dashboard'
-import { getStats, listAllAccreditations } from '../../../shared/services/admin'
+import { getStats, listAllAccreditations, listAuditLogs } from '../../../shared/services/admin'
 
 vi.mock('../../../shared/services/admin', () => ({
   getStats: vi.fn(),
   listAllAccreditations: vi.fn(),
+  listAuditLogs: vi.fn(),
 }))
 
 const STATS = {
@@ -30,13 +31,18 @@ const ACCS = {
   total: 2, page: 1, pageSize: 100,
 }
 
-const statValue = (label) => screen.getByText(label).previousElementSibling.textContent
+const statValue = (label) => {
+  const el = screen.getAllByText(label)[0]
+  const card = el.closest('.surface') || el.closest('.rounded-xl')
+  return card.querySelector('p').textContent
+}
 
 async function renderDashboard(stats = STATS, accs = ACCS) {
   getStats.mockResolvedValue(stats)
   listAllAccreditations.mockResolvedValue(accs)
+  listAuditLogs.mockResolvedValue([])
   render(<MemoryRouter><Dashboard /></MemoryRouter>)
-  return waitFor(() => expect(screen.getByText('Job Seekers')).toBeInTheDocument())
+  return waitFor(() => expect(screen.getByText('Registered job seekers')).toBeInTheDocument())
 }
 
 describe('Super-admin Dashboard', () => {
@@ -44,24 +50,21 @@ describe('Super-admin Dashboard', () => {
     vi.clearAllMocks()
   })
 
-  it('renders all 10 stat labels with API values', async () => {
+  it('renders the stat cards with API values', async () => {
     await renderDashboard()
-    expect(statValue('Job Seekers')).toBe('10')
-    expect(statValue('Pending Accreditation')).toBe('2')
-    expect(statValue('Employers')).toBe('3')
-    expect(statValue('Job Posts')).toBe('4')
+    expect(statValue('Registered job seekers')).toBe('10')
+    expect(statValue('Local employers')).toBe('3')
+    expect(statValue('Pending accreditations')).toBe('2')
+    expect(statValue('Total job posts')).toBe('4')
     expect(statValue('Applications')).toBe('5')
-    expect(statValue('Companies')).toBe('6')
-    expect(statValue('Accredited')).toBe('7')
-    expect(statValue('Pending Jobs')).toBe('8')
-    expect(statValue('Accepted')).toBe('9')
-    expect(statValue('Placed')).toBe('11')
+    expect(statValue('Accredited employers')).toBe('7')
+    expect(statValue('Placements')).toBe('11')
   })
 
   it('renders recent applications with company name and status pill', async () => {
     await renderDashboard()
-    expect(screen.getByText('acme corp')).toBeInTheDocument()
-    expect(screen.getByText('beta inc')).toBeInTheDocument()
+    expect(screen.getByText('Acme Corp')).toBeInTheDocument()
+    expect(screen.getByText('Beta Inc')).toBeInTheDocument()
     expect(screen.getByText('approved')).toBeInTheDocument()
     expect(screen.getByText('rejected')).toBeInTheDocument()
   })
@@ -69,14 +72,15 @@ describe('Super-admin Dashboard', () => {
   it('shows an alert when getStats rejects', async () => {
     getStats.mockRejectedValue(new Error('boom'))
     listAllAccreditations.mockResolvedValue(ACCS)
+    listAuditLogs.mockResolvedValue([])
     render(<MemoryRouter><Dashboard /></MemoryRouter>)
     expect(await screen.findByRole('alert')).toBeInTheDocument()
   })
 
-  it('omits the Placed card when placedApplicants is missing', async () => {
+  it('omits the Placements card when placedApplicants is missing', async () => {
     const rest = { ...STATS }
     delete rest.placedApplicants
     await renderDashboard(rest)
-    expect(screen.queryByText('Placed')).not.toBeInTheDocument()
+    expect(screen.queryByText('Placements')).not.toBeInTheDocument()
   })
 })

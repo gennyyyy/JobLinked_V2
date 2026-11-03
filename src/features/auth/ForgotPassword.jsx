@@ -1,98 +1,74 @@
-import { Button } from "../../components/ui/button";
-import { Input } from "../../components/ui/input";
-import { Label } from "../../components/ui/label";
-import { useState } from "react";
-import { Link } from "react-router-dom";
-import { resetPassword } from "../../shared/services/auth";
-import SkipLink from "../../shared/components/SkipLink";
-import PublicShell from "../../shared/components/PublicShell";
+import { useState } from 'react'
+import { Link } from 'react-router-dom'
+import { ArrowRight, Loader2 } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { FieldGroup, Field, FieldLabel } from '@/components/ui/field'
+import { InputGroup, InputGroupInput } from '@/components/ui/input-group'
+import { resetPassword } from '@/shared/services/auth'
+import PublicShell from '@/shared/components/PublicShell'
+import AuthFrame from './AuthFrame'
 
-function ForgotPassword() {
-  const [email, setEmail] = useState("");
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState(false);
-  const [busy, setBusy] = useState(false);
+export default function ForgotPassword() {
+  const [email, setEmail] = useState('')
+  const [error, setError] = useState('')
+  const [success, setSuccess] = useState(false)
+  const [busy, setBusy] = useState(false)
 
   async function handleSubmit(event) {
-    event.preventDefault();
-    setError("");
-    setSuccess(false);
+    event.preventDefault()
+    setError('')
+    setSuccess(false)
     if (!email.trim()) {
-      setError("Please enter your email address");
-      return;
+      setError('Please enter your email address')
+      return
     }
-    setBusy(true);
+    setBusy(true)
     try {
-      await resetPassword(email.trim());
-      setSuccess(true);
+      await resetPassword(email.trim())
+      setSuccess(true)
     } catch (err) {
-      setError(err.message || "Could not send reset link. Please try again.");
+      setError(err.message || 'Could not send reset link. Please try again.')
     } finally {
-      setBusy(false);
+      setBusy(false)
     }
   }
 
   return (
-    <div className="min-h-screen bg-muted text-foreground flex flex-col font-sans">
-      <SkipLink />
-      <PublicShell>
-      <main id="main-content" tabIndex={-1}
-        className="flex-1 flex items-center justify-center p-[5%]">
-        <div className="w-full max-w-md bg-card border border-primary rounded-lg p-6 md:p-9 shadow-xl">
-          <div className="flex items-center justify-between mb-6">
-            <Link to="/portals" className="text-xs text-muted-foreground hover:text-primary transition-colors">
-              ← Back to Portals
-            </Link>
-            <span className="font-mono text-[10px] tracking-widest uppercase px-2.5 py-1 rounded-full bg-primary/10 border border-primary/25 text-primary">
-              Forgot Password
-            </span>
-          </div>
-
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight text-dark-blue">Reset Your Password</h1>
-            <p className="mt-2 text-sm text-muted-foreground">Enter your email and we'll send you a reset link</p>
-          </div>
-
-          <form onSubmit={handleSubmit} className="mt-7 space-y-4">
-            {error && (
-              <div className="text-sm text-danger bg-danger/10 border border-danger/20 px-4 py-3 rounded-lg">{error}</div>
-            )}
-
-            {success && (
-              <div className="text-sm text-emerald-700 bg-emerald-50 border border-emerald-200 px-4 py-3 rounded-lg">
-                Check your email for reset instructions
-              </div>
-            )}
-
-            <div>
-              <Label htmlFor="forgot-email" className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase mb-1.5">
-                Email
-              </Label>
-              <Input
-                id="forgot-email"
-                name="email"
-                type="email"
-                placeholder="you@example.com"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full min-h-[44px] px-4 rounded-xl text-sm bg-muted border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all"
-              />
-            </div>
-
-            <Button
-              type="submit"
-              disabled={busy}
-              className="w-full mt-6 min-h-[44px] px-6 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-primary-hover active:scale-[0.98] transition-all shadow-md disabled:opacity-60"
-            >
-              {busy ? "Sending…" : "Send Reset Link"}
-            </Button>
-          </form>
-        </div>
-      </main>
-      </PublicShell>
-    </div>
-  );
+    <PublicShell>
+      <AuthFrame title="Let’s get you back on track." subtitle="Enter your email and we’ll send a time-limited reset link.">
+        <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+          <FieldGroup>
+            <Field>
+              <FieldLabel htmlFor="forgot-email">Email</FieldLabel>
+              <InputGroup>
+                <InputGroupInput
+                  id="forgot-email"
+                  name="email"
+                  type="email"
+                  placeholder="you@example.com"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                />
+              </InputGroup>
+            </Field>
+          </FieldGroup>
+          {error && <p role="alert" className="text-xs leading-6 text-destructive">{error}</p>}
+          {success && (
+            <p role="status" className="rounded-lg border border-success/20 bg-success-soft px-4 py-3 text-xs text-success">
+              Check your email for reset instructions
+            </p>
+          )}
+          <Button type="submit" disabled={busy}>
+            {busy ? <Loader2 data-icon="inline-start" className="animate-spin" /> : null}
+            {busy ? 'Sending…' : 'Send Reset Link'}
+            <ArrowRight data-icon="inline-end" />
+          </Button>
+        </form>
+        <p className="mt-6 text-center text-xs">
+          <Link to="/portals" className="text-primary">← Back to Portals</Link>
+        </p>
+      </AuthFrame>
+    </PublicShell>
+  )
 }
-
-export default ForgotPassword;

@@ -1,120 +1,144 @@
-import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
-import useAuth from "../../shared/hooks/useAuth";
-import { getEmployerDashboard } from "../../shared/services/applications";
-import { getEmployer } from "../../shared/services/auth";
-import LoadingScreen from "../../shared/components/LoadingScreen";
-import { InlineError } from "../../shared/components/dashboard";
-import { titleCase } from "../../shared/utils/titleCase";
+import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
+import { ArrowRight, BriefcaseBusiness, ClipboardCheck, Handshake, Plus, ShieldCheck, UserCheck, Users } from 'lucide-react'
+import useAuth from '@/shared/hooks/useAuth'
+import { getEmployerDashboard } from '@/shared/services/applications'
+import { getEmployer } from '@/shared/services/auth'
+import LoadingScreen from '@/shared/components/LoadingScreen'
+import { InlineError } from '@/shared/components/dashboard'
+import { EmptyState, LinkButton, Notice, PageHeading, Panel, StatCards, StatusBadge } from '@/shared/components/design'
+import { titleCase } from '@/shared/utils/titleCase'
 
-function Dashboard() {
-  const { user } = useAuth();
-  const [jobs, setJobs] = useState([]);
-  const [summaryStats, setSummaryStats] = useState({});
-  const [recent, setRecent] = useState([]);
-  const [company, setCompany] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [logoFailed, setLogoFailed] = useState(false);
+export default function Dashboard() {
+  const { user } = useAuth()
+  const [jobs, setJobs] = useState([])
+  const [summaryStats, setSummaryStats] = useState({})
+  const [recent, setRecent] = useState([])
+  const [company, setCompany] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
 
   useEffect(() => {
-    if (!user) return;
-    // user.id IS the employers row id — the summary endpoint scopes everything to it server-side.
+    if (!user) return
     getEmployer()
       .then((data) => {
-        setCompany(data);
-        return getEmployerDashboard();
+        setCompany(data)
+        return getEmployerDashboard()
       })
       .then((summary) => {
-        setJobs(summary.jobs || []);
-        setSummaryStats(summary.stats || {});
-        setRecent(summary.recent || []);
+        setJobs(summary.jobs || [])
+        setSummaryStats(summary.stats || {})
+        setRecent(summary.recent || [])
       })
-      .catch((err) => setError(err.message || "Failed to load dashboard"))
-      .finally(() => setLoading(false));
-  }, [user]);
+      .catch((err) => setError(err.message || 'Failed to load dashboard'))
+      .finally(() => setLoading(false))
+  }, [user])
 
-  if (loading) return <LoadingScreen />;
-  if (error) return <InlineError message={error} />;
+  if (loading) return <LoadingScreen />
+  if (error) return <InlineError message={error} />
 
-  const totalCandidates = summaryStats.total_candidates || 0;
-  const newThisWeek = summaryStats.new_this_week || 0;
-
-  const stats = [
-    { label: "Active Listings", value: jobs.filter((job) => job.status === "published").length },
-    { label: "Total Jobs", value: jobs.length },
-    { label: "Total Candidates", value: totalCandidates },
-    { label: "New This Week", value: newThisWeek },
-  ];
-
-  const hour = new Date().getHours();
-  const greeting = hour < 12 ? "Good Morning!" : hour < 18 ? "Good Afternoon!" : "Good Evening!";
-
-  const companyName = company?.company_name || "My Company";
-  const monogram =
-    companyName
-      .split(/\s+/)
-      .filter(Boolean)
-      .slice(0, 2)
-      .map((word) => word[0])
-      .join("")
-      .toUpperCase() || "?";
-  const logo = !logoFailed && typeof company?.logo_path === "string" && company.logo_path ? company.logo_path : null;
+  const totalCandidates = summaryStats.total_candidates || 0
+  const newThisWeek = summaryStats.new_this_week || 0
+  const companyName = company?.company_name || 'My Company'
+  const accreditation = company?.accreditation_status
+  const firstName = user?.first_name || String(user?.full_name || user?.name || 'there').split(' ')[0]
 
   return (
-    <div className="space-y-6 bg-muted">
-      <h1 className="text-xl md:text-2xl font-bold text-dark-blue">Dashboard</h1>
-
-      <section className="flex items-center gap-4 rounded-xl bg-navy p-5 md:p-6 shadow-md">
-        <div className="grid h-16 w-16 shrink-0 place-items-center overflow-hidden rounded-full border-4 border-white bg-card shadow-md md:h-20 md:w-20">
-          {logo ? (
-            <img src={logo} alt="" className="w-full h-full object-cover" onError={() => setLogoFailed(true)} />
-          ) : (
-            <span className="text-2xl font-bold text-primary">{monogram}</span>
-          )}
+    <>
+      <PageHeading
+        eyebrow="Build something together"
+        title={`Welcome back, ${firstName}.`}
+        description={`Good people make great teams. Here’s what’s happening at ${titleCase(companyName)}.`}
+        action={<LinkButton href="/employer/job-posts"><Plus data-icon="inline-start" />Create a vacancy</LinkButton>}
+      />
+      {accreditation && accreditation !== 'approved' && (
+        <Notice title={`Accreditation: ${accreditation}`} warning>
+          You can prepare drafts, but publishing is unavailable until PESO approves your accreditation.{' '}
+          <Link to="/employer/accreditation" className="font-medium underline underline-offset-4">Review requirements and feedback.</Link>
+        </Notice>
+      )}
+      <StatCards
+        stats={[
+          { label: 'Active listings', value: jobs.filter((job) => job.status === 'published').length, icon: BriefcaseBusiness },
+          { label: 'Total applicants', value: totalCandidates, icon: Users },
+          { label: 'New this week', value: newThisWeek, icon: UserCheck, tone: 'teal' },
+          { label: 'Total vacancies', value: jobs.length, icon: Handshake, tone: 'teal' },
+        ]}
+      />
+      <div className="portal-grid">
+        <div className="flex min-w-0 flex-col gap-6">
+          <Panel
+            title="Your latest applicants"
+            description="Meet the people interested in joining your team."
+            action={<Link to="/employer/applicants" className="text-link text-[11px]">View all<ArrowRight className="size-3" /></Link>}
+          >
+            {recent.length ? (
+              <ul className="flex flex-col divide-y">
+                {recent.slice(0, 5).map((item) => (
+                  <li key={item.id} className="flex flex-wrap items-center justify-between gap-3 py-4">
+                    <div className="min-w-0">
+                      <p className="text-xs font-semibold text-navy">{titleCase(item.seeker_full_name)}</p>
+                      <p className="mt-1 text-[10px] text-muted-foreground">Applied for {item.job_title}</p>
+                    </div>
+                    <Link to="/employer/applicants" className="text-link text-xs">Review<ArrowRight className="size-3" /></Link>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <EmptyState title="Your next teammate is out there." description="Publish an approved vacancy to start receiving applications." href="/employer/job-posts" label="Create a vacancy" />
+            )}
+          </Panel>
+          <Panel
+            title="Your vacancies"
+            description="A quick look at the opportunities you are creating."
+            action={<Link className="text-link text-[11px]" to="/employer/job-posts">Manage jobs<ArrowRight className="size-3" /></Link>}
+          >
+            {jobs.length ? (
+              <ul className="flex flex-col divide-y">
+                {jobs.slice(0, 4).map((job) => (
+                  <li key={job.id} className="flex flex-wrap items-center justify-between gap-3 py-4">
+                    <div>
+                      <p className="text-xs font-semibold text-navy">{job.title}</p>
+                      <p className="mt-1.5 text-[10px] text-muted-foreground">{job.status}</p>
+                    </div>
+                    <StatusBadge status={job.status} />
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-xs text-muted-foreground">No vacancies yet. Start with a draft.</p>
+            )}
+          </Panel>
         </div>
-        <div className="min-w-0">
-          <p className="text-sm md:text-base font-semibold text-white/85">{greeting}</p>
-          <h2 className="truncate text-xl md:text-2xl font-bold text-white">{companyName}</h2>
-        </div>
-      </section>
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
-        {stats.map((stat) => (
-          <div key={stat.label} className="rounded-lg border border-primary/40 bg-primary/5 px-4 py-5">
-            <p className="text-3xl font-bold text-primary">{stat.value}</p>
-            <p className="mt-2 text-[11px] font-semibold uppercase tracking-wider text-primary">{stat.label}</p>
+        <div className="flex min-w-0 flex-col gap-6">
+          <Panel title="Your accreditation" action={<ShieldCheck className="size-5 text-teal" />}>
+            {accreditation ? <StatusBadge status={accreditation} /> : null}
+            <p className="mt-4 text-xs leading-6 text-muted-foreground">
+              {accreditation === 'approved'
+                ? 'Your business is approved to publish vacancies in this demonstration.'
+                : 'A PESO administrator can review your submitted metadata and update the decision.'}
+            </p>
+            <Link to="/employer/accreditation" className="text-link mt-3 text-xs">View accreditation<ArrowRight className="size-3" /></Link>
+          </Panel>
+          <div className="rounded-2xl border border-teal/10 bg-teal-soft p-6">
+            <ClipboardCheck className="mb-4 size-6 text-teal" />
+            <h2 className="text-base font-semibold">Thoughtful hiring starts here.</h2>
+            <p className="mt-3 text-xs leading-6 text-muted-foreground">Keep qualifications clear, set a realistic deadline, and update candidates as you go. A little communication makes a big difference.</p>
+            <Link className="text-link mt-3 text-xs" to="/employer/job-posts">Write a great job post<ArrowRight className="size-3" /></Link>
           </div>
-        ))}
+          <Panel title="Recent recruitment activity" description="Updates from your own vacancies only.">
+            <ul className="flex flex-col gap-4">
+              {recent.slice(0, 3).map((item) => (
+                <li key={item.id}>
+                  <p className="text-xs leading-6 text-navy">{titleCase(item.seeker_full_name)} · {item.job_title}</p>
+                  <p className="text-[10px] text-muted-foreground">{new Date(item.applied_at).toLocaleDateString('en-PH', { month: 'short', day: 'numeric' })}</p>
+                </li>
+              ))}
+              {!recent.length && <li className="text-xs text-muted-foreground">Activity will appear here as candidates apply.</li>}
+            </ul>
+          </Panel>
+        </div>
       </div>
-
-      <section className="rounded-lg border border-primary/40 bg-card p-5">
-        <h2 className="text-sm font-bold text-dark-blue">Recent Candidate Applications</h2>
-        <p className="mt-0.5 text-xs italic text-muted-foreground">Latest job seekers who applied to your verified listings</p>
-
-        {recent.length === 0 ? (
-          <div className="py-8 text-center text-sm text-muted-foreground">
-            No applicant submissions received yet.{" "}
-            <Link to="/employer/job-posts" className="text-primary hover:underline">Post a job →</Link>
-          </div>
-        ) : (
-          <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            {recent.map((item) => (
-              <div key={item.id} className="rounded-lg border border-primary/40 bg-card px-4 py-3">
-                <p className="text-sm font-bold text-dark-blue truncate">{titleCase(item.seeker_full_name)}</p>
-                <p className="mt-1 text-xs italic text-muted-foreground truncate">
-                  Applied for <span className="text-muted-foreground">{item.job_title}</span>
-                </p>
-                <p className="mt-0.5 text-[11px] text-muted-foreground">
-                  Applied on {new Date(item.applied_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
-                </p>
-              </div>
-            ))}
-          </div>
-        )}
-      </section>
-    </div>
-  );
+    </>
+  )
 }
-
-export default Dashboard;

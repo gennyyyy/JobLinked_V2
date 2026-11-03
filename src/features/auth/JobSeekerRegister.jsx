@@ -1,54 +1,30 @@
-import { Button } from "../../components/ui/button";
-import { Input } from "../../components/ui/input";
-import { Label } from "../../components/ui/label";
+import { Button } from "@/components/ui/button";
 import { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { signUp } from "../../shared/services/auth";
-import { EMPLOYMENT_STATUSES, BULACAN_MUNICIPALITIES, SANTA_MARIA_BARANGAYS } from "../../shared/constants";
-import { mapResumeText } from "../../shared/utils/resumeAutofill";
-import { normalizePhone, isValidPhone, withPrefix } from "../../shared/utils/phone";
-import { TagInput } from "../../shared/components/TagInput";
-import TermsModal from "../../shared/components/TermsModal";
-import SkipLink from "../../shared/components/SkipLink";
-import PublicHeader from "../../shared/components/PublicHeader";
-import PublicFooter from "../../shared/components/PublicFooter";
-
-const EDUCATION_LEVELS = ["Elementary", "High School", "Senior High School", "Vocational", "College", "Post-Graduate"];
-const MAX_PDF_SIZE = 2 * 1024 * 1024;
-const MAX_RESUME_SIZE = 5 * 1024 * 1024;
-
-const EMPTY_FORM = {
-  firstName: "",
-  middleName: "",
-  lastName: "",
-  suffix: "",
-  birthdate: "",
-  mobileNumber: "",
-  email: "",
-  password: "",
-  confirmPassword: "",
-  lot: "",
-  block: "",
-  streetAddress: "",
-  subdivisionBuilding: "",
-  barangayDistrict: "",
-  cityMunicipality: "",
-  provinceState: "",
-  postalCode: "",
-  employmentStatus: "",
-  skills: "",
-  agree: false,
-  confirmAccurate: false,
-};
+import { signUp } from "@/shared/services/auth";
+import TermsModal from "@/shared/components/TermsModal";
+import SkipLink from "@/shared/components/SkipLink";
+import PublicShell from "@/shared/components/PublicShell";
+import JobSeekerRegisterSuccess from "./JobSeekerRegisterSuccess";
+import JobSeekerPersonalStep from "./JobSeekerPersonalStep";
+import JobSeekerAddressStep from "./JobSeekerAddressStep";
+import JobSeekerBackgroundStep from "./JobSeekerBackgroundStep";
+import { useResumeAutofill } from "./useResumeAutofill";
+import {
+  EMPTY_FORM,
+  validate,
+  validateEducation,
+  buildJobSeekerSignUpPayload,
+} from "./jobSeekerRegistration";
 
 function JobSeekerRegister() {
   const [error, setError] = useState("");
   const [errors, setErrors] = useState({});
   const [form, setForm] = useState(EMPTY_FORM);
-  const [autofillStatus, setAutofillStatus] = useState("");
   // Optional education is stored with signup metadata and provisioned after
   // email verification when a session becomes available.
   const [education, setEducation] = useState({ level: "", school: "", field: "", year: "", studying: false });
+  const { autofillStatus, handleResumeChange } = useResumeAutofill({ setForm, setEducation });
   const [eduError, setEduError] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const [needsConfirmation, setNeedsConfirmation] = useState(false);
@@ -71,117 +47,6 @@ function JobSeekerRegister() {
     setErrors((prev) => (prev[field] ? { ...prev, [field]: undefined } : prev));
   }
 
-  function validate(values) {
-    const e = {};
-    if (!values.firstName?.trim()) e.firstName = "First name is required";
-    if (!values.lastName?.trim()) e.lastName = "Last name is required";
-    if (!values.email?.trim()) e.email = "Email is required";
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email)) e.email = "Invalid email address";
-    if (!values.mobileNumber?.trim()) e.mobileNumber = "Mobile number is required";
-    else if (!isValidPhone(values.mobileNumber)) e.mobileNumber = "Enter a valid number (e.g. 917 123 4567)";
-    if (!values.birthdate) e.birthdate = "Birthday is required";
-    if (!values.streetAddress?.trim()) e.streetAddress = "Street address is required";
-    if (!values.cityMunicipality?.trim()) e.cityMunicipality = "City / Municipality is required";
-    if (!values.provinceState?.trim()) e.provinceState = "Province is required";
-    if (values.postalCode?.trim() && !/^\d{4}$/.test(values.postalCode.trim())) e.postalCode = "Postal code must be 4 digits";
-    if (!values.password) e.password = "Password is required";
-    else if (values.password.length < 8) e.password = "Password must be at least 8 characters";
-    if (!values.confirmPassword) e.confirmPassword = "Please confirm your password";
-    else if (values.password !== values.confirmPassword) e.confirmPassword = "Passwords do not match";
-    if (!values.employmentStatus) e.employmentStatus = "Employment status is required";
-    if (!values.agree) e.agree = "You must agree to the terms";
-    if (!values.confirmAccurate) e.confirmAccurate = "Please confirm your information is true and correct";
-    return e;
-  }
-
-  // Education is optional; when started (level or school filled) both are
-  // required, and a non-studying entry needs a 4-digit graduation year.
-  function validateEducation(edu) {
-    if (!edu.level.trim() && !edu.school.trim()) return "";
-    if (!edu.level.trim() || !edu.school.trim()) return "Please select a level and enter a school name.";
-    if (!edu.studying && !/^\d{4}$/.test(edu.year.trim())) return "Graduation year must be a 4-digit year.";
-    return "";
-  }
-
-  // Resume -> form autofill. PDF/DOCX only; anything else stays blank and the
-  // user fills it in. Non-empty mapped values merge in, so hand-typed fields
-  // the resume didn't cover are preserved.
-  async function handleResumeChange(event) {
-    const file = event.target.files?.[0];
-    event.target.value = "";
-    if (!file) return;
-    const ext = (file.name.split(".").pop() || "").toLowerCase();
-    if (ext !== "pdf" && ext !== "docx") {
-      setAutofillStatus("Couldn't read this format — upload a PDF or DOCX to autofill.");
-      return;
-    }
-    if (ext === "pdf" && file.size > MAX_PDF_SIZE) {
-      setAutofillStatus("PDF files must be 2 MB or smaller.");
-      return;
-    }
-    if (file.size > MAX_RESUME_SIZE) {
-      setAutofillStatus("DOCX files must be 5 MB or smaller.");
-      return;
-    }
-    setAutofillStatus("Reading your resume…");
-    try {
-      // pdfjs + mammoth are ~850 kB: load them only when a resume is picked.
-      const { extractResumeText } = await import("../../shared/lib/resumeText");
-      const mapped = mapResumeText(await extractResumeText(file));
-      const skills = Array.isArray(mapped.skills) ? mapped.skills : [];
-      const filled = {};
-      for (const [key, value] of Object.entries(mapped)) {
-        if (key === "skills" || key === "education") continue;
-        if (String(value || "").trim()) {
-          filled[key] = value;
-        }
-      }
-      const edu = Object.fromEntries(
-        Object.entries(mapped.education || {}).filter(([, v]) => String(v || "").trim()),
-      );
-      setForm((prev) => {
-        const merged = {};
-        for (const [key, value] of Object.entries(filled)) {
-          const pv = prev[key];
-          const prevSet = Array.isArray(pv) ? pv.length > 0 : String(pv || "").trim() !== "";
-          if (!prevSet) merged[key] = value;
-        }
-        return {
-          ...prev,
-          ...merged,
-          ...(skills.length
-            ? {
-              skills: (() => {
-                const combined = String(prev.skills || "").split(",").map((s) => s.trim()).filter(Boolean);
-                for (const s of skills) {
-                  if (!combined.some((t) => t.toLowerCase() === s.toLowerCase())) combined.push(s);
-                }
-                return combined.join(", ");
-              })(),
-            }
-            : {}),
-        };
-      });
-      if (Object.keys(edu).length) {
-        setEducation((prev) => {
-          const kept = {};
-          for (const [k, v] of Object.entries(edu)) {
-            if (!String(prev[k] || "").trim()) kept[k] = v;
-          }
-          return Object.keys(kept).length ? { ...prev, ...kept } : prev;
-        });
-      }
-      const count = Object.keys(filled).length + (skills.length ? 1 : 0);
-      setAutofillStatus(
-        count
-          ? `Filled ${count} field${count === 1 ? "" : "s"}${skills.length ? ` · ${skills.length} skills found` : ""}${Object.keys(edu).length ? " · highest education added" : ""}.`
-          : "Couldn't find any details to fill in — enter them manually.",
-      );
-    } catch (err) {
-      setAutofillStatus(err?.message || "Couldn't read this resume — enter your details manually.");
-    }
-  }
-
   async function handleSubmit(event) {
     event.preventDefault();
     const validationErrors = validate(form);
@@ -197,36 +62,7 @@ function JobSeekerRegister() {
     setBusy(true);
     setError("");
     try {
-      const account = await signUp({
-        email: form.email.trim(),
-        password: form.password,
-        role: "job-seeker",
-        firstName: form.firstName.trim(),
-        middleName: form.middleName?.trim() || "",
-        lastName: form.lastName.trim(),
-        suffix: form.suffix?.trim() || "",
-        extra: {
-          phone: normalizePhone(form.mobileNumber),
-          birthdate: form.birthdate,
-          lot: form.lot.trim(),
-          block: form.block.trim(),
-          streetAddress: form.streetAddress.trim(),
-          subdivisionBuilding: form.subdivisionBuilding?.trim() || "",
-          barangayDistrict: form.barangayDistrict?.trim() || "",
-          cityMunicipality: form.cityMunicipality.trim(),
-          provinceState: form.provinceState.trim(),
-          postalCode: form.postalCode?.trim() || "",
-          country: "Philippines",
-          employmentStatus: form.employmentStatus || "",
-          skills: form.skills.split(",").map((s) => s.trim()).filter(Boolean),
-          education: education.level.trim() && education.school.trim() ? {
-            level: education.level.trim(),
-            school: education.school.trim(),
-            field: education.field.trim() || null,
-            end_year: education.studying ? null : Number(education.year.trim()),
-          } : null,
-        },
-      });
+      const account = await signUp(buildJobSeekerSignUpPayload(form, education));
       setNeedsConfirmation(!!account.emailConfirmationRequired);
       setSubmittedEmail(account.email);
       setSubmitted(true);
@@ -265,44 +101,16 @@ function JobSeekerRegister() {
   }
 
   if (submitted) {
-    return (
-      <div className="min-h-screen bg-muted text-foreground flex flex-col font-sans">
-        <SkipLink />
-        <PublicHeader />
-
-        <main id="main-content" tabIndex={-1}
-          className="flex-1 flex items-center justify-center p-[5%]">
-          <div className="max-w-md w-full text-center bg-card border border-primary rounded-lg p-6 shadow-xl">
-            <span className={`font-mono text-[10px] tracking-widest uppercase px-2.5 py-1 rounded-full border font-semibold ${needsConfirmation ? "bg-amber-50 border-amber-200 text-amber-700" : "bg-emerald-50 border-emerald-200 text-emerald-600"}`}>
-              {needsConfirmation ? "VERIFY YOUR EMAIL" : "ACCOUNT READY"}
-            </span>
-            <h1 className="mt-4 text-2xl font-bold text-dark-blue">{needsConfirmation ? "Check Your Email" : "Registration Complete!"}</h1>
-            <p className="mt-3 text-sm text-muted-foreground leading-relaxed">
-              {needsConfirmation
-                ? `We sent a verification link to ${submittedEmail || "your email"}. Open it to activate your account, then sign in to the portal.`
-                : "Your JobLinked applicant account has been created. You can now log in and apply to verified Santa Maria postings."}
-            </p>
-            <Link
-              to="/job-seeker/login"
-              className="inline-flex mt-6 min-h-[44px] items-center justify-center px-8 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-primary-hover active:scale-[0.98] transition-all shadow-md"
-            >
-              Sign In to Portal →
-            </Link>
-          </div>
-        </main>
-
-        <PublicFooter />
-      </div>
-    );
+    return <JobSeekerRegisterSuccess needsConfirmation={needsConfirmation} submittedEmail={submittedEmail} />;
   }
 
   return (
-    <div className="min-h-screen bg-muted text-foreground flex flex-col font-sans">
+    <>
       <SkipLink />
-      <PublicHeader />
-
-      <main id="main-content" tabIndex={-1} className="flex-1 flex items-center justify-center p-[5%]">
-        <div className="w-full max-w-4xl bg-card border border-primary rounded-lg p-6 md:p-10 shadow-xl">
+      <PublicShell>
+      <div className="bg-muted/60">
+      <div className="page-container py-10 sm:py-14">
+        <div className="mx-auto w-full max-w-4xl rounded-2xl border bg-white p-6 md:p-10 shadow-sm">
           <div className="flex items-center justify-between mb-4">
             <Link to="/register" className="text-xs text-muted-foreground hover:text-primary transition-colors">
               ← Back to roles
@@ -318,202 +126,38 @@ function JobSeekerRegister() {
           </header>
 
           <form ref={formRef} onSubmit={handleSubmit} noValidate className="space-y-6 register-form">
-            <section className="bg-muted border border-primary rounded-lg p-5">
-              <p className="font-mono text-[11px] tracking-[0.2em] text-primary uppercase mb-4 font-semibold">Step 1 — Personal Details</p>
-              <div className="space-y-4">
-            <section className="rounded-xl border border-dashed border-primary/40 bg-primary/5 p-4">
-              <Label htmlFor="resumeAutofill" className={`${labelClass} text-primary`}>Autofill from resume (PDF or DOCX only)</Label>
-              <Input
-                id="resumeAutofill"
-                type="file"
-                accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-                onChange={handleResumeChange}
-                className="block w-full text-xs text-muted-foreground file:mr-3 file:min-h-[40px] file:px-4 file:rounded-xl file:border-0 file:bg-primary file:text-white file:text-xs file:font-semibold hover:file:bg-primary-hover file:cursor-pointer cursor-pointer"
-              />
-              <p className="mt-2 text-xs text-muted-foreground">PDF up to 2 MB or DOCX up to 5 MB. We'll fill in details below; review and edit them before continuing.</p>
-              {autofillStatus && (
-                <p role="status" aria-live="polite" className="mt-2 text-xs font-medium text-primary">{autofillStatus}</p>
-              )}
-            </section>
+            <JobSeekerPersonalStep
+              form={form}
+              errors={errors}
+              set={set}
+              autofillStatus={autofillStatus}
+              handleResumeChange={handleResumeChange}
+              inputClass={inputClass}
+              labelClass={labelClass}
+              reqMark={reqMark}
+            />
 
-            <div className="grid grid-cols-1 gap-3">
-              <div>
-                <Label htmlFor="firstName" className={labelClass}>First Name{reqMark}</Label>
-                <Input id="firstName" name="firstName" type="text" placeholder="Juan" value={form.firstName} onChange={(e) => set("firstName", e.target.value)} className={inputClass} />
-                {errors.firstName && <p className="text-danger text-xs mt-1">{errors.firstName}</p>}
-              </div>
-              <div>
-                <Label htmlFor="middleName" className={labelClass}>Middle Name <span className="text-muted-foreground font-normal">(optional)</span></Label>
-                <Input id="middleName" name="middleName" type="text" placeholder="Santos" value={form.middleName} onChange={(e) => set("middleName", e.target.value)} className={inputClass} />
-              </div>
-              <div>
-                <Label htmlFor="lastName" className={labelClass}>Last Name{reqMark}</Label>
-                <Input id="lastName" name="lastName" type="text" placeholder="Dela Cruz" value={form.lastName} onChange={(e) => set("lastName", e.target.value)} className={inputClass} />
-                {errors.lastName && <p className="text-danger text-xs mt-1">{errors.lastName}</p>}
-              </div>
-            </div>
-            <div className="grid grid-cols-1 gap-3">
-              <div>
-                <Label htmlFor="suffix" className={labelClass}>Suffix <span className="text-muted-foreground font-normal">(optional)</span></Label>
-                <Input id="suffix" name="suffix" type="text" placeholder="Jr., Sr., III" value={form.suffix} onChange={(e) => set("suffix", e.target.value)} className={inputClass} />
-              </div>
-              <div>
-                <Label htmlFor="birthdate" className={labelClass}>Birthday{reqMark}</Label>
-                <Input id="birthdate" name="birthdate" type="date" max={new Date().toISOString().slice(0, 10)} value={form.birthdate} onChange={(e) => set("birthdate", e.target.value)} className={inputClass} />
-                {errors.birthdate && <p className="text-danger text-xs mt-1">{errors.birthdate}</p>}
-              </div>
-            </div>
+            <JobSeekerAddressStep
+              form={form}
+              errors={errors}
+              set={set}
+              inputClass={inputClass}
+              labelClass={labelClass}
+              reqMark={reqMark}
+            />
 
-            <div className="grid grid-cols-1 gap-3">
-              <div>
-                <Label htmlFor="mobileNumber" className={labelClass}>Mobile Number{reqMark}</Label>
-                <div className="relative">
-                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm text-muted-foreground select-none">+63</span>
-                  <Input id="mobileNumber" name="mobileNumber" type="tel" inputMode="numeric" maxLength={10} placeholder="917 123 4567" value={form.mobileNumber.replace(/^\+63/, "")} onChange={(e) => set("mobileNumber", withPrefix(e.target.value))} onBlur={(e) => set("mobileNumber", normalizePhone(e.target.value))} className={`${inputClass} pl-12`} />
-                </div>
-                {errors.mobileNumber && <p className="text-danger text-xs mt-1">{errors.mobileNumber}</p>}
-              </div>
-            </div>
-
-            <div>
-              <Label htmlFor="email" className={labelClass}>Email Address{reqMark}</Label>
-              <Input id="email" name="email" type="email" placeholder="juan.delacruz@example.com" value={form.email} onChange={(e) => set("email", e.target.value)} className={inputClass} />
-              {errors.email && <p className="text-danger text-xs mt-1">{errors.email}</p>}
-            </div>
-
-            <div className="grid grid-cols-1 gap-3">
-              <div>
-                <Label htmlFor="password" className={labelClass}>Password{reqMark}</Label>
-                <Input id="password" name="password" type="password" placeholder="Min. 8 characters" value={form.password} onChange={(e) => set("password", e.target.value)} className={inputClass} />
-                {errors.password && <p className="text-danger text-xs mt-1">{errors.password}</p>}
-              </div>
-              <div>
-                <Label htmlFor="confirmPassword" className={labelClass}>Confirm Password{reqMark}</Label>
-                <Input id="confirmPassword" name="confirmPassword" type="password" placeholder="Re-enter password" value={form.confirmPassword} onChange={(e) => set("confirmPassword", e.target.value)} className={inputClass} />
-                {errors.confirmPassword && <p className="text-danger text-xs mt-1">{errors.confirmPassword}</p>}
-              </div>
-            </div>
-
-            <div>
-              <Label htmlFor="employmentStatus" className={labelClass}>Employment Status{reqMark}</Label>
-              <select id="employmentStatus" name="employmentStatus" value={form.employmentStatus} onChange={(e) => set("employmentStatus", e.target.value)} className={inputClass}>
-                <option value="">Select status</option>
-                {EMPLOYMENT_STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
-              </select>
-              {errors.employmentStatus && <p className="text-danger text-xs mt-1">{errors.employmentStatus}</p>}
-            </div>
-              </div>
-            </section>
-
-            <section className="bg-muted border border-primary rounded-lg p-5">
-              <p className="font-mono text-[11px] tracking-[0.2em] text-primary uppercase mb-4 font-semibold">Step 2 — Address Information</p>
-              <div className="space-y-4">
-              <div className="grid grid-cols-1 gap-3">
-                <div>
-                  <Label htmlFor="lot" className={labelClass}>Lot <span className="text-muted-foreground font-normal">(optional)</span></Label>
-                  <Input id="lot" name="lot" type="text" placeholder="e.g. 12" value={form.lot} onChange={(e) => set("lot", e.target.value)} className={inputClass} />
-                </div>
-                <div>
-                  <Label htmlFor="block" className={labelClass}>Block <span className="text-muted-foreground font-normal">(optional)</span></Label>
-                  <Input id="block" name="block" type="text" placeholder="e.g. 4" value={form.block} onChange={(e) => set("block", e.target.value)} className={inputClass} />
-                </div>
-                <div>
-                  <Label htmlFor="streetAddress" className={labelClass}>Street Address{reqMark}</Label>
-                  <Input id="streetAddress" name="streetAddress" type="text" placeholder="e.g. Norzagaray-Santa Maria Road" value={form.streetAddress} onChange={(e) => set("streetAddress", e.target.value)} className={inputClass} />
-                  {errors.streetAddress && <p className="text-danger text-xs mt-1">{errors.streetAddress}</p>}
-                </div>
-                <div>
-                  <Label htmlFor="subdivisionBuilding" className={labelClass}>Subdivision / Village / Building Name <span className="text-muted-foreground font-normal">(optional)</span></Label>
-                  <Input id="subdivisionBuilding" name="subdivisionBuilding" type="text" placeholder="e.g. Greenview Heights" value={form.subdivisionBuilding} onChange={(e) => set("subdivisionBuilding", e.target.value)} className={inputClass} />
-                </div>
-                <div>
-                  <Label htmlFor="barangayDistrict" className={labelClass}>Barangay / District <span className="text-muted-foreground font-normal">(optional)</span></Label>
-                  <select id="barangayDistrict" name="barangayDistrict" value={form.barangayDistrict} onChange={(e) => set("barangayDistrict", e.target.value)} className={inputClass}>
-                    <option value="">Select barangay</option>
-                    {form.barangayDistrict && !SANTA_MARIA_BARANGAYS.includes(form.barangayDistrict) && (
-                      <option value={form.barangayDistrict}>{form.barangayDistrict}</option>
-                    )}
-                    {SANTA_MARIA_BARANGAYS.map((b) => <option key={b} value={b}>{b}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <Label htmlFor="cityMunicipality" className={labelClass}>City / Municipality{reqMark}</Label>
-                  <select id="cityMunicipality" name="cityMunicipality" value={form.cityMunicipality} onChange={(e) => set("cityMunicipality", e.target.value)} className={inputClass}>
-                    <option value="">Select city / municipality</option>
-                    {BULACAN_MUNICIPALITIES.map((m) => <option key={m} value={m}>{m}</option>)}
-                  </select>
-                  {errors.cityMunicipality && <p className="text-danger text-xs mt-1">{errors.cityMunicipality}</p>}
-                </div>
-                <div>
-                  <Label htmlFor="provinceState" className={labelClass}>Province / State{reqMark}</Label>
-                  <select id="provinceState" name="provinceState" value={form.provinceState} onChange={(e) => set("provinceState", e.target.value)} className={inputClass}>
-                    <option value="">Select province</option>
-                    <option value="Bulacan">Bulacan</option>
-                  </select>
-                  {errors.provinceState && <p className="text-danger text-xs mt-1">{errors.provinceState}</p>}
-                </div>
-                <div>
-                  <Label htmlFor="postalCode" className={labelClass}>Postal Code <span className="text-muted-foreground font-normal">(optional)</span></Label>
-                  <Input id="postalCode" name="postalCode" type="text" inputMode="numeric" maxLength={4} placeholder="e.g. 3022" value={form.postalCode} onChange={(e) => set("postalCode", e.target.value)} className={inputClass} />
-                  {errors.postalCode && <p className="text-danger text-xs mt-1">{errors.postalCode}</p>}
-                </div>
-              </div>
-              </div>
-            </section>
-
-            <section className="bg-muted border border-primary rounded-lg p-5">
-              <p className="font-mono text-[11px] tracking-[0.2em] text-primary uppercase mb-4 font-semibold">Step 3 — Background & Consent</p>
-              <div className="space-y-4">
-              <div>
-              <p className="font-mono text-[11px] tracking-[0.2em] text-primary uppercase mb-4 font-semibold">Education History</p>
-              <div className="grid grid-cols-1 gap-3">
-                <select aria-label="Education level" id="educationLevel" value={education.level} onChange={(e) => setEducation({ ...education, level: e.target.value })} className="px-4 py-2.5 rounded-xl text-sm bg-muted border border-border text-foreground focus:outline-none focus:border-primary/60 transition-all">
-                  <option value="">Education level</option>
-                  {EDUCATION_LEVELS.map((l) => <option key={l} value={l}>{l}</option>)}
-                </select>
-                <Input aria-label="School name" placeholder="School name" value={education.school} onChange={(e) => setEducation({ ...education, school: e.target.value })} className="px-4 py-2.5 rounded-xl text-sm bg-muted border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/60 transition-all" />
-                <div className="flex gap-2">
-                  <Input aria-label="Course / field of study" placeholder="Course / field" value={education.field} onChange={(e) => setEducation({ ...education, field: e.target.value })} className="flex-1 px-4 py-2.5 rounded-xl text-sm bg-muted border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/60 transition-all" />
-                  <Input aria-label="Graduation year" placeholder="Year" inputMode="numeric" disabled={education.studying} value={education.year} onChange={(e) => setEducation({ ...education, year: e.target.value })} className="w-20 px-3 py-2.5 rounded-xl text-sm bg-muted border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/60 transition-all disabled:opacity-50" />
-                </div>
-              </div>
-              <Label className="mt-2 flex items-center gap-2 text-xs text-muted-foreground select-none cursor-pointer">
-                <Input type="checkbox" checked={education.studying} onChange={(e) => setEducation({ ...education, studying: e.target.checked })} className="accent-primary" />
-                Currently studying here
-              </Label>
-              {eduError && <p className="mt-2 text-xs text-danger">{eduError}</p>}
-              </div>
-
-              <div>
-              <Label htmlFor="skills" className={labelClass}>Skills <span className="text-muted-foreground font-normal">(optional)</span></Label>
-              <TagInput id="skills" value={form.skills} onChange={(v) => set("skills", v)} placeholder="Type a skill and press Enter" />
-              </div>
-
-              <div>
-              <div className="space-y-3">
-                <div>
-                <div className="flex items-start gap-2.5 text-xs text-muted-foreground pt-2">
-                  <Input id="agree" type="checkbox" name="agree" checked={form.agree} disabled={!termsRead} onChange={(e) => set("agree", e.target.checked)} className="mt-0.5 accent-primary shrink-0 disabled:opacity-50 disabled:cursor-not-allowed" />
-                  <div>
-                    <Label htmlFor="agree" className={!termsRead ? "cursor-not-allowed opacity-70" : "cursor-pointer"}>I agree to the municipal data collection terms and PESO privacy policies.{reqMark}</Label>
-                    <Button type="button" onClick={() => setTermsOpen(true)} className="ml-1 whitespace-nowrap text-primary hover:underline underline-offset-4">View terms</Button>
-                    {!termsRead && <p className="mt-1 text-muted-foreground">Please open and read the terms before agreeing.</p>}
-                  </div>
-                </div>
-                {errors.agree && <p className="text-danger text-xs mt-1">{errors.agree}</p>}
-                </div>
-
-                <div>
-                <Label className="flex items-start gap-2.5 text-xs text-muted-foreground select-none cursor-pointer">
-                  <Input type="checkbox" id="confirmAccurate" name="confirmAccurate" checked={form.confirmAccurate} onChange={(e) => set("confirmAccurate", e.target.checked)} className="mt-0.5 accent-primary" />
-                  <span>I confirm that all the information I provided is true and correct to the best of my knowledge.{reqMark}</span>
-                </Label>
-                {errors.confirmAccurate && <p className="text-danger text-xs mt-1">{errors.confirmAccurate}</p>}
-                </div>
-              </div>
-              </div>
-              </div>
-            </section>
+            <JobSeekerBackgroundStep
+              form={form}
+              errors={errors}
+              set={set}
+              education={education}
+              setEducation={setEducation}
+              eduError={eduError}
+              setTermsOpen={setTermsOpen}
+              termsRead={termsRead}
+              labelClass={labelClass}
+              reqMark={reqMark}
+            />
 
             {error && (
               <div role="alert" className="p-3.5 rounded-xl bg-danger/10 border border-danger/20 text-danger text-xs font-medium">{error}</div>
@@ -535,11 +179,11 @@ function JobSeekerRegister() {
             </Link>
           </p>
         </div>
-      </main>
-
-      <PublicFooter />
+      </div>
+      </div>
+      </PublicShell>
       <TermsModal open={termsOpen} onClose={() => setTermsOpen(false)} onRead={() => setTermsRead(true)} />
-    </div>
+    </>
   );
 }
 

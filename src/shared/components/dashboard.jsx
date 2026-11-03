@@ -44,26 +44,24 @@ export function InlineError({ message, onRetry }) {
 // white card exactly as before, so the employer and super-admin portals are
 // unaffected.
 const STAT_TONES = {
-  info: { card: "bg-primary/10 border border-primary", text: "text-primary" },
-  success: { card: "bg-emerald-50 border border-emerald-300", text: "text-emerald-700" },
-  danger: { card: "bg-danger/10 border border-danger/20", text: "text-danger" },
-  warn: { card: "bg-amber-50 border border-amber-300", text: "text-amber-700" },
+  info: { card: "bg-blue-soft border-border", text: "text-primary" },
+  success: { card: "bg-success-soft border-border", text: "text-success" },
+  danger: { card: "bg-danger-soft border-border", text: "text-destructive" },
+  warn: { card: "bg-warning-soft border-border", text: "text-warning" },
 };
 
-export function StatCard({ label, value, highlight, icon, valueClassName = "text-primary", tone }) {
+export function StatCard({ label, value, highlight, icon, valueClassName = "text-navy", tone }) {
   const themed = STAT_TONES[tone];
   const valueText = themed ? themed.text : valueClassName;
   const iconText = themed ? themed.text : "text-primary";
   return (
-    <div className={`${themed ? themed.card : "bg-card border border-primary"}  rounded-lg p-4`}>
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <p className={`font-sans text-2xl md:text-3xl font-bold leading-none ${valueText}`}>{value}</p>
-          <p className="mt-3 font-mono text-[10px] md:text-[11px] tracking-widest text-muted-foreground uppercase">{label}</p>
-        </div>
-        {icon ? <span className={`grid place-items-center w-10 h-10 rounded-lg bg-primary-subtle ${iconText}`}>{icon}</span> : null}
+    <div className={`${themed ? themed.card : "surface"} rounded-xl border p-4`}>
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-xs text-muted-foreground">{label}</span>
+        {icon ? <span className={`grid place-items-center ${iconText}`}>{icon}</span> : null}
       </div>
-      {highlight ? <span className="inline-block mt-3 w-2 h-2 rounded-full bg-amber-400" /> : null}
+      <p className={`mt-3 text-[29px] font-semibold leading-none tracking-tight ${valueText}`}>{value}</p>
+      {highlight ? <span className="mt-3 inline-block size-2 rounded-full bg-warning" /> : null}
     </div>
   );
 }
@@ -91,13 +89,12 @@ export function DashboardHero({ user, fallback = "Job Seeker", initialsFallback 
 export function SectionCard({ title, subtitle, action, children, className = "", titleAs = "h2" }) {
   const TitleTag = titleAs;
   return (
-    <section className={`bg-card border border-primary  rounded-lg overflow-hidden ${className}`}>
-      <div className="flex items-center justify-between gap-3 px-5 py-3 bg-muted border-b border-border ">
-        <div className="flex items-center gap-3 min-w-0">
-          <span className="w-1 h-6 bg-primary rounded-full shrink-0" />
+    <section className={`surface overflow-hidden rounded-2xl ${className}`}>
+      <div className="flex items-center justify-between gap-3 border-b px-5 py-4">
+        <div className="flex min-w-0 items-center gap-3">
           <div className="min-w-0">
-            <TitleTag className="text-base font-semibold text-dark-blue dark:text-gray-200 truncate">{title}</TitleTag>
-            {subtitle ? <p className="text-xs text-muted-foreground mt-0.5">{subtitle}</p> : null}
+            <TitleTag className="truncate text-base font-semibold text-navy">{title}</TitleTag>
+            {subtitle ? <p className="mt-1 text-xs text-muted-foreground">{subtitle}</p> : null}
           </div>
         </div>
         {action}

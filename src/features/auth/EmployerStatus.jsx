@@ -1,164 +1,110 @@
-import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
-import Logo from "../../assets/TextBased Logo.png";
-import { getEmployer } from "../../shared/services/auth";import LoadingScreen from "../../shared/components/LoadingScreen";
-import { titleCase } from "../../shared/utils/titleCase";
-import useAuth from "../../shared/hooks/useAuth";
-import SkipLink from "../../shared/components/SkipLink";
+import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
+import { Badge } from '@/components/ui/badge'
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import { getEmployer } from '@/shared/services/auth'
+import LoadingScreen from '@/shared/components/LoadingScreen'
+import { LinkButton } from '@/shared/components/design'
+import { titleCase } from '@/shared/utils/titleCase'
+import useAuth from '@/shared/hooks/useAuth'
 
 function StatusNode({ done, rejected, label, sub }) {
   return (
     <li className="relative pb-8 pl-8 last:pb-0">
       <div className="absolute left-0 top-1">
         {done ? (
-          <span className={`flex items-center justify-center w-5 h-5 rounded-full ${rejected ? "bg-danger/15 text-danger border border-danger/30" : "bg-primary/15 text-primary border border-primary/30"}`}>
-            <span className={`w-2 h-2 rounded-full ${rejected ? "bg-danger" : "bg-primary"}`} />
+          <span className={`flex size-5 items-center justify-center rounded-full border ${rejected ? 'border-danger/30 bg-danger/15 text-danger' : 'border-primary/30 bg-primary/15 text-primary'}`}>
+            <span className={`size-2 rounded-full ${rejected ? 'bg-danger' : 'bg-primary'}`} />
           </span>
         ) : (
-          <span className="flex items-center justify-center w-5 h-5 rounded-full border border-gray-300 bg-card">
-            <span className="w-1.5 h-1.5 rounded-full bg-gray-300" />
+          <span className="flex size-5 items-center justify-center rounded-full border border-border bg-card">
+            <span className="size-1.5 rounded-full bg-border" />
           </span>
         )}
       </div>
       <div>
-        <p className={`text-sm font-medium ${done ? "text-foreground" : "text-muted-foreground"}`}>{label}</p>
+        <p className={`text-sm font-medium ${done ? 'text-foreground' : 'text-muted-foreground'}`}>{label}</p>
         {sub && <div className="mt-1">{sub}</div>}
       </div>
     </li>
-  );
+  )
 }
 
-function EmployerStatus() {
-  const { user } = useAuth();
-  const [employer, setEmployer] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+export default function EmployerStatus() {
+  const { user } = useAuth()
+  const [employer, setEmployer] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
 
   useEffect(() => {
-    if (!user) return;
-    // Read accreditation_status directly from the employers row — single read,
-    // always in sync server-side. No separate employer_accreditations lookup needed.
+    if (!user) return
     getEmployer()
-      .then((data) => {
-        setEmployer(data);
-      })
-      .catch((err) => setError(err.message || "Failed to load status"))
-      .finally(() => setLoading(false));
-  }, [user]);
+      .then((data) => setEmployer(data))
+      .catch((err) => setError(err.message || 'Failed to load status'))
+      .finally(() => setLoading(false))
+  }, [user])
 
-  const headerLogo = (
-    <div className="bg-card rounded-lg px-3.5 py-1.5 flex items-center shadow-xs">
-      <Link to="/"><img src={Logo} alt="JobLinked" width={480} height={160} className="h-10" /></Link>
-    </div>
-  );
+  if (!user) return <p className="py-8 text-center text-sm text-muted-foreground">Please sign in to view your accreditation status.</p>
+  if (loading) return <LoadingScreen />
+  if (error) return <p className="py-8 text-center text-sm text-danger">{error}</p>
 
-  if (!user) return <div className="py-8 text-center text-sm text-muted-foreground">Please sign in to view your accreditation status.</div>;
-  if (loading) return <LoadingScreen />;
-  if (error) return <div className="py-8 text-center text-sm text-danger">{error}</div>;
-
-  // No employers row yet — user registered but hasn't completed their profile
   if (!employer || !employer.accreditation_status) {
     return (
-      <div className="min-h-screen bg-muted text-foreground flex flex-col font-sans">
-        <SkipLink />
-        <header className="sticky top-0 z-20 bg-navy border-b border-white/10">
-          <div className="w-full px-4 h-[64px] flex items-center justify-between">
-            {headerLogo}
-            <span className="hidden sm:block font-mono text-[11px] text-muted-foreground">PESO · SANTA MARIA</span>
-          </div>
-        </header>
-        <main id="main-content" tabIndex={-1}
-          className="flex-1 flex items-center justify-center p-[5%]">
-          <div className="max-w-md w-full text-center bg-card border border-primary rounded-lg p-6 shadow-xl">
-            <h1 className="text-xl font-bold text-dark-blue">No Application Found</h1>
-            <p className="mt-3 text-sm text-muted-foreground">You haven&apos;t submitted an employer accreditation application yet.</p>
-            <Link to="/register/employer" className="inline-flex mt-6 min-h-[44px] items-center justify-center px-6 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-primary-hover active:scale-[0.98] transition-all shadow-md">
-              Register as Employer →
-            </Link>
-          </div>
-        </main>
-      </div>
-    );
+      <Card className="mx-auto max-w-lg">
+        <CardHeader>
+          <CardTitle>No application found</CardTitle>
+          <CardDescription>You haven’t submitted an employer accreditation application yet.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <LinkButton href="/register/employer">Register as Employer →</LinkButton>
+        </CardContent>
+      </Card>
+    )
   }
 
-  const status = employer.accreditation_status;
-  const isApproved = status === "approved";
-  const isRejected = status === "rejected";
-  const isRevoked = status === "revoked";
-  // remarks are stored on the accreditation record; the employers row may expose
-  // them via accreditation_remarks if that column is added, otherwise fall back gracefully
-  const remarks = employer.accreditation_remarks || null;
+  const status = employer.accreditation_status
+  const isApproved = status === 'approved'
+  const isRejected = status === 'rejected'
+  const isRevoked = status === 'revoked'
+  const remarks = employer.accreditation_remarks || null
 
   return (
-    <div className="min-h-screen bg-muted text-foreground flex flex-col font-sans">
-      <SkipLink />
-      <header className="sticky top-0 z-20 bg-navy border-b border-white/10">
-        <div className="w-full px-4 h-[64px] flex items-center justify-between">
-          {headerLogo}
-          <span className="hidden sm:block font-mono text-[11px] text-muted-foreground">PESO · SANTA MARIA</span>
+    <Card className="mx-auto max-w-lg">
+      <CardHeader>
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <p className="text-[10px] font-semibold uppercase tracking-[.14em] text-primary">Accreditation status</p>
+            <CardTitle className="mt-1 text-2xl">{titleCase(employer.company_name)}</CardTitle>
+          </div>
+          <Badge variant="secondary" className={isApproved ? 'bg-success-soft text-success' : isRejected || isRevoked ? 'bg-danger-soft text-destructive' : 'bg-blue-soft text-primary'}>
+            {status === 'pending' ? 'Under Review' : status}
+          </Badge>
         </div>
-      </header>
-
-      <main id="main-content" tabIndex={-1} className="flex-1 flex items-center justify-center p-[5%]">
-        <div className="w-full max-w-lg bg-card border border-primary rounded-lg p-6 md:p-9 shadow-xl">
-          {(isRejected || isRevoked) && remarks && (
-            <div className="mb-6 p-4 rounded-xl border border-danger/20 bg-danger/5">
-              <p className="font-mono text-[10px] tracking-widest text-danger uppercase font-semibold">Action Required</p>
-              <p className="mt-1.5 text-xs text-muted-foreground leading-relaxed">{remarks}</p>
-            </div>
+      </CardHeader>
+      <CardContent>
+        {(isRejected || isRevoked) && remarks && (
+          <div className="mb-6 rounded-xl border border-danger/20 bg-danger/5 p-4">
+            <p className="text-[10px] font-semibold uppercase tracking-[.14em] text-danger">Action required</p>
+            <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">{remarks}</p>
+          </div>
+        )}
+        <ol className="relative mt-2">
+          <span className="absolute bottom-4 left-[9px] top-3 w-px bg-border" aria-hidden="true" />
+          <StatusNode done label="Application Submitted" sub={<p className="text-xs text-muted-foreground">Credentials and documents successfully received.</p>} />
+          <StatusNode done label="Under PESO Review" sub={<p className="text-xs text-muted-foreground">Santa Maria PESO officers are evaluating business credentials and permit compliance.</p>} />
+          {!isRejected && !isRevoked && (
+            <StatusNode done={isApproved} label="Municipal Accreditation Approved" sub={isApproved ? <p className="text-xs text-success">Accreditation granted. Your employer portal is active and you can now post verified job openings.</p> : undefined} />
           )}
-
-          <div className="flex items-start justify-between gap-3 pb-6 border-b border-border">
-            <div>
-              <span className="font-mono text-[10px] tracking-widest uppercase text-primary font-semibold">ACCREDITATION STATUS</span>
-              <h1 className="mt-1 text-2xl font-bold text-dark-blue">{titleCase(employer.company_name)}</h1>
-            </div>
-            <span className={`shrink-0 font-mono text-[11px] tracking-wider px-3 py-1 rounded-full uppercase border font-semibold ${
-              isApproved ? "bg-emerald-50 border-emerald-200 text-emerald-600"
-              : isRejected || isRevoked ? "bg-danger/5 border-danger/20 text-danger"
-              : "bg-accent/20 border-accent/40 text-dark-blue"
-            }`}>
-              {status === "pending" ? "Under Review" : status}
-            </span>
-          </div>
-
-          <ol className="mt-7 relative">
-            <span className="absolute left-[9px] top-3 bottom-4 w-px bg-gray-200" aria-hidden="true" />
-            <StatusNode done label="Application Submitted" sub={<p className="text-xs text-muted-foreground">Credentials and documents successfully received.</p>} />
-            <StatusNode done label="Under PESO Review" sub={<p className="text-xs text-muted-foreground">Santa Maria PESO officers are evaluating business credentials and permit compliance.</p>} />
-            {!isRejected && !isRevoked && (
-              <StatusNode done={isApproved} label="Municipal Accreditation Approved" sub={isApproved ? <p className="text-xs text-emerald-600">Accreditation granted. Your employer portal is active and you can now post verified job openings.</p> : undefined} />
-            )}
-            {(isRejected || isRevoked) && (
-              <StatusNode done rejected label={isRevoked ? "Accreditation Revoked" : "Accreditation Rejected"} sub={<p className="text-xs text-danger">{remarks || (isRevoked ? "Accreditation was revoked by PESO." : "Application did not meet accreditation criteria.")}</p>} />
-            )}
-          </ol>
-
-          <div className="mt-8 pt-6 border-t border-border flex flex-col gap-3">
-            {isApproved && (
-              <Link to="/employer/login" className="min-h-[44px] inline-flex items-center justify-center px-6 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-primary-hover active:scale-[0.98] transition-all shadow-md">
-                Access Employer Portal →
-              </Link>
-            )}
-            {isRejected && (
-              <Link to="/register/employer" className="min-h-[44px] inline-flex items-center justify-center px-6 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-primary-hover active:scale-[0.98] transition-all shadow-md">
-                Re-submit Documents
-              </Link>
-            )}
-            <Link to="/" className="text-center text-xs text-muted-foreground hover:text-primary transition-colors">Back to Home</Link>
-          </div>
+          {(isRejected || isRevoked) && (
+            <StatusNode done rejected label={isRevoked ? 'Accreditation Revoked' : 'Accreditation Rejected'} sub={<p className="text-xs text-danger">{remarks || (isRevoked ? 'Accreditation was revoked by PESO.' : 'Application did not meet accreditation criteria.')}</p>} />
+          )}
+        </ol>
+        <div className="mt-8 flex flex-col gap-3 border-t border-border pt-6">
+          {isApproved && <LinkButton href="/employer">Access Employer Portal →</LinkButton>}
+          {isRejected && <LinkButton href="/register/employer">Re-submit Documents</LinkButton>}
+          <Link to="/" className="text-center text-xs text-muted-foreground transition-colors hover:text-primary">Back to Home</Link>
         </div>
-      </main>
-
-      <footer className="bg-navy text-white">
-        <div className="w-full px-4 py-3 flex flex-col sm:flex-row justify-between gap-2 text-xs font-mono">
-          <span className="text-white/80 font-medium">Job<span className="text-accent">Linked</span> <span className="text-white/50">PESO</span></span>
-          <span className="text-white/50">Santa Maria Municipal Hall · hello@joblinked.ph</span>
-          <span className="text-white/50">© 2026</span>
-        </div>
-      </footer>
-    </div>
-  );
+      </CardContent>
+    </Card>
+  )
 }
-
-export default EmployerStatus;

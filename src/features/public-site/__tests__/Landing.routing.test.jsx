@@ -13,10 +13,10 @@ vi.mock('../../../shared/hooks/useAuth', () => ({
 const expected = [
   ['Find your next job', '/jobs'],
   ['Post a job', '/register/employer'],
-  ["Let's get started", '/register'],
-  ['Create your profile', '/register'],
-  ['Sign up', '/register'],
-  ['Log in', '/portals'],
+  ["Let's get started", '/signup'],
+  ['Create your profile', '/signup'],
+  ['Sign up', '/signup'],
+  ['Log in', '/login'],
 ]
 
 describe('Landing page routing', () => {

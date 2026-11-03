@@ -1,15 +1,16 @@
-import { Button } from "../../components/ui/button";
-import { Input } from "../../components/ui/input";
-import { Label } from "../../components/ui/label";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { signUp } from "../../shared/services/auth";
-import { normalizePhone, isValidPhone, toLocalDigits } from "../../shared/utils/phone";
-import { BULACAN_MUNICIPALITIES, SANTA_MARIA_BARANGAYS } from "../../shared/constants";
-import TermsModal from "../../shared/components/TermsModal";
-import SkipLink from "../../shared/components/SkipLink";
-import PublicHeader from "../../shared/components/PublicHeader";
-import PublicFooter from "../../shared/components/PublicFooter";
+import { signUp } from "@/shared/services/auth";
+import TermsModal from "@/shared/components/TermsModal";
+import SkipLink from "@/shared/components/SkipLink";
+import PublicShell from "@/shared/components/PublicShell";
+import EmployerRegisterSuccess from "./EmployerRegisterSuccess";
+import EmployerCompanyStep from "./EmployerCompanyStep";
+import EmployerRepresentativeStep from "./EmployerRepresentativeStep";
+import { validate, buildEmployerSignUpPayload } from "./employerRegistration";
 
 function EmployerRegister() {
   const [error, setError] = useState("");
@@ -29,34 +30,6 @@ function EmployerRegister() {
     }
   }, [submitted, needsConfirmation, navigate]);
 
-  function validate(values) {
-    const e = {};
-    if (!values.companyName?.trim()) e.companyName = "Company name is required";
-    if (!values.industry?.trim()) e.industry = "Industry is required";
-    if (!values.streetAddress?.trim()) e.streetAddress = "Street address is required";
-    if (!values.cityMunicipality?.trim()) e.cityMunicipality = "City / Municipality is required";
-    if (!values.provinceState?.trim()) e.provinceState = "Province is required";
-    if (values.postalCode?.trim() && !/^\d{4}$/.test(values.postalCode.trim())) e.postalCode = "Postal code must be 4 digits";
-    if (!values.contactNumber?.trim()) e.contactNumber = "Contact number is required";
-    else if (!isValidPhone(values.contactNumber)) e.contactNumber = "Enter a valid number (e.g. 44 000 0000)";
-    if (!values.companyEmail?.trim()) e.companyEmail = "Company email is required";
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.companyEmail)) e.companyEmail = "Invalid email address";
-    if (!values.repFirstName?.trim()) e.repFirstName = "First name is required";
-    if (!values.repLastName?.trim()) e.repLastName = "Last name is required";
-    if (!values.repPosition?.trim()) e.repPosition = "Position is required";
-    if (!values.repEmail?.trim()) e.repEmail = "Representative email is required";
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.repEmail)) e.repEmail = "Invalid email address";
-    if (!values.repMobile?.trim()) e.repMobile = "Representative mobile is required";
-    else if (!isValidPhone(values.repMobile)) e.repMobile = "Enter a valid number (e.g. 917 123 4567)";
-    if (!values.repBirthdate) e.repBirthdate = "Birthday is required";
-    if (!values.password) e.password = "Password is required";
-    else if (values.password.length < 8) e.password = "Password must be at least 8 characters";
-    if (!values.confirmPassword) e.confirmPassword = "Please confirm your password";
-    else if (values.password !== values.confirmPassword) e.confirmPassword = "Passwords do not match";
-    if (!values.agree) e.agree = "You must agree to the terms";
-    return e;
-  }
-
   async function handleSubmit(event) {
     event.preventDefault();
     const formData = new FormData(event.target);
@@ -72,32 +45,7 @@ function EmployerRegister() {
     setBusy(true);
     setError("");
     try {
-      const account = await signUp({
-        email: values.companyEmail.trim(),
-        password: values.password,
-        role: "employer",
-        firstName: values.repFirstName.trim(),
-        middleName: values.repMiddleName?.trim() || "",
-        lastName: values.repLastName.trim(),
-        suffix: values.repSuffix?.trim() || "",
-        extra: {
-          phone: normalizePhone(values.repMobile),
-          birthdate: values.repBirthdate,
-          companyName: values.companyName.trim(),
-          industry: values.industry.trim(),
-          companyEmail: values.companyEmail.trim(),
-          representativeEmail: values.repEmail.trim(),
-          representativePosition: values.repPosition.trim(),
-          houseNumberUnit: values.houseNumberUnit?.trim() || "",
-          streetAddress: values.streetAddress.trim(),
-          subdivisionBuilding: values.subdivisionBuilding?.trim() || "",
-          barangayDistrict: values.barangayDistrict?.trim() || "",
-          cityMunicipality: values.cityMunicipality.trim(),
-          provinceState: values.provinceState.trim(),
-          postalCode: values.postalCode?.trim() || "",
-          country: "Philippines",
-        },
-      });
+      const account = await signUp(buildEmployerSignUpPayload(values));
 
       if (account.emailConfirmationRequired) {
         setNeedsConfirmation(true);
@@ -114,40 +62,7 @@ function EmployerRegister() {
   }
 
   if (submitted) {
-    return (
-      <div className="min-h-screen bg-muted text-foreground flex flex-col font-sans">
-        <SkipLink />
-        <PublicHeader />
-
-        <main id="main-content" tabIndex={-1}
-          className="flex-1 flex items-center justify-center p-[5%]">
-          <div className="max-w-md w-full text-center bg-card border border-primary rounded-lg p-6 shadow-xl">
-            <span className="font-mono text-[10px] tracking-widest uppercase px-2.5 py-1 rounded-full bg-accent/20 border border-accent/40 text-dark-blue font-semibold">
-              {needsConfirmation ? "VERIFY YOUR EMAIL" : "PENDING VERIFICATION"}
-            </span>
-            <h1 className="mt-4 text-2xl font-bold text-dark-blue">{needsConfirmation ? "Check Your Email" : "Application Submitted"}</h1>
-            <p className="mt-3 text-sm text-muted-foreground leading-relaxed">
-              {needsConfirmation
-                ? "We sent a verification link to your company email. Confirm it, then sign in — you'll finish setting up your company profile on first login."
-                : "Your business accreditation application is now being reviewed by the Santa Maria PESO staff."}
-            </p>
-            <div className="mt-7 flex flex-col gap-3">
-              <Link
-                to="/employer/login"
-                className="min-h-[44px] inline-flex items-center justify-center px-6 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-primary-hover active:scale-[0.98] transition-all shadow-md"
-              >
-                Go to Login →
-              </Link>
-              <Link to="/" className="text-xs text-muted-foreground hover:text-primary transition-colors">
-                Return to home
-              </Link>
-            </div>
-          </div>
-        </main>
-
-        <PublicFooter />
-      </div>
-    );
+    return <EmployerRegisterSuccess needsConfirmation={needsConfirmation} />;
   }
 
   const inputClass = "w-full min-h-[44px] px-4 rounded-xl text-sm bg-muted border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all";
@@ -178,12 +93,12 @@ function EmployerRegister() {
   }
 
   return (
-    <div className="min-h-screen bg-muted text-foreground flex flex-col font-sans">
+    <>
       <SkipLink />
-      <PublicHeader />
-
-      <main id="main-content" tabIndex={-1} className="flex-1 flex items-center justify-center p-[5%]">
-        <div className="w-full max-w-4xl bg-card border border-primary rounded-lg p-6 md:p-10 shadow-xl">
+      <PublicShell>
+      <div className="bg-muted/60">
+      <div className="page-container py-10 sm:py-14">
+        <div className="mx-auto w-full max-w-4xl rounded-2xl border bg-white p-6 md:p-10 shadow-sm">
           <div className="flex items-center justify-between mb-4">
             <Link to="/register" className="text-xs text-muted-foreground hover:text-primary transition-colors">
               ← Back to roles
@@ -199,147 +114,21 @@ function EmployerRegister() {
           </header>
 
           <form ref={formRef} onSubmit={handleSubmit} noValidate className="space-y-6 register-form">
-            <section className="bg-muted border border-primary rounded-lg p-5">
-              <p className="font-mono text-[11px] tracking-[0.2em] text-primary uppercase mb-4 font-semibold">Step 1 — Company Details</p>
-              <div className="space-y-4">
-                <div>
-                  <Label htmlFor="companyName" className={labelClass}>Company / Trade Name{reqMark}</Label>
-                  <Input id="companyName" name="companyName" type="text" placeholder="e.g. Santa Maria Logistics Inc." className={inputClass} onChange={() => { if (errors.companyName) setErrors((prev) => ({ ...prev, companyName: undefined })); }} />
-                  {errors.companyName && <p className="text-danger text-xs mt-1">{errors.companyName}</p>}
-                </div>
-                <div>
-                  <Label htmlFor="industry" className={labelClass}>Company Industry{reqMark}</Label>
-                  <Input id="industry" name="industry" type="text" placeholder="e.g. Manufacturing, IT, Retail" className={inputClass} onChange={() => { if (errors.industry) setErrors((prev) => ({ ...prev, industry: undefined })); }} />
-                  {errors.industry && <p className="text-danger text-xs mt-1">{errors.industry}</p>}
-                </div>
-                <div>
-                  <p className={labelClass}>Address Information</p>
-                  <div className="grid grid-cols-1 gap-3">
-                    <div>
-                      <Label htmlFor="houseNumberUnit" className={labelClass}>House / Building / Unit No. <span className="text-muted-foreground font-normal">(optional)</span></Label>
-                      <Input id="houseNumberUnit" name="houseNumberUnit" type="text" placeholder="e.g. Unit 402 or Bldg 3" className={inputClass} />
-                    </div>
-                    <div>
-                      <Label htmlFor="streetAddress" className={labelClass}>Street Address & Lot / Block{reqMark}</Label>
-                      <Input id="streetAddress" name="streetAddress" type="text" placeholder="e.g. Norzagaray-Santa Maria Road" className={inputClass} onChange={() => { if (errors.streetAddress) setErrors((prev) => ({ ...prev, streetAddress: undefined })); }} />
-                      {errors.streetAddress && <p className="text-danger text-xs mt-1">{errors.streetAddress}</p>}
-                    </div>
-                    <div>
-                      <Label htmlFor="subdivisionBuilding" className={labelClass}>Subdivision / Village / Building Name <span className="text-muted-foreground font-normal">(optional)</span></Label>
-                      <Input id="subdivisionBuilding" name="subdivisionBuilding" type="text" placeholder="e.g. Greenview Heights" className={inputClass} />
-                    </div>
-                    <div>
-                      <Label htmlFor="barangayDistrict" className={labelClass}>Barangay / District <span className="text-muted-foreground font-normal">(optional)</span></Label>
-                      <select id="barangayDistrict" name="barangayDistrict" className={inputClass}>
-                        <option value="">Select barangay</option>
-                        {SANTA_MARIA_BARANGAYS.map((b) => <option key={b} value={b}>{b}</option>)}
-                      </select>
-                    </div>
-                    <div>
-                      <Label htmlFor="cityMunicipality" className={labelClass}>City / Municipality{reqMark}</Label>
-                      <select id="cityMunicipality" name="cityMunicipality" className={inputClass} onChange={() => { if (errors.cityMunicipality) setErrors((prev) => ({ ...prev, cityMunicipality: undefined })); }}>
-                        <option value="">Select city / municipality</option>
-                        {BULACAN_MUNICIPALITIES.map((m) => <option key={m} value={m}>{m}</option>)}
-                      </select>
-                      {errors.cityMunicipality && <p className="text-danger text-xs mt-1">{errors.cityMunicipality}</p>}
-                    </div>
-                    <div>
-                      <Label htmlFor="provinceState" className={labelClass}>Province / State{reqMark}</Label>
-                      <select id="provinceState" name="provinceState" className={inputClass} onChange={() => { if (errors.provinceState) setErrors((prev) => ({ ...prev, provinceState: undefined })); }}>
-                        <option value="">Select province</option>
-                        <option value="Bulacan">Bulacan</option>
-                      </select>
-                      {errors.provinceState && <p className="text-danger text-xs mt-1">{errors.provinceState}</p>}
-                    </div>
-                    <div>
-                      <Label htmlFor="postalCode" className={labelClass}>Postal Code <span className="text-muted-foreground font-normal">(optional)</span></Label>
-                      <Input id="postalCode" name="postalCode" type="text" inputMode="numeric" maxLength={4} placeholder="e.g. 3022" className={inputClass} onChange={() => { if (errors.postalCode) setErrors((prev) => ({ ...prev, postalCode: undefined })); }} />
-                      {errors.postalCode && <p className="text-danger text-xs mt-1">{errors.postalCode}</p>}
-                    </div>
-                  </div>
-                </div>
-                <div>
-                  <div>
-                    <Label htmlFor="contactNumber" className={labelClass}>Company Contact No.{reqMark}</Label>
-                    <div className="relative">
-                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm text-muted-foreground select-none">+63</span>
-                      <Input id="contactNumber" name="contactNumber" type="tel" inputMode="numeric" maxLength={10} placeholder="44 000 0000" className={`${inputClass} pl-12`} onBlur={(e) => { e.target.value = toLocalDigits(e.target.value); }} onChange={() => { if (errors.contactNumber) setErrors((prev) => ({ ...prev, contactNumber: undefined })); }} />
-                    </div>
-                    {errors.contactNumber && <p className="text-danger text-xs mt-1">{errors.contactNumber}</p>}
-                  </div>
-                </div>
-                <div>
-                  <Label htmlFor="companyEmail" className={labelClass}>Official Company Email{reqMark}</Label>
-                  <Input id="companyEmail" name="companyEmail" type="email" placeholder="hr@company.com" className={inputClass} onChange={() => { if (errors.companyEmail) setErrors((prev) => ({ ...prev, companyEmail: undefined })); }} />
-                  {errors.companyEmail && <p className="text-danger text-xs mt-1">{errors.companyEmail}</p>}
-                </div>
-                <div className="grid grid-cols-1 gap-3 pt-2">
-                  <div>
-                    <Label htmlFor="password" className={labelClass}>Password{reqMark}</Label>
-                    <Input id="password" name="password" type="password" placeholder="Min. 8 characters" className={inputClass} onChange={() => { if (errors.password) setErrors((prev) => ({ ...prev, password: undefined })); }} />
-                    {errors.password && <p className="text-danger text-xs mt-1">{errors.password}</p>}
-                  </div>
-                  <div>
-                    <Label htmlFor="confirmPassword" className={labelClass}>Confirm Password{reqMark}</Label>
-                    <Input id="confirmPassword" name="confirmPassword" type="password" placeholder="Re-enter password" className={inputClass} onChange={() => { if (errors.confirmPassword) setErrors((prev) => ({ ...prev, confirmPassword: undefined })); }} />
-                    {errors.confirmPassword && <p className="text-danger text-xs mt-1">{errors.confirmPassword}</p>}
-                  </div>
-                </div>
-              </div>
-            </section>
+            <EmployerCompanyStep
+              errors={errors}
+              setErrors={setErrors}
+              inputClass={inputClass}
+              labelClass={labelClass}
+              reqMark={reqMark}
+            />
 
-            <section className="bg-muted border border-primary rounded-lg p-5">
-              <p className="font-mono text-[11px] tracking-[0.2em] text-primary uppercase mb-4 font-semibold">Step 2 — Authorized Representative</p>
-              <div className="space-y-4">
-                <div className="grid grid-cols-1 gap-3">
-                  <div>
-                    <Label htmlFor="repFirstName" className={labelClass}>First Name{reqMark}</Label>
-                  <Input id="repFirstName" name="repFirstName" type="text" placeholder="Maria" className={inputClass} onChange={() => { if (errors.repFirstName) setErrors((prev) => ({ ...prev, repFirstName: undefined })); }} />
-                    {errors.repFirstName && <p className="text-danger text-xs mt-1">{errors.repFirstName}</p>}
-                  </div>
-                  <div>
-                    <Label htmlFor="repMiddleName" className={labelClass}>Middle Name <span className="text-muted-foreground font-normal">(optional)</span></Label>
-                    <Input id="repMiddleName" name="repMiddleName" type="text" placeholder="Santos" className={inputClass} />
-                  </div>
-                  <div>
-                    <Label htmlFor="repLastName" className={labelClass}>Last Name{reqMark}</Label>
-                  <Input id="repLastName" name="repLastName" type="text" placeholder="Reyes" className={inputClass} onChange={() => { if (errors.repLastName) setErrors((prev) => ({ ...prev, repLastName: undefined })); }} />
-                    {errors.repLastName && <p className="text-danger text-xs mt-1">{errors.repLastName}</p>}
-                  </div>
-                </div>
-                <div className="grid grid-cols-1 gap-3">
-                  <div>
-                    <Label htmlFor="repSuffix" className={labelClass}>Suffix <span className="text-muted-foreground font-normal">(optional)</span></Label>
-                  <Input id="repSuffix" name="repSuffix" type="text" placeholder="Jr., Sr., III" className={inputClass} />
-                  </div>
-                  <div>
-                    <Label htmlFor="repPosition" className={labelClass}>Designation / Position{reqMark}</Label>
-                    <Input id="repPosition" name="repPosition" type="text" placeholder="e.g. HR Manager" className={inputClass} onChange={() => { if (errors.repPosition) setErrors((prev) => ({ ...prev, repPosition: undefined })); }} />
-                    {errors.repPosition && <p className="text-danger text-xs mt-1">{errors.repPosition}</p>}
-                  </div>
-                  <div>
-                    <Label htmlFor="repBirthdate" className={labelClass}>Birthday{reqMark}</Label>
-                    <Input id="repBirthdate" name="repBirthdate" type="date" max={new Date().toISOString().slice(0, 10)} className={inputClass} onChange={() => { if (errors.repBirthdate) setErrors((prev) => ({ ...prev, repBirthdate: undefined })); }} />
-                    {errors.repBirthdate && <p className="text-danger text-xs mt-1">{errors.repBirthdate}</p>}
-                  </div>
-                </div>
-                <div className="grid grid-cols-1 gap-3">
-                  <div>
-                    <Label htmlFor="repMobile" className={labelClass}>Representative Mobile{reqMark}</Label>
-                    <div className="relative">
-                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm text-muted-foreground select-none">+63</span>
-                      <Input id="repMobile" name="repMobile" type="tel" inputMode="numeric" maxLength={10} placeholder="917 123 4567" className={`${inputClass} pl-12`} onBlur={(e) => { e.target.value = toLocalDigits(e.target.value); }} onChange={() => { if (errors.repMobile) setErrors((prev) => ({ ...prev, repMobile: undefined })); }} />
-                    </div>
-                    {errors.repMobile && <p className="text-danger text-xs mt-1">{errors.repMobile}</p>}
-                  </div>
-                  <div>
-                    <Label htmlFor="repEmail" className={labelClass}>Representative Email{reqMark}</Label>
-                    <Input id="repEmail" name="repEmail" type="email" placeholder="maria@company.com" className={inputClass} onChange={() => { if (errors.repEmail) setErrors((prev) => ({ ...prev, repEmail: undefined })); }} />
-                    {errors.repEmail && <p className="text-danger text-xs mt-1">{errors.repEmail}</p>}
-                  </div>
-                </div>
-              </div>
-            </section>
+            <EmployerRepresentativeStep
+              errors={errors}
+              setErrors={setErrors}
+              inputClass={inputClass}
+              labelClass={labelClass}
+              reqMark={reqMark}
+            />
 
             {error && (
               <div role="alert" className="p-3.5 rounded-xl bg-danger/10 border border-danger/20 text-danger text-xs font-medium">{error}</div>
@@ -371,11 +160,11 @@ function EmployerRegister() {
             </Link>
           </p>
         </div>
-      </main>
-
-      <PublicFooter />
+      </div>
+      </div>
+      </PublicShell>
       <TermsModal open={termsOpen} onClose={() => setTermsOpen(false)} onRead={() => setTermsRead(true)} />
-    </div>
+    </>
   );
 }
 

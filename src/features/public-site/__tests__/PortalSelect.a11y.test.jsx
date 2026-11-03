@@ -12,7 +12,7 @@ describe('PortalSelect contrast token (A2)', () => {
     )
 
     // The sign-up nudge sits on the light page background → must be gray-500.
-    const nudge = Array.from(container.querySelectorAll('p.text-gray-500')).find((p) =>
+    const nudge = Array.from(container.querySelectorAll('p.text-muted-foreground')).find((p) =>
       p.textContent?.includes('account'),
     )
     expect(nudge).toBeTruthy()

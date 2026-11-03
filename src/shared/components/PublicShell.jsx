@@ -43,8 +43,8 @@ export function PublicShell({ children }) {
               </LinkButton>
             ) : (
               <>
-                <Link to="/portals" className="nav-link hidden text-navy sm:inline-flex">Log in</Link>
-                <LinkButton href="/register" className="hidden sm:inline-flex">Sign up<ArrowRight className="size-3.5" /></LinkButton>
+                <Link to="/login" className="nav-link hidden text-navy sm:inline-flex">Log in</Link>
+                <LinkButton href="/signup" className="hidden sm:inline-flex">Sign up<ArrowRight className="size-3.5" /></LinkButton>
               </>
             )}
             <Button variant="ghost" size="icon" className="lg:hidden" aria-label="Open navigation" onClick={() => setMenu(true)}>
@@ -64,8 +64,8 @@ export function PublicShell({ children }) {
               <Link to={href} key={href} onClick={() => setMenu(false)} className="nav-link">{label}</Link>
             ))}
             <Separator />
-            <Link to="/portals" onClick={() => setMenu(false)} className="nav-link">Log in</Link>
-            <LinkButton href="/register">Create a demo account</LinkButton>
+            <Link to="/login" onClick={() => setMenu(false)} className="nav-link">Log in</Link>
+            <LinkButton href="/signup">Create an account</LinkButton>
           </nav>
         </SheetContent>
       </Sheet>

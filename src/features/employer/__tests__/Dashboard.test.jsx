@@ -29,48 +29,46 @@ const SUMMARY = {
   ],
 }
 
-// StatCard renders value and label as sibling <p>s inside one text block.
-const statValue = (label) => screen.getByText(label).previousElementSibling.textContent
+const statValue = (label) => screen.getAllByText(label).map((el) => el.closest('.surface')).find(Boolean).querySelector('p').textContent
 
 async function renderDashboard(summary = SUMMARY) {
   getEmployerDashboard.mockResolvedValue(summary)
   render(<MemoryRouter><Dashboard /></MemoryRouter>)
-  return screen.findByText('Active Listings')
+  return screen.findByText('Active listings')
 }
 
 describe('Employer Dashboard summary', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    useAuth.mockReturnValue({ user: { id: 'employer-1' } })
+    useAuth.mockReturnValue({ user: { id: 'employer-1', first_name: 'Maria' } })
     getEmployer.mockResolvedValue({ company_name: 'Santa Maria Trading' })
   })
 
   it('renders the four counters from the summary payload', async () => {
     await renderDashboard()
-    expect(statValue('Active Listings')).toBe('2')
-    expect(statValue('Total Jobs')).toBe('3')
-    expect(statValue('Total Candidates')).toBe('12')
-    expect(statValue('New This Week')).toBe('4')
-    expect(screen.getByText('Santa Maria Trading')).toBeInTheDocument()
+    expect(statValue('Active listings')).toBe('2')
+    expect(statValue('Total vacancies')).toBe('3')
+    expect(statValue('Total applicants')).toBe('12')
+    expect(statValue('New this week')).toBe('4')
+    expect(screen.getByText(/Santa Maria Trading/)).toBeInTheDocument()
   })
 
-  it('greets the employer by time of day', async () => {
+  it('greets the employer by first name', async () => {
     await renderDashboard()
-    expect(screen.getByText(/Good (Morning|Afternoon|Evening)!/)).toBeInTheDocument()
+    expect(screen.getByText(/welcome back, maria/i)).toBeInTheDocument()
   })
 
   it('renders recent applicants from the snake_case summary fields', async () => {
     await renderDashboard()
     expect(screen.getByText('Juan Dela Cruz')).toBeInTheDocument()
     expect(screen.getByText('Maria Santos')).toBeInTheDocument()
-    expect(screen.getAllByText(/Applied for/)).toHaveLength(2)
-    expect(screen.getByText('Warehouse Associate')).toBeInTheDocument()
-    expect(screen.getByText('Cashier')).toBeInTheDocument()
+    expect(screen.getByText(/Applied for Warehouse Associate/i)).toBeInTheDocument()
+    expect(screen.getByText(/Applied for Cashier/i)).toBeInTheDocument()
   })
 
   it('shows the empty state when there are no recent applicants', async () => {
     await renderDashboard({ jobs: [], stats: {}, recent: [] })
-    expect(screen.getByText(/No applicant submissions received yet/i)).toBeInTheDocument()
+    expect(screen.getByText(/Your next teammate is out there/i)).toBeInTheDocument()
   })
 
   it('uses the summary endpoint instead of the full job + applicant lists', async () => {

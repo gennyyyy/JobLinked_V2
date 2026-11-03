@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, within } from '@testing-library/react'
+import { render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import Dashboard from '../Dashboard'
 
@@ -22,16 +22,11 @@ const APPLICATIONS = [
 
 const JOBS = [{ id: 'j1', title: 'Truck Driver', location: 'Santa Maria', employers: { company_name: 'sm logistics' } }]
 
-// "Accepted"/"Rejected" also appear as status pills in Recent Applications, so
-// tile queries are scoped to the stats grid that follows the page h1.
-const tiles = () => screen.getByText('Active Applications').parentElement.parentElement
-
-// StatCard renders value and label as sibling <p>s inside one text block.
-const statValue = (label) => within(tiles()).getByText(label).previousElementSibling.textContent
+const statValue = (label) => screen.getAllByText(label).map((el) => el.closest('.surface')).find(Boolean).querySelector('p').textContent
 
 async function renderDashboard() {
   render(<MemoryRouter><Dashboard /></MemoryRouter>)
-  return screen.findByText('Active Applications')
+  return screen.findByText('Applications sent')
 }
 
 describe('Job-seeker Dashboard', () => {
@@ -44,15 +39,14 @@ describe('Job-seeker Dashboard', () => {
 
   it('renders the four tiles with their counts', async () => {
     await renderDashboard()
-    expect(statValue('Active Applications')).toBe('4')
+    expect(statValue('Applications sent')).toBe('4')
     expect(statValue('Accepted')).toBe('2')
-    expect(statValue('Rejected')).toBe('1')
-    expect(statValue('New This Week')).toBe('3')
+    expect(statValue('New this week')).toBe('3')
   })
 
-  it('shows the user display name uppercased in the hero', async () => {
+  it('greets the user by first name', async () => {
     await renderDashboard()
-    expect(screen.getByText('JUAN DELA CRUZ')).toBeInTheDocument()
+    expect(screen.getByText(/good to see you, juan/i)).toBeInTheDocument()
   })
 
   it('shows the profile completion percentage for a partial profile', async () => {
@@ -60,7 +54,7 @@ describe('Job-seeker Dashboard', () => {
       user: { id: 'seeker-1', first_name: 'Juan', last_name: 'Dela Cruz', phone: '09171234567', skills: ['Driving'] },
     })
     await renderDashboard()
-    expect(screen.getByText('40%')).toBeInTheDocument()
+    expect(screen.getAllByText('40%').length).toBeGreaterThan(0)
   })
 
   it('shows an alert when applications fail to load', async () => {

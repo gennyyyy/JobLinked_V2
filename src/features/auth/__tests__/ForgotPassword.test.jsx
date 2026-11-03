@@ -20,7 +20,7 @@ describe('ForgotPassword', () => {
 
   it('renders the reset request form', () => {
     renderForgot()
-    expect(screen.getByRole('heading', { name: /reset your password/i })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: /back on track/i })).toBeInTheDocument()
     expect(screen.getByLabelText(/email/i)).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /send reset link/i })).toBeInTheDocument()
   })

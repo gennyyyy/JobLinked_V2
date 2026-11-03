@@ -73,9 +73,10 @@ describe('Reports CSV export', () => {
     render(<Reports />)
     fireEvent.click(await screen.findByText('Vacancy Solicitation'))
 
+    const statValue = (label) => screen.getByText(label).closest('.surface').querySelector('p').textContent
     // "Open" maps to the real 'published' enum value (there is no 'open'), = 3.
-    expect(screen.getByText('Open vacancies').previousElementSibling.textContent).toBe('3')
+    expect(statValue('Open vacancies')).toBe('3')
     // Distinct job→employer FK column (company_id), across every vacancy = 3.
-    expect(screen.getByText('Employers posting').previousElementSibling.textContent).toBe('3')
+    expect(statValue('Employers posting')).toBe('3')
   })
 })

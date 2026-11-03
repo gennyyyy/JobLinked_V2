@@ -75,6 +75,11 @@ function App() {
             <Route path="/accept-invite" element={<AcceptInvite />} />
             <Route path="/register/job-seeker" element={<PublicRoute><JobSeekerRegister /></PublicRoute>} />
             <Route path="/register/employer" element={<PublicRoute><EmployerRegister /></PublicRoute>} />
+            {/* New-design flow aliases: /login and /signup[/role]. */}
+            <Route path="/login" element={<PublicRoute><PortalSelect /></PublicRoute>} />
+            <Route path="/signup" element={<PublicRoute><Register /></PublicRoute>} />
+            <Route path="/signup/jobseeker" element={<PublicRoute><JobSeekerRegister /></PublicRoute>} />
+            <Route path="/signup/employer" element={<PublicRoute><EmployerRegister /></PublicRoute>} />
             {/* ADR-021 PublicRoute logs out every signed-in user, so the
                 accreditation journey lives in the employer portal now; the old
                 public URL just forwards into the portal. */}

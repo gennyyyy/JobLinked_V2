@@ -16,7 +16,7 @@ function StandardControls({
   controlAction = null,
 }) {
   return (
-    <div className="applicant-list-controls bg-card border border-primary rounded-lg p-2 shadow-xs">
+    <div className="applicant-list-controls surface rounded-xl p-3">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="flex flex-col sm:flex-row sm:items-center gap-3">
           <SearchBar value={search} onChange={onSearchChange} placeholder={searchPlaceholder} ariaLabel={searchAriaLabel} />
@@ -68,8 +68,8 @@ export default function CardListLayout({
     <div className={`space-y-6 pb-12 ${className}`}>
       <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="min-w-0">
-          <h1 className="text-xl md:text-2xl font-bold text-dark-blue">{title}</h1>
-          {subtitle && <p className="mt-1 text-sm italic text-muted-foreground">{subtitle}</p>}
+          <h1 className="text-2xl font-semibold tracking-[-.035em] text-navy">{title}</h1>
+          {subtitle && <p className="mt-2 text-sm leading-6 text-muted-foreground">{subtitle}</p>}
         </div>
         {headerAction}
       </header>

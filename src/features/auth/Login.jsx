@@ -1,137 +1,113 @@
-import { Button } from "../../components/ui/button";
-import { Input } from "../../components/ui/input";
-import { Label } from "../../components/ui/label";
-import { useEffect, useState } from "react";
-import { Link, Navigate, useNavigate } from "react-router-dom";
-import { signIn } from "../../shared/services/auth";
-import { PORTALS } from "../../shared/constants";
-import useAuth from "../../shared/hooks/useAuth";
-import LoadingScreen from "../../shared/components/LoadingScreen";
-import SkipLink from "../../shared/components/SkipLink";
-import PublicShell from "../../shared/components/PublicShell";
+import { useEffect, useState } from 'react'
+import { Link, Navigate, useNavigate } from 'react-router-dom'
+import { ArrowRight, Eye, EyeOff, Loader2 } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { FieldGroup, Field, FieldLabel, FieldError } from '@/components/ui/field'
+import { InputGroup, InputGroupInput, InputGroupAddon, InputGroupButton } from '@/components/ui/input-group'
+import { signIn } from '@/shared/services/auth'
+import { PORTALS } from '@/shared/constants'
+import useAuth from '@/shared/hooks/useAuth'
+import LoadingScreen from '@/shared/components/LoadingScreen'
+import PublicShell from '@/shared/components/PublicShell'
+import AuthFrame from './AuthFrame'
 
 function Login({ portalKey }) {
-  const portal = PORTALS.find((p) => p.key === portalKey);
-  const navigate = useNavigate();
-  const { user, role: currentRole, loading, logout } = useAuth();
-  const [error, setError] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [busy, setBusy] = useState(false);
-  const [resetDone, setResetDone] = useState(false);
+  const portal = PORTALS.find((p) => p.key === portalKey)
+  const navigate = useNavigate()
+  const { user, role: currentRole, loading, logout } = useAuth()
+  const [error, setError] = useState('')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [show, setShow] = useState(false)
+  const [busy, setBusy] = useState(false)
+  const [resetDone, setResetDone] = useState(false)
 
   // ADR-021 rule 2: session with a different role — destroy it, show this portal's login form.
   useEffect(() => {
     if (!loading && user && portal && currentRole !== portalKey && !resetDone) {
-      Promise.resolve(typeof logout === 'function' ? logout() : null).then(() => setResetDone(true), () => setResetDone(true));
+      Promise.resolve(typeof logout === 'function' ? logout() : null).then(() => setResetDone(true), () => setResetDone(true))
     }
-  }, [loading, user, portal, currentRole, portalKey, resetDone, logout]);
+  }, [loading, user, portal, currentRole, portalKey, resetDone, logout])
 
-  if (!portal) return <Navigate to="/" replace />;
-  if (loading) return <LoadingScreen />;
-  if (user && currentRole === portalKey) return <Navigate to={portal.homePath} replace />;
-  if (user && !resetDone) return <LoadingScreen />;
+  if (!portal) return <Navigate to="/" replace />
+  if (loading) return <LoadingScreen />
+  if (user && currentRole === portalKey) return <Navigate to={portal.homePath} replace />
+  if (user && !resetDone) return <LoadingScreen />
 
   async function handleSubmit(event) {
-    event.preventDefault();
-    setError("");
-    setBusy(true);
+    event.preventDefault()
+    setError('')
+    setBusy(true)
     try {
-      const loggedIn = await signIn(email.trim(), password);
-      navigate(PORTALS.find((p) => p.key === loggedIn.role)?.homePath || "/");
+      const loggedIn = await signIn(email.trim(), password)
+      navigate(PORTALS.find((p) => p.key === loggedIn.role)?.homePath || '/')
     } catch (err) {
-      setError(err.message || "Invalid email or password");
+      setError(err.message || 'Invalid email or password')
     } finally {
-      setBusy(false);
+      setBusy(false)
     }
   }
 
   return (
-    <div className="min-h-screen bg-muted text-foreground flex flex-col font-sans">
-      <SkipLink />
-      <PublicShell>
-      <main id="main-content" tabIndex={-1}
-        className="flex-1 flex items-center justify-center p-[5%]">
-        <div className="w-full max-w-md bg-card border border-primary rounded-lg p-6 md:p-9 shadow-xl">
-          <div className="flex items-center justify-between mb-6">
-            <Link to="/portals" className="text-xs text-muted-foreground hover:text-primary transition-colors">
-              ← Portals
-            </Link>
-            <span className="font-mono text-[10px] tracking-widest uppercase px-2.5 py-1 rounded-full bg-primary/10 border border-primary/25 text-primary">
-              {portal.key.replace("-", " ")}
-            </span>
-          </div>
-
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight text-dark-blue">{portal.name}</h1>
-            <p className="mt-2 text-sm text-muted-foreground">Sign in with your credentials to access your portal</p>
-          </div>
-
-          <form onSubmit={handleSubmit} className="mt-7 space-y-4">
-            {error && (
-              <div role="alert" className="text-sm text-danger bg-danger/10 border border-danger/20 px-4 py-3 rounded-lg">{error}</div>
-            )}
-
-            <div>
-              <Label htmlFor="login-email" className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase mb-1.5">
-                Email
-              </Label>
-              <Input
-                id="login-email"
-                name="email"
-                type="email"
-                placeholder="you@example.com"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full min-h-[44px] px-4 rounded-xl text-sm bg-muted border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all"
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="login-password" className="block font-mono text-[11px] tracking-wider text-muted-foreground uppercase mb-1.5">
-                Password
-              </Label>
-              <Input
-                id="login-password"
-                name="password"
-                type="password"
-                placeholder="Your password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full min-h-[44px] px-4 rounded-xl text-sm bg-muted border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all"
-              />
-            </div>
-
-            <Button
-              type="submit"
-              disabled={busy}
-              className="w-full mt-6 min-h-[44px] px-6 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-primary-hover active:scale-[0.98] transition-all shadow-md disabled:opacity-60"
-            >
-              {busy ? "Signing in…" : "Sign In"}
-            </Button>
-          </form>
-
-          {portal.key !== "super-admin" && (
-            <div className="mt-8 pt-6 border-t border-border flex items-center justify-between text-xs text-muted-foreground">
-              <span>Don't have an account?</span>
-              <Link to={`/register/${portal.key}`} className="text-primary hover:underline underline-offset-4 font-medium">
-                Register here
-              </Link>
-            </div>
+    <PublicShell>
+      <AuthFrame title="Welcome back." subtitle={`Sign in to the ${portal.name} to continue.`}>
+        <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+          <FieldGroup>
+            <Field>
+              <FieldLabel htmlFor="login-email">Email address</FieldLabel>
+              <InputGroup>
+                <InputGroupInput
+                  id="login-email"
+                  name="email"
+                  type="email"
+                  autoComplete="username"
+                  placeholder="you@example.com"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                />
+              </InputGroup>
+            </Field>
+            <Field>
+              <FieldLabel htmlFor="login-password">Password</FieldLabel>
+              <InputGroup>
+                <InputGroupInput
+                  id="login-password"
+                  name="password"
+                  type={show ? 'text' : 'password'}
+                  autoComplete="current-password"
+                  placeholder="Your password"
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                />
+                <InputGroupAddon align="inline-end">
+                  <InputGroupButton type="button" aria-label={show ? 'Hide' : 'Show'} size="icon-sm" onClick={() => setShow((v) => !v)}>
+                    {show ? <EyeOff /> : <Eye />}
+                  </InputGroupButton>
+                </InputGroupAddon>
+              </InputGroup>
+            </Field>
+          </FieldGroup>
+          {error && <p role="alert" className="text-xs leading-6 text-destructive">{error}</p>}
+          <Button type="submit" disabled={busy}>
+            {busy ? <Loader2 data-icon="inline-start" className="animate-spin" /> : null}
+            {busy ? 'Signing in…' : 'Sign In'}
+            <ArrowRight data-icon="inline-end" />
+          </Button>
+        </form>
+        <div className="mt-6 flex items-center justify-between text-xs text-muted-foreground">
+          <Link to="/forgot-password" className="inline-flex min-h-11 items-center font-medium text-primary">Forgot password?</Link>
+          {portal.key !== 'super-admin' && (
+            <Link to={`/register/${portal.key}`} className="inline-flex min-h-11 items-center font-medium text-primary">Register here</Link>
           )}
-
-          <div className="mt-4 text-center">
-            <Link to="/forgot-password" className="text-xs text-primary hover:underline underline-offset-4 font-medium">
-              Forgot password?
-            </Link>
-          </div>
         </div>
-      </main>
-      </PublicShell>
-    </div>
-  );
+        <p className="mt-6 text-center text-xs text-muted-foreground">
+          <Link to="/portals" className="font-medium text-primary">← Back to portals</Link>
+        </p>
+      </AuthFrame>
+    </PublicShell>
+  )
 }
 
-export default Login;
+export default Login

@@ -1,35 +1,30 @@
-import { useSearchParams } from "react-router-dom";
-import SkipLink from "../../shared/components/SkipLink";
-import PublicShell from "../../shared/components/PublicShell";
-import BrowseJobs from "../../shared/components/BrowseJobs";
+import { useSearchParams } from 'react-router-dom'
+import PublicShell from '@/shared/components/PublicShell'
+import BrowseJobs from '@/shared/components/BrowseJobs'
 
-function PublicJobs() {
-  const [searchParams] = useSearchParams();
+export default function PublicJobs() {
+  const [searchParams] = useSearchParams()
 
   return (
-    <div className="min-h-screen bg-background text-foreground flex flex-col font-sans">
-      <SkipLink />
-<PublicShell>
-      <main id="main-content" tabIndex={-1}
-        className="flex-1 w-full p-[5%]">
-        <div className="mb-8">
-          <p className="font-mono text-[11px] tracking-[0.2em] text-primary uppercase">PUBLIC EMPLOYMENT BULLETINS</p>
-          <h1 className="mt-2 text-2xl md:text-3xl font-bold tracking-tight text-navy">Find Openings in Santa Maria</h1>
-          <p className="mt-3 text-sm md:text-base text-muted-foreground max-w-2xl">Explore verified job postings from accredited Santa Maria employers. Apply directly through the municipal portal.</p>
+    <PublicShell>
+      <div className="bg-muted/60">
+        <div className="page-container py-10">
+          <div className="mb-8">
+            <p className="eyebrow mb-3">Public employment bulletins</p>
+            <h1 className="text-3xl font-semibold tracking-[-.04em]">Find openings in Santa Maria</h1>
+            <p className="mt-3 max-w-2xl text-sm leading-7 text-muted-foreground">
+              Explore verified job postings from accredited Santa Maria employers. Apply directly through the municipal portal.
+            </p>
+          </div>
+          {/* Remounting on the query string re-seeds the search fields from the URL. */}
+          <BrowseJobs
+            key={searchParams.toString()}
+            jobHref={(id) => `/jobs/${id}`}
+            initialKeyword={searchParams.get('keyword') || ''}
+            initialLocation={searchParams.get('location') || ''}
+          />
         </div>
-
-        {/* Remounting on the query string re-seeds the search fields from the URL. */}
-        <BrowseJobs
-          key={searchParams.toString()}
-          jobHref={(id) => `/jobs/${id}`}
-          initialKeyword={searchParams.get("keyword") || ""}
-          initialLocation={searchParams.get("location") || ""}
-        />
-      </main>
-      </PublicShell>
-    </div>
-  );
+      </div>
+    </PublicShell>
+  )
 }
-
-export default PublicJobs;
-

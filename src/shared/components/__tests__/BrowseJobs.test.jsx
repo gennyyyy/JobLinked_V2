@@ -53,7 +53,7 @@ describe('BrowseJobs', () => {
     expect(screen.getByText('Displaying 1 out of 1 jobs:')).toBeInTheDocument()
     // Bulleted requirements, capped at 3 lines.
     expect(screen.getAllByRole('listitem')).toHaveLength(4)
-    expect(screen.getByRole('link', { name: 'See more' })).toHaveAttribute('href', '/jobs/job-1')
+    expect(screen.getByRole('link', { name: /see more/i })).toHaveAttribute('href', '/jobs/job-1')
   })
 
   it('adds a skill chip and never exceeds the 3-chip cap', async () => {
