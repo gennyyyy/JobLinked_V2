@@ -14,6 +14,7 @@ const mocks = vi.hoisted(() => ({
 }));
 vi.mock('../db.js', () => ({ pool: { query: mocks.poolQuery } }));
 vi.mock('../auth.js', () => ({
+    requirePermission: (t) => (_r, _s, n) => n(),
   auth: (req, _res, next) => { req.user = { id: mocks.userId, email: 'a@x.com', role: mocks.role }; next(); },
   optionalAuth: (_req, _res, next) => next(),
   requireRole: (...roles) => (req, res, next) =>

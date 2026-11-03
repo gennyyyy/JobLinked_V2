@@ -24,6 +24,7 @@ const mocks = vi.hoisted(() => ({
 vi.mock('./env.js', () => ({}));
 vi.mock('./db.js', () => ({ pool: { query: mocks.query } }));
 vi.mock('./routes/auth.js', () => ({
+    requirePermission: (t) => (_r, _s, n) => n(),
   default: (req, res, next) => {
     if (req.path === '/boom') throw mocks.boom();
     if (req.path === '/boom-auth') {

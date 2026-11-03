@@ -6,6 +6,7 @@ import { describe, it, expect, vi, beforeAll, afterAll, beforeEach } from 'vites
 const mocks = vi.hoisted(() => ({ poolQuery: vi.fn() }));
 vi.mock('../db.js', () => ({ pool: { query: mocks.poolQuery } }));
 vi.mock('../auth.js', () => ({
+    requirePermission: (t) => (_r, _s, n) => n(),
   auth: (req, _res, next) => next(),
   optionalAuth: (req, _res, next) => next(),
   requireRole: () => (req, _res, next) => next(),

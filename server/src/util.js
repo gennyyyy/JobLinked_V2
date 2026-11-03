@@ -80,9 +80,23 @@ export async function notifyAdmins({ type, title, message, link = null }) {
   try {
     const { rows } = await pool.query('select id from super_admins');
     if (!rows.length) return;
-    // One multi-row insert (same insert…select…union all fan-out as admin.js
-    // system-broadcast) instead of a per-admin INSERT loop. ::uuid because the
-    // parameterised selects are untyped text by default; the column is uuid.
+    const ids = rows.map((r) => r.id);
+    const n = ids.length;
+    const branches = ids.map((_, i) => `select $${i + 1}::uuid`).join(' union all ');
+    await pool.query(
+      `insert into notifications (user_id, type, title, message, link)
+       select id, $${n + 1}, $${n + 2}, $${n + 3}, $${n + 4} from (${branches}) a(id)`,
+      [...ids, type, title, message, link]);
+  } catch { /* ponytail: best-effort by contract */ }
+}
+
+export async function notifyAllActiveUsers({ type, title, message, link = null }) {
+  try {
+    const { rows } = await pool.query(
+      `select id from super_admins where status = 'active'
+       union all select id from employers where status = 'active'
+       union all select id from job_seekers where status = 'active'`);
+    if (!rows.length) return;
     const ids = rows.map((r) => r.id);
     const n = ids.length;
     const branches = ids.map((_, i) => `select $${i + 1}::uuid`).join(' union all ');

@@ -10,6 +10,9 @@ import adminRoutes from './routes/admin.js';
 import reportsRoutes from './routes/reports.js';
 import aiRoutes from './routes/ai.js';
 import health from './routes/health.js';
+import savedJobsRoutes from './routes/saved-jobs.js';
+import announcementsRoutes from './routes/announcements.js';
+import correctionsRoutes from './routes/corrections.js';
 import { authLimiter, uploadLimiter, apiLimiter, stricterLimiterPaths } from './middleware/rateLimit.js';
 import requestId from './middleware/requestId.js';
 import requestLog from './middleware/requestLog.js';
@@ -68,7 +71,7 @@ export function createApp() {
   // auth/upload limiters (which keep their stricter buckets via apiLimiter's
   // skip) and after /api/health so load balancer probes stay unlimited.
   app.use('/api', apiLimiter);
-  app.use('/api', authRoutes, jobsRoutes, applicationsRoutes, profilesRoutes, adminRoutes, reportsRoutes, aiRoutes);
+  app.use('/api', authRoutes, jobsRoutes, applicationsRoutes, profilesRoutes, adminRoutes, reportsRoutes, aiRoutes, savedJobsRoutes, announcementsRoutes, correctionsRoutes);
 
   app.use('/api', (_req, res) => err(res, 404, 'NOT_FOUND', 'Route not found'));
   // eslint-disable-next-line no-unused-vars

@@ -4,6 +4,7 @@ import { describe, it, expect, vi, beforeAll, afterAll } from 'vitest';
 const mocks = vi.hoisted(() => ({ poolQuery: vi.fn(), role: 'super-admin' }));
 vi.mock('../db.js', () => ({ pool: { query: mocks.poolQuery } }));
 vi.mock('../auth.js', () => ({
+    requirePermission: (t) => (_r, _s, n) => n(),
   auth: (req, _res, next) => { req.user = { id: 'admin-1', email: 'a@x.com', role: mocks.role }; next(); },
   optionalAuth: (_req, _res, next) => next(),
   requireRole: (...roles) => (req, res, next) =>
