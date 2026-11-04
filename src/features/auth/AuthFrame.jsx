@@ -1,10 +1,16 @@
 import { Building2, FileCheck2, MapPin, ShieldCheck, Users } from 'lucide-react'
+import landingBg from '../../assets/hero-bg.jpg'
 
 export default function AuthFrame({ title, subtitle, children }) {
   return (
-    <div className="bg-muted/60">
+    <div
+      className="bg-muted/60 bg-cover bg-center"
+      style={{
+        backgroundImage: `linear-gradient(180deg, rgba(247,250,255,0.72) 0%, rgba(247,250,255,0.60) 100%), url(${landingBg})`,
+      }}
+    >
       <div className="page-container py-10 sm:py-14">
-        <div className="mx-auto grid max-w-[1020px] overflow-hidden rounded-2xl border bg-white lg:grid-cols-[.85fr_1fr]">
+        <div className="mx-auto grid max-w-[1020px] overflow-hidden rounded-2xl border bg-white lg:grid-cols-[.7fr_1fr]">
           <aside className="relative hidden flex-col justify-between bg-navy p-10 text-white lg:flex">
             <div>
               <span className="flex size-12 items-center justify-center rounded-xl border border-white/15 bg-white/5">
