@@ -265,8 +265,8 @@ export default function TopNavLayout({ role, navItems, profileTo, roleLabel, hom
             </DropdownMenu>
           </div>
         </header>
-        <main id="main-content" tabIndex={-1} className={cn('mx-auto w-full max-w-[1440px]', isDashboard ? 'p-[15px] sm:p-[21px] lg:p-6' : 'p-5 sm:p-7 lg:p-8', fixedContent ? 'min-h-0 flex-1 overflow-hidden' : '')}>
-          <div className={cn(isDashboard ? 'space-y-6' : 'space-y-8', fixedContent && 'h-full min-h-0')}>
+        <main id="main-content" tabIndex={-1} className={cn('mx-auto w-full max-w-[1440px]', isDashboard ? 'p-[11px] sm:p-4 lg:p-[18px]' : 'p-5 sm:p-7 lg:p-8', fixedContent ? 'min-h-0 flex-1 overflow-hidden' : '')}>
+          <div className={cn(isDashboard ? 'space-y-[18px]' : 'space-y-8', fixedContent && 'h-full min-h-0')}>
             {unprovisioned ? (
               <section aria-labelledby="registration-title" className="max-w-2xl rounded-xl border bg-white p-6 sm:p-8">
                 <h1 id="registration-title" className="text-xl font-semibold text-navy">Complete your registration</h1>
