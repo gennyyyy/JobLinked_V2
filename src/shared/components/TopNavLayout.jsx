@@ -62,6 +62,7 @@ export default function TopNavLayout({ role, navItems, profileTo, roleLabel, hom
     let alive = true
 
     function refresh() {
+      if (alive) setUnprovisioned(false)
       listNotifications(user.id)
         .then((rows) => { if (alive) setUnread((rows || []).filter((row) => !row.is_read).length) })
         .catch((err) => { if (alive && isUnprovisioned(err)) setUnprovisioned(true) })
