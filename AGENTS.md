@@ -4,6 +4,7 @@
 
 - `src/features/` contains the auth, employer, job-seeker, public-site, and super-admin features.
 - `src/shared/` holds reusable components, context, hooks, API clients, services, and constants.
+- Static images and fonts belong in `src/assets/` and are imported from source. `public/` holds **only** the browser tab icon (`joblinked-icon.png`); do not put images, placeholders, or hero assets there.
 - `server/` contains the Express API; `db/` contains the portable PostgreSQL schema and SQL.
 - `docs/arch/` holds architecture decisions and API contracts. Tests use Vitest and live alongside source files or in the established test directories.
 - Design reference lives in the separate `peso_project-next-upgrade` app. Match its **visual design only** — never copy its file tree, framework, routing, or build setup into this repo.

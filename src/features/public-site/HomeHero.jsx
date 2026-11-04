@@ -6,10 +6,7 @@ import { Button } from '@/components/ui/button';
 import { LinkButton, CompanyMark } from '../../shared/components/design';
 import { SANTA_MARIA_BARANGAYS as BARANGAYS } from '../../shared/constants';
 import teamImage from '../../assets/team.png';
-
-// Served from public/ so index.html can preload it before the Landing chunk
-// is parsed — the hero image is this page's LCP element.
-const landingBg = '/hero-bg.jpg';
+import landingBg from '../../assets/hero-bg.jpg';
 
 export function HomeHero() {
     const navigate = useNavigate();
