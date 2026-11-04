@@ -178,13 +178,23 @@ export async function notifyMatchingSeekers(job) {
     const title = 'New job for you';
     const message = `"${job.title}" matches your profile.`;
     const link = `/job-seeker/jobs/${job.id}`;
+    // Bind link first so the same param index is reachable from both the
+    // outer select list AND the inner exists subquery — the dedup guard
+    // prevents a re-publish/retry from delivering two "New job for you"
+    // rows to the same seeker for the same job link.
+    vals.push(link);
+    const linkParam = `$${vals.length}`;
     // One multi-row insert (same fan-out shape as admin.js system-broadcast)
     // instead of a per-seeker INSERT loop. Matching SQL + limit 100 unchanged.
     await pool.query(
       `insert into notifications (user_id, type, title, message, link)
-       select id, 'job', $${vals.length + 1}, $${vals.length + 2}, $${vals.length + 3}
-       from (select id from job_seekers where status = 'active' and (${conds.join(' or ')}) limit 100) m`,
-      [...vals, title, message, link]);
+       select id, 'job', $${vals.length + 2}, $${vals.length + 3}, ${linkParam}
+       from (select id from job_seekers
+             where status = 'active' and (${conds.join(' or ')})
+               and not exists (select 1 from notifications n
+                               where n.user_id = job_seekers.id and n.link = ${linkParam})
+             limit 100) m`,
+      [...vals, title, message]);
   } catch { /* ponytail: publish succeeds even when matching/notify fails */ }
 }
 
