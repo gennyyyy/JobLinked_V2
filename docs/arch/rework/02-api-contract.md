@@ -5,8 +5,10 @@ via Supabase (`auth.getUser`), resolves role from local role tables by user
 id, attaches `{ id, email, role }`. 401 invalid/expired token, 403 wrong role
 or suspended account. Errors: `{ error: { code, message } }`
 (`BAD_REQUEST` 400, `UNAUTHORIZED` 401, `FORBIDDEN` 403, `NOT_FOUND` 404,
-`CONFLICT` 409, `INTERNAL` 500). Frontend `lib/api.js` throws `Error(message)`
-with `.status` — pages already render `error.message`.
+`PAYLOAD_TOO_LARGE` 413, `CONFLICT` 409, `RATE_LIMITED` 429, `INTERNAL` 500,
+`SERVICE_UNAVAILABLE` 503).
+Frontend `lib/api.js` throws `Error(message)` with `.status` — pages already
+render `error.message`.
 
 **Auth caching (Phase 4 F2, 2026-10-16).** The JWT→user resolution
 (`supa().auth.getUser(token)`) is memoized **per process, keyed on the exact
@@ -24,12 +26,15 @@ state here:
    takes effect on the very next request, inside or outside the TTL — the
    cached principal is only the JWT→id resolution.
 
-Invalid/expired tokens are never cached (they must reach Supabase every time),
-so a temporarily failing Supabase never freezes a dead token into the cache.
-The per-request memo (`req._supaUser`) is unchanged and still sits on top, so
-one request resolves the principal once. The cache is per-process; multiple
-instances behind a load balancer are unaffected because each simply memoizes
-its own tokens.
+Definite auth answers are memoized (positive: a live user; negative: an
+explicit 4xx from Supabase — expired/invalid token), so an expired token in a
+long-running tab pays one round-trip per minute instead of per request.
+429/5xx/status-0 transport failures are **never cached** (they are not a
+verdict on the token), so a temporarily failing Supabase never freezes a dead
+token into the cache and never blocks a valid one. The per-request memo
+(`req._supaUser`) is unchanged and still sits on top, so one request resolves
+the principal once. The cache is per-process; multiple instances behind a load
+balancer are unaffected because each simply memoizes its own tokens.
 
 **Rate limiting & proxy keying (Phase 4 C1/F1/F2/F5, 2026-10-16).** Four
 in-memory buckets, all answering `429` with `{ error: { code: 'RATE_LIMITED', … } }`
@@ -45,6 +50,23 @@ and emitting `RateLimit`/`RateLimit-Policy` draft-7 headers:
 `GET /api/health` is mounted **before** the limiters, so load-balancer probes
 are never throttled. `apiLimiter`'s `skip` mirrors the auth + upload scopes
 exactly, so a request is never double-counted.
+
+**Admission order (2026-11-05 load campaign).** The JSON body parser now runs
+*after* every limiter. Before this, an anonymous caller could force up to 1 MB
+of `JSON.parse` on the single event loop with no throttle ever seeing the
+request: a 900 KB-body flood from one client pushed `/api/health` p50 to
+**8.6 s**. With the limiter first, the same flood answers `429` after the
+bucket empties and health stays at **164 ms** p50. See
+`docs/arch/adr-038-request-admission-and-backpressure.md`.
+
+**Database saturation is backpressure.** When the pg pool cannot hand out a
+connection within `connectionTimeoutMillis` (5 s), the API answers
+`503 { error: { code: 'SERVICE_UNAVAILABLE' } }` with `Retry-After: 5`
+instead of a 500. A 2,000-concurrent burst previously produced 1,991 × 500;
+it now produces 503s and the process stays healthy. `POST /api/admin/users/invite`
+maps Supabase's own email rate limit (`over_email_send_rate_limit`) to
+`429 RATE_LIMITED` and other upstream send failures to `502 UPSTREAM_ERROR` —
+never to a fake `409 CONFLICT`.
 
 **Keying.** `attachPrincipal` runs before `apiLimiter`, so both buckets are keyed
 `req.user?.id || ipKeyGenerator(req.ip)`: an authenticated caller gets a bucket

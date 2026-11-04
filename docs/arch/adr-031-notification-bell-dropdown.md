@@ -1,4 +1,18 @@
-# ADR-031 — Notification bell becomes a dropdown preview panel [ACCEPTED 2026-10-18]
+# ADR-031 — Notification bell becomes a dropdown preview panel [AMENDED 2026-11-04]
+
+## Amendment (2026-11-04)
+
+- The panel shows the **four** newest rows (`slice(0, 4)`), not five.
+- `SEE ALL →` moved out of the header pill and became a full-width footer link
+  **"Show all notifications →"** below the list, in sentence case with the rest of
+  the chrome. The header is just the title + unread count.
+- `TopNavLayout` (employer / job-seeker / super-admin top nav) now mounts the bell
+  too, replacing its plain history link. It already fetches the rows for the sidebar
+  badge, so it passes them in as the new optional `rows` prop; a controlled bell
+  does not fetch or subscribe (the shell owns the `NOTIFICATIONS_CHANGED` refresh),
+  keeping the page at one request.
+- Trigger is `variant="ghost"` unless `dark`, so it reads as an icon button in the
+  top nav instead of a solid primary pill.
 
 ## Context
 `NotificationBell` (`src/shared/components/NotificationBell.jsx`) is the only notification

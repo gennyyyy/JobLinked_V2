@@ -11,9 +11,12 @@ node_modules
 server/node_modules
 server/.env
 server/uploads/
+backups/
 dist
 dist-ssr
+.bench-dist
 *.local
+*.local.json
 
 # Editor directories and files
 .vscode/*
