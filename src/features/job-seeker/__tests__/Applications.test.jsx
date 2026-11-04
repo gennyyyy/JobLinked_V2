@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen, fireEvent, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import Applications from '../Applications'
 import { listBySeeker } from '../../../shared/services/applications'
@@ -10,6 +10,10 @@ vi.mock('../../../shared/hooks/useAuth', () => ({
 
 vi.mock('../../../shared/services/applications', () => ({
   listBySeeker: vi.fn(),
+  getApplicationHistory: vi.fn().mockResolvedValue([
+    { status: 'Applied', changed_at: '2026-01-15T00:00:00.000Z', remarks: null },
+    { status: 'Under Review', changed_at: '2026-01-20T00:00:00.000Z', remarks: null },
+  ]),
 }))
 
 function makeApplication(overrides = {}) {
@@ -21,107 +25,69 @@ function makeApplication(overrides = {}) {
     interview_at: null,
     interview_instructions: null,
     employer_notes: null,
-    job: { title: 'Barangay Health Worker', employers: { company_name: 'Santa Maria Health Office' } },
+    job: { id: 'job-1', title: 'Barangay Health Worker', employers: { company_name: 'Santa Maria Health Office' } },
     ...overrides,
   }
 }
 
-// Renders the page and returns the expandable application row.
-async function renderRow(application) {
-  listBySeeker.mockResolvedValue([application])
+async function renderList(applications) {
+  listBySeeker.mockResolvedValue(applications)
   render(
     <MemoryRouter>
       <Applications />
     </MemoryRouter>
   )
-  return screen.findByRole('button', { name: /Barangay Health Worker/i })
+  return screen.findByText('Barangay Health Worker')
 }
 
-describe('Applications expanded panel', () => {
+describe('Job seeker applications', () => {
   beforeEach(() => vi.clearAllMocks())
 
-  it('renders multiple Bring items as a bulleted list, not chips', async () => {
-    const row = await renderRow(makeApplication({
+  it('renders the reference table with the submitted date and status', async () => {
+    await renderList([makeApplication()])
+
+    const table = screen.getByRole('table')
+    expect(within(table).getByText('Barangay Health Worker')).toBeInTheDocument()
+    expect(within(table).getByText('Santa Maria Health Office')).toBeInTheDocument()
+    expect(within(table).getByText('Applied')).toBeInTheDocument()
+  })
+
+  it('filters by application status', async () => {
+    await renderList([
+      makeApplication(),
+      makeApplication({ id: 'app-2', status: 'Rejected', job: { id: 'job-2', title: 'Cashier', employers: { company_name: 'Beta Foods' } } }),
+    ])
+
+    fireEvent.change(screen.getByLabelText(/application status/i), { target: { value: 'Rejected' } })
+
+    expect(screen.queryByText('Barangay Health Worker')).not.toBeInTheDocument()
+    expect(screen.getByText('Cashier')).toBeInTheDocument()
+  })
+
+  it('opens the tracked journey with the interview details', async () => {
+    await renderList([makeApplication({
       status: 'Interview',
       interview_at: '2026-02-01T09:00:00.000Z',
-      interview_instructions: 'Location: City Hall\nBring: Valid ID, Resume, Ballpen',
-    }))
-    fireEvent.click(row)
+      interview_instructions: 'PESO Office, Ground Floor',
+      employer_notes: 'Bring your portfolio.',
+    })])
 
-    expect(screen.getByText('What to Bring (3)')).toBeInTheDocument()
-    expect(screen.getByRole('list')).toHaveTextContent('Valid ID')
-    expect(screen.getAllByRole('listitem')).toHaveLength(3)
+    fireEvent.click(screen.getByRole('button', { name: /track application/i }))
+
+    const dialog = await screen.findByRole('dialog')
+    expect(within(dialog).getByText(/interview scheduled/i)).toBeInTheDocument()
+    expect(within(dialog).getByText(/PESO Office, Ground Floor/)).toBeInTheDocument()
+    expect(within(dialog).getByText('Bring your portfolio.')).toBeInTheDocument()
+    expect(within(dialog).getByLabelText('Application status history')).toBeInTheDocument()
   })
 
-  it('renders a single Bring item as the inline chip with no list', async () => {
-    const row = await renderRow(makeApplication({
-      status: 'Interview',
-      interview_at: '2026-02-01T09:00:00.000Z',
-      interview_instructions: 'Bring: Resume',
-    }))
-    fireEvent.click(row)
-
-    expect(screen.getByText('What to Bring (1)')).toBeInTheDocument()
-    expect(screen.getByText('Resume')).toBeInTheDocument()
-    expect(screen.queryByRole('list')).toBeNull()
-  })
-
-  it('shows non-empty explainer copy for a Placed application with no interview data', async () => {
-    const row = await renderRow(makeApplication({ status: 'Placed' }))
-    fireEvent.click(row)
-
-    expect(screen.getByText('Placed in Position')).toBeInTheDocument()
-    expect(screen.getByText(/placed into this position/i)).toBeInTheDocument()
-  })
-
-  it('shows non-empty explainer copy for a Terminated application with no interview data', async () => {
-    const row = await renderRow(makeApplication({ status: 'Terminated' }))
-    fireEvent.click(row)
-
-    expect(screen.getByText('Engagement Ended')).toBeInTheDocument()
-    expect(screen.getByText(/engagement has ended/i)).toBeInTheDocument()
-  })
-})
-
-describe('Applications status stepper', () => {
-  beforeEach(() => vi.clearAllMocks())
-
-  it('ends on Hired for an accepted application and dates the interviewed stages', async () => {
-    const row = await renderRow(makeApplication({
-      status: 'Accepted',
-      interview_at: '2026-10-06T09:30:00.000Z',
-      // Oldest-first like the API returns it; "Under Review" appears twice.
-      history: [
-        { status: 'Under Review', changed_at: '2026-09-01T12:00:00.000Z' },
-        { status: 'Interview', changed_at: '2026-09-30T01:00:00.000Z' },
-        { status: 'Under Review', changed_at: '2026-09-20T12:00:00.000Z' },
-        { status: 'Accepted', changed_at: '2026-10-08T12:00:00.000Z' },
-      ],
-    }))
-
-    expect(row).toHaveTextContent('Applied')
-    expect(row).toHaveTextContent('Under Review')
-    expect(row).toHaveTextContent('Interview')
-    expect(row).toHaveTextContent('Hired')
-    expect(row).not.toHaveTextContent('Rejected')
-    // Interview prefers interview_at (with its time); the rest come from history.
-    // Formatted locally, so compare against the same local formatting.
-    const localDate = (iso) => new Date(iso).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' })
-    expect(row).toHaveTextContent(/at \d{1,2}:\d{2} (AM|PM)/)
-    expect(row).toHaveTextContent(localDate('2026-10-08T12:00:00.000Z'))
-    expect(row).toHaveTextContent(localDate('2026-09-20T12:00:00.000Z')) // latest Under Review wins
-  })
-
-  it('ends on Rejected without crashing when history is absent', async () => {
-    const row = await renderRow(makeApplication({ status: 'Rejected', history: undefined }))
-
-    expect(row).toHaveTextContent('Rejected')
-    expect(row).not.toHaveTextContent('Hired')
-  })
-
-  it('ends on Hired for a placed application', async () => {
-    const row = await renderRow(makeApplication({ status: 'Placed' }))
-
-    expect(row).toHaveTextContent('Hired')
+  it('shows the empty state when there are no applications', async () => {
+    listBySeeker.mockResolvedValue([])
+    render(
+      <MemoryRouter>
+        <Applications />
+      </MemoryRouter>
+    )
+    expect(await screen.findByText('A fresh start is a good start.')).toBeInTheDocument()
   })
 })

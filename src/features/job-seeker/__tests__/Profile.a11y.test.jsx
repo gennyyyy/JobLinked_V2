@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen } from '@testing-library/react'
 import Profile from '../Profile'
 
 vi.mock('../../../shared/hooks/useAuth', () => ({ default: vi.fn() }))
@@ -28,9 +28,7 @@ import { listEducation, listExperience, listEmployment } from '../../../shared/s
 import { listResumes, signedUrl } from '../../../shared/services/documents'
 
 async function openEditForm() {
-  const editButton = await screen.findByRole('button', { name: 'Edit Profile' })
-  fireEvent.click(editButton)
-  return screen.findByRole('button', { name: 'Save Profile' })
+  return screen.findByRole('button', { name: /save my profile/i })
 }
 
 describe('Profile accessibility', () => {
@@ -59,10 +57,10 @@ describe('Profile accessibility', () => {
     await openEditForm()
 
     for (const name of [
-      'First Name', /Middle Name/, 'Last Name', /Suffix/, 'Contact Mobile', 'Date of Birth',
-      'Block', 'Lot', 'Street Address', /Subdivision/, /City \/ Municipality/,
+      'First Name', /Middle Name/, 'Last Name', /Suffix/, 'Contact number', 'Date of Birth',
+      'Block', 'Lot', 'Street or local address', /Subdivision/, /City \/ Municipality/,
       /Province \/ State/, 'Postal Code', 'Barangay / District', 'Employment Status',
-      /Skills & Competencies/, /Preferred Jobs/, /Preferred Locations/, 'Start Date', /End Date/,
+      /Your skills/, /Preferred Jobs/, /Preferred Locations/, 'Start Date', /End Date/,
     ]) {
       expect(screen.getByLabelText(name)).toBeInTheDocument()
     }
@@ -82,7 +80,7 @@ describe('Profile accessibility', () => {
 
   it('renders the avatar initials with a compliant token', async () => {
     const { container } = render(<Profile />)
-    await screen.findByRole('button', { name: 'Edit Profile' })
+    await screen.findByRole('button', { name: /save my profile/i })
     const avatar = container.querySelector('.text-dark-blue')
     expect(avatar).toBeInTheDocument()
     expect(avatar.className).not.toContain('text-gray-400')
@@ -98,7 +96,7 @@ describe('Profile accessibility', () => {
 
   it('exposes profile completion as a labelled progressbar with ARIA values', async () => {
     render(<Profile />)
-    await screen.findByRole('button', { name: 'Edit Profile' })
+    await screen.findByRole('button', { name: /save my profile/i })
     const bar = screen.getByRole('progressbar', { name: /profile completion/i })
     expect(bar).toHaveAttribute('aria-valuenow', '17')
     expect(bar).toHaveAttribute('aria-valuemin', '0')
@@ -112,7 +110,7 @@ describe('Profile accessibility', () => {
     ])
     signedUrl.mockResolvedValue('blob:test')
     render(<Profile />)
-    await screen.findByRole('button', { name: 'Edit Profile' })
+    await screen.findByRole('button', { name: /save my profile/i })
     const notice = await screen.findByText(/opens in new tab/i)
     const link = notice.closest('a')
     expect(link).toHaveAttribute('target', '_blank')

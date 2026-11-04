@@ -30,7 +30,7 @@ function Jobs() {
             title="AI Job Matching"
             className="border-primary/25 bg-primary/5 text-primary hover:bg-primary/10"
           >
-            <span className="text-xs font-bold tracking-wide">AI</span>
+            <span className="text-xs font-semibold">AI job matching (demo)</span>
           </Button>
         }
       />

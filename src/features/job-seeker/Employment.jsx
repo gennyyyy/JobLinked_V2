@@ -1,136 +1,122 @@
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { useEffect, useState } from "react";
-import useAuth from "@/shared/hooks/useAuth";
-import { PageSkeleton } from '@/shared/components/Skeletons';
-import { listEmployment } from "@/shared/services/seekers";
-import { SectionCard } from "@/shared/components/dashboard";
-import { EmptyState } from "@/shared/components/design";
-import ApplicantsShell from "@/shared/components/ApplicantsShell";
+import { useEffect, useMemo, useState } from 'react'
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
+import useAuth from '@/shared/hooks/useAuth'
+import { listEmployment } from '@/shared/services/seekers'
+import { PageSkeleton } from '@/shared/components/Skeletons'
+import { InlineError, Pager } from '@/shared/components/dashboard'
+import { EmptyState, PageHeading, Panel, SearchInput, SelectField, StatusBadge } from '@/shared/components/design'
 
-const TILE_TONES = {
-  all: "border-primary/15 bg-blue-soft text-primary",
-  current: "border-success/20 bg-success-soft text-success",
-  past: "border-border bg-muted text-muted-foreground",
-};
+const PAGE_SIZE = 8
 
-function Employment() {
-  const { user } = useAuth();
-  const [employments, setEmployments] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
-  const [search, setSearch] = useState("");
-  const [sortBy, setSortBy] = useState("newest");
+const formatDate = (value) => (value
+  ? new Date(value).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' })
+  : '—')
+
+const isCurrent = (record) => Boolean(record.is_current) || (!record.end_date && !record.endDate)
+
+export default function Employment() {
+  const { user } = useAuth()
+  const [records, setRecords] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+  const [query, setQuery] = useState('')
+  const [statusFilter, setStatusFilter] = useState('')
+  const [page, setPage] = useState(1)
 
   useEffect(() => {
-    if (!user) return;
+    if (!user) return
     listEmployment()
-      .then((rows) => setEmployments(rows || []))
-      .catch((err) => setError(err.message || "Failed to load employment information"))
-      .finally(() => setLoading(false));
-  }, [user]);
+      .then((rows) => setRecords(rows || []))
+      .catch((err) => setError(err.message || 'Failed to load employment records'))
+      .finally(() => setLoading(false))
+  }, [user])
 
-  if (loading) return <PageSkeleton stats={0} panels={1} />;
-  if (error) return <div className="py-8 text-center text-sm text-danger">{error}</div>;
+  const filtered = useMemo(() => {
+    const text = query.toLowerCase()
+    return records
+      .filter((record) => !statusFilter || (statusFilter === 'current' ? isCurrent(record) : !isCurrent(record)))
+      .filter((record) => `${record.employer_name || ''} ${record.position || ''}`.toLowerCase().includes(text))
+      .sort((a, b) => String(b.start_date || '').localeCompare(String(a.start_date || '')))
+  }, [records, query, statusFilter])
 
-  const currentCount = employments.filter((e) => e.is_current).length;
-  const toggleFilter = (next) => setStatusFilter((prev) => (prev === next ? "all" : next));
-  const filtered = employments.filter((e) =>
-    (statusFilter === "all" || (statusFilter === "current" ? e.is_current : !e.is_current)) &&
-    (!search || (e.employer_name || "").toLowerCase().includes(search.toLowerCase()) ||
-      (e.position || "").toLowerCase().includes(search.toLowerCase()))
-  ).sort((a, b) => {
-    if (sortBy === "oldest") return new Date(a.updated_at || a.start_date) - new Date(b.updated_at || b.start_date);
-    if (sortBy === "name") return (a.employer_name || "").localeCompare(b.employer_name || "");
-    return new Date(b.updated_at || b.start_date) - new Date(a.updated_at || a.start_date);
-  });
+  const pages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
+  const currentPage = Math.min(page, pages)
+  const visible = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE)
+  const current = records.find(isCurrent)
 
-  const summaryTiles = [
-    { id: "all", label: "Total", value: employments.length, hint: "All employment records", title: "Show all employment records" },
-    { id: "current", label: "Current", value: currentCount, hint: "Currently employed", title: "Show current employment" },
-    { id: "past", label: "Past", value: employments.length - currentCount, hint: "Past employment", title: "Show past employment" },
-  ];
+  if (loading) return <PageSkeleton stats={5} table label="Loading page." />
+  if (error) return <InlineError message={error} />
+
+  const stats = [
+    ['Current status', current ? 'Currently employed' : 'No active employment'],
+    ['Current employer', current?.employer_name || '—'],
+    ['Current position', current?.position || '—'],
+    ['Employment start', current?.start_date ? formatDate(current.start_date) : 'Not recorded'],
+    ['Employment records', records.length],
+  ]
 
   return (
-    <ApplicantsShell
-      eyebrow="Beyond the hiring journey"
-      title="Employment Tracking"
-      subtitle="Linked employment records, recorded milestones, and accountable updates. Separate from recruitment."
-      search={search}
-      onSearchChange={setSearch}
-      searchPlaceholder="Search by employer or position..."
-      searchAriaLabel="Search employment"
-      sort={sortBy}
-      onSortChange={setSortBy}
-      sortOptions={[
-        { value: "newest", label: "Newest First" },
-        { value: "oldest", label: "Oldest First" },
-        { value: "name", label: "Name (A-Z)" },
-      ]}
-      sortAriaLabel="Sort employment"
-      sidebar={
-        <>
-          {summaryTiles.map((tile) => {
-            const selected = statusFilter === tile.id;
-            return (
-              <Button
-                key={tile.id}
-                type="button"
-                onClick={() => toggleFilter(tile.id)}
-                aria-pressed={selected}
-                title={tile.title}
-                className={`w-full justify-start rounded-xl px-4 py-3 text-left ${TILE_TONES[tile.id]} ${selected ? "ring-2 ring-current" : ""}`}
-              >
-                <span className="flex min-w-0 flex-col items-start">
-                  <span className="text-3xl font-semibold leading-none">{tile.value}</span>
-                  <span className="mt-2 text-[10px] font-semibold uppercase tracking-[.08em]">{tile.label}</span>
-                  <span className="mt-1 text-[10px] font-normal opacity-80">{tile.hint}</span>
-                </span>
-              </Button>
-            );
-          })}
-        </>
-      }
-    >
-      {employments.length === 0 ? (
-        <SectionCard title="Employment record" subtitle="Accepted applications and employment records will appear here">
+    <>
+      <PageHeading
+        eyebrow="Beyond the hiring journey"
+        title="Employment Tracking"
+        description="Linked employment records, recorded milestones, and accountable updates. Separate from recruitment."
+      />
+      <div className="my-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+        {stats.map(([label, value]) => (
+          <Panel key={label} title={String(label)}>
+            <p className="break-words text-lg font-semibold text-navy">{value}</p>
+          </Panel>
+        ))}
+      </div>
+      <Panel title="Employment history" description="Only records permitted for your current role are displayed.">
+        <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-end">
+          <SearchInput value={query} onChange={(value) => { setQuery(value); setPage(1) }} label="Search employment records" placeholder="Search employer or position…" />
+          <div className="sm:w-52">
+            <SelectField
+              id="employment-status"
+              label="Employment status"
+              placeholder="All statuses"
+              options={[
+                { value: 'current', label: 'Current' },
+                { value: 'past', label: 'Past' },
+              ]}
+              value={statusFilter}
+              onChange={(event) => { setStatusFilter(event.target.value); setPage(1) }}
+            />
+          </div>
+        </div>
+        {filtered.length ? (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Employer</TableHead>
+                <TableHead>Position</TableHead>
+                <TableHead>Start</TableHead>
+                <TableHead>End</TableHead>
+                <TableHead>Status</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {visible.map((record) => (
+                <TableRow key={record.id}>
+                  <TableCell className="font-medium text-navy">{record.employer_name || '—'}</TableCell>
+                  <TableCell className="text-xs text-muted-foreground">{record.position || '—'}</TableCell>
+                  <TableCell className="whitespace-nowrap">{formatDate(record.start_date)}</TableCell>
+                  <TableCell className="whitespace-nowrap">{record.end_date ? formatDate(record.end_date) : '—'}</TableCell>
+                  <TableCell><StatusBadge status={isCurrent(record) ? 'Active' : 'Separated'} /></TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        ) : (
           <EmptyState
             title="No employment records yet."
-            description="When a verified employer confirms a hire, the linked employment record appears here."
+            description="When an employer confirms your hire, the linked employment record appears here."
           />
-        </SectionCard>
-      ) : filtered.length === 0 ? (
-        <SectionCard title="Employment record" subtitle="No records match this filter">
-          <EmptyState
-            title="No employment records match this filter."
-            description="Try another search or clear the filter to see every record."
-            action={<Button type="button" variant="outline" onClick={() => setStatusFilter("all")}>Clear filter</Button>}
-          />
-        </SectionCard>
-      ) : (
-        <div className="space-y-4">
-          {filtered.map((employment) => (
-            <SectionCard
-              key={employment.id}
-              title={employment.employer_name}
-              subtitle={employment.position}
-              action={
-                <Badge variant="secondary" className={employment.is_current ? "bg-success-soft text-success" : "bg-muted text-muted-foreground"}>
-                  {employment.is_current ? "Current" : "Past"}
-                </Badge>
-              }
-            >
-              <div className="flex flex-col gap-1 text-xs text-muted-foreground">
-                {employment.start_date && <p>Started on {new Date(employment.start_date).toLocaleDateString(undefined, { month: "long", day: "numeric", year: "numeric" })}</p>}
-                {employment.end_date && <p>Ended on {new Date(employment.end_date).toLocaleDateString(undefined, { month: "long", day: "numeric", year: "numeric" })}</p>}
-              </div>
-            </SectionCard>
-          ))}
-        </div>
-      )}
-    </ApplicantsShell>
-  );
+        )}
+        <Pager page={currentPage} pageSize={PAGE_SIZE} total={filtered.length} onChange={setPage} />
+      </Panel>
+    </>
+  )
 }
-
-export default Employment;

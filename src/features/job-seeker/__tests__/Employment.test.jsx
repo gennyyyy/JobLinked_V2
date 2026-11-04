@@ -43,13 +43,22 @@ describe('Employment history', () => {
     listEmployment.mockResolvedValue([CURRENT, PAST])
     render(<Employment />)
 
-    await screen.findByText('Acme Corp')
-    expect(screen.getByText('Warehouse Associate')).toBeInTheDocument()
+    await screen.findAllByText('Acme Corp')
+    expect(screen.getAllByText('Warehouse Associate').length).toBeGreaterThan(0)
     expect(screen.getByText('Beta Foods')).toBeInTheDocument()
-    // Each record card carries its own status badge. The filter tiles also
-    // read "Current"/"Past", so scope the query to the record cards.
-    expect(within(screen.getByText('Acme Corp').closest('section')).getByText('Current')).toBeInTheDocument()
-    expect(within(screen.getByText('Beta Foods').closest('section')).getByText('Past')).toBeInTheDocument()
+
+    const table = screen.getByRole('table')
+    expect(within(table).getByText('Active')).toBeInTheDocument()
+    expect(within(table).getByText('Separated')).toBeInTheDocument()
+  })
+
+  it('summarises the current employment in the stat panels', async () => {
+    listEmployment.mockResolvedValue([CURRENT, PAST])
+    render(<Employment />)
+
+    await screen.findAllByText('Acme Corp')
+    expect(screen.getByText('Currently employed')).toBeInTheDocument()
+    expect(screen.getAllByText('Warehouse Associate').length).toBeGreaterThan(1)
   })
 
   it('renders the empty state when there are no records', async () => {
@@ -58,15 +67,15 @@ describe('Employment history', () => {
     expect(await screen.findByText('No employment records yet.')).toBeInTheDocument()
   })
 
-  it('filters to current employment when the Current tile is clicked', async () => {
+  it('filters to current employment', async () => {
     listEmployment.mockResolvedValue([CURRENT, PAST])
     render(<Employment />)
-    await screen.findByText('Acme Corp')
+    await screen.findAllByText('Acme Corp')
 
-    fireEvent.click(screen.getByTitle('Show current employment'))
+    fireEvent.change(screen.getByLabelText(/employment status/i), { target: { value: 'current' } })
 
     expect(screen.queryByText('Beta Foods')).not.toBeInTheDocument()
-    expect(screen.getByText('Acme Corp')).toBeInTheDocument()
+    expect(screen.getAllByText('Acme Corp').length).toBeGreaterThan(0)
   })
 
   it('shows an error message when the records fail to load', async () => {

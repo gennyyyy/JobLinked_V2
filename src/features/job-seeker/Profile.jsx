@@ -115,7 +115,7 @@ function Profile() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [saved, setSaved] = useState(false);
-  const [editing, setEditing] = useState(false);
+  const [editing, setEditing] = useState(true);
   const [form, setForm] = useState({ firstName: "", middleName: "", lastName: "", suffix: "", phone: "", lot: "", block: "", houseNumberUnit: "", streetAddress: "", subdivisionBuilding: "", barangayDistrict: "", cityMunicipality: "", provinceState: "", postalCode: "", birthdate: "", skills: "", employmentStatus: "", preferredPosition: "", preferredLocation: "" });
   const [education, setEducation] = useState([]);
   const [experience, setExperience] = useState([]);
@@ -366,7 +366,6 @@ function Profile() {
       });
       setForm((current) => ({ ...current, birthdate: updatedProfile.birthdate || "" }));
       await refreshUser(user);
-      setEditing(false);
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
     } catch (err) {
@@ -438,7 +437,7 @@ function Profile() {
                     <Input id="profile-suffix" value={form.suffix} onChange={(e) => handleChange("suffix", e.target.value)} placeholder="Jr., Sr., III" className="w-full" />
                   </div>
                   <div>
-                    <Label htmlFor="profile-phone" className="mb-1.5 block text-xs font-medium text-foreground">Contact Mobile</Label>
+                    <Label htmlFor="profile-phone" className="mb-1.5 block text-xs font-medium text-foreground">Contact number</Label>
                     <Input id="profile-phone" value={form.phone} onChange={(e) => handleChange("phone", e.target.value)} placeholder="0917 123 4567" className="w-full" />
                   </div>
                   <div>
@@ -447,7 +446,7 @@ function Profile() {
                   </div>
                 </div>
                 <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-                  {[['block', 'Block', 'e.g. 4'], ['lot', 'Lot', 'e.g. 12'], ['streetAddress', 'Street Address', 'e.g. Norzagaray-Santa Maria Road'], ['subdivisionBuilding', 'Subdivision / Village / Building Name', 'Subdivision name'], ['cityMunicipality', 'City / Municipality', 'e.g. Santa Maria'], ['provinceState', 'Province / State', 'e.g. Bulacan'], ['postalCode', 'Postal Code', 'e.g. 3022']].map(([field, label, placeholder]) => (
+                  {[['block', 'Block', 'e.g. 4'], ['lot', 'Lot', 'e.g. 12'], ['streetAddress', 'Street or local address', 'e.g. Norzagaray-Santa Maria Road'], ['subdivisionBuilding', 'Subdivision / Village / Building Name', 'Subdivision name'], ['cityMunicipality', 'City / Municipality', 'e.g. Santa Maria'], ['provinceState', 'Province / State', 'e.g. Bulacan'], ['postalCode', 'Postal Code', 'e.g. 3022']].map(([field, label, placeholder]) => (
                     <div key={field}>
                       <Label htmlFor={`profile-${field}`} className="mb-1.5 block text-xs font-medium text-foreground">{label}</Label>
                       <Input id={`profile-${field}`} value={form[field]} onChange={(e) => handleChange(field, e.target.value)} placeholder={placeholder} className="w-full" />
@@ -492,7 +491,7 @@ function Profile() {
 
             <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
                 <Panel title="Skills &amp; competencies" description="Add each skill as a separate tag.">
-                  <Label htmlFor="profile-skills" className="mb-1.5 block text-xs font-medium text-foreground">Skills &amp; Competencies</Label>
+                  <Label htmlFor="profile-skills" className="mb-1.5 block text-xs font-medium text-foreground">Your skills</Label>
                   <TagInput id="profile-skills" value={form.skills} onChange={(v) => handleChange("skills", v)} placeholder="e.g. Data Entry — Enter to add" />
                 </Panel>
 
@@ -565,48 +564,51 @@ function Profile() {
                   </div>
                 </Panel>
 
-                <Panel title="Resume" description="PDF up to 2 MB; DOC or DOCX up to 5 MB.">
-                  <div className="flex flex-col">
-                    <div className="flex flex-col items-center justify-center rounded-xl border border-dashed p-5">
-                      <Input type="file" accept=".pdf,.doc,.docx" onChange={handleResumeUpload} className="hidden" id="resume-upload" />
-                      {resumes.length > 0 ? (
-                        <div className="space-y-3 w-full">
-                          {resumes.map((resume) => (
-                            <div key={resume.id} className="flex flex-col justify-between gap-3 rounded-xl border p-3 sm:flex-row sm:items-center">
-                              <div className="min-w-0">
-                                <p className="truncate text-sm font-medium text-navy">{resume.file_name}</p>
-                                <p className="mt-0.5 text-xs text-muted-foreground">Uploaded {new Date(resume.uploaded_at).toLocaleDateString()}</p>
-                              </div>
-                              <div className="flex flex-wrap items-center gap-2">
-                                <ResumeLinks resume={resume} />
+                <Panel title="My resumes" description="Choose the resume employers receive with your applications.">
+                  {resumes.length > 0 ? (
+                    <div className="space-y-3">
+                      {resumes.map((resume) => (
+                        <div key={resume.id} className="flex flex-col justify-between gap-3 rounded-xl border p-3 sm:flex-row sm:items-center">
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-medium text-navy">{resume.file_name}</p>
+                            <p className="mt-0.5 text-xs text-muted-foreground">
+                              Uploaded {new Date(resume.uploaded_at).toLocaleDateString()} {resume.is_active ? "· Active" : ""}
+                            </p>
+                          </div>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <ResumeLinks resume={resume} />
                             {!resume.is_active && (
-                                  <Button type="button" variant="outline" size="sm" onClick={() => handleSetActiveResume(resume.id)}>Set Active</Button>
-                                )}
-                                <Label htmlFor="resume-upload" className="inline-flex cursor-pointer items-center rounded-lg border px-3 py-1.5 text-xs font-medium text-primary hover:bg-primary/5">Replace</Label>
-                                <Button type="button" variant="destructive" size="sm" onClick={() => { setPendingDelete(resume); setShowDeleteConfirm(true); }}>Delete</Button>
-                              </div>
-                            </div>
-                          ))}
+                              <Button type="button" variant="outline" size="sm" onClick={() => handleSetActiveResume(resume.id)}>Set Active</Button>
+                            )}
+                            <Label htmlFor="resume-upload" className="inline-flex cursor-pointer items-center rounded-lg border px-3 py-1.5 text-xs font-medium text-primary hover:bg-primary/5">Replace</Label>
+                            <Button type="button" variant="destructive" size="sm" onClick={() => { setPendingDelete(resume); setShowDeleteConfirm(true); }}>Delete</Button>
+                          </div>
                         </div>
-                      ) : (
-                        <Label htmlFor="resume-upload" className="flex h-full w-full cursor-pointer flex-col items-center justify-center py-6 text-center text-sm text-muted-foreground transition-colors hover:text-primary">
-                          <span>Click to upload resume (PDF, DOC, or DOCX)</span>
-                          <span className="mt-2 text-xs text-muted-foreground">PDF up to 2 MB; DOC or DOCX up to 5 MB.</span>
-                        </Label>
-                      )}
-                      {uploadError && <p role="alert" className="mt-2 text-center text-xs text-danger">{uploadError}</p>}
-                      {resumeStatus && <p role="status" aria-live="polite" className="mt-2 text-center text-xs text-muted-foreground">{resumeStatus}</p>}
+                      ))}
                     </div>
-                  </div>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">No resumes uploaded yet.</p>
+                  )}
                 </Panel>
             </div>
 
+            <Panel title="Add a resume" description="PDF up to 2 MB; DOC or DOCX up to 5 MB.">
+              <div className="flex flex-col">
+                <div className="flex flex-col items-center justify-center rounded-xl border border-dashed p-5">
+                  <Input type="file" accept=".pdf,.doc,.docx" onChange={handleResumeUpload} className="hidden" id="resume-upload" />
+                  <Label htmlFor="resume-upload" className="flex h-full w-full cursor-pointer flex-col items-center justify-center py-6 text-center text-sm text-muted-foreground transition-colors hover:text-primary">
+                    <span>Click to upload resume (PDF, DOC, or DOCX)</span>
+                    <span className="mt-2 text-xs text-muted-foreground">PDF up to 2 MB; DOC or DOCX up to 5 MB.</span>
+                  </Label>
+                  {uploadError && <p role="alert" className="mt-2 text-center text-xs text-danger">{uploadError}</p>}
+                  {resumeStatus && <p role="status" aria-live="polite" className="mt-2 text-center text-xs text-muted-foreground">{resumeStatus}</p>}
+                </div>
+              </div>
+            </Panel>
+
             <div className="flex items-center justify-end gap-3 pt-3">
               <Button type="submit" disabled={saving}>
-                {saving ? "Saving…" : "Save Profile"}
-              </Button>
-              <Button type="button" variant="outline" onClick={() => setEditing(false)}>
-                Cancel
+                {saving ? "Saving…" : "Save my profile"}
               </Button>
             </div>
           </form>

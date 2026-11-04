@@ -45,7 +45,7 @@ const RESUMES = [
 
 async function openProfile() {
   const { container } = render(<Profile />)
-  fireEvent.click(await screen.findByRole('button', { name: 'Edit Profile' }))
+  await screen.findByRole('button', { name: /save my profile/i })
   return container
 }
 
@@ -99,7 +99,7 @@ describe('Profile resume autofill', () => {
     expect(screen.getByText('Communication')).toBeInTheDocument()
     expect(addEducation).toHaveBeenCalledWith({ level: 'College', school: 'PUP SANTA MARIA', field: 'BSIT', end_year: 2023 })
     expect(await screen.findByText(/pup santa maria/i)).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /save profile/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /save my profile/i })).toBeInTheDocument()
   })
 
   it('changes nothing when the user declines', async () => {

@@ -34,7 +34,7 @@ const POSTAL = 'e.g. 3022'
 
 async function openProfile() {
   render(<Profile />)
-  fireEvent.click(await screen.findByRole('button', { name: 'Edit Profile' }))
+  await screen.findByRole('button', { name: /save my profile/i })
 }
 
 describe('Profile address fields', () => {
@@ -73,7 +73,7 @@ describe('Profile address fields', () => {
     fireEvent.change(screen.getByPlaceholderText(CITY), { target: { value: 'Angat' } })
     fireEvent.change(screen.getByPlaceholderText(PROVINCE), { target: { value: 'Bulacan' } })
     fireEvent.change(screen.getByPlaceholderText(POSTAL), { target: { value: '3012' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Save Profile' }))
+    fireEvent.click(screen.getByRole('button', { name: /save my profile/i }))
 
     await waitFor(() => expect(updateProfile).toHaveBeenCalled())
     expect(updateProfile).toHaveBeenCalledWith('u1', expect.objectContaining({
