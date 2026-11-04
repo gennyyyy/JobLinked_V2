@@ -2,6 +2,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
 import { useState, useEffect, useCallback } from 'react'
 import { Shield, Plus, Pencil, Trash2, Lock, Users, X } from 'lucide-react'
 import { listRoles, createRole, updateRole, deleteRole, listPermissions } from '@/shared/services/admin'
@@ -35,6 +36,24 @@ const SYSTEM_ROLES = [
 ]
 
 const BASE_ROLE_OPTIONS = SYSTEM_ROLES.map((r) => ({ key: r.key, label: r.label }))
+
+// Mirrors the reference design's permission matrix for the three fixed roles.
+const MATRIX_PERMISSIONS = [
+  { key: 'browse', label: 'Browse Jobs' },
+  { key: 'apply', label: 'Submit Applications' },
+  { key: 'jobs', label: 'Manage Job Postings' },
+  { key: 'employees', label: 'Track Employees' },
+  { key: 'accreditation', label: 'Review Accreditation' },
+  { key: 'reports', label: 'Generate Reports' },
+  { key: 'roles', label: 'Manage User Roles' },
+]
+const MATRIX_ROLES = ['super-admin', 'job-seeker', 'employer']
+const MATRIX_LABELS = { 'super-admin': 'PESO Admin', 'job-seeker': 'Job Seeker', employer: 'Employer' }
+const PERMISSION_MATRIX = {
+  'super-admin': { browse: 'all', apply: 'none', jobs: 'all', employees: 'all', accreditation: 'all', reports: 'all', roles: 'all' },
+  'job-seeker': { browse: 'all', apply: 'own', jobs: 'none', employees: 'own', accreditation: 'none', reports: 'none', roles: 'none' },
+  employer: { browse: 'all', apply: 'none', jobs: 'company', employees: 'company', accreditation: 'none', reports: 'company', roles: 'none' },
+}
 
 const emptyForm = { name: '', description: '', base_role: 'super-admin', permissions: [] }
 
@@ -201,6 +220,26 @@ function RoleManagement() {
               </li>
             ))}
           </ul>
+          <div className="mt-6 overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Permission</TableHead>
+                  {MATRIX_ROLES.map((role) => <TableHead key={role}>{MATRIX_LABELS[role]}</TableHead>)}
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {MATRIX_PERMISSIONS.map((permission) => (
+                  <TableRow key={permission.key}>
+                    <TableCell className="text-xs">{permission.label}</TableCell>
+                    {MATRIX_ROLES.map((role) => (
+                      <TableCell key={role} className="text-xs text-muted-foreground">{PERMISSION_MATRIX[role][permission.key]}</TableCell>
+                    ))}
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         </SectionCard>
 
         <SectionCard
