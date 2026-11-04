@@ -31,13 +31,14 @@ import { PORTAL_NAV, ROLE_LABELS } from '../constants'
 import { listNotifications } from '../services/notifications'
 import { NOTIFICATIONS_CHANGED } from '../utils/notificationEvents'
 import { prefetchRoute } from '../lib/routeLoaders'
+import { searchWorkspace } from '../lib/workspaceSearch'
 import { getStats } from '../services/admin'
 import { isUnprovisioned } from '../lib/api'
 import { cn } from '@/lib/utils'
 
 export default function TopNavLayout({ role, navItems, profileTo, roleLabel, homeTo, fixedContent = false }) {
   const navigate = useNavigate()
-  const { pathname } = useLocation()
+  const { pathname, hash } = useLocation()
   const { logout, user } = useAuth()
   const isAdmin = role === 'super-admin'
   const label = roleLabel || ROLE_LABELS[role] || 'Workspace'
@@ -88,6 +89,35 @@ export default function TopNavLayout({ role, navItems, profileTo, roleLabel, hom
       document.removeEventListener('visibilitychange', refreshWhenVisible)
     }
   }, [user?.id, isAdmin])
+
+  // Search results link to a section (#hash). Lazy routes and their data need a
+  // moment to render the target, so retry briefly, then scroll and flash it.
+  useEffect(() => {
+    if (!hash) return undefined
+    const id = hash.slice(1)
+    let tries = 0
+    let timer = 0
+
+    function reveal() {
+      const el = document.getElementById(id)
+      if (!el) {
+        if (tries++ < 40) timer = window.setTimeout(reveal, 50)
+        return
+      }
+      el.scrollIntoView({ block: 'start', behavior: 'smooth' })
+      el.animate?.(
+        [
+          { outline: '2px solid transparent', outlineOffset: '4px' },
+          { outline: '2px solid var(--primary)', outlineOffset: '4px' },
+          { outline: '2px solid transparent', outlineOffset: '4px' },
+        ],
+        { duration: 1500 },
+      )
+    }
+
+    reveal()
+    return () => window.clearTimeout(timer)
+  }, [pathname, hash])
 
   function handleLogout() {
     logout()
@@ -175,11 +205,10 @@ export default function TopNavLayout({ role, navItems, profileTo, roleLabel, hom
     </div>
   )
 
-  const lower = query.toLowerCase()
   const results = searchOpen
-    ? navigation
-      .filter((item) => item.label.toLowerCase().includes(lower))
-      .map((item) => ({ title: item.label, subtitle: 'Workspace page', href: item.path }))
+    ? query.trim()
+      ? searchWorkspace(query, role)
+      : navigation.map((item) => ({ title: item.label, subtitle: 'Workspace page', href: item.path }))
     : []
 
   return (
@@ -197,7 +226,7 @@ export default function TopNavLayout({ role, navItems, profileTo, roleLabel, hom
           {sidebar(true)}
         </SheetContent>
       </Sheet>
-      <div className={cn('min-h-screen transition-[margin]', collapsed ? 'lg:ml-[82px]' : 'lg:ml-[248px]', fixedContent && 'flex h-screen flex-col')}>
+      <div className={cn('flex min-h-screen flex-col transition-[margin]', collapsed ? 'lg:ml-[82px]' : 'lg:ml-[248px]', fixedContent && 'h-screen min-h-0 overflow-hidden')}>
         <header className="sticky top-0 z-20 flex h-[74px] shrink-0 items-center justify-between gap-3 border-b bg-white/95 px-5 backdrop-blur-sm lg:px-8">
           <div className="flex min-w-0 items-center gap-4">
             <Button variant="ghost" size="icon" className="hidden lg:inline-flex" aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'} onClick={() => setCollapsed((v) => !v)}>
@@ -263,7 +292,7 @@ export default function TopNavLayout({ role, navItems, profileTo, roleLabel, hom
             </DropdownMenu>
           </div>
         </header>
-        <main id="main-content" tabIndex={-1} className={cn('w-full p-5 sm:p-7 lg:p-8', fixedContent ? 'min-h-0 flex-1 overflow-hidden' : '')}>
+        <main id="main-content" tabIndex={-1} className={cn('w-full flex-1 p-5 sm:p-7 lg:p-8', fixedContent && 'min-h-0 overflow-hidden')}>
           <div className={cn('space-y-8', fixedContent && 'h-full min-h-0')}>
             {unprovisioned ? (
               <section aria-labelledby="registration-title" className="max-w-2xl rounded-xl border bg-white p-6 sm:p-8">
@@ -283,7 +312,7 @@ export default function TopNavLayout({ role, navItems, profileTo, roleLabel, hom
             ) : <Outlet />}
           </div>
         </main>
-        <div className="no-print flex shrink-0 flex-wrap items-center justify-between gap-3 px-8 pb-6 text-[10px] text-muted-foreground">
+        <div className="no-print mt-auto flex shrink-0 flex-wrap items-center justify-between gap-3 px-8 pb-6 pt-4 text-[10px] text-muted-foreground">
           <span>JobLinked · Santa Maria, Bulacan</span>
           <div className="flex gap-4">
             <Link to="/privacy">Privacy Notice</Link>
@@ -295,7 +324,7 @@ export default function TopNavLayout({ role, navItems, profileTo, roleLabel, hom
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>Find your way around.</DialogTitle>
-            <DialogDescription>Search pages available in your workspace.</DialogDescription>
+            <DialogDescription>Search pages and settings in your workspace.</DialogDescription>
           </DialogHeader>
           <InputGroup>
             <InputGroupInput aria-label="Workspace search" placeholder="Search pages…" value={query} onChange={(e) => setQuery(e.target.value)} />
