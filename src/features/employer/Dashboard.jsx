@@ -7,6 +7,7 @@ import { getEmployer } from '@/shared/services/auth'
 import { PageSkeleton } from '@/shared/components/Skeletons'
 import { InlineError } from '@/shared/components/dashboard'
 import { EmptyState, LinkButton, Notice, PageHeading, Panel, StatCards, StatusBadge } from '@/shared/components/design'
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
 import { titleCase } from '@/shared/utils/titleCase'
 
 export default function Dashboard() {
@@ -38,7 +39,6 @@ export default function Dashboard() {
   if (error) return <InlineError message={error} />
 
   const totalCandidates = summaryStats.total_candidates || 0
-  const newThisWeek = summaryStats.new_this_week || 0
   const companyName = company?.company_name || 'My Company'
   const accreditation = company?.accreditation_status
   const firstName = user?.first_name || String(user?.full_name || user?.name || 'there').split(' ')[0]
@@ -59,10 +59,10 @@ export default function Dashboard() {
       )}
       <StatCards
         stats={[
-          { label: 'Active listings', value: jobs.filter((job) => job.status === 'published').length, icon: BriefcaseBusiness },
+          { label: 'Active vacancies', value: jobs.filter((job) => job.status === 'published').length, icon: BriefcaseBusiness },
           { label: 'Total applicants', value: totalCandidates, icon: Users },
-          { label: 'New this week', value: newThisWeek, icon: UserCheck, tone: 'teal' },
-          { label: 'Total vacancies', value: jobs.length, icon: Handshake, tone: 'teal' },
+          { label: 'Shortlisted candidates', value: summaryStats.shortlisted || 0, icon: UserCheck, tone: 'teal' },
+          { label: 'placements', value: summaryStats.placements || 0, icon: Handshake, tone: 'teal' },
         ]}
       />
       <div className="portal-grid">
@@ -73,17 +73,29 @@ export default function Dashboard() {
             action={<Link to="/employer/applicants" className="text-link text-[11px]">View all<ArrowRight className="size-3" /></Link>}
           >
             {recent.length ? (
-              <ul className="flex flex-col divide-y">
-                {recent.slice(0, 5).map((item) => (
-                  <li key={item.id} className="flex flex-wrap items-center justify-between gap-3 py-4">
-                    <div className="min-w-0">
-                      <p className="text-xs font-semibold text-navy">{titleCase(item.seeker_full_name)}</p>
-                      <p className="mt-1 text-[10px] text-muted-foreground">Applied for {item.job_title}</p>
-                    </div>
-                    <Link to="/employer/applicants" className="text-link text-xs">Review<ArrowRight className="size-3" /></Link>
-                  </li>
-                ))}
-              </ul>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Candidate</TableHead>
+                    <TableHead>Stage</TableHead>
+                    <TableHead><span className="sr-only">Review</span></TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {recent.slice(0, 5).map((item) => (
+                    <TableRow key={item.id}>
+                      <TableCell>
+                        <Link to="/employer/applicants" className="text-xs font-semibold text-navy hover:text-primary">{titleCase(item.seeker_full_name)}</Link>
+                        <p className="mt-1 text-[10px] text-muted-foreground">{item.job_title}</p>
+                      </TableCell>
+                      <TableCell><StatusBadge status={item.status} /></TableCell>
+                      <TableCell>
+                        <Link to="/employer/applicants" className="text-link text-xs">Review<ArrowRight className="size-3" /></Link>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
             ) : (
               <EmptyState title="Your next teammate is out there." description="Publish an approved vacancy to start receiving applications." href="/employer/job-posts" label="Create a vacancy" />
             )}
@@ -98,8 +110,10 @@ export default function Dashboard() {
                 {jobs.slice(0, 4).map((job) => (
                   <li key={job.id} className="flex flex-wrap items-center justify-between gap-3 py-4">
                     <div>
-                      <p className="text-xs font-semibold text-navy">{job.title}</p>
-                      <p className="mt-1.5 text-[10px] text-muted-foreground">{job.status}</p>
+                      <Link to="/employer/job-posts" className="text-xs font-semibold text-navy hover:text-primary">{job.title}</Link>
+                      <p className="mt-1.5 text-[10px] text-muted-foreground">
+                        {job.location || 'Santa Maria'} · {job.vacancies || 1} openings · {job.applicants || 0} applicants
+                      </p>
                     </div>
                     <StatusBadge status={job.status} />
                   </li>

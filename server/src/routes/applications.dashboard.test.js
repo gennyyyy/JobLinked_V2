@@ -28,7 +28,7 @@ const { default: applicationsRoutes } = await import('./applications.js');
 const CO = '22222222-2222-2222-2222-222222222222';
 const OTHER = '99999999-9999-4999-8999-999999999999';
 const JOBS = [{ id: 'j1', title: 'Dev', status: 'published' }];
-const STATS = { total_candidates: 42, new_this_week: 5 };
+const STATS = { total_candidates: 42, new_this_week: 5, shortlisted: 3, placements: 1 };
 const RECENT = [{ id: 'a1', applied_at: '2026-10-01T00:00:00Z', seeker_full_name: 'Jane', job_title: 'Dev' }];
 
 let base, server;
@@ -43,7 +43,7 @@ beforeEach(() => { mocks.role = 'employer'; mocks.poolQuery.mockReset(); });
 const dash = (qs = '') => fetch(`${base}/applications/employers/me/dashboard${qs}`);
 // Answer the three queries by their distinct projections.
 const seed = () => mocks.poolQuery.mockImplementation((sql) => {
-  if (/select id, title, status from job_vacancies/.test(sql)) return { rows: JOBS };
+  if (/from job_vacancies j where j.company_id/.test(sql)) return { rows: JOBS };
   if (/total_candidates/.test(sql)) return { rows: [STATS] };
   return { rows: RECENT }; // recent applicants (seeker_full_name … limit 5)
 });

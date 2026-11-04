@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import Dashboard from '../Dashboard'
 
@@ -22,10 +22,10 @@ const SUMMARY = {
     { id: 'j2', title: 'Cashier', status: 'published' },
     { id: 'j3', title: 'Old Draft', status: 'draft' },
   ],
-  stats: { total_candidates: 12, new_this_week: 4 },
+  stats: { total_candidates: 12, new_this_week: 4, shortlisted: 5, placements: 2 },
   recent: [
-    { id: 'a1', applied_at: '2026-10-01T00:00:00.000Z', seeker_full_name: 'juan dela cruz', job_title: 'Warehouse Associate' },
-    { id: 'a2', applied_at: '2026-09-28T00:00:00.000Z', seeker_full_name: 'maria santos', job_title: 'Cashier' },
+    { id: 'a1', status: 'Applied', applied_at: '2026-10-01T00:00:00.000Z', seeker_full_name: 'juan dela cruz', job_title: 'Warehouse Associate' },
+    { id: 'a2', status: 'Interview', applied_at: '2026-09-28T00:00:00.000Z', seeker_full_name: 'maria santos', job_title: 'Cashier' },
   ],
 }
 
@@ -34,7 +34,7 @@ const statValue = (label) => screen.getAllByText(label).map((el) => el.closest('
 async function renderDashboard(summary = SUMMARY) {
   getEmployerDashboard.mockResolvedValue(summary)
   render(<MemoryRouter><Dashboard /></MemoryRouter>)
-  return screen.findByText('Active listings')
+  return screen.findByText('Active vacancies')
 }
 
 describe('Employer Dashboard summary', () => {
@@ -46,10 +46,10 @@ describe('Employer Dashboard summary', () => {
 
   it('renders the four counters from the summary payload', async () => {
     await renderDashboard()
-    expect(statValue('Active listings')).toBe('2')
-    expect(statValue('Total vacancies')).toBe('3')
+    expect(statValue('Active vacancies')).toBe('2')
     expect(statValue('Total applicants')).toBe('12')
-    expect(statValue('New this week')).toBe('4')
+    expect(statValue('Shortlisted candidates')).toBe('5')
+    expect(statValue('placements')).toBe('2')
     expect(screen.getByText(/Santa Maria Trading/)).toBeInTheDocument()
   })
 
@@ -60,10 +60,12 @@ describe('Employer Dashboard summary', () => {
 
   it('renders recent applicants from the snake_case summary fields', async () => {
     await renderDashboard()
-    expect(screen.getByText('Juan Dela Cruz')).toBeInTheDocument()
-    expect(screen.getByText('Maria Santos')).toBeInTheDocument()
-    expect(screen.getByText(/Applied for Warehouse Associate/i)).toBeInTheDocument()
-    expect(screen.getByText(/Applied for Cashier/i)).toBeInTheDocument()
+    const table = screen.getByRole('table')
+    expect(within(table).getByText('Juan Dela Cruz')).toBeInTheDocument()
+    expect(within(table).getByText('Maria Santos')).toBeInTheDocument()
+    expect(within(table).getByText('Warehouse Associate')).toBeInTheDocument()
+    expect(within(table).getByText('Cashier')).toBeInTheDocument()
+    expect(within(table).getByText('Interview')).toBeInTheDocument()
   })
 
   it('shows the empty state when there are no recent applicants', async () => {

@@ -119,15 +119,19 @@ router.get('/applications/company/:companyId', auth, ah(async (req, res) => {
 router.get('/applications/employers/me/dashboard', auth, requireRole('employer'), ah(async (req, res) => {
   const companyId = req.user.id;
   const { rows: jobs } = await pool.query(
-    `select id, title, status from job_vacancies where company_id = $1 order by created_at desc`, [companyId]);
+    `select j.id, j.title, j.status, j.location, j.vacancies,
+            (select count(*)::int from job_applications a where a.job_id = j.id) as applicants
+       from job_vacancies j where j.company_id = $1 order by j.created_at desc`, [companyId]);
   const { rows: [stats] } = await pool.query(
     `select count(*)::int as total_candidates,
-            count(*) filter (where a.applied_at >= now() - interval '7 days')::int as new_this_week
+            count(*) filter (where a.applied_at >= now() - interval '7 days')::int as new_this_week,
+            count(*) filter (where a.status in ('Interview', 'Accepted', 'Placed'))::int as shortlisted,
+            count(*) filter (where a.status in ('Accepted', 'Placed'))::int as placements
        from job_applications a
        join job_vacancies j on j.id = a.job_id
       where j.company_id = $1`, [companyId]);
   const { rows: recent } = await pool.query(
-    `select a.id, a.applied_at, s.full_name as seeker_full_name, j.title as job_title
+    `select a.id, a.status, a.applied_at, s.full_name as seeker_full_name, j.title as job_title
        from job_applications a
        join job_vacancies j on j.id = a.job_id
        left join job_seekers s on s.id = a.seeker_id
