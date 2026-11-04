@@ -1,5 +1,6 @@
 import { Suspense, useEffect, useState } from 'react'
-import { MemoryRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
+import StaticUrlRouter from './shared/lib/StaticUrlRouter'
 import ProtectedRoute from './shared/components/ProtectedRoute'
 import LoadingScreen from './shared/components/LoadingScreen'
 import ErrorBoundary from './shared/components/ErrorBoundary'
@@ -62,18 +63,18 @@ const Dashboard = lazyRoute(() => import('./features/super-admin/Dashboard'))
 const EmployerDashboard = lazyRoute(() => import('./features/employer/Dashboard'))
 const JobSeekerDashboard = lazyRoute(() => import('./features/job-seeker/Dashboard'))
 
-// The address bar is intentionally frozen: routes live in memory so clicking
-// around never rewrites the URL. The router is still *seeded* from the URL the
-// page was loaded with, so an emailed /auth/callback, /reset-password or
-// /complete-registration?role=… link lands on the right screen. Trade-off:
-// page URLs are not bookmarkable/shareable and the browser Back button leaves
-// the app. Product-owner decision — see the superseded note on ADR-035.
+// The address bar is intentionally frozen: in-app navigation never rewrites the
+// URL, but each navigation still pushes a history entry, so the browser's
+// Back/Forward buttons walk through the pages you visited (StaticUrlRouter). The
+// router is seeded from the URL the tab was loaded with, so an emailed
+// /auth/callback, /reset-password or /complete-registration?role=… link lands on
+// the right screen. Trade-off: page URLs are not bookmarkable/shareable.
 const entryPath = `${window.location.pathname}${window.location.search}${window.location.hash}`
 
 function App() {
   return (
     <ErrorBoundary>
-      <MemoryRouter initialEntries={[entryPath]}>
+      <StaticUrlRouter entry={entryPath}>
         <PageTitle />
         <Suspense fallback={<LoadingScreen />}>
           <Toaster position="top-center" />
@@ -112,7 +113,7 @@ function App() {
             {/* Legal pages are not PublicRoute: portals link here, and a signed-in
                 user must not be logged out just for reading the notice. */}
             <Route path="/privacy" element={<Legal title="Privacy notice" />} />
-            <Route path="/terms" element={<Legal title="Demo terms" />} />
+            <Route path="/terms" element={<Legal title="Terms of Use" />} />
             <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
             <Route path="/forgot-password" element={<PublicRoute><ForgotPassword /></PublicRoute>} />
             <Route path="/reset-password" element={<PublicRoute><ResetPassword /></PublicRoute>} />
@@ -200,7 +201,7 @@ function App() {
             <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </Suspense>
-        </MemoryRouter>
+        </StaticUrlRouter>
       </ErrorBoundary>
   )
 }

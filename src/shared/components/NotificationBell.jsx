@@ -1,5 +1,6 @@
 import { Button } from "../../components/ui/button";
 import { Link, useNavigate } from "react-router-dom";
+import { ArrowRight } from "lucide-react";
 import { useState, useEffect, useCallback, useId, useRef } from "react";
 import { listNotifications, markRead } from "../services/notifications";
 import { NOTIFICATIONS_CHANGED } from "../utils/notificationEvents";
@@ -28,33 +29,37 @@ function fetchRows(userId) {
   return promise;
 }
 
-// Bell opens a preview panel of the newest notifications; the history page
-// (list/filter/mark-read/bulk actions) stays reachable via SEE ALL in the panel.
-function NotificationBell({ dark = false, align = "right" }) {
+// Bell opens a preview panel of the four newest notifications; the history page
+// (list/filter/mark-read/bulk actions) stays reachable via "Show all" in the
+// panel footer. `rows` lets a shell that already fetched them (TopNavLayout)
+// hand them over instead of paying for a second request.
+function NotificationBell({ dark = false, align = "right", rows: controlledRows }) {
   const { user } = useAuth();
-  const [rows, setRows] = useState([]);
+  const [ownRows, setOwnRows] = useState([]);
   const [open, setOpen] = useState(false);
   const panelId = useId();
   const triggerRef = useRef(null);
   const panelRef = useRef(null);
   const navigate = useNavigate();
+  const controlled = Array.isArray(controlledRows);
+  const rows = controlled ? controlledRows : ownRows;
 
   const refresh = useCallback((force = false) => {
-    if (!user) return;
+    if (!user || controlled) return;
     const promise =
       !force && cache.promise && cache.userId === user.id
         ? cache.promise
         : fetchRows(user.id);
-    promise.then(setRows);
-  }, [user]);
+    promise.then(setOwnRows);
+  }, [user, controlled]);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user || controlled) return;
     refresh();
     const onChange = () => refresh(true);
     window.addEventListener(NOTIFICATIONS_CHANGED, onChange);
     return () => window.removeEventListener(NOTIFICATIONS_CHANGED, onChange);
-  }, [user, refresh]);
+  }, [user, refresh, controlled]);
 
   useEffect(() => {
     if (!open) return;
@@ -97,6 +102,7 @@ function NotificationBell({ dark = false, align = "right" }) {
       <Button
         type="button"
         ref={triggerRef}
+        variant={dark ? 'default' : 'ghost'}
         onClick={() => setOpen((v) => !v)}
         aria-label={unread > 0 ? `Notifications (${unread} unread)` : "Notifications"}
         aria-expanded={open}
@@ -123,57 +129,59 @@ function NotificationBell({ dark = false, align = "right" }) {
         <div
           id={panelId}
           ref={panelRef}
-          className={`absolute top-full mt-2 w-72 sm:w-80 rounded-xl border-2 border-dark-blue  bg-card shadow-lg z-30 p-3 animate-[dropdown-in_150ms_ease-out] ${
+          className={`absolute top-full z-30 mt-2 w-72 overflow-hidden rounded-xl border bg-card shadow-xl animate-[dropdown-in_150ms_ease-out] sm:w-80 ${
             align === "left" ? "left-0 origin-top-left" : "right-0 origin-top-right"
           }`}
         >
-          <div className="flex items-start justify-between gap-3 px-1 pb-2">
-            <div>
-              <h2 className="text-sm font-bold text-dark-blue">Notification</h2>
-              <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Latest</p>
-            </div>
-            <Link
-              to={`/${role}/notifications`}
-              onClick={() => setOpen(false)}
-              className="inline-flex items-center whitespace-nowrap rounded-full border border-dark-blue bg-primary/10 text-primary px-3 py-1 text-[10px] font-semibold uppercase"
-            >
-              SEE ALL &rarr;
-            </Link>
+          <div className="border-b px-4 py-3">
+            <h2 className="text-sm font-semibold text-navy">Notifications</h2>
+            <p className="mt-0.5 text-[10px] uppercase tracking-[.14em] text-muted-foreground">
+              {unread > 0 ? `${unread} unread` : "You're caught up"}
+            </p>
           </div>
 
           {rows.length === 0 ? (
-            <p className="px-1 py-2 text-xs text-muted-foreground">No notifications yet.</p>
+            <p className="px-4 py-6 text-center text-xs text-muted-foreground">No notifications yet.</p>
           ) : (
-            <ul className="space-y-2">
-              {rows.slice(0, 5).map((n) => {
+            <ul className="flex max-h-96 flex-col divide-y overflow-y-auto">
+              {rows.slice(0, 4).map((n) => {
                 const { icon: Icon, colorClass, tone } = getNotificationVisual(n);
                 return (
                   <li key={n.id}>
-                    <Button
+                    <button
                       type="button"
                       onClick={() => handleRowClick(n)}
-                      className={`w-full cursor-pointer text-left rounded-lg border border-dark-blue bg-card pl-2.5 pr-4 py-3 flex items-center gap-3 ${
-                        !n.is_read ? "bg-primary/[0.03]" : ""
+                      className={`flex w-full cursor-pointer items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-muted/60 ${
+                        !n.is_read ? "bg-blue-soft/40" : ""
                       }`}
                     >
                       <span
                         data-notification-tone={tone}
-                        className={`notification-icon w-7 h-7 rounded-lg flex items-center justify-center shrink-0 border ${colorClass}`}
+                        className={`notification-icon flex size-8 shrink-0 items-center justify-center rounded-lg border ${colorClass}`}
                       >
-                        <Icon className="w-3.5 h-3.5" />
+                        <Icon className="size-4" />
                       </span>
-                      <span className="min-w-0 flex-1 text-sm font-bold text-dark-blue truncate">
+                      <span className="min-w-0 flex-1 truncate text-sm text-navy">
                         {n.title || n.message || "Notification"}
                       </span>
                       {!n.is_read && (
-                        <span className="w-2 h-2 shrink-0 rounded-full bg-primary" aria-hidden="true" />
+                        <span className="size-1.5 shrink-0 rounded-full bg-primary" aria-hidden="true" />
                       )}
-                    </Button>
+                    </button>
                   </li>
                 );
               })}
             </ul>
           )}
+
+          <Link
+            to={`/${role}/notifications`}
+            onClick={() => setOpen(false)}
+            className="flex items-center justify-between border-t px-4 py-3 text-xs font-medium text-primary transition-colors hover:bg-muted/60"
+          >
+            Show all notifications
+            <ArrowRight className="size-3.5" />
+          </Link>
         </div>
       )}
     </div>

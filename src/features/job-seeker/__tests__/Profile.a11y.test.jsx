@@ -60,13 +60,15 @@ describe('Profile accessibility', () => {
     expect(screen.getByText(/13% complete/i)).toBeInTheDocument()
   })
 
-  it('announces that the resume "View" link opens in a new tab', async () => {
+  it('announces that the resume "View" action opens in a new tab', async () => {
     listResumes.mockResolvedValue([
       { id: 'r1', file_path: 'u1/resume.pdf', file_name: 'resume.pdf', is_active: true, uploaded_at: '2026-01-01T00:00:00.000Z' },
     ])
     signedUrl.mockResolvedValue('blob:test')
     await openProfile()
+    // View is a button now: it fetches on click (no prefetch), then opens the
+    // object URL in a new tab. The announcement must survive that change.
     const notice = await screen.findByText(/opens in new tab/i)
-    expect(notice.closest('a')).toHaveAttribute('target', '_blank')
+    expect(notice.closest('button')).not.toBeNull()
   })
 })

@@ -16,7 +16,7 @@ import NotificationBell from '../NotificationBell'
 
 const fixture = [{ id: '1', title: 'Hello', message: 'World', type: 'info', is_read: false, created_at: '2026-01-01' }]
 
-const seeAllLink = () => screen.getByRole('link', { name: /see all/i })
+const seeAllLink = () => screen.getByRole('link', { name: /show all/i })
 const renderBell = (props) => render(<MemoryRouter><NotificationBell {...props} /></MemoryRouter>)
 const panelOf = (trigger) => document.getElementById(trigger.getAttribute('aria-controls'))
 
@@ -90,18 +90,18 @@ describe('NotificationBell panel', () => {
     expect(trigger).toHaveAttribute('aria-expanded', 'false')
     fireEvent.click(trigger)
     expect(trigger).toHaveAttribute('aria-expanded', 'true')
-    expect(screen.getByRole('heading', { name: 'Notification' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Notifications' })).toBeInTheDocument()
   })
 
-  it('shows at most the newest five rows', async () => {
+  it('shows at most the newest four rows', async () => {
     useAuth.mockReturnValue({ user: { id: 'u1', role: 'employer' } })
     listNotifications.mockResolvedValue(
       Array.from({ length: 8 }, (_, i) => ({ ...fixture[0], id: `n${i}`, title: `Notice ${i + 1}` })),
     )
     renderBell()
     fireEvent.click(await screen.findByRole('button', { name: 'Notifications (8 unread)' }))
-    expect(screen.getByText('Notice 5')).toBeInTheDocument()
-    expect(screen.queryByText('Notice 6')).toBeNull()
+    expect(screen.getByText('Notice 4')).toBeInTheDocument()
+    expect(screen.queryByText('Notice 5')).toBeNull()
   })
 
   it('shows the empty copy when there are no rows', async () => {
@@ -145,9 +145,9 @@ describe('NotificationBell panel', () => {
     listNotifications.mockResolvedValue(fixture)
     renderBell()
     fireEvent.click(await screen.findByRole('button', { name: 'Notifications (1 unread)' }))
-    expect(screen.getByRole('heading', { name: 'Notification' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Notifications' })).toBeInTheDocument()
     fireEvent.pointerDown(document.body)
-    expect(screen.queryByRole('heading', { name: 'Notification' })).toBeNull()
+    expect(screen.queryByRole('heading', { name: 'Notifications' })).toBeNull()
   })
 
   it('still navigates when markRead rejects, without floating the rejection', async () => {

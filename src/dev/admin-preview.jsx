@@ -14,6 +14,7 @@ import Broadcast from '@/features/super-admin/Broadcast'
 import Logs from '@/features/super-admin/Logs'
 import Profile from '@/features/super-admin/Profile'
 import AccountSettings from '@/shared/components/AccountSettings'
+import NotificationsPage from '@/shared/components/NotificationsPage'
 import RoleManagement from '@/features/super-admin/RoleManagement'
 import EmployerDashboard from '@/features/employer/Dashboard'
 import EmployerJobPosts from '@/features/employer/JobPosts'
@@ -73,7 +74,12 @@ const MOCKS = {
     { status: 'Applied', changed_at: '2026-01-05T00:00:00Z', remarks: null },
     { status: 'Placed', changed_at: '2026-02-01T00:00:00Z', remarks: 'Started on the 1st.' },
   ],
-  'notifications/mine': [{ id: 'n1', is_read: false, title: 'Job fair', message: 'Saturday at the plaza', type: 'system', created_at: '2026-10-17T12:00:00Z' }],
+  'notifications/mine': [
+    { id: 'n1', is_read: false, title: 'Job fair on Saturday', message: 'The PESO job fair runs 8am–4pm at the Santa Maria plaza. Bring two printed résumés.', type: 'system', created_at: '2026-10-17T12:00:00Z' },
+    { id: 'n2', is_read: false, title: 'Accreditation approved', message: 'Northfield Business Solutions can now post vacancies through the employer portal.', type: 'accreditation', created_at: '2026-10-15T09:30:00Z' },
+    { id: 'n3', is_read: true, title: 'New applicant for Administrative Assistant', message: 'Maria Santos submitted an application and is waiting for review.', type: 'application', created_at: '2026-10-12T14:05:00Z' },
+    { id: 'n4', is_read: true, title: 'Interview scheduled', message: 'Interview set for 12 November, 10:00am at the employer’s office in Poblacion.', type: 'info', created_at: '2026-10-09T08:00:00Z' },
+  ],
 }
 api.get = async (path) => {
   const key = Object.keys(MOCKS).sort((a, b) => b.length - a.length).find((candidate) => String(path).includes(candidate))
@@ -168,6 +174,7 @@ createRoot(document.getElementById('root')).render(
               <Route path="company" element={<EmployerCompany />} />
               <Route path="accreditation" element={<EmployerAccreditation />} />
               <Route path="employees" element={<EmployerEmployees />} />
+              <Route path="notifications" element={<NotificationsPage />} />
             </Route>
           </Routes>
         </MemoryRouter>
@@ -187,6 +194,7 @@ createRoot(document.getElementById('root')).render(
             <Route path="logs" element={<Logs />} />
             <Route path="profile" element={<Profile />} />
             <Route path="settings" element={<AccountSettings />} />
+            <Route path="notifications" element={<NotificationsPage />} />
           </Route>
         </Routes>
       </MemoryRouter>

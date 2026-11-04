@@ -105,7 +105,7 @@ export default function Reports() {
     <>
       <div className="print-title mb-5 hidden">
         <p className="text-xl font-semibold">JobLinked · Labor Market Report</p>
-        <p className="text-xs">Provided data only. Not an official municipal report.</p>
+        <p className="text-xs">Provided data only.</p>
       </div>
       <PageHeading
         eyebrow="A more informed local picture"
@@ -209,7 +209,7 @@ export default function Reports() {
           </TableBody>
         </Table>
         <p className="mt-4 text-[10px] leading-6 text-muted-foreground">
-          *All-time provided registered residents. Other columns follow the selected period and definitions above. For platform review only; not official Labor Market Information.
+          *All-time provided registered residents. Other columns follow the selected period and definitions above. For platform review only.
         </p>
       </Panel>
         </>

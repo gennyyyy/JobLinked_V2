@@ -1,8 +1,9 @@
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
+import { InputGroup, InputGroupAddon, InputGroupInput } from "../../components/ui/input-group";
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { Link } from "react-router-dom";
-import { Search, AlertTriangle } from "lucide-react";
+import { ArrowUpRight, CheckCheck, Search, Trash2 } from "lucide-react";
 import useAuth from "../hooks/useAuth";
 import { resolveNotificationLink } from "../utils/notificationLinks";
 import { getNotificationVisual } from "../utils/notificationVisual";
@@ -10,52 +11,86 @@ import { listNotifications, markRead, markAllRead, deleteNotification } from "..
 import { PageSkeleton } from './Skeletons'
 import ConfirmationModal from "./ConfirmationModal";
 import Toast from "./Toast";
-import { EmptyState } from "./design";
+import { EmptyState, PageHeading, Panel, SelectField } from "./design";
+import { cn } from "@/lib/utils";
 
-function NotificationItem({ n, onMarkRead, selected, onToggleSelect, role }) {
+// Same layout as the dashboard reference: PageHeading + one Panel, a search /
+// view-control row, then a divided list. Selection and bulk delete are the only
+// additions — the reference has no delete affordance, this portal does.
+
+const VIEW_OPTIONS = [
+  { value: 'all', label: 'All notifications' },
+  { value: 'unread', label: 'Unread only' },
+]
+
+function formatDate(value) {
+  if (!value) return '';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  return date.toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+function NotificationRow({ n, role, selected, onToggleSelect, onMarkRead }) {
   const visual = getNotificationVisual(n);
-  const IconComponent = visual.icon;
+  const Icon = visual.icon;
   const link = resolveNotificationLink(n, role);
+  const body = (
+    <>
+      <div className="flex items-center gap-2">
+        {!n.is_read && <span className="size-1.5 shrink-0 rounded-full bg-primary" aria-label="Unread" />}
+        <h2 className="text-sm font-medium text-navy">{n.title}</h2>
+      </div>
+      <p className="mt-2 text-xs leading-6 text-muted-foreground">{n.message}</p>
+      <time dateTime={n.created_at} className="mt-2 block text-[10px] text-muted-foreground">
+        {formatDate(n.created_at)}
+      </time>
+      {link && (
+        <Link
+          to={link}
+          onClick={() => !n.is_read && onMarkRead?.(n.id)}
+          className="text-link mt-1 text-[11px]"
+        >
+          View details
+          <ArrowUpRight data-icon="inline-end" />
+        </Link>
+      )}
+    </>
+  );
 
   return (
-    <div
-      title={n.message}
-      className={`flex items-center gap-3 rounded-2xl border bg-card p-3 ${!n.is_read ? "border-primary/25 bg-blue-soft/40" : ""}`}
+    <li
+      className={cn(
+        "flex flex-col gap-3 rounded-lg px-3 py-5 sm:flex-row sm:items-start",
+        !n.is_read && "bg-blue-soft/50",
+      )}
     >
       <Input
         type="checkbox"
         checked={!!selected}
         onChange={() => onToggleSelect(n.id)}
         aria-label={`Select notification ${n.title}`}
-        className="h-4 w-4 shrink-0 rounded accent-primary cursor-pointer"
+        className="mt-1 h-4 w-4 shrink-0 cursor-pointer accent-primary"
       />
-
-      <div
-        data-notification-tone={visual.tone}
-        className={`notification-icon w-8 h-8 rounded-lg flex items-center justify-center shrink-0 border ${visual.colorClass}`}
-      >
-        <IconComponent className="w-4 h-4" />
-      </div>
-
+      <span data-notification-tone={visual.tone} className={cn("soft-icon hidden sm:flex", n.is_read && "bg-muted text-muted-foreground")}>
+        <Icon className="size-5" />
+      </span>
       <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-semibold text-navy">{n.title}</p>
-        <p className="text-[11px] text-muted-foreground">{visual.badgeText || "Notification"}</p>
+        {body}
       </div>
-
-      {link && (
-        <Link
-          to={link}
-          onClick={() => !n.is_read && onMarkRead?.(n.id)}
-          className="inline-flex shrink-0 items-center whitespace-nowrap text-[11px] font-medium text-primary"
-        >
-          View details &rarr;
-        </Link>
+      {!n.is_read && (
+        <Button type="button" variant="ghost" size="sm" onClick={() => onMarkRead(n.id)}>
+          Mark read
+        </Button>
       )}
-    </div>
+    </li>
   );
 }
 
-export default function NotificationsPage({ eyebrow = 'Your workspace', title = 'Stay in the loop.', subtitle = 'Application updates, accreditation decisions, and community notices, all in one place.' }) {
+export default function NotificationsPage({
+  eyebrow = 'Your workspace',
+  title = 'Stay in the loop.',
+  subtitle = 'Application updates, accreditation decisions, and community notices, all in one place.',
+}) {
   const { user } = useAuth();
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -134,6 +169,7 @@ export default function NotificationsPage({ eyebrow = 'Your workspace', title = 
 
   if (loading) return <PageSkeleton stats={0} panels={2} />;
 
+  const unreadCount = notifications.filter((n) => !n.is_read).length;
   const allSelected = notifications.length > 0 && notifications.every((n) => selected.has(n.id));
   const someSelected = !allSelected && notifications.some((n) => selected.has(n.id));
 
@@ -152,96 +188,87 @@ export default function NotificationsPage({ eyebrow = 'Your workspace', title = 
           }}
         />
       )}
-      {/* Header Section */}
-      <header>
-        <p className="eyebrow mb-3">{eyebrow}</p>
-        <h1 className="text-2xl font-semibold tracking-[-.035em] text-navy md:text-[30px]">{title}</h1>
-        <p className="mt-2 text-sm leading-6 text-muted-foreground">{subtitle}</p>
-      </header>
+
+      <PageHeading
+        eyebrow={eyebrow}
+        title={title}
+        description={subtitle}
+        action={(
+          <Button type="button" variant="outline" onClick={handleMarkAllRead} disabled={unreadCount === 0}>
+            <CheckCheck data-icon="inline-start" />
+            Mark all as read
+          </Button>
+        )}
+      />
 
       {error && (
-        <div className="bg-card border border-rose-100 rounded-2xl p-5 flex items-start gap-3 shadow-[0_2px_16px_-8px_rgba(16,24,40,0.08)]">
-          <div className="shrink-0 mt-0.5 w-8 h-8 rounded-lg bg-rose-50 border border-rose-100 flex items-center justify-center">
-            <AlertTriangle className="w-4 h-4 text-rose-500" strokeWidth={2} />
-          </div>
-          <div className="min-w-0">
-            <p className="text-sm font-semibold text-foreground">Notification Notice</p>
-            <p className="text-sm text-rose-600 mt-0.5">{error}</p>
-          </div>
-        </div>
+        <p role="alert" className="rounded-xl border border-destructive/20 bg-danger-soft px-4 py-3 text-xs text-destructive">
+          {error}
+        </p>
       )}
 
-      {/* Toolbar */}
-      <div className="flex flex-col justify-between gap-3 rounded-2xl border bg-white p-3 lg:flex-row lg:items-center">
-        <div className="flex flex-wrap items-center gap-2">
-          <Input
-            type="checkbox"
-            checked={allSelected}
-            disabled={notifications.length === 0}
-            onChange={handleToggleSelectAll}
-            aria-label="Select all notifications"
-            ref={(el) => {
-              if (el) el.indeterminate = someSelected;
-            }}
-            className="h-4 w-4 shrink-0 rounded accent-primary disabled:opacity-50 cursor-pointer"
-          />
-          <Button
-            type="button"
-            aria-pressed={unreadOnly}
-            onClick={() => {
-              setUnreadOnly((v) => !v);
-              setLoading(true);
-            }}
-            className={`text-xs font-semibold rounded-lg px-3 py-2 border transition-colors cursor-pointer disabled:opacity-50 ${unreadOnly
-              ? "bg-primary text-white border-primary"
-              : "bg-card text-muted-foreground border-border"
-              }`}
-          >
-            Unread
-          </Button>
-          <Button
-            type="button"
-            onClick={handleMarkAllRead}
-            className="text-xs font-semibold rounded-lg px-3 py-2 bg-card border border-border text-foreground transition-colors cursor-pointer disabled:opacity-50"
-          >
-            Mark as Read
-          </Button>
-          <Button
-            type="button"
-            onClick={() => setConfirmBulk(true)}
-            disabled={selected.size === 0}
-            className="text-xs font-semibold rounded-lg px-3 py-2 bg-danger text-white border border-danger hover:bg-danger/90 transition-colors disabled:opacity-50 cursor-pointer"
-          >
-            Delete Selected
-          </Button>
-        </div>
-
-        <form
-          onSubmit={(e) => e.preventDefault()}
-          className="flex items-stretch min-w-[220px] sm:w-64"
-        >
-          <div className="relative flex-1">
-            <Search className="w-4 h-4 text-muted-foreground absolute left-3.5 top-1/2 -translate-y-1/2" />
-            <Input
-              type="text"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search notifications..."
-              aria-label="Search notifications"
-              className="w-full h-full pl-10 pr-3 py-2 rounded-l-lg rounded-r-none text-sm bg-card border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary transition-all"
+      <Panel
+        title="Your notifications"
+        description={`${unreadCount} unread · ${notifications.length} total`}
+        action={notifications.length > 0 && (
+          <div className="flex items-center gap-3">
+            <label className="inline-flex items-center gap-2 text-[11px] text-muted-foreground">
+              <Input
+                type="checkbox"
+                checked={allSelected}
+                disabled={notifications.length === 0}
+                onChange={handleToggleSelectAll}
+                aria-label="Select all notifications"
+                ref={(el) => {
+                  if (el) el.indeterminate = someSelected;
+                }}
+                className="h-4 w-4 shrink-0 cursor-pointer accent-primary disabled:opacity-50"
+              />
+              Select all
+            </label>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setConfirmBulk(true)}
+              disabled={selected.size === 0}
+              className="text-destructive"
+            >
+              <Trash2 data-icon="inline-start" />
+              Delete selected
+            </Button>
+          </div>
+        )}
+      >
+        <div className="mb-5 flex flex-col items-stretch gap-3 sm:flex-row sm:items-end">
+          <div className="min-w-0 flex-1">
+            <label htmlFor="notification-search" className="sr-only">Search notifications</label>
+            <InputGroup>
+              <InputGroupInput
+                id="notification-search"
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search your notifications…"
+              />
+              <InputGroupAddon>
+                <Search />
+              </InputGroupAddon>
+            </InputGroup>
+          </div>
+          <div className="sm:w-48">
+            <SelectField
+              label="Notification view"
+              value={unreadOnly ? 'unread' : 'all'}
+              onChange={(e) => {
+                setUnreadOnly(e.target.value === 'unread');
+                setLoading(true);
+              }}
+              options={VIEW_OPTIONS}
             />
           </div>
-          <Button
-            type="submit"
-            className="bg-navy text-white text-sm font-semibold px-4 rounded-r-lg cursor-pointer"
-          >
-            Search
-          </Button>
-        </form>
-      </div>
+        </div>
 
-      {/* Notification list */}
-      <div className="space-y-3">
         {notifications.length === 0 ? (
           <EmptyState
             title="No notifications yet."
@@ -249,33 +276,31 @@ export default function NotificationsPage({ eyebrow = 'Your workspace', title = 
               ? 'You have read all your notifications.'
               : 'Updates regarding your accreditations, jobs, and system notices will appear here.'}
           />
-        ) : filtered.length === 0 && search ? (
-          <div className="text-center py-16 px-6">
-            <p className="font-semibold text-foreground mb-1">No notifications match your search</p>
-            <p className="text-sm text-muted-foreground max-w-sm mx-auto">
-              Try searching for a different keyword or clear the search filter.
+        ) : filtered.length === 0 ? (
+          <div className="py-14 text-center">
+            <p className="text-sm font-semibold text-navy">No notifications match your search</p>
+            <p className="mx-auto mt-1 max-w-sm text-xs leading-5 text-muted-foreground">
+              Try a different keyword, or clear the search to see everything.
             </p>
-            <Button
-              type="button"
-              onClick={() => setSearch("")}
-              className="mt-4 px-3 py-2 rounded-xl text-xs font-medium text-muted-foreground bg-muted hover:bg-gray-200 border border-border transition-colors cursor-pointer"
-            >
+            <Button type="button" variant="outline" size="sm" className="mt-4" onClick={() => setSearch("")}>
               Clear search
             </Button>
           </div>
         ) : (
-          filtered.map((n) => (
-            <NotificationItem
-              key={n.id}
-              n={n}
-              role={user?.role}
-              onMarkRead={handleMarkRead}
-              onToggleSelect={handleToggleSelect}
-              selected={selected.has(n.id)}
-            />
-          ))
+          <ul className="flex flex-col divide-y">
+            {filtered.map((n) => (
+              <NotificationRow
+                key={n.id}
+                n={n}
+                role={user?.role}
+                selected={selected.has(n.id)}
+                onToggleSelect={handleToggleSelect}
+                onMarkRead={handleMarkRead}
+              />
+            ))}
+          </ul>
         )}
-      </div>
+      </Panel>
     </div>
   );
 }

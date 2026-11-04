@@ -203,17 +203,17 @@ export const FAQS = [
   {
     question: "Who can use JobLinked?",
     answer:
-      "This frontend demonstration is designed for job seekers in Santa Maria, Bulacan’s 24 barangays, local employers, and PESO personnel. All accounts and listings in this environment are fictional samples.",
+      "JobLinked is designed for job seekers in Santa Maria, Bulacan’s 24 barangays, local employers, and PESO personnel. All accounts and listings in this environment are fictional samples.",
   },
   {
     question: "Is there a fee to find or apply for a job?",
     answer:
-      "There is no payment feature in this demo. You can explore sample vacancies, save jobs, and test the application journey without a fee. Never send money to a recruiter claiming to represent this prototype.",
+      "There is no payment feature on JobLinked. You can explore sample vacancies, save jobs, and test the application journey without a fee. Never send money to a recruiter claiming to represent JobLinked.",
   },
   {
     question: "How are employers verified?",
     answer:
-      "Employers submit example accreditation requirements for PESO review. In this demo, a PESO administrator can approve, reject with feedback, or request resubmission. A verified badge represents a sample approval, not actual municipal accreditation.",
+      "Employers submit accreditation requirements for PESO review. A PESO administrator can approve, reject with feedback, or request resubmission. A verified badge represents a sample approval, not actual municipal accreditation.",
   },
   {
     question: "How can I track my application?",
@@ -223,11 +223,11 @@ export const FAQS = [
   {
     question: "Can I apply without a resume?",
     answer:
-      "The demo application flow requires a completed profile and a selected resume metadata record. Upload a sample PDF, DOC, or DOCX up to 5 MB. No file contents are uploaded or stored.",
+      "The application flow requires a completed profile and a selected resume metadata record. Upload a sample PDF, DOC, or DOCX up to 5 MB. No file contents are uploaded or stored.",
   },
   {
     question: "Are PESO programs processed online?",
     answer:
-      "Program pages are informational. Eligibility, schedules, and actual processing must be confirmed with the appropriate PESO office through verified official channels. This prototype does not process SPES, GIP, or government transactions.",
+      "Program pages are informational. Eligibility, schedules, and actual processing must be confirmed with the appropriate PESO office through verified official channels. JobLinked does not process SPES, GIP, or government transactions.",
   },
 ];

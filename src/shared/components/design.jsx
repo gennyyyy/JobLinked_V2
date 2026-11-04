@@ -59,8 +59,8 @@ export function StatusBadge({ status }) {
       {status}
     </Badge>);
 }
-export function Panel({ title, description, action, children, footer, className, }) {
-    return (<Card className={className}>
+export function Panel({ title, description, action, children, footer, className, id, }) {
+    return (<Card id={id} className={className}>
       <CardHeader>
         <CardTitle>{title}</CardTitle>
         {description && <CardDescription>{description}</CardDescription>}

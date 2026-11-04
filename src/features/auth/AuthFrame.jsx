@@ -47,11 +47,6 @@ export default function AuthFrame({ title, subtitle, children }) {
                 <MapPin className="size-3.5" />
                 Santa Maria, Bulacan
               </div>
-              <p className="mt-5 border-t border-white/15 pt-5 text-[10px] leading-6 text-white/50">
-                Independent frontend prototype.
-                <br />
-                Not an official government service.
-              </p>
             </div>
           </aside>
           <div className="p-6 sm:p-10">

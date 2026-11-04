@@ -1,6 +1,6 @@
 ﻿import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { MapPin, Menu, ArrowRight, ShieldCheck, ArrowUpRight } from "lucide-react";
+import { MapPin, Menu, ArrowRight, ArrowUpRight } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -93,14 +93,11 @@ export function PublicShell({ children }) {
               </div>
             ))}
           </div>
-          <div className="rounded-xl border bg-muted px-4 py-3 text-[10px] leading-5 text-muted-foreground">
-            <ShieldCheck className="mr-1.5 inline size-3.5 text-teal" />Independent frontend prototype. Not an official LGU or PESO service. All employers, vacancies, people, and statistics are fictional demonstration records.
-          </div>
           <div className="flex flex-col justify-between gap-3 py-6 text-[10px] text-muted-foreground sm:flex-row sm:items-center">
             <p>© {new Date().getFullYear()} JobLinked. Built with community in mind.</p>
             <div className="flex items-center gap-5">
               <Link className="min-h-9 content-center hover:text-primary" to="/privacy">Privacy notice</Link>
-              <Link className="min-h-9 content-center hover:text-primary" to="/terms">Demo terms</Link>
+              <Link className="min-h-9 content-center hover:text-primary" to="/terms">Terms of Use</Link>
             </div>
           </div>
         </div>

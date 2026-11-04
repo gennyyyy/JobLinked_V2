@@ -34,7 +34,7 @@ function ChangePassword() {
   }
 
   return (
-    <Panel title="Password settings" description="Use a new password with at least 8 characters.">
+    <Panel id="password-settings" title="Password settings" description="Use a new password with at least 8 characters.">
       {message && <p className="mb-4 rounded-xl border border-success/20 bg-success-soft px-4 py-3 text-xs text-success">{message}</p>}
       {error && <p role="alert" className="mb-4 rounded-xl border border-danger/20 bg-danger-soft px-4 py-3 text-xs text-destructive">{error}</p>}
       <form onSubmit={handleSubmit} className="flex max-w-xl flex-col gap-5">

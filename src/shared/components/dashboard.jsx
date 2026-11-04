@@ -107,12 +107,12 @@ export function SectionCard({ title, subtitle, action, children, className = "",
 // Prev/next footer for the paginated admin lists ({ data, total, page,
 // pageSize } envelopes). Renders nothing while everything fits on one page —
 // so small datasets (and tests with short fixtures) see no UI change.
-export function Pager({ page, pageSize, total, onChange }) {
+export function Pager({ page, pageSize, total, onChange, align = 'between' }) {
   // Reference list pagination: "1–8 of 26 records" plus icon prev/next.
   const pages = Math.max(1, Math.ceil((total || 0) / (pageSize || 1)))
   const current = Math.min(page || 1, pages)
   return (
-    <div className="flex flex-wrap items-center justify-between gap-3 pt-4 text-xs text-muted-foreground">
+    <div className={`flex flex-wrap items-center ${align === 'center' ? 'justify-center' : 'justify-between'} gap-3 pt-4 text-xs text-muted-foreground`}>
       <p aria-live="polite">
         {total ? `${(current - 1) * pageSize + 1}–${Math.min(current * pageSize, total)} of ${total} records` : 'No records'}
       </p>

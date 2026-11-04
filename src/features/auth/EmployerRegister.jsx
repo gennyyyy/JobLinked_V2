@@ -98,7 +98,7 @@ function EmployerRegister() {
       <PublicShell>
       <div className="bg-muted/60">
       <div className="page-container py-10 sm:py-14">
-        <div className="mx-auto w-full max-w-4xl rounded-2xl border bg-white p-6 md:p-10 shadow-sm">
+        <div className="mx-auto w-full max-w-4xl rounded-2xl border bg-white p-6 md:p-10 shadow-xl">
           <div className="flex items-center justify-between mb-4">
             <Link to="/register" className="text-xs text-muted-foreground hover:text-primary transition-colors">
               ← Back to roles

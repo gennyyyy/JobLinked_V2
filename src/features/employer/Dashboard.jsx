@@ -129,7 +129,7 @@ export default function Dashboard() {
             {accreditation ? <StatusBadge status={{ approved: 'Approved', pending: 'Pending Review', rejected: 'Rejected', resubmission: 'Resubmission Requested', revoked: 'Suspended', none: 'Pending Review' }[accreditation] || accreditation} /> : null}
             <p className="mt-4 text-xs leading-6 text-muted-foreground">
               {accreditation === 'approved'
-                ? 'Your business is approved to publish vacancies in this demonstration.'
+                ? 'Your business is approved to publish vacancies.'
                 : 'A PESO administrator can review your submitted metadata and update the decision.'}
             </p>
             <Link to="/employer/accreditation" className="text-link mt-3 text-xs">View accreditation<ArrowRight className="size-3" /></Link>

@@ -32,6 +32,6 @@ describe('Jobs loading state', () => {
     // The page chrome stays mounted instead of an early return.
     expect(screen.getByRole('heading', { name: /browse jobs/i })).toBeInTheDocument()
     expect(screen.getByLabelText('Search your recommendations')).toBeInTheDocument()
-    expect(screen.getByText('Standard matching · no AI')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'AI job matching' })).toBeInTheDocument()
   })
 })

@@ -11,6 +11,7 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "syscheck": "node scripts/system-check.mjs",
+    "backup:uploads": "node scripts/backup-uploads.mjs",
     "test": "vitest run",
     "test:watch": "vitest"
   },

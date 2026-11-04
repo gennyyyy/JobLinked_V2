@@ -2,7 +2,6 @@ import { useCallback, useEffect, useState } from 'react'
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import {
   ArrowUpRight,
-  Bell,
   ChevronDown,
   ChevronRight,
   ChevronsLeft,
@@ -22,6 +21,7 @@ import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuGro
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { InputGroup, InputGroupInput, InputGroupAddon } from '@/components/ui/input-group'
 import SkipLink from './SkipLink'
+import NotificationBell from './NotificationBell'
 import DashboardFooter from './DashboardFooter'
 import { Logo } from './design'
 import useAuth from '../hooks/useAuth'
@@ -50,7 +50,7 @@ export default function TopNavLayout({ role, navItems, profileTo, roleLabel, hom
   const [searchOpen, setSearchOpen] = useState(false)
   const [query, setQuery] = useState('')
   const [showWarning, setShowWarning] = useState(false)
-  const [unread, setUnread] = useState(0)
+  const [notificationRows, setNotificationRows] = useState([])
   const [pendingAccreditations, setPendingAccreditations] = useState(0)
   const [unprovisioned, setUnprovisioned] = useState(false)
   const handleWarning = useCallback(() => setShowWarning(true), [setShowWarning])
@@ -66,7 +66,7 @@ export default function TopNavLayout({ role, navItems, profileTo, roleLabel, hom
     function refresh() {
       if (alive) setUnprovisioned(false)
       listNotifications(user.id)
-        .then((rows) => { if (alive) setUnread((rows || []).filter((row) => !row.is_read).length) })
+        .then((rows) => { if (alive) setNotificationRows(rows || []) })
         .catch((err) => { if (alive && isUnprovisioned(err)) setUnprovisioned(true) })
       if (isAdmin) {
         getStats()
@@ -125,6 +125,7 @@ export default function TopNavLayout({ role, navItems, profileTo, roleLabel, hom
     navigate('/')
   }
 
+  const unread = notificationRows.filter((row) => !row.is_read).length
   const activePath = pathname.split('/')[2] || 'dashboard'
   const activeItem = navigation.find((item) => {
     const itemPath = item.path.split('/').filter(Boolean).pop()
@@ -250,14 +251,7 @@ export default function TopNavLayout({ role, navItems, profileTo, roleLabel, hom
             <button className="flex size-11 items-center justify-center text-muted-foreground md:hidden" aria-label="Search workspace" onClick={() => setSearchOpen(true)}>
               <Search className="size-4" />
             </button>
-            <Link
-              to={`/${pathname.split('/')[1] || ''}/notifications`}
-              aria-label={`Notifications, ${unread} unread`}
-              className="relative flex size-11 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted"
-            >
-              <Bell className="size-[18px]" />
-              {unread > 0 && <span className="absolute right-2.5 top-2 size-1.5 rounded-full bg-primary" />}
-            </Link>
+            <NotificationBell rows={notificationRows} />
             <span className="hidden h-7 w-px bg-border sm:block" />
             <DropdownMenu>
               <DropdownMenuTrigger render={<Button variant="ghost" className="gap-2 px-1.5" />}>

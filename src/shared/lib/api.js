@@ -12,6 +12,10 @@ function apiUrl() {
   throw err;
 }
 
+// Absolute URL for a public API asset (company logo) that <img src> can load
+// without an Authorization header.
+export const apiAssetUrl = (path) => `${apiUrl()}/api/${String(path || '').replace(/^\/+/, '')}`;
+
 async function authHeaders() {
   const { data: { session } } = await supabase.auth.getSession();
   return session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {};
@@ -143,6 +147,17 @@ async function blob(path) {
     unreachable(url);
   }
   res = await settleAuth(res, sent, url, (fresh) => fetch(url, { headers: fresh }));
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    let message = `Request failed (${res.status})`;
+    try {
+      const body = JSON.parse(text);
+      if (body?.error?.message) message = body.error.message;
+    } catch { /* non-JSON error body */ }
+    const error = new Error(message);
+    error.status = res.status;
+    throw error;
+  }
   return res.blob();
 }
 

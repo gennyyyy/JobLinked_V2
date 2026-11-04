@@ -169,31 +169,27 @@ function RoleManagement() {
   if (loading) return <PageSkeleton stats={0} table />
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-4 overflow-hidden">
-      <div className="shrink-0">
-        <PageHeading
-          eyebrow="Clear responsibilities"
-          title="Role Management"
-          description="Manage role definitions here. Assign roles to individual accounts in User Management."
-          action={(
-            <Button type="button" onClick={openCreate}>
-              <Plus data-icon="inline-start" />
-              New Role
-            </Button>
-          )}
-        />
-      </div>
+    <div className="space-y-6 pb-12">
+      <PageHeading
+        eyebrow="Clear responsibilities"
+        title="Role Management"
+        description="Manage role definitions here. Assign roles to individual accounts in User Management."
+        action={(
+          <Button type="button" onClick={openCreate}>
+            <Plus data-icon="inline-start" />
+            New Role
+          </Button>
+        )}
+      />
 
-      {flash && <p className="shrink-0 rounded-xl border border-success/20 bg-success-soft px-4 py-3 text-xs text-success">{flash}</p>}
-      {error && <p role="alert" className="shrink-0 text-xs text-destructive">{error}</p>}
+      {flash && <p className="rounded-xl border border-success/20 bg-success-soft px-4 py-3 text-xs text-success">{flash}</p>}
+      {error && <p role="alert" className="text-xs text-destructive">{error}</p>}
 
-      <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto">
-        <Panel
-          className="min-h-0"
-          title="Predefined roles"
-          description="The three system roles define each account’s workspace and access."
-          action={<span className="inline-flex items-center gap-1.5 rounded-full border bg-muted px-2.5 py-1 text-[10px] uppercase tracking-[.14em] text-muted-foreground"><Lock className="size-3" aria-hidden="true" />Read-only</span>}
-        >
+      <Panel
+        title="Predefined roles"
+        description="The three system roles define each account’s workspace and access."
+        action={<span className="inline-flex items-center gap-1.5 rounded-full border bg-muted px-2.5 py-1 text-[10px] uppercase tracking-[.14em] text-muted-foreground"><Lock className="size-3" aria-hidden="true" />Read-only</span>}
+      >
           <ul className="grid gap-4 md:grid-cols-3">
             {SYSTEM_ROLES.map((role) => (
               <li key={role.key} className="rounded-xl border p-4">
@@ -288,7 +284,6 @@ function RoleManagement() {
             </ul>
           )}
         </Panel>
-      </div>
 
       {/* Create / Edit modal */}
       {formOpen && (

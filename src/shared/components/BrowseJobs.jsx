@@ -160,7 +160,10 @@ function BrowseJobs({ jobHref, initialKeyword = "", initialLocation = "", initia
       </form>
 
       <div className="grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-6 items-start">
-        <aside className="surface space-y-5 p-5">
+        {/* Floats alongside the results: the filter column stays in view while the
+            list scrolls. `items-start` on the grid keeps it from stretching, which
+            is what makes the sticky offset behave. */}
+        <aside className="surface space-y-5 p-5 lg:sticky lg:top-4 lg:z-10 lg:self-start">
           <div>
             <h2 className="text-base font-semibold text-navy">Filter by Skills:</h2>
             <p className="mt-1 font-mono text-[10px] tracking-widest text-muted-foreground uppercase">Select up to {MAX_SKILLS} skills</p>
@@ -220,7 +223,7 @@ function BrowseJobs({ jobHref, initialKeyword = "", initialLocation = "", initia
                 const saved = savedIds.includes(job.id);
                 return (
                   <li key={job.id}>
-                    <article className="surface p-5">
+                    <article className="surface relative p-5 transition-colors hover:border-primary/30">
                       <div className="flex items-start gap-3">
                         <CompanyMark initials={String(company).split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]).join('').toUpperCase()} />
                         <div className="min-w-0 flex-1">
@@ -235,7 +238,7 @@ function BrowseJobs({ jobHref, initialKeyword = "", initialLocation = "", initia
                               aria-label={saved ? `Unsave ${job.title}` : `Save ${job.title}`}
                               aria-pressed={saved}
                               onClick={() => setSavedIds(toggleSavedJob(job.id))}
-                              className="inline-flex size-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-primary"
+                              className="relative z-10 inline-flex size-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-primary"
                             >
                               {saved ? <BookmarkCheck className="size-4 fill-primary text-primary" /> : <Bookmark className="size-4" />}
                             </button>
@@ -243,7 +246,7 @@ function BrowseJobs({ jobHref, initialKeyword = "", initialLocation = "", initia
                         </div>
                       </div>
                       <h3 className="mt-4 text-[17px] font-semibold leading-6 tracking-[-.025em]">
-                        <Link to={href} onMouseEnter={warm} onFocus={warm} className="transition-colors hover:text-primary">{job.title}</Link>
+                        <Link to={href} onMouseEnter={warm} onFocus={warm} className="transition-colors hover:text-primary after:absolute after:inset-0 after:content-['']">{job.title}</Link>
                       </h3>
                       <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
                         <span className="flex items-center gap-1"><MapPin className="size-3" />{job.location}</span>
@@ -256,17 +259,16 @@ function BrowseJobs({ jobHref, initialKeyword = "", initialLocation = "", initia
                           {bullets.map((line) => <li key={line}>{line}</li>)}
                         </ul>
                       )}
-                      <Link to={href} onMouseEnter={warm} onFocus={warm} className="mt-4 inline-flex min-h-9 items-center text-[11px] font-medium text-primary">See more →</Link>
                     </article>
                   </li>
                 );
               })}
             </ul>
           )}
-
-          <Pager page={page} pageSize={PAGE_SIZE} total={total} onChange={setPage} />
         </section>
       </div>
+
+      <Pager page={page} pageSize={PAGE_SIZE} total={total} onChange={setPage} align="center" />
     </div>
   );
 }
