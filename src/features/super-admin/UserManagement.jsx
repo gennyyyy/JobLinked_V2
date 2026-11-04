@@ -1,16 +1,18 @@
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { X } from 'lucide-react'
-import { listUsers, updateUser, listRoles, assignRole, assignCustomRole, inviteUser } from '@/shared/services/admin'
+import { listUsers, updateUser, listRoles, assignRole, assignCustomRole, inviteUser, listAuditLogs } from '@/shared/services/admin'
 import useAuth from '@/shared/hooks/useAuth'
 import { PageSkeleton } from '@/shared/components/Skeletons'
 import { InlineError, Pager, StatCard } from '@/shared/components/dashboard'
 import useDialog from '@/shared/hooks/useDialog'
 import { titleCase } from '@/shared/utils/titleCase'
-import { Notice, PageHeading, SelectField, StatusBadge } from '@/shared/components/design'
+import { EmptyState, Notice, PageHeading, Panel, SelectField, StatusBadge } from '@/shared/components/design'
 
 const SYSTEM_ROLE_LABELS = { 'super-admin': 'Super Admin', employer: 'Employer', 'job-seeker': 'Job Seeker' }
 
@@ -30,13 +32,19 @@ function UserManagement() {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [actionError, setActionError] = useState('')
-  const [savingId, setSavingId] = useState(null)
   const [filterRole, setFilterRole] = useState('all')
   const [searchTerm, setSearchTerm] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
   const [showInvite, setShowInvite] = useState(false)
   const [inviteForm, setInviteForm] = useState(EMPTY_INVITE)
   const [inviting, setInviting] = useState(false)
+  const [history, setHistory] = useState([])
+  const [accessTarget, setAccessTarget] = useState(null)
+  const [accessRole, setAccessRole] = useState('')
+  const [accessStatus, setAccessStatus] = useState('active')
+  const [accessReason, setAccessReason] = useState('')
+  const [accessError, setAccessError] = useState('')
+  const [accessBusy, setAccessBusy] = useState(false)
 
   const inviteRef = useDialog(() => setShowInvite(false), showInvite)
 
@@ -66,53 +74,58 @@ function UserManagement() {
   }, [searchTerm])
 
   useEffect(() => {
-    listRoles()
-      .then((roles) => setCustomRoles(roles || []))
-      .catch(() => setCustomRoles([]))
+    Promise.all([
+      listRoles().catch(() => []),
+      listAuditLogs({ action: 'user.role.change', limit: 50 }).catch(() => []),
+    ])
+      .then(([roles, logs]) => {
+        setCustomRoles(roles || [])
+        setHistory(Array.isArray(logs) ? logs : [])
+      })
       .finally(() => setLoading(false))
   }, [])
 
   if (loading) return <PageSkeleton stats={0} table />
   if (error) return <InlineError message={error} />
 
-  // Role assignment lives ONLY here (the Roles page manages definitions).
-  // - sys:<role>   → cross-table system-role move (+ clears any custom tag)
-  // - custom:<id>  → ensures the account sits in the role's base portal, then tags
-  // - plain clear  → removes the custom tag only
-  async function handleAssignRole(user, value) {
-    if (value === `sys:${user.role}` && !user.custom_role_id) return
-    setActionError('')
-    setSuccess('')
-    setSavingId(user.id)
-    try {
-      if (value.startsWith('custom:')) {
-        const role = customRoles.find((r) => String(r.id) === value.slice(7))
-        if (!role) throw new Error('Custom role not found — refresh the page')
-        if (user.role !== role.base_role) await assignRole(user.id, role.base_role)
-        await assignCustomRole(user.id, role.id)
-        setSuccess(`Role "${role.name}" assigned to ${user.full_name || user.email}.`)
-      } else if (value.startsWith('sys:')) {
-        const role = value.slice(4)
-        if (user.custom_role_id) await assignCustomRole(user.id, null)
-        if (user.role !== role) await assignRole(user.id, role)
-        setSuccess(`Role set to ${SYSTEM_ROLE_LABELS[role] || role} for ${user.full_name || user.email}.`)
-      } else if (value === 'clear-custom') {
-        await assignCustomRole(user.id, null)
-        setSuccess(`Custom role cleared for ${user.full_name || user.email}.`)
-      }
-      await loadUsers(page)
-      setTimeout(() => setSuccess(''), 4000)
-    } catch (err) {
-      setActionError(err.message || 'Failed to assign role')
-    } finally {
-      setSavingId(null)
-    }
+  function openAccess(user) {
+    setAccessTarget(user)
+    setAccessRole(user.custom_role_id ? `custom:${user.custom_role_id}` : `sys:${user.role}`)
+    setAccessStatus(user.status === 'active' ? 'active' : 'suspended')
+    setAccessReason('')
+    setAccessError('')
   }
 
-  async function handleToggleStatus(user) {
-    const newStatus = user.status === 'active' ? 'suspended' : 'active'
-    await updateUser(user.id, { status: newStatus })
-    setUsers((prev) => prev.map((u) => (u.id === user.id ? { ...u, status: newStatus } : u)))
+  async function confirmAccess(event) {
+    event.preventDefault()
+    if (!accessTarget) return
+    if (accessReason.trim().length < 10) {
+      setAccessError('Give a clear reason of at least 10 characters.')
+      return
+    }
+    setAccessBusy(true)
+    setAccessError('')
+    try {
+      if (accessRole.startsWith('custom:')) {
+        const role = customRoles.find((item) => String(item.id) === accessRole.slice(7))
+        if (!role) throw new Error('Custom role not found — refresh the page')
+        if (accessTarget.role !== role.base_role) await assignRole(accessTarget.id, role.base_role)
+        await assignCustomRole(accessTarget.id, role.id)
+      } else if (accessRole.startsWith('sys:')) {
+        const role = accessRole.slice(4)
+        if (accessTarget.custom_role_id) await assignCustomRole(accessTarget.id, null)
+        if (accessTarget.role !== role) await assignRole(accessTarget.id, role)
+      }
+      if (accessStatus !== accessTarget.status) await updateUser(accessTarget.id, { status: accessStatus })
+      await loadUsers(page)
+      setSuccess(`Access updated for ${accessTarget.full_name || accessTarget.email}.`)
+      setAccessTarget(null)
+      setTimeout(() => setSuccess(''), 4000)
+    } catch (err) {
+      setAccessError(err.message || 'Failed to update access')
+    } finally {
+      setAccessBusy(false)
+    }
   }
 
   // Invite (ADR-024): role select carries either a system role or `custom:<id>`;
@@ -166,6 +179,10 @@ function UserManagement() {
     { value: 'employer', label: 'Employer' },
     { value: 'job-seeker', label: 'Job Seeker' },
   ]
+  const accessRoleOptions = [
+    ...Object.entries(SYSTEM_ROLE_LABELS).map(([value, label]) => ({ value: `sys:${value}`, label })),
+    ...customRoles.map((role) => ({ value: `custom:${role.id}`, label: role.name })),
+  ]
 
   const jobSeekerCount = users.filter((row) => row.role === 'job-seeker').length
   const employerCount = users.filter((row) => row.role === 'employer').length
@@ -174,8 +191,8 @@ function UserManagement() {
   const suspendedCount = users.filter((row) => row.status !== 'active').length
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-4 overflow-hidden">
-      <div className="shrink-0">
+    <div className="space-y-6 pb-12">
+      <div>
         <PageHeading
           eyebrow="Accountable access. Clear responsibilities."
           title="User Management"
@@ -188,13 +205,13 @@ function UserManagement() {
         />
       </div>
 
-      <div className="shrink-0">
+      <div>
         <Notice title="Frontend authorization preview">
           Role checks are enforced by the shared API for this session, not by the browser. Production must validate JWT sessions, permissions, tenant scope, and audit writes server-side.
         </Notice>
       </div>
 
-      <div className="grid shrink-0 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         <StatCard label="Total system users" value={total} />
         <StatCard label="Job seekers" value={jobSeekerCount} />
         <StatCard label="Employers" value={employerCount} />
@@ -203,12 +220,12 @@ function UserManagement() {
         <StatCard label="Suspended accounts" value={suspendedCount} />
       </div>
 
-      {success && <p className="shrink-0 rounded-xl border border-success/20 bg-success-soft px-4 py-3 text-xs text-success">{success}</p>}
+      {success && <p className="rounded-xl border border-success/20 bg-success-soft px-4 py-3 text-xs text-success">{success}</p>}
       {actionError && <InlineError message={actionError} />}
 
-      <section className="surface flex min-h-0 flex-1 flex-col overflow-hidden p-0">
+      <section className="surface p-0">
         {/* Filter bar */}
-        <div className="flex shrink-0 flex-col gap-3 border-b px-5 py-4 sm:flex-row sm:flex-wrap sm:items-end">
+        <div className="flex flex-col gap-3 border-b px-5 py-4 sm:flex-row sm:flex-wrap sm:items-end">
           <div className="sm:w-48">
             <SelectField
               id="role-filter"
@@ -233,7 +250,7 @@ function UserManagement() {
         </div>
 
         {/* Table */}
-        <div className="min-h-0 flex-1 overflow-auto">
+        <div className="overflow-x-auto">
           {users.length === 0 ? (
             <p className="py-10 text-center text-xs text-muted-foreground">No users found.</p>
           ) : (
@@ -266,45 +283,17 @@ function UserManagement() {
                     <TableCell className="whitespace-normal text-xs font-medium text-navy">{titleCase(user.full_name)}</TableCell>
                     <TableCell className="whitespace-normal break-all text-[11px] text-muted-foreground">{user.email}</TableCell>
                     <TableCell className="whitespace-normal">
-                      {currentUser && user.id === currentUser.id ? (
-                        <div className="flex flex-col gap-1">
-                          <span className="text-[11px] font-medium text-navy">{SYSTEM_ROLE_LABELS[user.role] || user.role}</span>
-                          {user.custom_role_id && (
-                            <span className="text-[10px] text-primary">
-                              {customRoles.find((r) => String(r.id) === String(user.custom_role_id))?.name || 'Custom role'}
-                            </span>
-                          )}
+                      <div className="flex flex-col gap-1">
+                        <span className="text-[11px] font-medium text-navy">{SYSTEM_ROLE_LABELS[user.role] || user.role}</span>
+                        {user.custom_role_id && (
+                          <span className="text-[10px] text-primary">
+                            {customRoles.find((role) => String(role.id) === String(user.custom_role_id))?.name || 'Custom role'}
+                          </span>
+                        )}
+                        {currentUser && user.id === currentUser.id && (
                           <span className="text-[9px] uppercase tracking-[.14em] text-muted-foreground">You — role locked</span>
-                        </div>
-                      ) : (
-                        <div className="flex flex-col gap-1">
-                          <Label htmlFor={`role-${user.id}`} className="sr-only">Role for {user.full_name || user.email}</Label>
-                          <select
-                            id={`role-${user.id}`}
-                            value={user.custom_role_id ? `custom:${user.custom_role_id}` : `sys:${user.role}`}
-                            disabled={savingId === user.id}
-                            onChange={(e) => handleAssignRole(user, e.target.value)}
-                            className="form-select h-9 max-w-[170px] px-2 text-[11px]"
-                          >
-                            <optgroup label="System roles">
-                              {Object.entries(SYSTEM_ROLE_LABELS).map(([key, label]) => (
-                                <option key={key} value={`sys:${key}`}>{label}</option>
-                              ))}
-                            </optgroup>
-                            {customRoles.length > 0 && (
-                              <optgroup label="Custom roles">
-                                {customRoles.map((r) => (
-                                  <option key={r.id} value={`custom:${r.id}`}>{r.name}</option>
-                                ))}
-                              </optgroup>
-                            )}
-                            {user.custom_role_id && (
-                              <option value="clear-custom">Clear custom role…</option>
-                            )}
-                          </select>
-                          {savingId === user.id && <span className="text-[10px] text-muted-foreground">Saving…</span>}
-                        </div>
-                      )}
+                        )}
+                      </div>
                     </TableCell>
                     <TableCell><StatusBadge status={user.status} /></TableCell>
                     <TableCell className="text-[11px] text-muted-foreground">
@@ -317,10 +306,10 @@ function UserManagement() {
                       <Button
                         type="button"
                         variant="outline"
-                        size="sm"
-                        onClick={() => handleToggleStatus(user)}
+                        onClick={() => openAccess(user)}
+                        disabled={currentUser && user.id === currentUser.id}
                       >
-                        {user.status === 'active' ? 'Suspend' : 'Activate'}
+                        Manage access
                       </Button>
                     </TableCell>
                   </TableRow>
@@ -329,8 +318,40 @@ function UserManagement() {
             </Table>
           )}
         </div>
-        <div className="shrink-0 px-5"><Pager page={page} pageSize={pageSize} total={total} onChange={setPage} /></div>
+        <div className="px-5"><Pager page={page} pageSize={pageSize} total={total} onChange={setPage} /></div>
       </section>
+
+      <Panel
+        title="Role and access change history"
+        description="Previous role, new role, responsible administrator, timestamp, and reason are retained."
+      >
+        {history.length ? (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                {['User', 'Previous role', 'New role', 'Access', 'Administrator', 'Timestamp', 'Reason'].map((heading) => (
+                  <TableHead key={heading}>{heading}</TableHead>
+                ))}
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {history.map((log) => (
+                <TableRow key={log.id}>
+                  <TableCell className="text-xs">{users.find((row) => String(row.id) === String(log.entity_id))?.full_name || '—'}</TableCell>
+                  <TableCell className="text-xs">{SYSTEM_ROLE_LABELS[log.details?.from] || log.details?.from || '—'}</TableCell>
+                  <TableCell className="text-xs">{SYSTEM_ROLE_LABELS[log.details?.to] || log.details?.to || '—'}</TableCell>
+                  <TableCell className="text-xs">—</TableCell>
+                  <TableCell className="text-xs">{log.actor_name || '—'}</TableCell>
+                  <TableCell className="text-xs">{new Date(log.created_at).toLocaleString('en-PH')}</TableCell>
+                  <TableCell className="max-w-64 whitespace-normal break-words text-xs">{log.details?.reason || '—'}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        ) : (
+          <EmptyState title="No access changes yet" description="Confirmed role and account changes will appear here." />
+        )}
+      </Panel>
 
       {showInvite && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/60 p-4" onClick={() => setShowInvite(false)}>
@@ -414,6 +435,51 @@ function UserManagement() {
           </form>
         </div>
       )}
+
+      <Dialog open={!!accessTarget} onOpenChange={(open) => { if (!open) setAccessTarget(null) }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Manage {accessTarget?.full_name || accessTarget?.email}</DialogTitle>
+            <DialogDescription>
+              Confirm the role and account state before applying. Every change requires a reason and is audited.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={confirmAccess} className="flex flex-col gap-5">
+            <SelectField
+              id="access-role"
+              label="Assigned role"
+              options={accessRoleOptions}
+              value={accessRole}
+              onChange={(event) => setAccessRole(event.target.value)}
+            />
+            <SelectField
+              id="access-status"
+              label="Account status"
+              options={[
+                { value: 'active', label: 'Active' },
+                { value: 'suspended', label: 'Suspended' },
+              ]}
+              value={accessStatus}
+              onChange={(event) => setAccessStatus(event.target.value)}
+            />
+            <div>
+              <Label htmlFor="access-reason" className="mb-2 block text-xs text-muted-foreground">Reason</Label>
+              <Textarea
+                id="access-reason"
+                rows={3}
+                value={accessReason}
+                onChange={(event) => { setAccessReason(event.target.value); setAccessError('') }}
+                placeholder="Explain why this access change is needed."
+              />
+            </div>
+            {accessError && <p role="alert" className="text-xs text-destructive">{accessError}</p>}
+            <div className="flex justify-end gap-3 border-t pt-4">
+              <Button type="button" variant="outline" onClick={() => setAccessTarget(null)}>Cancel</Button>
+              <Button type="submit" disabled={accessBusy}>{accessBusy ? 'Saving…' : 'Save access'}</Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

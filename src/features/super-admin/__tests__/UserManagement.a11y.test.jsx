@@ -9,6 +9,7 @@ vi.mock('../../../shared/services/admin', () => ({
   updateUser: vi.fn(),
   assignRole: vi.fn(),
   assignCustomRole: vi.fn(),
+  listAuditLogs: vi.fn().mockResolvedValue([]),
 }))
 
 vi.mock('../../../shared/services/documents', () => ({
@@ -60,7 +61,10 @@ describe('UserManagement accessibility', () => {
   it('announces an action failure in a live region', async () => {
     assignRole.mockRejectedValue(new Error('Role change rejected'))
     await renderUsers()
-    fireEvent.change(screen.getByLabelText(/role for ada lovelace/i), { target: { value: 'sys:job-seeker' } })
+    fireEvent.click(screen.getByRole('button', { name: /manage access/i }))
+    fireEvent.change(screen.getByLabelText(/assigned role/i), { target: { value: 'sys:job-seeker' } })
+    fireEvent.change(screen.getByLabelText(/reason/i), { target: { value: 'Role change needed for this account.' } })
+    fireEvent.click(screen.getByRole('button', { name: /save access/i }))
     await waitFor(() => expect(screen.getAllByRole('alert').some((alert) => alert.textContent.includes('Role change rejected'))).toBe(true))
   })
 

@@ -9,6 +9,7 @@ vi.mock('../../../shared/services/admin', () => ({
   updateUser: vi.fn(),
   assignRole: vi.fn(),
   assignCustomRole: vi.fn(),
+  listAuditLogs: async () => [],
 }))
 
 vi.mock('../../../shared/services/documents', () => ({

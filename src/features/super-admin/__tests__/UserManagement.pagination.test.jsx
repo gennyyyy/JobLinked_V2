@@ -9,6 +9,7 @@ vi.mock('../../../shared/services/admin', () => ({
   updateUser: vi.fn(),
   assignRole: vi.fn(),
   assignCustomRole: vi.fn(),
+  listAuditLogs: async () => [],
 }))
 
 vi.mock('../../../shared/services/documents', () => ({
@@ -65,8 +66,10 @@ describe('UserManagement pagination (C2)', () => {
 
   it('refetches the current page after a role assignment', async () => {
     render(<UserManagement />)
-    const select = await screen.findByLabelText(/role for page 1 user 0/i)
-    fireEvent.change(select, { target: { value: 'sys:employer' } })
+    fireEvent.click((await screen.findAllByRole('button', { name: /manage access/i }))[0])
+    fireEvent.change(screen.getByLabelText(/assigned role/i), { target: { value: 'sys:employer' } })
+    fireEvent.change(screen.getByLabelText(/reason/i), { target: { value: 'Role change needed for this account.' } })
+    fireEvent.click(screen.getByRole('button', { name: /save access/i }))
     await waitFor(() => expect(listUsers).toHaveBeenCalledWith({ page: 1 }))
     expect(await screen.findByRole('table')).toBeInTheDocument()
   })

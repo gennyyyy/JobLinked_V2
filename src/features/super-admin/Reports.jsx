@@ -1,293 +1,219 @@
+import { useEffect, useMemo, useState } from 'react'
+import { BriefcaseBusiness, ClipboardCheck, Download, Handshake, Printer, Users } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { useEffect, useState } from 'react'
-import { Download } from 'lucide-react'
-import { listAllJobs, listAllApplications, listUsers } from '@/shared/services/admin'
-import { PageSkeleton } from '@/shared/components/Skeletons'
-import { InlineError, SectionCard, StatCard } from '@/shared/components/dashboard'
-import { PageHeading, TextField } from '@/shared/components/design'
-import { BarangayVacancyChart, EmploymentActivityChart, EmploymentTypeChart } from '@/shared/components/lazyCharts'
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
+import { listAllApplications, listAllJobs, listUsers } from '@/shared/services/admin'
+import LoadingScreen from '@/shared/components/LoadingScreen'
+import { Notice, PageHeading, Panel, StatCards, TextField } from '@/shared/components/design'
+import { BarangayVacancyChart, EmploymentActivityChart, EmploymentTypeChart } from '@/shared/components/EmploymentCharts'
+import { SANTA_MARIA_BARANGAYS } from '@/shared/constants'
 
-const REPORTS = [
-  { id: 'referral', label: 'Referral', eyebrow: 'Referral activity', description: 'Track applicants referred through PESO services.' },
-  { id: 'placement', label: 'Placement Summary', eyebrow: 'Employment outcomes', description: 'Review applicants marked as placed and their hiring details.' },
-  { id: 'registration', label: 'Applicant Registration', eyebrow: 'Applicant growth', description: 'See job seeker registrations within the selected period.' },
-  { id: 'vacancy', label: 'Vacancy Solicitation', eyebrow: 'Employer demand', description: 'Review vacancies posted by participating employers.' },
-]
-const PAGE_SIZE = 10
-const dateValue = (value) => value ? new Date(value).toLocaleDateString() : '—'
+const today = () => new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Manila' })
+const quarterStart = () => {
+  const date = new Date()
+  date.setMonth(date.getMonth() - 3)
+  return date.toISOString().slice(0, 10)
+}
 
-function Reports() {
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
+export default function Reports() {
+  const [from, setFrom] = useState(quarterStart)
+  const [to, setTo] = useState(today)
   const [jobs, setJobs] = useState([])
   const [applications, setApplications] = useState([])
   const [users, setUsers] = useState([])
-  const [active, setActive] = useState('referral')
-  const [from, setFrom] = useState('')
-  const [to, setTo] = useState('')
-  const [page, setPage] = useState(1)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
 
   useEffect(() => {
-    // ponytail: the stat cards aggregate client-side, so the page asks for the
-    // 500-row max; move these aggregations server-side when reports outgrow it.
     Promise.all([
       listAllJobs({ pageSize: 500 }),
       listAllApplications({ pageSize: 500 }),
       listUsers({ pageSize: 500 }),
     ])
       .then(([jobRows, applicationRows, userRows]) => {
-        setJobs(jobRows.data)
-        setApplications(applicationRows.data)
-        setUsers(userRows.data)
+        setJobs(jobRows.data || [])
+        setApplications(applicationRows.data || [])
+        setUsers(userRows.data || [])
       })
       .catch((err) => setError(err.message || 'Could not load report data.'))
       .finally(() => setLoading(false))
   }, [])
 
-  const inRange = (value) => {
-    if (!value) return true
-    const day = value.slice(0, 10)
-    return (!from || day >= from) && (!to || day <= to)
-  }
-  const seekers = users.filter((user) => user.role === 'job-seeker' && inRange(user.created_at))
-  const vacancies = jobs.filter((job) => inRange(job.created_at))
-  const periodApplications = applications.filter((application) => inRange(application.applied_at))
-  const placed = periodApplications.filter((application) => application.status?.toLowerCase() === 'placed')
+  const valid = !!from && !!to && from <= to && (new Date(to).getTime() - new Date(from).getTime()) / 86400000 <= 3660
 
-  const reportRows = active === 'placement'
-    ? placed
-    : active === 'registration'
-      ? seekers
-      : active === 'vacancy'
-        ? vacancies
-        : []
-  const pages = Math.max(1, Math.ceil(reportRows.length / PAGE_SIZE))
-  const visibleRows = reportRows.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
-  const current = REPORTS.find((item) => item.id === active)
-
-  const activityDays = Array.from({ length: 14 }, (_, index) => {
-    const date = new Date()
-    date.setDate(date.getDate() - 13 + index)
-    const key = date.toISOString().slice(0, 10)
-    const rows = periodApplications.filter((application) => String(application.applied_at || '').slice(0, 10) === key)
-    return {
-      month: new Intl.DateTimeFormat('en-PH', { month: 'short', day: 'numeric' }).format(date),
-      applications: rows.length,
-      placements: rows.filter((application) => ['Placed', 'Hired', 'Accepted'].includes(application.status)).length,
+  const report = useMemo(() => {
+    const inRange = (value) => {
+      if (!value) return true
+      const day = String(value).slice(0, 10)
+      return (!from || day >= from) && (!to || day <= to)
     }
-  })
-  const employmentTypeData = ['Full-time', 'Part-time', 'Contractual', 'Seasonal', 'Job Order']
-    .map((name) => ({ name, value: vacancies.filter((job) => (job.employment_type || '') === name).length }))
-  const barangayData = Object.entries(
-    vacancies.reduce((acc, job) => {
-      const key = job.location || 'Unspecified'
-      acc[key] = (acc[key] || 0) + 1
-      return acc
-    }, {}),
-  ).map(([name, count]) => ({ name, vacancies: count }))
+    const periodApplications = applications.filter((application) => inRange(application.applied_at))
+    const published = jobs.filter((job) => (job.status === 'published' || job.status === 'Published') && inRange(job.created_at))
+    const placements = periodApplications.filter((application) => ['Placed', 'Hired'].includes(application.status))
+    const months = Array.from({ length: 6 }, (_, index) => {
+      const date = new Date()
+      date.setMonth(date.getMonth() - 5 + index)
+      const key = date.toISOString().slice(0, 7)
+      const rows = periodApplications.filter((application) => String(application.applied_at || '').slice(0, 7) === key)
+      return {
+        month: new Intl.DateTimeFormat('en-PH', { month: 'short' }).format(date),
+        applications: rows.length,
+        placements: rows.filter((application) => ['Placed', 'Hired'].includes(application.status)).length,
+      }
+    })
+    const barangays = SANTA_MARIA_BARANGAYS.map((name) => {
+      const rows = periodApplications.filter((application) => application.seeker?.barangay_district === name)
+      return {
+        name,
+        seekers: users.filter((user) => user.role === 'job-seeker' && user.barangay_district === name).length,
+        vacancies: published.filter((job) => job.location === name).length,
+        applications: rows.length,
+        placements: rows.filter((application) => ['Placed', 'Hired'].includes(application.status)).length,
+      }
+    })
+    return {
+      vacancies: published.length,
+      openings: published.reduce((sum, job) => sum + (Number(job.vacancies) || 0), 0),
+      applications: periodApplications.length,
+      referrals: periodApplications.filter((application) => application.referred_by).length,
+      placements: placements.length,
+      months,
+      barangays,
+    }
+  }, [applications, jobs, users, from, to])
 
-  function downloadCSV() {
-    const fields = active === 'placement'
-      ? [['Applicant', 'Vacancy', 'Employer', 'Placed date'], placed.map((row) => [row.seeker?.full_name, row.job?.title, row.job?.employers?.company_name, row.applied_at])]
-      : active === 'registration'
-        ? [['Applicant', 'Email', 'Barangay', 'Registered'], seekers.map((row) => [row.full_name, row.email, row.barangay_district, row.created_at])]
-        : active === 'vacancy'
-          ? [['Vacancy', 'Employer', 'Location', 'Status', 'Posted'], vacancies.map((row) => [row.title, row.employers?.company_name, row.location, row.status, row.created_at])]
-          : [['Referral', 'Status', 'Date'], []]
-    const csv = [fields[0], ...fields[1]].map((row) => row.map((cell) => `"${String(cell || '').replaceAll('"', '""')}"`).join(',')).join('\n')
+  const employmentTypes = ['Full-time', 'Part-time', 'Contractual', 'Seasonal', 'Job Order']
+    .map((name) => ({ name, value: jobs.filter((job) => job.employment_type === name && (job.status === 'published' || job.status === 'Published')).length }))
+
+  function exportReport() {
+    const rows = [
+      ['DEMO DATA — Barangay', 'Registered residents (all time)', 'Currently published vacancies posted in period', 'Applications submitted in period', 'Current hired outcomes from those applications', 'Period start', 'Period end'],
+      ...report.barangays.map((row) => [row.name, row.seekers, row.vacancies, row.applications, row.placements, from, to]),
+    ]
+    const csv = rows.map((row) => row.map((cell) => `"${String(cell).replaceAll('"', '""')}"`).join(',')).join('\n')
     const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }))
     const link = document.createElement('a')
     link.href = url
-    link.download = `${active}-report.csv`
+    link.download = `joblinked-DEMO-barangay-report-${from}-to-${to}.csv`
     link.click()
     URL.revokeObjectURL(url)
   }
 
-  if (loading) return <PageSkeleton stats={3} panels={2} />
-  if (error) return <InlineError message={error} />
+  if (loading) return <LoadingScreen />
 
   return (
     <>
+      <div className="print-title mb-5 hidden">
+        <p className="text-xl font-semibold">JobLinked · Labor Market Report</p>
+        <p className="text-xs">Provided data only. Not an official municipal report.</p>
+      </div>
       <PageHeading
         eyebrow="A more informed local picture"
         title="Insights that keep people at the center."
-        description="Explore provided vacancies, referrals, and placement outcomes across Santa Maria's 24 barangays."
+        description="Explore provided vacancies, referrals, and placement outcomes across Santa Maria’s 24 barangays."
         action={(
-          <Button type="button" variant="outline" onClick={downloadCSV}>
-            <Download data-icon="inline-start" />
-            Download CSV
-          </Button>
+          <>
+            <Button variant="outline" onClick={exportReport} disabled={!valid}>
+              <Download data-icon="inline-start" />
+              Download CSV
+            </Button>
+            <Button variant="outline" onClick={() => window.print()} disabled={!valid}>
+              <Printer data-icon="inline-start" />
+              Print report
+            </Button>
+          </>
         )}
       />
-
-      <nav aria-label="Report types" className="mb-6 grid grid-cols-2 gap-2 md:grid-cols-4">
-        {REPORTS.map((report) => (
-          <Button
-            key={report.id}
-            type="button"
-            variant="outline"
-            onClick={() => { setActive(report.id); setPage(1) }}
-            aria-current={active === report.id ? 'page' : undefined}
-            className={`h-auto flex-col items-start justify-start px-4 py-3 text-left ${active === report.id ? 'border-primary bg-blue-soft' : ''}`}
-          >
-            <span className={`block text-xs font-semibold ${active === report.id ? 'text-primary' : 'text-navy'}`}>{report.label}</span>
-            <span className="mt-0.5 block text-[10px] font-normal text-muted-foreground">{report.eyebrow}</span>
-          </Button>
-        ))}
-      </nav>
-
-      <div className="surface mb-6">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <p className="eyebrow">{current.eyebrow}</p>
-            <h2 className="mt-2 text-lg font-semibold tracking-tight text-navy">{current.label}</h2>
-            <p className="mt-1 text-xs leading-5 text-muted-foreground">{current.description}</p>
-          </div>
-          <div className="flex flex-wrap items-end gap-3">
-            <div className="w-40">
-              <TextField label="From" type="date" aria-label="From date" value={from} onChange={(event) => { setFrom(event.target.value); setPage(1) }} />
-            </div>
-            <div className="w-40">
-              <TextField label="To" type="date" aria-label="To date" value={to} onChange={(event) => { setTo(event.target.value); setPage(1) }} />
-            </div>
-          </div>
+      <div className="surface no-print mb-6">
+        <div className="grid max-w-2xl gap-4 sm:grid-cols-2">
+          <TextField label="Report period: from" type="date" value={from} max={to || undefined} onChange={(event) => setFrom(event.target.value)} />
+          <TextField label="Report period: to" type="date" value={to} min={from || undefined} onChange={(event) => setTo(event.target.value)} />
         </div>
+        {!valid && <p role="alert" className="mt-3 text-xs text-destructive">Select an ordered date range of no more than ten years.</p>}
       </div>
 
-      <div className="mb-6 grid grid-cols-2 gap-4 md:grid-cols-3">
-        {active === 'placement' && (
-          <>
-            <StatCard label="Placed applicants" value={placed.length} />
-            <StatCard label="Applications reviewed" value={periodApplications.length} />
-            <StatCard label="Placement rate (of applications in period)" value={`${periodApplications.length ? Math.round(placed.length / periodApplications.length * 100) : 0}%`} />
-          </>
-        )}
-        {active === 'registration' && (
-          <>
-            <StatCard label="New applicants" value={seekers.length} />
-            <StatCard label="All applicants" value={users.filter((user) => user.role === 'job-seeker').length} />
-            <StatCard label="Period" value={from || to ? 'Selected' : 'All time'} />
-          </>
-        )}
-        {active === 'vacancy' && (
-          <>
-            <StatCard label="Vacancies posted" value={vacancies.length} />
-            <StatCard label="Open vacancies" value={vacancies.filter((job) => job.status === 'published').length} />
-            <StatCard label="Employers posting" value={new Set(vacancies.map((job) => job.company_id).filter(Boolean)).size} />
-          </>
-        )}
-        {active === 'referral' && (
-          <>
-            <StatCard label="Referrals recorded" value="—" />
-            <StatCard label="Applicants referred" value="—" />
-            <StatCard label="Period" value={from || to ? 'Selected' : 'All time'} />
-          </>
-        )}
-      </div>
+      {error && (
+        <div className="mb-6">
+          <Notice title="Report could not be generated" warning>{error}</Notice>
+        </div>
+      )}
 
-      <div className="mb-6 grid gap-4 lg:grid-cols-2">
-        <SectionCard title="Local employment activity" subtitle="Last 14 days · applications and current outcomes">
-          <EmploymentActivityChart data={activityDays} />
-        </SectionCard>
-        <SectionCard title="Vacancies by employment type" subtitle="Published vacancies in the selected period">
-          <EmploymentTypeChart data={employmentTypeData} />
-        </SectionCard>
+      {valid && !error && (
+        <>
+      <p className="mb-5 text-xs text-muted-foreground">
+        {new Date(from).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' })} – {new Date(to).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' })} · Current records only
+      </p>
+      <StatCards
+        stats={[
+          { label: 'Published vacancy records', value: report.vacancies, icon: BriefcaseBusiness, note: `${report.openings} openings in these postings` },
+          { label: 'applications', value: report.applications, icon: ClipboardCheck },
+          { label: 'Recorded referrals', value: report.referrals, icon: Handshake, tone: 'teal' },
+          { label: 'placements', value: report.placements, icon: Users, tone: 'teal' },
+        ]}
+      />
+      <div className="mb-6">
+        <Notice title="How to read this report">
+          All data is provided. Applications are grouped by submission date; placements and referrals reflect their current outcome. Vacancy counts include currently published postings from approved employers posted in the selected period. Resident counts are all-time registrations, not municipal population data.
+        </Notice>
       </div>
-      <SectionCard className="mb-6" title="Vacancies by barangay" subtitle="Top six barangays in the selected period">
-        <BarangayVacancyChart data={barangayData} />
-      </SectionCard>
-
-      <SectionCard className="p-0" title="Report details" subtitle={`${reportRows.length} records`}>
-        {active === 'referral' ? (
-          <div className="py-10 text-center">
-            <p className="text-sm font-semibold text-navy">Referral data is not available yet</p>
-            <p className="mx-auto mt-2 max-w-md text-xs leading-5 text-muted-foreground">
-              Once referral activity is recorded, this report will show applicants, referring source, and referral date.
-            </p>
-          </div>
-        ) : reportRows.length === 0 ? (
-          <div className="py-10 text-center">
-            <p className="text-sm font-semibold text-navy">No records in this period</p>
-            <p className="mt-1 text-xs text-muted-foreground">Adjust the date range to see more results.</p>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead>
-                <tr className="border-b text-[10px] uppercase tracking-[.14em] text-muted-foreground">
-                  {active === 'placement' && (
-                    <>
-                      <th scope="col" className="px-2 py-3 font-medium first:pl-0">Applicant</th>
-                      <th scope="col" className="px-2 py-3 font-medium">Vacancy</th>
-                      <th scope="col" className="px-2 py-3 font-medium">Employer</th>
-                      <th scope="col" className="px-2 py-3 font-medium last:pr-0">Placed</th>
-                    </>
-                  )}
-                  {active === 'registration' && (
-                    <>
-                      <th scope="col" className="px-2 py-3 font-medium first:pl-0">Applicant</th>
-                      <th scope="col" className="px-2 py-3 font-medium">Email</th>
-                      <th scope="col" className="px-2 py-3 font-medium">Barangay</th>
-                      <th scope="col" className="px-2 py-3 font-medium last:pr-0">Registered</th>
-                    </>
-                  )}
-                  {active === 'vacancy' && (
-                    <>
-                      <th scope="col" className="px-2 py-3 font-medium first:pl-0">Vacancy</th>
-                      <th scope="col" className="px-2 py-3 font-medium">Employer</th>
-                      <th scope="col" className="px-2 py-3 font-medium">Location</th>
-                      <th scope="col" className="px-2 py-3 font-medium">Status</th>
-                      <th scope="col" className="px-2 py-3 font-medium last:pr-0">Posted</th>
-                    </>
-                  )}
-                </tr>
-              </thead>
-              <tbody>
-                {visibleRows.map((row) => (
-                  <tr key={row.id} className="border-t transition-colors hover:bg-muted/50">
-                    {active === 'placement' && (
-                      <>
-                        <th scope="row" className="px-2 py-3 text-left text-xs font-medium text-navy first:pl-0">{row.seeker?.full_name || '—'}</th>
-                        <td className="px-2 py-3 text-xs text-muted-foreground">{row.job?.title || '—'}</td>
-                        <td className="px-2 py-3 text-xs text-muted-foreground">{row.job?.employers?.company_name || '—'}</td>
-                        <td className="px-2 py-3 text-xs text-muted-foreground last:pr-0">{dateValue(row.applied_at)}</td>
-                      </>
-                    )}
-                    {active === 'registration' && (
-                      <>
-                        <th scope="row" className="px-2 py-3 text-left text-xs font-medium text-navy first:pl-0">{row.full_name || '—'}</th>
-                        <td className="px-2 py-3 text-xs text-muted-foreground">{row.email || '—'}</td>
-                        <td className="px-2 py-3 text-xs text-muted-foreground">{row.barangay_district || '—'}</td>
-                        <td className="px-2 py-3 text-xs text-muted-foreground last:pr-0">{dateValue(row.created_at)}</td>
-                      </>
-                    )}
-                    {active === 'vacancy' && (
-                      <>
-                        <th scope="row" className="px-2 py-3 text-left text-xs font-medium text-navy first:pl-0">{row.title || '—'}</th>
-                        <td className="px-2 py-3 text-xs text-muted-foreground">{row.employers?.company_name || '—'}</td>
-                        <td className="px-2 py-3 text-xs text-muted-foreground">{row.location || '—'}</td>
-                        <td className="px-2 py-3 text-xs text-muted-foreground">{row.status || '—'}</td>
-                        <td className="px-2 py-3 text-xs text-muted-foreground last:pr-0">{dateValue(row.created_at)}</td>
-                      </>
-                    )}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-        {active !== 'referral' && reportRows.length > PAGE_SIZE && (
-          <div className="mt-4 flex items-center justify-between border-t pt-3 text-xs text-muted-foreground">
-            <span>Page {page} of {pages}</span>
-            <div className="flex gap-2">
-              <Button type="button" variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage((value) => value - 1)}>Previous</Button>
-              <Button type="button" variant="outline" size="sm" disabled={page >= pages} onClick={() => setPage((value) => value + 1)}>Next</Button>
+      <div className="mb-6 grid items-start gap-6 xl:grid-cols-[1.6fr_1fr]">
+        <Panel title="Applications & placement outcomes" description="Monthly submissions and their current hired outcomes.">
+          <EmploymentActivityChart data={report.months} />
+        </Panel>
+        <Panel title="Opportunity by employment type" description="Currently published vacancy records.">
+          <EmploymentTypeChart data={employmentTypes} />
+        </Panel>
+      </div>
+      <div className="mb-6 grid items-start gap-6 xl:grid-cols-[1fr_1.4fr]">
+        <Panel title="Where opportunities are growing" description="Top six barangays by vacancy records.">
+          <BarangayVacancyChart data={report.barangays} />
+        </Panel>
+        <Panel title="A clear view of the numbers" description="Definitions matter more than a headline number.">
+          <dl className="flex flex-col gap-5 text-xs">
+            <div>
+              <dt className="font-semibold text-navy">Vacancy record ≠ opening</dt>
+              <dd className="mt-2 leading-6 text-muted-foreground">One posting can include multiple openings. This period has {report.vacancies} postings with {report.openings} openings.</dd>
             </div>
-          </div>
-        )}
-      </SectionCard>
+            <div>
+              <dt className="font-semibold text-navy">Referral marker</dt>
+              <dd className="mt-2 leading-6 text-muted-foreground">An administrator recorded a referral. No external message or referral form was sent.</dd>
+            </div>
+            <div>
+              <dt className="font-semibold text-navy">Placement outcome</dt>
+              <dd className="mt-2 leading-6 text-muted-foreground">An employer marked an application Hired. This is not independently verified employment.</dd>
+            </div>
+          </dl>
+        </Panel>
+      </div>
+      <Panel title="Across all 24 barangays" description="Zero values are retained so every barangay remains represented.">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Barangay</TableHead>
+              <TableHead>Residents*</TableHead>
+              <TableHead>Vacancies</TableHead>
+              <TableHead>Applications</TableHead>
+              <TableHead>Placements</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {report.barangays.map((row) => (
+              <TableRow key={row.name}>
+                <TableCell className="font-medium text-navy">{row.name}</TableCell>
+                <TableCell>{row.seekers}</TableCell>
+                <TableCell>{row.vacancies}</TableCell>
+                <TableCell>{row.applications}</TableCell>
+                <TableCell>{row.placements}</TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+        <p className="mt-4 text-[10px] leading-6 text-muted-foreground">
+          *All-time provided registered residents. Other columns follow the selected period and definitions above. For platform review only; not official Labor Market Information.
+        </p>
+      </Panel>
+        </>
+      )}
     </>
   )
 }
-
-export default Reports

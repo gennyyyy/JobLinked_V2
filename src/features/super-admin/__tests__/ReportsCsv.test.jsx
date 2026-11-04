@@ -7,26 +7,27 @@ vi.mock('../../../shared/services/admin', () => ({
   listUsers: vi.fn(),
 }))
 
-import {
-  listAllJobs, listAllApplications, listUsers,
-} from '../../../shared/services/admin'
+import { listAllJobs, listAllApplications, listUsers } from '../../../shared/services/admin'
 import Reports from '../Reports'
 
-const apps = [{
-  id: 'a1',
-  seeker: { full_name: 'Ana' },
-  job: { title: 'Cook', employers: { company_name: 'Acme' } },
-  status: 'Placed',
-  applied_at: '2026-01-05',
-}]
-const expectedCSV = '"Applicant","Vacancy","Employer","Placed date"\n"Ana","Cook","Acme","2026-01-05"'
+const JOBS = [
+  { id: 'j1', title: 'Cook', status: 'published', location: 'Poblacion', employment_type: 'Full-time', vacancies: 2, created_at: '2026-01-02' },
+  { id: 'j2', title: 'Baker', status: 'draft', location: 'Poblacion', employment_type: 'Full-time', vacancies: 1, created_at: '2026-01-03' },
+]
+const APPS = [
+  { id: 'a1', status: 'Placed', applied_at: '2026-01-05', referred_by: null, seeker: { full_name: 'Ana', barangay_district: 'Poblacion' }, job: { title: 'Cook' } },
+  { id: 'a2', status: 'Pending', applied_at: '2026-01-06', referred_by: 'staff-1', seeker: { full_name: 'Ben', barangay_district: 'Poblacion' }, job: { title: 'Cook' } },
+]
+const USERS = [{ id: 'u1', role: 'job-seeker', barangay_district: 'Poblacion' }]
 
 let capturedBlob
 let capturedName
+
 beforeEach(() => {
-  listAllJobs.mockResolvedValue({ data: [], total: 0, page: 1, pageSize: 25 })
-  listAllApplications.mockResolvedValue({ data: apps, total: apps.length, page: 1, pageSize: 25 })
-  listUsers.mockResolvedValue({ data: [], total: 0, page: 1, pageSize: 25 })
+  vi.clearAllMocks()
+  listAllJobs.mockResolvedValue({ data: JOBS, total: JOBS.length, page: 1, pageSize: 500 })
+  listAllApplications.mockResolvedValue({ data: APPS, total: APPS.length, page: 1, pageSize: 500 })
+  listUsers.mockResolvedValue({ data: USERS, total: USERS.length, page: 1, pageSize: 500 })
   capturedBlob = null
   capturedName = null
   URL.createObjectURL = vi.fn((blob) => { capturedBlob = blob; return 'blob:mock' })
@@ -38,45 +39,44 @@ beforeEach(() => {
 
 function readBlob(blob) {
   return new Promise((resolve) => {
-    const r = new FileReader()
-    r.onload = () => resolve(r.result)
-    r.readAsText(blob)
+    const reader = new FileReader()
+    reader.onload = () => resolve(reader.result)
+    reader.readAsText(blob)
   })
 }
 
-describe('Reports CSV export', () => {
-  it('exports the placement report as client CSV', async () => {
-    render(<Reports />)
-    fireEvent.click(await screen.findByText('Placement Summary'))
-    fireEvent.click(screen.getByText('Download CSV'))
+async function renderReport() {
+  render(<Reports />)
+  await screen.findByText('Insights that keep people at the center.')
+  fireEvent.change(screen.getByLabelText(/report period: from/i), { target: { value: '2026-01-01' } })
+  fireEvent.change(screen.getByLabelText(/report period: to/i), { target: { value: '2026-12-31' } })
+}
+
+describe('Reports', () => {
+  it('renders the reference report cards and 24-barangay table', async () => {
+    await renderReport()
+    const statValue = (label) => screen.getAllByText(label).map((el) => el.closest('.surface')).find(Boolean).querySelector('p').textContent
+    expect(statValue('Published vacancy records')).toBe('1')
+    expect(statValue('applications')).toBe('2')
+    expect(statValue('Recorded referrals')).toBe('1')
+    expect(statValue('placements')).toBe('1')
+    expect(screen.getByText('Across all 24 barangays')).toBeInTheDocument()
+    expect(screen.getByRole('cell', { name: 'Poblacion' })).toBeInTheDocument()
+  })
+
+  it('exports the barangay report as a client CSV', async () => {
+    await renderReport()
+    fireEvent.click(screen.getByRole('button', { name: /download csv/i }))
     await waitFor(() => expect(capturedBlob).toBeTruthy())
-    expect(await readBlob(capturedBlob)).toBe(expectedCSV)
-    expect(capturedName).toBe('placement-report.csv')
+    const csv = await readBlob(capturedBlob)
+    expect(csv).toContain('"DEMO DATA — Barangay"')
+    expect(csv).toContain('"Poblacion","1","1","2","1","2026-01-01","2026-12-31"')
+    expect(capturedName).toBe('joblinked-DEMO-barangay-report-2026-01-01-to-2026-12-31.csv')
   })
 
-  it('shows an empty-state message when there are no placed applicants', async () => {
-    listAllApplications.mockResolvedValue({ data: [{ ...apps[0], status: 'Applied' }], total: 1, page: 1, pageSize: 25 })
+  it('shows an error when the report data fails to load', async () => {
+    listAllJobs.mockRejectedValue(new Error('report boom'))
     render(<Reports />)
-    fireEvent.click(await screen.findByText('Placement Summary'))
-    expect(await screen.findByText('No records in this period')).toBeTruthy()
-  })
-
-  it('counts open vacancies (status=published) and distinct posting companies', async () => {
-    const jobs = [
-      { id: 'j1', title: 'Cook', status: 'published', company_id: 'co-a', location: 'Poblacion', employers: { company_name: 'Acme' }, created_at: '2026-01-02' },
-      { id: 'j2', title: 'Baker', status: 'published', company_id: 'co-a', location: 'Poblacion', employers: { company_name: 'Acme' }, created_at: '2026-01-03' },
-      { id: 'j3', title: 'Driver', status: 'published', company_id: 'co-b', location: 'Generoso', employers: { company_name: 'Beta Co' }, created_at: '2026-01-04' },
-      { id: 'j4', title: 'Unlisted draft', status: 'draft', company_id: 'co-c', location: 'Poblacion', employers: { company_name: 'Ceta' }, created_at: '2026-01-05' },
-    ]
-    listAllJobs.mockResolvedValue({ data: jobs, total: jobs.length, page: 1, pageSize: 25 })
-
-    render(<Reports />)
-    fireEvent.click(await screen.findByText('Vacancy Solicitation'))
-
-    const statValue = (label) => screen.getByText(label).closest('.surface').querySelector('p').textContent
-    // "Open" maps to the real 'published' enum value (there is no 'open'), = 3.
-    expect(statValue('Open vacancies')).toBe('3')
-    // Distinct job→employer FK column (company_id), across every vacancy = 3.
-    expect(statValue('Employers posting')).toBe('3')
+    expect(await screen.findByText('report boom')).toBeInTheDocument()
   })
 })
