@@ -1,6 +1,6 @@
 # AI Assistants Design — Hybrid Job Matching + Role-Aware Help Assistant
 
-**Date:** 2026-11-05 · **Status:** Draft for user review · **Owner:** Lead Architect
+**Date:** 2026-11-05 · **Status:** Approved v1.1 (ranking-only contract) · **Owner:** Lead Architect
 **Scope:** two features under one shared provider layer: (1) real AI job matching for the job-seeker portal (replacing the current placeholder), (2) activating the dormant help assistant across all three portal roles.
 
 ## 1. Outcome & success criteria
@@ -33,33 +33,35 @@ New `server/src/aiProvider.js` (zero dependencies):
 
 `POST /api/ai/job-match` — `auth` + job-seeker only + `jobMatchLimiter` (see below).
 
-**Request** `{ prompt: string, filters: {...}, page: number, pageSize: number }`
+**Amendment v1.1 (2026-11-05):** Browse Jobs performs its filtering, search, and pagination **in the client** (`OpportunityList` fetches all published jobs once via `listJobs({pageSize: 200})` and computes `records` locally). To preserve exactly one filter implementation, the endpoint is a **ranking service over candidate IDs**, not a server-side filtered list.
+
+**Request** `{ prompt: string, candidateIds: string[] }`
 - `prompt` normalized, 1–500 chars, no control characters.
-- `filters` is the **same whitelist and validation as `GET /api/jobs`** (query, barangay, category, type, salary, experience + same caps on `page`/`pageSize`) — one implementation, reused, not duplicated.
+- `candidateIds` — ids of the client's currently open & accredited base pool (deduped, capped at 200 — the `pageSize: 200` cap); every entry is a validated uuid.
 
 **Response 200**
 ```json
-{ "jobs": [...], "total": 143, "page": 1, "pageSize": 12,
-  "match": { "mode": "ai" | "deterministic",
-             "reasons": [{ "jobId": "…", "reason": "Skills match 3 of your 5 · Same barangay" }],
-             "generatedAt": "…" } }
+{ "mode": "ai" | "deterministic",
+  "ranking": ["<jobId>", "…"],
+  "reasons": [{ "jobId": "…", "reason": "Skills match 3 of your 5 · Same barangay" }],
+  "generatedAt": "…" }
 ```
-- `jobs` are produced by the **same serializer/annotation path as `GET /api/jobs`** (saved state, apply affordances) — never hand-built job objects.
-- `total` = count of published jobs matching the filters (identical to GET semantics). Pages beyond the ranked pool are served in deterministic order, so pagination is stable for the cache lifetime.
-- **Errors:** 400 `BAD_REQUEST` (shape/stem violations), 401/403 per existing auth, 429 `RATE_LIMITED` per limiter. **No 503 and no other error ever originates from provider state** — provider problems produce `mode: 'deterministic'` 200s.
+- `ranking` covers **every live candidate**, complete and ordered: the AI (if it succeeds) re-ranks the deterministic top 30; remaining candidates keep deterministic order. The client keeps all of its own filters/search/pagination and reorders `records` by this ranking — nothing about the client's job objects changes, so saved/apply affordances and pagination semantics are untouched.
+- `reasons` exist only for the ranked top 30 (`ai`: model reasons; `deterministic`: server-generated). Cards without a reason row need none.
+- Live-only: the server re-loads candidates by id (`status = 'published'`); ids that left the published state since the client's fetch simply receive no ranking row and are dropped by the client's existing open-jobs filter.
+- **Errors:** 400 `BAD_REQUEST` (shape/violations), 401/403 per existing auth, 429 `RATE_LIMITED` per limiter. **No 503 and no other error ever originates from provider state** — provider problems produce `mode: 'deterministic'` 200s with the complete deterministic ranking.
 
 ### Pipeline (on cache miss only)
 
-1. Load seeker profile signals (skills, preferred barangay/location, preferred employment type) — server-side from DB.
-2. Query published jobs matching filters; deterministic scorer (pure module `server/src/matching/score.js`, unit-testable):
-   skills overlap 0.55 · barangay/location 0.20 · employment type match 0.10 · recency 0.10 · salary fit 0.05. Components with no available signal (e.g., profile has no skills yet) are dropped and their weight redistributed; an empty profile still yields recency/type ordering. Ranked pool capped at **30**.
-3. If `OPENROUTER_API_KEY` is configured (and global guard open): **one** chat call — system prompt instructs a strict ordered JSON array `[{jobId, reason}]`; `max_tokens` ~1200; 8 s timeout. Parse tolerantly: strip markdown code fences; ignore unknown or duplicate IDs; truncate beyond 30; entries can be a **subset** (unranked candidates are appended in deterministic order — jobs are never dropped). `reason` normalized + capped at 200 chars of plain text (no newlines, control chars, URLs, or markdown).
-4. Validate; any step failing → `mode: 'deterministic'` with server-generated reasons ("Skills match 3/5 · ...").
-5. Cache the ranked pool (ID order + mode + reasons) and serve the requested page from it, then filter IDs whose left the published state at serve time (fresh liveness query) so a job unpublished mid-TTL cannot be clicked into a 404 — pool shrink may shorten the result list; documented.
+1. Load seeker profile signals — `job_seekers.skills text[]`, `barangay_district`, `preferred_position` (one `SELECT`).
+2. Deterministic scorer (pure module `server/src/matching/score.js`, unit-testable): skills/tags overlap **0.55** · barangay match (`profile.barangay_district` vs `job.location`) **0.20** · preferred-position/title affinity **0.10** · recency **0.15**. (v1.1: the drafted `employment type` and `salary fit` weights are dropped — the seeker profile stores no such columns.) Signals the profile lacks are dropped with weights redistributed; an empty profile still yields recency ordering.
+3. If `OPENROUTER_API_KEY` is configured (and global guard open): **one** chat call over the top-30 candidates' public fields (title, company, barangay, employment type, salary, tags, ≤300-char description excerpt) — system prompt demands a strict ordered JSON array `[{jobId, reason}]`; `max_tokens` ~1200; 8 s timeout. Parse tolerantly: strip markdown code fences; ignore unknown or duplicate ids; truncate beyond 30; entries can be a **subset** (unranked candidates are appended in deterministic order — jobs are never dropped). `reason` normalized + capped at 200 chars of plain text (no newlines, control chars, URLs, or markdown).
+4. Any failure in step 3 → `mode: 'deterministic'` over the **full live pool** (server-generated reasons for the top 30).
+5. Build `ranking` = [model order…] + [remaining live candidates in deterministic order]; cache it; respond.
 
 ### Caching, limiting, races
 
-- Cache: in-memory Map, key `userId | hash(normalize(prompt)) | hash(filters)` (**page excluded**), TTL 15 min, LRU cap ~300 entries.
+- Cache: in-memory Map, key `userId | hash(normalize(prompt)) | hash(sorted+joined candidateIds)` (**client filters and pagination are implied by the pool, not stored**), TTL 15 min, LRU cap ~300 entries.
 - `jobMatchLimiter`: **30 miss-calls / 15 min per user**, implemented to count only cache misses (a cache hit short-circuits before accounting), so paging an active result can never 429 mid-scroll.
 - Single-flight: concurrent identical misses share one provider call (in-process promise map).
 - Client last-write-wins: each request carries a client-side request id; stale resolutions are ignored (avoids out-of-order prompt overwrite).
@@ -75,12 +77,12 @@ New `server/src/aiProvider.js` (zero dependencies):
 | 429 (provider or global guard) | 200 `deterministic` |
 | 5xx / timeout / empty / malformed / truncated JSON | 200 `deterministic` |
 | Invalid request shape | 400 `BAD_REQUEST` |
-| Limiter exhausted (30 misses/15 min) | 429; client then re-fetches standard results (§6) |
+| Limiter exhausted (30 misses/15 min) | 429; client clears AI ranking, shows standard-ordering notice |
 | Auth expired mid-request | existing 401 contract |
 
 ### Client behaviour
 
-- On any non-200 while AI mode is active: automatically re-fetch the standard results and show one discreet notice ("AI matching is unavailable right now — showing standard results"). The Browse page never enters a dead error state while a prompt is active.
+- When a prompt is active, `OpportunityList` calls the endpoint with its base-pool ids; on 200 it orders `records` by `ranking` and renders `reasons` per card. On any non-200 it keeps the existing behavior (standard ordering) and shows one discreet notice ("AI matching is unavailable right now — showing standard results.").
 - Rendering by mode: `deterministic` shows the existing explainable-ranking notice; `ai` shows the per-job reason and a compact "AI ranking" tag. A visible line in the dialog: **"Your request is processed by an AI provider to rank vacancies. Never include personal details; your name and resume are never sent."**
 
 ## 5. Feature 2: Role-aware help assistant
@@ -121,16 +123,17 @@ Dialog states are keyboard-reachable (existing `useDialog` handles trap/Escape/f
 
 - In-process cache/limiter/single-flight are single-instance state (matches existing deployment invariant; invalid if the API ever scales beyond one process — then move to Postgres-backed state, same as the rate limiter's documented next step).
 - 15-min result freshness with serve-time liveness filtering is slightly fuzzy (page counts may shrink); accepted over per-page AI calls.
-- Free hosted NIM is prototype-grade; production exit = env swap to a paid/keyed provider or approach B (embeddings) — **the client contract (`{jobs,total,page,pageSize,match}`) is designed to stay unchanged for an embeddings implementation.**
+- Free hosted NIM is prototype-grade; production exit = env swap to a paid/keyed provider or approach B (embeddings) — **the client-visible contract (`{mode, ranking, reasons}`) is designed to stay unchanged for an embeddings implementation.**
 - Fuzzy prompt dedup is intentionally absent (normalization only); paraphrases legitimately produce fresh AI calls.
 
 ## 9. Files sketch (for the implementation plan; no code in this spec)
 
 Suggested split into two implementation plans: **Plan A (matching)** and **Plan B (help assistant)**, or one plan in two phases.
 
-- Server: `aiProvider.js` (new) · `ai/briefs.js` (new) · `matching/score.js` (new, pure) · `routes/ai.js` (extend: match endpoint; brief map for help) · `middleware/rateLimit.js` (add `jobMatchLimiter`, cache-miss-aware) · route registration.
+- Server: `aiProvider.js` (new) · `ai/briefs.js` (new) · `matching/score.js` + `matching/matchCache.js` (new, pure) · `routes/aiMatch.js` (new endpoint) · `routes/ai.js` (brief map for help) · `middleware/rateLimit.js` (`jobMatchLimiter`, cache-miss-aware) · `app.js` (mount).
+- Client: `shared/services/ai.js` (`matchJobs`) · `PreferenceMatching.jsx` (states/copy) · `OpportunityList.jsx` (ranking reorder, stale-response guard, notice) · `shared/components/HelpChat.jsx` (moved) · `TopNavLayout.jsx` (mount, auth-gated) · `JobSeekerLayout.jsx` (mount removed).
 - Client: `shared/services/ai.js` (`matchJobs`) · `PreferenceMatching.jsx` (states/copy) · `OpportunityList.jsx` (data-source switch, stale-response guard, notice) · `shared/components/HelpChat.jsx` (moved) · `TopNavLayout.jsx` (mount, auth-gated) · `JobSeekerLayout.jsx` (mount removed).
-- Docs/env: `server/.env.example` (NVIDIA recipe + provider policy comments), `docs/arch/02-api-contract.md` addendum, new ADR (provider-agnostic AI + fallback + single-instance state), ADR-023 superseded sections marked.
+- Docs/env: `server/.env.example` (NVIDIA recipe + provider policy comments), `docs/arch/rework/02-api-contract.md` addendum, new ADR (provider-agnostic AI + fallback + single-instance state), ADR-023 superseded sections marked.
 
 ## 10. Open risks
 
