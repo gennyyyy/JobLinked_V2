@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom'
 // pinned to the bottom of the viewport when the page content is short.
 export default function DashboardFooter() {
   return (
-    <div className="no-print mt-auto flex shrink-0 flex-wrap items-center justify-between gap-3 px-8 pb-6 pt-4 text-[10px] text-muted-foreground">
+    <div className="no-print mt-auto flex shrink-0 flex-wrap items-center justify-between gap-3 px-8 pb-3 pt-2 text-[10px] text-muted-foreground">
       <span>JobLinked · Santa Maria, Bulacan</span>
       <div className="flex gap-4">
         <Link to="/privacy">Privacy Notice</Link>
