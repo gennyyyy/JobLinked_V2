@@ -22,7 +22,7 @@ export default function Dashboard() {
     Promise.all([getStats(), listAllAccreditations(), listAllApplications({ pageSize: 500 }), listAuditLogs({ limit: 5 })])
       .then(([statsData, accs, applicationRows, audit]) => {
         setStats(statsData)
-        setAccreditations((accs.data || []).slice(0, 5))
+        setAccreditations((accs.data || []).filter((item) => item.status === 'pending').slice(0, 5))
         setApplications(applicationRows.data || [])
         setLogs(Array.isArray(audit) ? audit.slice(0, 5) : (audit?.data || []).slice(0, 5))
       })
@@ -35,6 +35,13 @@ export default function Dashboard() {
   if (!stats) return null
 
   const firstName = user?.first_name || String(user?.full_name || user?.name || 'reviewer').split(' ')[0]
+  const accreditationStatusLabel = (status) => ({
+    pending: 'Pending Review',
+    approved: 'Approved',
+    rejected: 'Rejected',
+    resubmission: 'Resubmission Requested',
+    revoked: 'Revoked',
+  }[status] || status)
 
   const days = Array.from({ length: 14 }, (_, index) => {
     const date = new Date()
@@ -99,9 +106,9 @@ export default function Dashboard() {
                     <CompanyMark initials={String(item.employers?.company_name || 'E').slice(0, 2).toUpperCase()} />
                     <div className="min-w-0 flex-1">
                       <p className="text-xs font-semibold text-navy">{titleCase(item.employers?.company_name)}</p>
-                      <p className="mt-1 text-[10px] text-muted-foreground">Brgy. {item.employers?.barangay_district} · Submitted {new Date(item.submitted_at).toLocaleDateString('en-PH', { month: 'short', day: 'numeric' })}</p>
+                      <p className="mt-1 text-[10px] text-muted-foreground">{item.employers?.barangay_district} · Submitted {new Date(item.submitted_at).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' })}</p>
                     </div>
-                    <StatusBadge status={item.status} />
+                    <StatusBadge status={accreditationStatusLabel(item.status)} />
                   </li>
                 ))}
               </ul>
@@ -117,7 +124,7 @@ export default function Dashboard() {
             <p className="mt-3 text-xs leading-6 text-white/70">Explore opportunities across Santa Maria’s 24 barangays. All numbers represent provided records, not actual municipal statistics.</p>
             <LinkButton href="/super-admin/reports" variant="secondary" className="mt-5">Explore barangay insights<ArrowRight data-icon="inline-end" /></LinkButton>
           </div>
-          <Panel title="Recent workspace activity" description="Changes across all three roles.">
+          <Panel title="Recent workspace activity" description="changes across all three roles.">
             <ol className="flex flex-col gap-5">
               {logs.length ? logs.map((log) => (
                 <li key={log.id} className="flex gap-3">
@@ -125,7 +132,7 @@ export default function Dashboard() {
                   <div>
                     <p className="text-xs font-medium leading-5 text-navy">{log.action}</p>
                     <p className="mt-1 text-[10px] leading-5 text-muted-foreground">{log.target} · {log.actor}</p>
-                    <time className="text-[10px] text-muted-foreground" dateTime={log.date}>{new Date(log.date).toLocaleDateString('en-PH', { month: 'short', day: 'numeric' })}</time>
+                    <time className="text-[10px] text-muted-foreground" dateTime={log.date}>{new Date(log.date).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' })}</time>
                   </div>
                 </li>
               )) : <li className="text-xs text-muted-foreground">Activity will appear here.</li>}

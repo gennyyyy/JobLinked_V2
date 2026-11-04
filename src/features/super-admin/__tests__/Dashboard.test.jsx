@@ -28,8 +28,9 @@ const ACCS = {
   data: [
     { id: 'a1', status: 'approved', submitted_at: '2026-10-01T00:00:00.000Z', employers: { company_name: 'acme corp', barangay_district: 'zone 1' } },
     { id: 'a2', status: 'rejected', submitted_at: '2026-09-28T00:00:00.000Z', employers: { company_name: 'beta inc', barangay_district: 'zone 2' } },
+    { id: 'a3', status: 'pending', submitted_at: '2026-10-16T00:00:00.000Z', employers: { company_name: 'gamma llc', barangay_district: 'zone 3' } },
   ],
-  total: 2, page: 1, pageSize: 100,
+  total: 3, page: 1, pageSize: 100,
 }
 
 const statValue = (label) => {
@@ -65,10 +66,9 @@ describe('Super-admin Dashboard', () => {
 
   it('renders recent applications with company name and status pill', async () => {
     await renderDashboard()
-    expect(screen.getByText('Acme Corp')).toBeInTheDocument()
-    expect(screen.getByText('Beta Inc')).toBeInTheDocument()
-    expect(screen.getByText('approved')).toBeInTheDocument()
-    expect(screen.getByText('rejected')).toBeInTheDocument()
+    expect(screen.getByText('Gamma Llc')).toBeInTheDocument()
+    expect(screen.getByText('Pending Review')).toBeInTheDocument()
+    expect(screen.queryByText('Acme Corp')).not.toBeInTheDocument()
   })
 
   it('shows an alert when getStats rejects', async () => {
