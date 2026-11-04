@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ArrowRight, ArrowUpRight, Bookmark, BookmarkCheck, BriefcaseBusiness, CalendarDays, Check, CheckCircle2, ClipboardList, Clock3, MapPin, UserRound } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
@@ -75,8 +75,10 @@ export default function Dashboard() {
     setSavedCount(getSavedJobIds().length)
   }), [])
 
-  useEffect(() => {
+  const load = useCallback(() => {
     if (!user) return
+    setLoading(true)
+    setError('')
     Promise.all([
       listBySeeker(user.id),
       listJobs({ page: 1, pageSize: 50 }),
@@ -98,13 +100,27 @@ export default function Dashboard() {
       .finally(() => setLoading(false))
   }, [user])
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- loading state must be set when effect runs
+  useEffect(() => { load() }, [load])
+
   if (loading) return <PageSkeleton stats={4} panels={2} />
-  if (error) return <InlineError message={error} />
+
+  const firstName = user?.first_name || String(user?.full_name || user?.name || 'there').split(' ')[0]
+
+  if (error) return (
+    <>
+      <PageHeading
+        eyebrow="Your next chapter"
+        title="We couldn\u2019t load your overview."
+        description="Please try again in a moment."
+      />
+      <InlineError message={error} onRetry={load} />
+    </>
+  )
 
   const interviews = applications.filter((app) => app.status === 'Interview').length
   const completion = profileCompletion(user)
   const recentApps = [...applications].sort((a, b) => new Date(b.applied_at) - new Date(a.applied_at)).slice(0, 4)
-  const firstName = user?.first_name || String(user?.full_name || user?.name || 'there').split(' ')[0]
 
   return (
     <>

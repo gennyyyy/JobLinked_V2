@@ -126,3 +126,18 @@ describe('signOut', () => {
     await expect(signOut()).resolves.toBeUndefined()
   })
 })
+
+describe('network failure', () => {
+  it('yields a neutral user-facing message and a technical detail', async () => {
+    globalThis.fetch = vi.fn().mockRejectedValue(new TypeError('Failed to fetch'))
+    try {
+      await api.get('auth/me')
+      expect.fail('should have thrown')
+    } catch (e) {
+      expect(e.message).not.toMatch(/localhost|npm:|server running/i)
+      expect(e.message).toMatch(/couldn.t load this right now/i)
+      expect(e.status).toBe(0)
+      expect(e.detail).toMatch(/Cannot reach the API/)
+    }
+  })
+})

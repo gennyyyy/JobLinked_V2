@@ -7,7 +7,9 @@ import { supabase } from './supabase';
 function apiUrl() {
   if (import.meta.env.VITE_API_URL) return import.meta.env.VITE_API_URL;
   if (import.meta.env.DEV) return 'http://localhost:4000';
-  throw new Error('Missing VITE_API_URL — see .env.example');
+  const err = new Error('We couldn\u2019t load this right now. Please check your connection and try again.');
+  err.detail = 'Missing VITE_API_URL configuration';
+  throw err;
 }
 
 async function authHeaders() {
@@ -37,8 +39,9 @@ export function isUnprovisioned(err) {
 }
 
 function unreachable(url) {
-  const error = new Error(`Cannot reach the API at ${url} — is the server running? (npm: node src/index.js in server/)`);
+  const error = new Error('We couldn\u2019t load this right now. Please check your connection and try again.');
   error.status = 0;
+  error.detail = `Cannot reach the API at ${url} \u2014 is the server running? (npm: node src/index.js in server/)`;
   throw error;
 }
 

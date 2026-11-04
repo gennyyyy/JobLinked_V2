@@ -17,7 +17,9 @@ function friendlyAuthError(error) {
     || /failed to fetch|networkerror|load failed|fetch failed/i.test(message);
   if (network) {
     const url = import.meta.env.VITE_SUPABASE_URL || 'the configured Supabase URL';
-    return new Error(`Cannot reach the authentication service at ${url}. Check VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY in .env.local and confirm the Supabase project is active.`);
+    const err = new Error('We can\u2019t sign you in right now. Please check your connection and try again.');
+    err.detail = `Cannot reach the authentication service at ${url}. Check VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY in .env.local and confirm the Supabase project is active.`;
+    return err;
   }
   return error;
 }
