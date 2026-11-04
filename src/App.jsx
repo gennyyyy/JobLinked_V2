@@ -1,5 +1,5 @@
 import { Suspense, useEffect, useState } from 'react'
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import ProtectedRoute from './shared/components/ProtectedRoute'
 import LoadingScreen from './shared/components/LoadingScreen'
 import ErrorBoundary from './shared/components/ErrorBoundary'
@@ -7,6 +7,7 @@ import useAuth from './shared/hooks/useAuth'
 import { Toaster } from './components/ui/sonner'
 
 import { lazyRoute, routeLoaders } from './shared/lib/routeLoaders'
+import usePageTitle from './shared/lib/usePageTitle'
 
 // Route-level code splitting: each page is its own chunk, so a visitor on the
 // public site never downloads the admin / employer / seeker bundles. The
@@ -64,6 +65,7 @@ function App() {
   return (
     <ErrorBoundary>
       <BrowserRouter>
+        <PageTitle />
         <Suspense fallback={<LoadingScreen />}>
           <Toaster position="top-center" />
           <Routes>
@@ -191,6 +193,13 @@ function App() {
 }
 
 export default App
+
+// Route metadata: one place sets document.title from the current path.
+function PageTitle() {
+  const { pathname } = useLocation()
+  usePageTitle(pathname)
+  return null
+}
 
 // ADR-021 rule 1: a session survives only inside its own portal — destroy it
 // on arrival at a public route, then render the page as guest.
