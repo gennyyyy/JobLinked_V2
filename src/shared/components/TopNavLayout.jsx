@@ -32,6 +32,7 @@ import { listNotifications } from '../services/notifications'
 import { NOTIFICATIONS_CHANGED } from '../utils/notificationEvents'
 import { prefetchRoute } from '../lib/routeLoaders'
 import { getStats } from '../services/admin'
+import { isUnprovisioned } from '../lib/api'
 import { cn } from '@/lib/utils'
 
 export default function TopNavLayout({ role, navItems, profileTo, roleLabel, homeTo, fixedContent = false }) {
@@ -49,6 +50,7 @@ export default function TopNavLayout({ role, navItems, profileTo, roleLabel, hom
   const [showWarning, setShowWarning] = useState(false)
   const [unread, setUnread] = useState(0)
   const [pendingAccreditations, setPendingAccreditations] = useState(0)
+  const [unprovisioned, setUnprovisioned] = useState(false)
   const handleWarning = useCallback(() => setShowWarning(true), [setShowWarning])
   const afkRef = useDialog(() => setShowWarning(false), showWarning)
   useAFKTimer(true, handleWarning)
@@ -62,7 +64,7 @@ export default function TopNavLayout({ role, navItems, profileTo, roleLabel, hom
     function refresh() {
       listNotifications(user.id)
         .then((rows) => { if (alive) setUnread((rows || []).filter((row) => !row.is_read).length) })
-        .catch(() => {})
+        .catch((err) => { if (alive && isUnprovisioned(err)) setUnprovisioned(true) })
       if (isAdmin) {
         getStats()
           .then((stats) => { if (alive) setPendingAccreditations(Number(stats?.pendingAccreditations) || 0) })
@@ -262,7 +264,22 @@ export default function TopNavLayout({ role, navItems, profileTo, roleLabel, hom
         </header>
         <main id="main-content" tabIndex={-1} className={cn('mx-auto w-full max-w-[1440px] p-5 sm:p-7 lg:p-8', fixedContent ? 'min-h-0 flex-1 overflow-hidden' : '')}>
           <div className="space-y-8">
-            <Outlet />
+            {unprovisioned ? (
+              <section aria-labelledby="registration-title" className="max-w-2xl rounded-xl border bg-white p-6 sm:p-8">
+                <h1 id="registration-title" className="text-xl font-semibold text-navy">Complete your registration</h1>
+                <p className="mt-3 text-sm leading-6 text-muted-foreground">
+                  Choose the registration path that matches your account to finish setting up your JobLinked profile.
+                </p>
+                <div className="mt-6 flex flex-wrap gap-3">
+                  <Link to="/register/job-seeker" className="inline-flex min-h-11 items-center rounded-lg bg-primary px-4 text-sm font-medium text-white hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
+                    Job seeker registration
+                  </Link>
+                  <Link to="/register/employer" className="inline-flex min-h-11 items-center rounded-lg border px-4 text-sm font-medium text-navy hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
+                    Employer registration
+                  </Link>
+                </div>
+              </section>
+            ) : <Outlet />}
           </div>
         </main>
         <div className="no-print flex shrink-0 flex-wrap items-center justify-between gap-3 px-8 pb-6 text-[10px] text-muted-foreground">

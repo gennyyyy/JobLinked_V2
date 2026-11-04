@@ -21,10 +21,13 @@
 // the app. `--no-xff` is the deliberate single-IP throttle probe (S4).
 //
 //   node scripts/loadtest.mjs --mint-token --mint-email you@example.com
+//   node scripts/loadtest.mjs --mint-token --mint-email fixture@example.com --ensure-provisioned
 //
 // Writes a short-lived access token to .loadtest-token.local (gitignored via *.local)
-// using the Supabase service-role key. Read-only against the app DB: mints a magic
-// link + verifyOtp for an existing user, changes no password or profile.
+// using the Supabase service-role key. Mints a magic link + verifyOtp for the user,
+// changes no password. --ensure-provisioned then gives a token-only account its
+// profile row (POST /auth/provision) so auth: routes measure the app, not a 404 —
+// it is a no-op when /auth/me already answers, so re-runs are idempotent.
 
 import { monitorEventLoopDelay } from 'node:perf_hooks';
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
@@ -70,8 +73,19 @@ const mintToken = async () => {
   if (!email) throw new Error('--mint-token needs --mint-email <address>');
   loadEnvFile();
   const supa = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
-  const { data: link, error: le } = await supa.auth.admin.generateLink({ type: 'magiclink', email });
-  if (le) throw new Error(`generateLink: ${le.message}`);
+  const linkFor = async () => {
+    const { data, error } = await supa.auth.admin.generateLink({ type: 'magiclink', email });
+    if (error) throw new Error(`generateLink: ${error.message}`);
+    return data;
+  };
+  let link = await linkFor();
+  // generateLink creates an unknown address, but its magiclink only verifies
+  // once the user is confirmed — so a first-time fixture needs one extra step.
+  if (link.user && !link.user.email_confirmed_at) {
+    const { error: ce } = await supa.auth.admin.updateUserById(link.user.id, { email_confirm: true });
+    if (ce) throw new Error(`confirm ${email}: ${ce.message}`);
+    link = await linkFor();
+  }
   const { data, error } = await supa.auth.verifyOtp({ token_hash: link.properties.hashed_token, type: 'magiclink' });
   if (error) throw new Error(`verifyOtp: ${error.message}`);
   writeFileSync(TOKEN_FILE, data.session.access_token);
@@ -79,8 +93,44 @@ const mintToken = async () => {
   console.log(`token for ${data.session.user.id} (${email}) written to ${TOKEN_FILE}; expires ${exp}`);
 };
 
-if (flag('mint-token')) { await mintToken(); process.exit(0); }
+// Gives a token-only account the profile row the signed-in API calls expect.
+// Idempotent: /auth/me answering 200 means nothing to do, and the provision
+// route itself returns the existing row on a double-submit.
+const ensureProvisioned = async () => {
+  const role = str('provision-role', 'job-seeker');
+  if (!['job-seeker', 'employer'].includes(role)) {
+    throw new Error('--provision-role must be job-seeker or employer (super-admin needs an admin invite)');
+  }
+  const token = readFileSync(TOKEN_FILE, 'utf8').trim();
+  const auth = { authorization: `Bearer ${token}` };
+  const me = await fetch(`${URL_BASE}/api/auth/me`, { headers: auth });
+  const meBody = await me.json().catch(() => ({}));
+  if (me.ok) {
+    console.log(`provision: already provisioned as ${meBody.role || 'a known role'} — nothing to do`);
+    return;
+  }
+  const reason = meBody?.error?.message || `HTTP ${me.status}`;
+  if (me.status !== 404 || !/profile not found/i.test(reason)) {
+    throw new Error(`provision: /api/auth/me said ${me.status} ${reason}`);
+  }
+  const email = str('mint-email', '');
+  const [firstName = 'Loadtest', lastName = 'Fixture'] = str('provision-name', 'Loadtest Fixture').split(' ');
+  const payload = { role, email, first_name: firstName, last_name: lastName };
+  if (role === 'employer') payload.company_name = str('provision-company', 'Loadtest Fixture Co.');
+  const res = await fetch(`${URL_BASE}/api/auth/provision`, {
+    method: 'POST',
+    headers: { ...auth, 'content-type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  const body = await res.json().catch(() => ({}));
+  if (res.ok || res.status === 409 || /already provisioned/i.test(body?.error?.message || '')) {
+    console.log(`provision: created ${role} profile for ${email || body.id}`);
+    return;
+  }
+  throw new Error(`provision: ${res.status} ${body?.error?.message || 'failed'}`);
+};
 
+if (flag('mint-token')) { await mintToken(); if (flag('ensure-provisioned')) await ensureProvisioned(); process.exit(0); }
 // ---------------------------------------------------------------- measurement
 const ms = (a, b) => Number(b - a) / 1e6;
 const pct = (sorted, p) => (sorted.length ? sorted[Math.min(sorted.length - 1, Math.floor((p / 100) * sorted.length))] : 0);
