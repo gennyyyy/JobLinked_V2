@@ -10,7 +10,7 @@ import adminRoutes from './routes/admin.js';
 import reportsRoutes from './routes/reports.js';
 import aiRoutes from './routes/ai.js';
 import health from './routes/health.js';
-import { authLimiter, uploadLimiter, apiLimiter, stricterLimiterPaths } from './middleware/rateLimit.js';
+import { authLimiter, uploadLimiter, apiLimiter } from './middleware/rateLimit.js';
 import requestId from './middleware/requestId.js';
 import requestLog from './middleware/requestLog.js';
 import logger from './logger.js';
@@ -45,19 +45,28 @@ export function createApp() {
   // tiny responses like /api/health untouched).
   app.use(compression());
   // Fail closed in production: a forgotten CORS_ORIGIN must not reflect every
-  // origin. In local dev, accept any localhost port — Vite falls back to
-  // 5174/5175 when 5173 is taken, and the API must still answer.
-  const corsOrigins = process.env.CORS_ORIGIN?.split(',').filter(Boolean);
+  // origin. In local dev, accept any localhost port *on top of* the configured
+  // list — Vite falls back to 5174/5175 when 5173 is taken, and a CORS_ORIGIN
+  // pinned to 5173 would otherwise lock the API out (204 with no ACAO, which
+  // reads as a CORS failure in the console).
+  const corsOrigins = process.env.CORS_ORIGIN?.split(',').map((o) => o.trim()).filter(Boolean);
   const devOrigin = /^http:\/\/(localhost|127\.0\.0\.1):\d+$/;
-  const allowOrigin = corsOrigins?.length
-    ? corsOrigins
-    : process.env.NODE_ENV === 'production'
-      ? ['http://localhost:5173']
-      : [devOrigin];
+  const allowOrigin = process.env.NODE_ENV === 'production'
+    ? (corsOrigins?.length ? corsOrigins : ['http://localhost:5173'])
+    : [...(corsOrigins || []), devOrigin];
   // Boot-time, not per request: a silent localhost-only lock-out makes every
   // app fetch fail with no ACAO while the pages still render chrome.
   if (!corsOrigins?.length && process.env.NODE_ENV === 'production') {
     logger.warn('CORS_ORIGIN unset in production — failing closed to localhost only');
+  }
+  // F5 follow-up: behind a reverse proxy with TRUST_PROXY at its fail-closed
+  // default of 0, every request appears to come from the proxy's socket IP —
+  // so every IP-keyed limiter (login/signup/anonymous auth) collapses into
+  // one site-wide bucket. The user-keyed path (authKeyGenerator, apiLimiter)
+  // is unaffected, but anonymous login from a corporate NAT would still
+  // self-DDoS. Mirror the CORS warning style so the operator sees it once.
+  if (process.env.NODE_ENV === 'production' && Number(process.env.TRUST_PROXY ?? 0) === 0) {
+    logger.warn('TRUST_PROXY unset in production — all requests appear from the proxy IP; IP-keyed limiters become site-wide. Set TRUST_PROXY to the hop count.');
   }
   // L2: cache the preflight for a day so browsers stop re-OPTIONSing.
   app.use(cors({ origin: allowOrigin, maxAge: 86400 }));
@@ -66,20 +75,25 @@ export function createApp() {
   // H5: one JSON access line per request, wrapped around everything below.
   app.use(requestLog);
   app.use(express.json({ limit: '1mb' }));
+  // F-01 (launch fix): attach the principal app-wide BEFORE every limiter so
+  // authLimiter's keyGenerator can bucket by user id — one noisy authenticated
+  // caller on /api/auth/* no longer exhausts the shared IP bucket and locks
+  // out the building. Anonymous login/signup still share one IP bucket
+  // (authKeyGenerator's fallback), so brute-force defences stay intact.
+  // attachPrincipal is best-effort: no bearer token -> returns with no
+  // Supabase round-trip, so anonymous health probes and unauthenticated reads
+  // pay nothing.
+  app.use('/api', attachPrincipal);
   app.use('/api/auth', authLimiter);
   app.post('/api/documents', uploadLimiter);
   app.post('/api/files/*', uploadLimiter);
 
   app.get('/api/health', health);
-  // F-01: attach the principal BEFORE the general limiter so its keyGenerator
-  // can key on the authenticated user (req.user.id) instead of the IP — NAT'd
-  // users no longer share one 300/15min bucket. The per-request caches in
-  // auth.js keep this from adding any Supabase round-trip. The skip mirrors
-  // apiLimiter's exactly, so nothing runs where the limiter does not count.
-  app.use('/api', (req, res, next) => (stricterLimiterPaths(req) ? next() : attachPrincipal(req, res, next)));
   // C1: general throttle for everything else under /api. Mounted after the
   // auth/upload limiters (which keep their stricter buckets via apiLimiter's
   // skip) and after /api/health so load balancer probes stay unlimited.
+  // attachPrincipal already populated req.user app-wide above, so the
+  // keyGenerator resolves to the authenticated user id here too.
   app.use('/api', apiLimiter);
   app.use('/api', authRoutes, jobsRoutes, applicationsRoutes, profilesRoutes, adminRoutes, reportsRoutes, aiRoutes);
 

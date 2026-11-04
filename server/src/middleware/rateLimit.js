@@ -6,12 +6,21 @@ const limited = (res) => res.status(429).json({
   error: { code: 'RATE_LIMITED', message: 'Too many requests, please try again later.' },
 });
 
+// Auth paths are hit by both anonymous login/signup (IP-bucketed, so a NAT of
+// abusers still shares one 100/15min) AND authenticated callers that pass
+// through /api/auth/* (those get their own per-user bucket so one noisy user
+// cannot exhaust the IP bucket and lock out the building). attachPrincipal
+// runs app-wide before authLimiter (see app.js), so req.user is populated
+// whenever a valid bearer token is present.
+export const authKeyGenerator = (req) => req.user?.id || ipKeyGenerator(req.ip);
+
 export const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   limit: 100,
   standardHeaders: 'draft-7',
   legacyHeaders: false,
   handler: (_req, res) => limited(res),
+  keyGenerator: authKeyGenerator,
 });
 
 export const uploadLimiter = rateLimit({
