@@ -55,6 +55,17 @@ function ProfileIdentityProbe({ sessionUser }) {
   )
 }
 
+function AuthenticateProbe() {
+  const { user, loading, authenticate } = useAuth()
+  return (
+    <>
+      <span data-testid="auth-role">{user ? user.role : 'anon'}</span>
+      <span data-testid="auth-loading">{loading ? 'yes' : 'no'}</span>
+      <Button type="button" onClick={() => authenticate({ id: 'u1', role: 'employer' })}>seed</Button>
+    </>
+  )
+}
+
 beforeEach(() => getProfile.mockReset())
 
 describe('AuthProvider redundant auth events', () => {
@@ -94,6 +105,24 @@ describe('AuthProvider redundant auth events', () => {
     expect(screen.getByTestId('auth-role')).toHaveTextContent('job-seeker')
   })
 
+  it('holds loading true while a fresh sign-in resolves the profile', async () => {
+    let resolveProfile
+    getProfile.mockImplementationOnce(() => new Promise((resolve) => { resolveProfile = resolve }))
+    render(<AuthProvider><Child /></AuthProvider>)
+    // Settle the initial anonymous state first, like INITIAL_SESSION(null).
+    emit('SIGNED_OUT', null)
+    await waitFor(() => expect(screen.getByTestId('auth-loading')).toHaveTextContent('no'))
+
+    emit('SIGNED_IN', 'u1')
+    // ProtectedRoute must see loading=yes instead of user=null here.
+    await waitFor(() => expect(screen.getByTestId('auth-loading')).toHaveTextContent('yes'))
+    expect(screen.getByTestId('auth-role')).toHaveTextContent('anon')
+
+    await act(async () => resolveProfile({ id: 'u1', role: 'job-seeker' }))
+    await waitFor(() => expect(screen.getByTestId('auth-role')).toHaveTextContent('job-seeker'))
+    expect(screen.getByTestId('auth-loading')).toHaveTextContent('no')
+  })
+
   it('leaves the user null when there is none and getProfile rejects', async () => {
     getProfile.mockRejectedValueOnce(new Error('network down'))
     render(<AuthProvider><Child /></AuthProvider>)
@@ -102,6 +131,16 @@ describe('AuthProvider redundant auth events', () => {
     // loading only settles after the catch ran — proves the rejection path completed
     await waitFor(() => expect(screen.getByTestId('auth-loading')).toHaveTextContent('no'))
     expect(screen.getByTestId('auth-role')).toHaveTextContent('anon')
+  })
+})
+
+describe('AuthProvider authenticate seed', () => {
+  it('uses the already-resolved profile without a second fetch', async () => {
+    render(<AuthProvider><AuthenticateProbe /></AuthProvider>)
+    fireEvent.click(screen.getByRole('button', { name: 'seed' }))
+    await waitFor(() => expect(screen.getByTestId('auth-role')).toHaveTextContent('employer'))
+    expect(screen.getByTestId('auth-loading')).toHaveTextContent('no')
+    expect(getProfile).not.toHaveBeenCalled()
   })
 })
 

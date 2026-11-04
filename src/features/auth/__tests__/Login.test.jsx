@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import Login from '../Login'
@@ -42,6 +42,19 @@ describe('Login', () => {
     await userEvent.click(screen.getByRole('button', { name: /sign in/i }))
 
     expect(await screen.findByText(/invalid login credentials/i)).toBeInTheDocument()
+  })
+
+  it('seeds the auth provider before routing after a successful login', async () => {
+    const authenticate = vi.fn()
+    useAuth.mockReturnValue({ user: null, authenticate })
+    signIn.mockResolvedValue({ id: '1', role: 'employer' })
+    renderLogin()
+
+    await userEvent.type(screen.getByLabelText(/email/i), 'good@test.com')
+    await userEvent.type(screen.getByLabelText(/password/i), 'secret123')
+    await userEvent.click(screen.getByRole('button', { name: /sign in/i }))
+
+    await waitFor(() => expect(authenticate).toHaveBeenCalledWith(expect.objectContaining({ id: '1', role: 'employer' })))
   })
 
   it('does not redirect when user is already logged in', () => {

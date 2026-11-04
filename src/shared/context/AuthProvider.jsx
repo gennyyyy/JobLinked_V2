@@ -64,10 +64,25 @@ function AuthProvider({ children }) {
       // the loading screen for data that is already on screen.
       if (signedInId.current === session.user.id) return;
       signedInId.current = session.user.id;
+      // Hold guards on the loading screen until the profile arrives. Without
+      // this, a fresh sign-in leaves `loading` false (it was settled by the
+      // initial anonymous session), so ProtectedRoute sees user=null and
+      // bounces straight back to the login page before /auth/me resolves.
+      setLoading(true);
       loadProfile(session.user).finally(() => active && setLoading(false));
     });
     return () => { active = false; signedInId.current = null; subscription.unsubscribe(); };
   }, [loadProfile]);
+
+  // Seed the provider with a profile the caller already resolved (signIn).
+  // Supersedes any in-flight SIGNED_IN fetch so a stale null cannot win, and
+  // avoids a second /auth/me round-trip on the critical login path.
+  const authenticate = useCallback((nextUser) => {
+    loadSeq.current += 1;
+    signedInId.current = nextUser?.id || null;
+    setUser(nextUser || null);
+    setLoading(false);
+  }, []);
 
   const logout = useCallback(async () => {
     try {
@@ -77,7 +92,7 @@ function AuthProvider({ children }) {
     }
   }, []);
 
-  const value = { user, role: user?.role || null, loading, logout, refreshUser: loadProfile };
+  const value = { user, role: user?.role || null, loading, logout, refreshUser: loadProfile, authenticate };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

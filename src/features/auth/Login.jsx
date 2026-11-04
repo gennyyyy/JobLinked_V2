@@ -14,7 +14,7 @@ import AuthFrame from './AuthFrame'
 function Login({ portalKey }) {
   const portal = portalKey ? PORTALS.find((p) => p.key === portalKey) : null
   const navigate = useNavigate()
-  const { user, role: currentRole, loading, logout } = useAuth()
+  const { user, role: currentRole, loading, logout, authenticate } = useAuth()
   const [error, setError] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -45,6 +45,11 @@ function Login({ portalKey }) {
     setBusy(true)
     try {
       const loggedIn = await signIn(email.trim(), password)
+      // First login after provisioning: the AuthProvider's SIGNED_IN listener
+      // may have fetched /auth/me before the profile row existed, leaving its
+      // `user` null. Seed the provider with the profile signIn already resolved
+      // before routing, so ProtectedRoute sees the session on the first attempt.
+      authenticate?.(loggedIn)
       navigate(PORTALS.find((p) => p.key === loggedIn.role)?.homePath || '/')
     } catch (err) {
       setError(err.message || 'Invalid email or password')
