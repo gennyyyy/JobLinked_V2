@@ -1,5 +1,5 @@
 import { Suspense, useEffect, useState } from 'react'
-import { MemoryRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import ProtectedRoute from './shared/components/ProtectedRoute'
 import LoadingScreen from './shared/components/LoadingScreen'
 import ErrorBoundary from './shared/components/ErrorBoundary'
@@ -60,17 +60,10 @@ const Dashboard = lazyRoute(() => import('./features/super-admin/Dashboard'))
 const EmployerDashboard = lazyRoute(() => import('./features/employer/Dashboard'))
 const JobSeekerDashboard = lazyRoute(() => import('./features/job-seeker/Dashboard'))
 
-// The address bar is intentionally frozen: routes live in memory so clicking
-// around never rewrites the URL. The router is still *seeded* from the URL the
-// page was loaded with, so an emailed /auth/callback or /reset-password link
-// lands on the right screen. Trade-off: page URLs are not bookmarkable and the
-// browser Back button leaves the app.
-const entryPath = `${window.location.pathname}${window.location.search}${window.location.hash}`
-
 function App() {
   return (
     <ErrorBoundary>
-      <MemoryRouter initialEntries={[entryPath]}>
+      <BrowserRouter>
         <Suspense fallback={<LoadingScreen />}>
           <Toaster position="top-center" />
           <Routes>
@@ -192,7 +185,7 @@ function App() {
             <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </Suspense>
-        </MemoryRouter>
+        </BrowserRouter>
       </ErrorBoundary>
   )
 }
