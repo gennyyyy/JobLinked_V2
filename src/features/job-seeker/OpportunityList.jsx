@@ -1,9 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
-import { BriefcaseBusiness } from 'lucide-react'
 import useAuth from '@/shared/hooks/useAuth'
 import { listJobs } from '@/shared/services/jobs'
 import { getSavedJobIds, subscribeSavedJobs, toggleSavedJob } from '@/shared/lib/savedJobs'
-import { PageHeading, LinkButton, Notice, EmptyState, SearchInput } from '@/shared/components/design'
+import { PageHeading, Notice, EmptyState, SearchInput } from '@/shared/components/design'
 import JobCard from '@/shared/components/JobCard'
 import PreferenceMatching from './PreferenceMatching'
 import { JobListSkeleton } from '@/shared/components/Skeletons'
@@ -63,12 +62,6 @@ export default function OpportunityList({ saved = false }) {
         description={saved
           ? 'Your saved vacancies, together in one place. Closed roles may no longer accept applications.'
           : 'Explore local roles ranked by the skills you have added to your profile.'}
-        action={(
-          <LinkButton href="/jobs" variant="outline">
-            <BriefcaseBusiness data-icon="inline-start" />
-            Browse all jobs
-          </LinkButton>
-        )}
       />
       {!saved && (
         <PreferenceMatching
