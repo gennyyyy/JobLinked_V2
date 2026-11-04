@@ -166,6 +166,8 @@ const JOB_COLS = ['title', 'office', 'location', 'employment_type', 'work_arrang
 // Best-effort seeker matching on publish (skills overlap or location match).
 // Exported so the admin review-approve path (admin.js, sibling-owned) can call it too.
 // ponytail: naive fan-out, no queue/dedup — proper matcher/queue if publish gets noisy.
+// ponytail: defensive anti-burst cap; digest/queue is the real long-term fix.
+const DAILY_JOB_NOTIFICATION_CAP = 25;
 export async function notifyMatchingSeekers(job) {
   try {
     const tags = Array.isArray(job?.tags) ? job.tags.filter(Boolean) : [];
@@ -186,6 +188,9 @@ export async function notifyMatchingSeekers(job) {
     const linkParam = `$${vals.length}`;
     // One multi-row insert (same fan-out shape as admin.js system-broadcast)
     // instead of a per-seeker INSERT loop. Matching SQL + limit 100 unchanged.
+    // DAILY_JOB_NOTIFICATION_CAP is a named constant interpolated as a number
+    // (safe — it's a literal, never a user value) so a single seeker can't
+    // drown in job alerts on a burst publish.
     await pool.query(
       `insert into notifications (user_id, type, title, message, link)
        select id, 'job', $${vals.length + 2}, $${vals.length + 3}, ${linkParam}
@@ -193,6 +198,9 @@ export async function notifyMatchingSeekers(job) {
              where status = 'active' and (${conds.join(' or ')})
                and not exists (select 1 from notifications n
                                where n.user_id = job_seekers.id and n.link = ${linkParam})
+               and (select count(*) from notifications n2
+                    where n2.user_id = job_seekers.id and n2.type = 'job'
+                      and n2.created_at >= date_trunc('day', now())) < ${DAILY_JOB_NOTIFICATION_CAP}
              limit 100) m`,
       [...vals, title, message]);
   } catch { /* ponytail: publish succeeds even when matching/notify fails */ }
