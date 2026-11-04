@@ -25,6 +25,7 @@ export default function Employees() {
   const [error, setError] = useState('')
   const [query, setQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
+  const [typeFilter, setTypeFilter] = useState('')
   const [page, setPage] = useState(1)
   const [selected, setSelected] = useState(null)
 
@@ -49,13 +50,19 @@ export default function Employees() {
     }
   }
 
+  const employmentTypes = useMemo(
+    () => [...new Set(employees.map((employee) => employee.job?.employment_type).filter(Boolean))],
+    [employees],
+  )
+
   const records = useMemo(() => {
     const text = query.toLowerCase()
     return employees
       .filter((employee) => !statusFilter || employee.status === statusFilter)
+      .filter((employee) => !typeFilter || employee.job?.employment_type === typeFilter)
       .filter((employee) => `${employee.seeker?.full_name || ''} ${employee.job?.title || ''}`.toLowerCase().includes(text))
       .sort((a, b) => String(b.updated_at).localeCompare(String(a.updated_at)))
-  }, [employees, query, statusFilter])
+  }, [employees, query, statusFilter, typeFilter])
 
   const pages = Math.max(1, Math.ceil(records.length / PAGE_SIZE))
   const currentPage = Math.min(page, pages)
@@ -126,6 +133,16 @@ export default function Employees() {
               ]}
               value={statusFilter}
               onChange={(event) => { setStatusFilter(event.target.value); setPage(1) }}
+            />
+          </div>
+          <div className="sm:w-44">
+            <SelectField
+              id="employee-type"
+              label="Employment type"
+              placeholder="All types"
+              options={employmentTypes}
+              value={typeFilter}
+              onChange={(event) => { setTypeFilter(event.target.value); setPage(1) }}
             />
           </div>
         </div>

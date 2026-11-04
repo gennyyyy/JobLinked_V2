@@ -32,6 +32,7 @@ function EmployerAccreditation() {
   const [files, setFiles] = useState({});
   const [uploading, setUploading] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [updating, setUpdating] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -166,11 +167,11 @@ function EmployerAccreditation() {
           <Panel
             title="Submitted document metadata"
             description={`${uploadedCount} of ${DOC_TYPES.length} uploaded · ${company?.company_name || "Your company"}`}
-            action={
-              <div className="h-1.5 w-24 overflow-hidden rounded-full bg-muted">
-                <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${(uploadedCount / DOC_TYPES.length) * 100}%` }} />
-              </div>
-            }
+            action={updating ? (
+              <Button variant="outline" onClick={() => setUpdating(false)}>Done</Button>
+            ) : (
+              <Button variant="outline" onClick={() => setUpdating(true)}>Update documents</Button>
+            )}
           >
             <ul className="flex flex-col gap-3">
               {DOC_TYPES.map((docType) => {
@@ -193,9 +194,11 @@ function EmployerAccreditation() {
                         </Button>
                       )}
                       <Input type="file" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" onChange={(e) => handleFileChange(docType, e)} className="hidden" id={`doc-${docType}`} />
-                      <Label htmlFor={`doc-${docType}`} className="inline-flex min-h-8 cursor-pointer items-center rounded-lg border bg-card px-2.5 text-xs font-medium text-foreground transition-colors hover:bg-muted">
-                        {doc ? "Replace" : "Upload"}
-                      </Label>
+                      {updating && (
+                        <Label htmlFor={`doc-${docType}`} className="inline-flex min-h-8 cursor-pointer items-center rounded-lg border bg-card px-2.5 text-xs font-medium text-foreground transition-colors hover:bg-muted">
+                          {doc ? "Replace" : "Upload"}
+                        </Label>
+                      )}
                       {files[docType] && (
                         <Button onClick={() => handleUpload(docType)} disabled={uploading === docType} className="text-xs">
                           {uploading === docType ? "…" : "Save"}

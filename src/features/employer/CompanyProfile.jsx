@@ -166,7 +166,7 @@ function CompanyProfile() {
               ))}
             </div>
             <div className="mt-5">
-              <TextField label="About the company" multiline rows={5} placeholder="Brief description of your company…" {...field("description")} />
+              <TextField label="About the company" multiline rows={5} required placeholder="Brief description of your company…" {...field("description")} />
             </div>
             <div className="mt-5">
               <TextField label="Website (optional)" placeholder="https://…" {...field("website")} />
@@ -176,12 +176,12 @@ function CompanyProfile() {
           <Panel title="Contact & location" description="Where candidates can reach and find your office.">
             <div className="grid gap-5 sm:grid-cols-2">
               {CONTACT_FIELDS.map(([name, label, placeholder]) => (
-                <TextField key={name} label={label} placeholder={placeholder} type={name === "company_email" ? "email" : "text"} {...field(name)} />
+                <TextField key={name} label={label} placeholder={placeholder} required type={name === "company_email" ? "email" : "text"} {...field(name)} />
               ))}
             </div>
             <div className="mt-5 grid gap-5 sm:grid-cols-2">
               {ADDRESS_FIELDS.map(([name, label, placeholder]) => (
-                <TextField key={name} label={label} placeholder={placeholder} {...field(name)} />
+                <TextField key={name} label={label} placeholder={placeholder} required={name === "street_address"} {...field(name)} />
               ))}
             </div>
             <div className="mt-5">
@@ -214,7 +214,7 @@ function CompanyProfile() {
 
           <div className="flex justify-end">
             <Button type="submit" disabled={saving}>
-              {saving ? "Saving…" : "Save Profile"}
+              {saving ? "Saving…" : "Save company profile"}
             </Button>
           </div>
         </form>

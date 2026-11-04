@@ -46,7 +46,7 @@ describe('CompanyProfile address fields', () => {
     fireEvent.change(screen.getByLabelText('City / Municipality'), { target: { value: 'Angat' } })
     fireEvent.change(screen.getByLabelText('Province / State'), { target: { value: 'Bulacan' } })
     fireEvent.change(screen.getByLabelText('Postal Code'), { target: { value: '3012' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Save Profile' }))
+    fireEvent.click(screen.getByRole('button', { name: /save company profile/i }))
 
     await waitFor(() => expect(updateProfile).toHaveBeenCalled())
     expect(updateProfile).toHaveBeenCalledWith('u1', expect.objectContaining({
