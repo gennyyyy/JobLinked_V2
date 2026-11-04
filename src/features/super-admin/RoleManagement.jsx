@@ -4,12 +4,11 @@ import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
 import { useState, useEffect, useCallback } from 'react'
-import { Shield, Plus, Pencil, Trash2, Lock, Users, X } from 'lucide-react'
+import { Shield, Plus, Pencil, Trash2, Lock, X } from 'lucide-react'
 import { listRoles, createRole, updateRole, deleteRole, listPermissions } from '@/shared/services/admin'
 import ConfirmationModal from '@/shared/components/ConfirmationModal'
 import { PageSkeleton } from '@/shared/components/Skeletons'
-import { SectionCard, StatCard } from '@/shared/components/dashboard'
-import { PageHeading, StatusBadge } from '@/shared/components/design'
+import { Panel, PageHeading, StatusBadge } from '@/shared/components/design'
 
 // The 3 system roles are fixed by the DB enum + auth — read-only here.
 // Custom roles (permission bundles) are added/edited below and assigned from
@@ -17,7 +16,7 @@ import { PageHeading, StatusBadge } from '@/shared/components/design'
 const SYSTEM_ROLES = [
   {
     key: 'super-admin',
-    label: 'Super Admin',
+    label: 'PESO Admin',
     description: 'Full system access: manage employers, accreditations, jobs, users, and settings.',
     capabilities: ['Users', 'Roles', 'Reports', 'Logs', 'Settings'],
   },
@@ -188,17 +187,11 @@ function RoleManagement() {
       {flash && <p className="shrink-0 rounded-xl border border-success/20 bg-success-soft px-4 py-3 text-xs text-success">{flash}</p>}
       {error && <p role="alert" className="shrink-0 text-xs text-destructive">{error}</p>}
 
-      <div className="grid shrink-0 gap-4 sm:grid-cols-3">
-        <StatCard label="System roles" value={SYSTEM_ROLES.length} icon={<Lock className="size-4" strokeWidth={1.7} />} />
-        <StatCard label="Custom roles" value={customRoles.length} icon={<Shield className="size-4" strokeWidth={1.7} />} />
-        <StatCard label="Permission slots" value={permissionCatalog.length} icon={<Users className="size-4" strokeWidth={1.7} />} />
-      </div>
-
       <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto">
-        <SectionCard
-          className="p-0"
-          title="System roles"
-          subtitle="Fixed by authentication. Read-only."
+        <Panel
+          className="min-h-0"
+          title="Predefined roles"
+          description="The three system roles define each account’s workspace and access."
           action={<span className="inline-flex items-center gap-1.5 rounded-full border bg-muted px-2.5 py-1 text-[10px] uppercase tracking-[.14em] text-muted-foreground"><Lock className="size-3" aria-hidden="true" />Read-only</span>}
         >
           <ul className="grid gap-4 md:grid-cols-3">
@@ -207,7 +200,7 @@ function RoleManagement() {
                 <div className="flex items-center gap-3">
                   <span className="soft-icon size-9"><Shield className="size-4" aria-hidden="true" /></span>
                   <div className="min-w-0">
-                    <h3 className="truncate text-sm font-semibold text-navy">{role.label}</h3>
+                    <h2 className="truncate text-sm font-semibold text-navy">{role.label}</h2>
                     <p className="mt-0.5 text-[10px] uppercase tracking-[.14em] text-muted-foreground">{role.key}</p>
                   </div>
                 </div>
@@ -240,12 +233,11 @@ function RoleManagement() {
               </TableBody>
             </Table>
           </div>
-        </SectionCard>
+        </Panel>
 
-        <SectionCard
-          className="p-0"
-          title={`Custom Roles (${customRoles.length})`}
-          subtitle="Roles you define — pick a base portal and the permissions it gets."
+        <Panel
+          title="Custom roles"
+          description="Additional role definitions, separate from the three predefined roles."
         >
           {customRoles.length === 0 ? (
             <div className="flex flex-col items-center gap-3 py-10 text-center">
@@ -295,7 +287,7 @@ function RoleManagement() {
               ))}
             </ul>
           )}
-        </SectionCard>
+        </Panel>
       </div>
 
       {/* Create / Edit modal */}

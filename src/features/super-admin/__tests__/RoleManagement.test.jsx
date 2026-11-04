@@ -32,7 +32,7 @@ describe('RoleManagement custom role CRUD', () => {
   it('renders the read-only system roles and the custom role with its permission', async () => {
     render(<RoleManagement />)
     expect(await screen.findByText('HR Officer')).toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: 'Super Admin' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'PESO Admin' })).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Employer' })).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Job Seeker' })).toBeInTheDocument()
     // The permission key is rendered using the server-provided label.

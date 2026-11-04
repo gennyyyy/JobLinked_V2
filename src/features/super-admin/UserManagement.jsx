@@ -3,16 +3,18 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Field, FieldLabel } from '@/components/ui/field'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { X } from 'lucide-react'
 import { listUsers, updateUser, listRoles, assignRole, assignCustomRole, inviteUser, listAuditLogs } from '@/shared/services/admin'
 import useAuth from '@/shared/hooks/useAuth'
 import { PageSkeleton } from '@/shared/components/Skeletons'
-import { InlineError, Pager, StatCard } from '@/shared/components/dashboard'
+import { InlineError, Pager } from '@/shared/components/dashboard'
 import useDialog from '@/shared/hooks/useDialog'
 import { titleCase } from '@/shared/utils/titleCase'
-import { EmptyState, Notice, PageHeading, Panel, SelectField, StatusBadge } from '@/shared/components/design'
+import { EmptyState, Notice, PageHeading, Panel, SearchInput, SelectField, StatusBadge, TextField } from '@/shared/components/design'
 
 const SYSTEM_ROLE_LABELS = { 'super-admin': 'Super Admin', employer: 'Employer', 'job-seeker': 'Job Seeker' }
 
@@ -33,6 +35,8 @@ function UserManagement() {
   const [success, setSuccess] = useState('')
   const [actionError, setActionError] = useState('')
   const [filterRole, setFilterRole] = useState('all')
+  const [statusFilter, setStatusFilter] = useState('')
+  const [allUsers, setAllUsers] = useState([])
   const [searchTerm, setSearchTerm] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
   const [showInvite, setShowInvite] = useState(false)
@@ -45,6 +49,7 @@ function UserManagement() {
   const [accessReason, setAccessReason] = useState('')
   const [accessError, setAccessError] = useState('')
   const [accessBusy, setAccessBusy] = useState(false)
+  const [accessConfirmed, setAccessConfirmed] = useState(false)
 
   const inviteRef = useDialog(() => setShowInvite(false), showInvite)
 
@@ -55,6 +60,7 @@ function UserManagement() {
   const loadUsers = useCallback((p) => {
     const params = { page: p }
     if (filterRole !== 'all') params.role = filterRole
+    if (statusFilter) params.status = statusFilter.toLowerCase()
     if (debouncedSearch) params.search = debouncedSearch
     const req = ++loadReqRef.current
     return listUsers(params).then((res) => {
@@ -63,7 +69,7 @@ function UserManagement() {
       setTotal(res.total)
       setPageSize(res.pageSize)
     })
-  }, [filterRole, debouncedSearch])
+  }, [filterRole, statusFilter, debouncedSearch])
 
   useEffect(() => { loadUsers(page).catch((err) => setError(err.message || 'Failed to load users')) }, [loadUsers, page])
 
@@ -77,10 +83,13 @@ function UserManagement() {
     Promise.all([
       listRoles().catch(() => []),
       listAuditLogs({ action: 'user.role.change', limit: 50 }).catch(() => []),
+      // Stat cards count every account, not just the current 25-row page.
+      listUsers({ pageSize: 500 }).catch(() => null),
     ])
-      .then(([roles, logs]) => {
+      .then(([roles, logs, everyone]) => {
         setCustomRoles(roles || [])
         setHistory(Array.isArray(logs) ? logs : [])
+        setAllUsers(everyone?.data || [])
       })
       .finally(() => setLoading(false))
   }, [])
@@ -94,6 +103,7 @@ function UserManagement() {
     setAccessStatus(user.status === 'active' ? 'active' : 'suspended')
     setAccessReason('')
     setAccessError('')
+    setAccessConfirmed(false)
   }
 
   async function confirmAccess(event) {
@@ -174,21 +184,23 @@ function UserManagement() {
   }
 
   const roleOptions = [
-    { value: 'all', label: 'All Roles' },
-    { value: 'super-admin', label: 'Super Admin' },
-    { value: 'employer', label: 'Employer' },
-    { value: 'job-seeker', label: 'Job Seeker' },
+    { value: 'all', label: 'All roles' },
+    { value: 'super-admin', label: SYSTEM_ROLE_LABELS['super-admin'] },
+    { value: 'employer', label: SYSTEM_ROLE_LABELS.employer },
+    { value: 'job-seeker', label: SYSTEM_ROLE_LABELS['job-seeker'] },
   ]
   const accessRoleOptions = [
     ...Object.entries(SYSTEM_ROLE_LABELS).map(([value, label]) => ({ value: `sys:${value}`, label })),
     ...customRoles.map((role) => ({ value: `custom:${role.id}`, label: role.name })),
   ]
 
-  const jobSeekerCount = users.filter((row) => row.role === 'job-seeker').length
-  const employerCount = users.filter((row) => row.role === 'employer').length
-  const adminCount = users.filter((row) => row.role === 'super-admin').length
-  const activeCount = users.filter((row) => row.status === 'active').length
-  const suspendedCount = users.filter((row) => row.status !== 'active').length
+  const statsUsers = allUsers.length ? allUsers : users
+  const jobSeekerCount = statsUsers.filter((row) => row.role === 'job-seeker').length
+  const employerCount = statsUsers.filter((row) => row.role === 'employer').length
+  const adminCount = statsUsers.filter((row) => row.role === 'super-admin').length
+  const activeCount = statsUsers.filter((row) => row.status === 'active').length
+  const suspendedCount = statsUsers.filter((row) => row.status !== 'active').length
+  const totalUsers = allUsers.length || total
 
   return (
     <div className="space-y-6 pb-12">
@@ -211,42 +223,48 @@ function UserManagement() {
         </Notice>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-        <StatCard label="Total system users" value={total} />
-        <StatCard label="Job seekers" value={jobSeekerCount} />
-        <StatCard label="Employers" value={employerCount} />
-        <StatCard label="PESO administrators" value={adminCount} />
-        <StatCard label="Active accounts" value={activeCount} />
-        <StatCard label="Suspended accounts" value={suspendedCount} />
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+        <Panel title="Total system users"><p className="text-2xl font-semibold text-navy">{totalUsers}</p></Panel>
+        <Panel title="Job seekers"><p className="text-2xl font-semibold text-navy">{jobSeekerCount}</p></Panel>
+        <Panel title="Employers"><p className="text-2xl font-semibold text-navy">{employerCount}</p></Panel>
+        <Panel title="PESO administrators"><p className="text-2xl font-semibold text-navy">{adminCount}</p></Panel>
+        <Panel title="Active accounts"><p className="text-2xl font-semibold text-navy">{activeCount}</p></Panel>
+        <Panel title="Suspended accounts"><p className="text-2xl font-semibold text-navy">{suspendedCount}</p></Panel>
       </div>
 
       {success && <p className="rounded-xl border border-success/20 bg-success-soft px-4 py-3 text-xs text-success">{success}</p>}
       {actionError && <InlineError message={actionError} />}
 
-      <section className="surface p-0">
-        {/* Filter bar */}
-        <div className="flex flex-col gap-3 border-b px-5 py-4 sm:flex-row sm:flex-wrap sm:items-end">
+      <Panel
+        title="System users"
+        description="Your own elevated permissions cannot be modified. Job seeker and employer roles require an existing matching profile."
+      >
+        <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-end">
+          <SearchInput
+            value={searchTerm}
+            onChange={(value) => { setSearchTerm(value); setPage(1) }}
+            label="Search users by name or email"
+            placeholder="Search user ID, name, or email…"
+          />
           <div className="sm:w-48">
             <SelectField
               id="role-filter"
-              label="Filter by role"
+              label="Assigned role"
               options={roleOptions}
               value={filterRole}
               onChange={(e) => { setFilterRole(e.target.value); setPage(1) }}
             />
           </div>
-          <div className="flex-1 sm:min-w-[200px]">
-            <Label htmlFor="user-search" className="mb-2 text-xs text-muted-foreground">Search</Label>
-            <Input
-              id="user-search"
-              type="text"
-              aria-label="Search users by name or email"
-              value={searchTerm}
-              onChange={(e) => { setSearchTerm(e.target.value); setPage(1) }}
-              placeholder="Search by name or email…"
+          <div className="sm:w-44">
+            <SelectField
+              id="status-filter"
+              label="Account status"
+              placeholder="All accounts"
+              options={['Active', 'Suspended']}
+              value={statusFilter}
+              onChange={(e) => { setStatusFilter(e.target.value); setPage(1) }}
             />
           </div>
-          <p className="text-xs text-muted-foreground sm:ml-auto">{total} records</p>
         </div>
 
         {/* Table */}
@@ -254,25 +272,16 @@ function UserManagement() {
           {users.length === 0 ? (
             <p className="py-10 text-center text-xs text-muted-foreground">No users found.</p>
           ) : (
-            <Table className="table-fixed">
-              <colgroup>
-                <col style={{ width: '170px' }} />
-                <col style={{ width: '200px' }} />
-                <col style={{ width: '110px' }} />
-                <col style={{ width: '100px' }} />
-                <col style={{ width: '120px' }} />
-                <col style={{ width: '130px' }} />
-                <col style={{ width: '120px' }} />
-              </colgroup>
+            <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>User ID</TableHead>
-                  <TableHead>Full Name</TableHead>
-                  <TableHead>Email Address</TableHead>
-                  <TableHead>Assigned Role</TableHead>
-                  <TableHead>Account Status</TableHead>
+                  <TableHead>Full name</TableHead>
+                  <TableHead>Email address</TableHead>
+                  <TableHead>Assigned role</TableHead>
+                  <TableHead>Account status</TableHead>
                   <TableHead>Registered</TableHead>
-                  <TableHead>Last Updated</TableHead>
+                  <TableHead>Last updated</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -318,8 +327,8 @@ function UserManagement() {
             </Table>
           )}
         </div>
-        <div className="px-5"><Pager page={page} pageSize={pageSize} total={total} onChange={setPage} /></div>
-      </section>
+        <div><Pager page={page} pageSize={pageSize} total={total} onChange={setPage} /></div>
+      </Panel>
 
       <Panel
         title="Role and access change history"
@@ -445,16 +454,17 @@ function UserManagement() {
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={confirmAccess} className="flex flex-col gap-5">
+            <TextField label="User ID" readOnly value={accessTarget?.id || ''} />
             <SelectField
               id="access-role"
-              label="Assigned role"
+              label="Assigned system role"
               options={accessRoleOptions}
               value={accessRole}
               onChange={(event) => setAccessRole(event.target.value)}
             />
             <SelectField
               id="access-status"
-              label="Account status"
+              label="Account access"
               options={[
                 { value: 'active', label: 'Active' },
                 { value: 'suspended', label: 'Suspended' },
@@ -463,7 +473,7 @@ function UserManagement() {
               onChange={(event) => setAccessStatus(event.target.value)}
             />
             <div>
-              <Label htmlFor="access-reason" className="mb-2 block text-xs text-muted-foreground">Reason</Label>
+              <Label htmlFor="access-reason" className="mb-2 block text-xs text-muted-foreground">Reason for change</Label>
               <Textarea
                 id="access-reason"
                 rows={3}
@@ -472,10 +482,14 @@ function UserManagement() {
                 placeholder="Explain why this access change is needed."
               />
             </div>
+            <Field orientation="horizontal">
+              <Checkbox id="access-confirm" checked={accessConfirmed} onCheckedChange={(value) => setAccessConfirmed(value === true)} />
+              <FieldLabel htmlFor="access-confirm">I confirm this role or permission change.</FieldLabel>
+            </Field>
             {accessError && <p role="alert" className="text-xs text-destructive">{accessError}</p>}
             <div className="flex justify-end gap-3 border-t pt-4">
               <Button type="button" variant="outline" onClick={() => setAccessTarget(null)}>Cancel</Button>
-              <Button type="submit" disabled={accessBusy}>{accessBusy ? 'Saving…' : 'Save access'}</Button>
+              <Button type="submit" disabled={accessBusy || !accessConfirmed}>{accessBusy ? 'Saving…' : 'Confirm access change'}</Button>
             </div>
           </form>
         </DialogContent>

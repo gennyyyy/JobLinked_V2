@@ -49,7 +49,7 @@ describe('UserManagement accessibility', () => {
   it('labels the search and role filter controls', async () => {
     await renderUsers()
     expect(screen.getByLabelText(/search users by name or email/i)).toBeInTheDocument()
-    expect(screen.getByLabelText(/filter by role/i)).toBeInTheDocument()
+    expect(screen.getByLabelText(/assigned role/i)).toBeInTheDocument()
   })
 
   it('announces a failed load in a live region', async () => {
@@ -62,9 +62,10 @@ describe('UserManagement accessibility', () => {
     assignRole.mockRejectedValue(new Error('Role change rejected'))
     await renderUsers()
     fireEvent.click(screen.getByRole('button', { name: /manage access/i }))
-    fireEvent.change(screen.getByLabelText(/assigned role/i), { target: { value: 'sys:job-seeker' } })
-    fireEvent.change(screen.getByLabelText(/reason/i), { target: { value: 'Role change needed for this account.' } })
-    fireEvent.click(screen.getByRole('button', { name: /save access/i }))
+    fireEvent.change(screen.getByLabelText(/assigned system role/i), { target: { value: 'sys:job-seeker' } })
+    fireEvent.change(screen.getByLabelText(/reason for change/i), { target: { value: 'Role change needed for this account.' } })
+    fireEvent.click(screen.getByRole('checkbox', { name: /i confirm this role or permission change/i }))
+    fireEvent.click(screen.getByRole('button', { name: /confirm access change/i }))
     await waitFor(() => expect(screen.getAllByRole('alert').some((alert) => alert.textContent.includes('Role change rejected'))).toBe(true))
   })
 

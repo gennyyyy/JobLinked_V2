@@ -8,9 +8,9 @@ vi.mock('../../services/auth', () => ({
 }))
 
 function fill(current, next, confirm) {
-  fireEvent.change(screen.getByLabelText('Current password'), { target: { value: current } })
-  fireEvent.change(screen.getByLabelText('New password'), { target: { value: next } })
-  fireEvent.change(screen.getByLabelText('Confirm new password'), { target: { value: confirm } })
+  fireEvent.change(screen.getByLabelText(/current password/i), { target: { value: current } })
+  fireEvent.change(screen.getByLabelText(/^new password/i), { target: { value: next } })
+  fireEvent.change(screen.getByLabelText(/confirm new password/i), { target: { value: confirm } })
 }
 
 describe('ChangePassword', () => {
@@ -21,10 +21,10 @@ describe('ChangePassword', () => {
 
   it('renders the three password fields and submit button', () => {
     render(<ChangePassword />)
-    expect(screen.getByRole('heading', { name: /change password/i })).toBeInTheDocument()
-    expect(screen.getByLabelText('Current password')).toBeInTheDocument()
-    expect(screen.getByLabelText('New password')).toBeInTheDocument()
-    expect(screen.getByLabelText('Confirm new password')).toBeInTheDocument()
+    expect(screen.getByText('Password settings')).toBeInTheDocument()
+    expect(screen.getByLabelText(/current password/i)).toBeInTheDocument()
+    expect(screen.getByLabelText(/^new password/i)).toBeInTheDocument()
+    expect(screen.getByLabelText(/confirm new password/i)).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /update password/i })).toBeInTheDocument()
   })
 
@@ -53,7 +53,7 @@ describe('ChangePassword', () => {
 
     await waitFor(() => expect(changePassword).toHaveBeenCalledWith('oldpass', 'password123'))
     expect(await screen.findByText('Password updated successfully.')).toBeInTheDocument()
-    expect(screen.getByLabelText('Current password')).toHaveValue('')
+    expect(screen.getByLabelText(/current password/i)).toHaveValue('')
   })
 
   it('shows an error when the change fails', async () => {

@@ -111,9 +111,11 @@ export default function Employment() {
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead>Employee ID</TableHead>
                 <TableHead>Employee</TableHead>
                 <TableHead>Position</TableHead>
                 <TableHead>Employer</TableHead>
+                <TableHead>Department</TableHead>
                 <TableHead>Date hired</TableHead>
                 <TableHead>Start / end</TableHead>
                 <TableHead>Type</TableHead>
@@ -125,12 +127,14 @@ export default function Employment() {
             <TableBody>
               {visible.map((record) => (
                 <TableRow key={record.id}>
+                  <TableCell className="max-w-40 truncate text-[10px] text-muted-foreground" title={record.id}>{record.id}</TableCell>
                   <TableCell>
                     <p className="font-medium text-navy">{titleCase(record.seeker?.full_name)}</p>
                     <p className="mt-1 text-[10px] text-muted-foreground">{record.seeker?.barangay_district || '—'}</p>
                   </TableCell>
                   <TableCell className="text-xs text-muted-foreground">{record.job?.title}</TableCell>
                   <TableCell className="text-[11px] text-muted-foreground">{titleCase(record.job?.employers?.company_name)}</TableCell>
+                  <TableCell className="text-xs text-muted-foreground">{record.job?.office || '—'}</TableCell>
                   <TableCell className="whitespace-nowrap">{formatDate(record.employment?.created_at || record.updated_at)}</TableCell>
                   <TableCell className="whitespace-nowrap">
                     {record.employment?.start_date ? formatDate(record.employment.start_date) : 'Not started'} / {record.employment?.end_date ? formatDate(record.employment.end_date) : '—'}

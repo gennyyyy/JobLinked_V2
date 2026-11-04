@@ -67,9 +67,10 @@ describe('UserManagement pagination (C2)', () => {
   it('refetches the current page after a role assignment', async () => {
     render(<UserManagement />)
     fireEvent.click((await screen.findAllByRole('button', { name: /manage access/i }))[0])
-    fireEvent.change(screen.getByLabelText(/assigned role/i), { target: { value: 'sys:employer' } })
-    fireEvent.change(screen.getByLabelText(/reason/i), { target: { value: 'Role change needed for this account.' } })
-    fireEvent.click(screen.getByRole('button', { name: /save access/i }))
+    fireEvent.change(screen.getByLabelText(/assigned system role/i), { target: { value: 'sys:employer' } })
+    fireEvent.change(screen.getByLabelText(/reason for change/i), { target: { value: 'Role change needed for this account.' } })
+    fireEvent.click(screen.getByRole('checkbox', { name: /i confirm this role or permission change/i }))
+    fireEvent.click(screen.getByRole('button', { name: /confirm access change/i }))
     await waitFor(() => expect(listUsers).toHaveBeenCalledWith({ page: 1 }))
     expect(await screen.findByRole('table')).toBeInTheDocument()
   })
