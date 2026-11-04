@@ -15,7 +15,7 @@ vi.mock('../../../shared/services/jobs', () => ({
 describe('Jobs loading state', () => {
   beforeEach(() => vi.clearAllMocks())
 
-  it('renders job-card skeletons instead of a full-screen loader, with filters still visible', async () => {
+  it('keeps the header, matching panel, and search visible while the list loads', async () => {
     // Never resolves, so the fetch stays in-flight (loading) for the assertion.
     listJobs.mockReturnValue(new Promise(() => {}))
 
@@ -25,13 +25,13 @@ describe('Jobs loading state', () => {
       </MemoryRouter>,
     )
 
-    // A busy region with one polite status, and real skeleton cards inside it.
     expect(await screen.findByText(/loading jobs/i)).toBeInTheDocument()
     const busy = container.querySelector('[aria-busy="true"]')
     expect(busy).toBeInTheDocument()
     expect(busy.querySelectorAll('.surface').length).toBeGreaterThan(0)
-    expect(screen.queryByText(/loading database/i)).not.toBeInTheDocument()
-    // Jobs keeps its filters/search mounted instead of doing an early return.
-    expect(screen.getByPlaceholderText(/search for a job title or company/i)).toBeInTheDocument()
+    // The page chrome stays mounted instead of an early return.
+    expect(screen.getByRole('heading', { name: /browse jobs/i })).toBeInTheDocument()
+    expect(screen.getByLabelText('Search your recommendations')).toBeInTheDocument()
+    expect(screen.getByText('Standard matching · no AI')).toBeInTheDocument()
   })
 })
