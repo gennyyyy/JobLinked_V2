@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto';
+import { normalize } from '../aiProvider.js';
 
 const TTL_MS = 15 * 60 * 1000;
 const MAX_ENTRIES = 300;
@@ -12,9 +13,12 @@ export const _reset = () => entries.clear();
 
 // Candidate order must not change the key: the same set of jobs asked in a
 // different order is the same question, so it must hit the same cached answer.
+// The prompt is normalized here (not at the call sites) so the limiter's
+// cacheHit and the route's lookup can never disagree on what "the same
+// question" means.
 export const keyFor = (userId, prompt, candidateIds) => {
   const ids = (Array.isArray(candidateIds) ? candidateIds : []).map(String).sort();
-  const payload = JSON.stringify([String(userId ?? ''), String(prompt ?? ''), ids]);
+  const payload = JSON.stringify([String(userId ?? ''), normalize(prompt), ids]);
   return createHash('sha1').update(payload).digest('hex');
 };
 

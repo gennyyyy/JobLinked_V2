@@ -9,6 +9,7 @@ import profilesRoutes from './routes/profiles.js';
 import adminRoutes from './routes/admin.js';
 import reportsRoutes from './routes/reports.js';
 import aiRoutes from './routes/ai.js';
+import aiMatchRoutes from './routes/aiMatch.js';
 import health from './routes/health.js';
 import { authLimiter, uploadLimiter, apiLimiter } from './middleware/rateLimit.js';
 import requestId from './middleware/requestId.js';
@@ -95,7 +96,7 @@ export function createApp() {
   // attachPrincipal already populated req.user app-wide above, so the
   // keyGenerator resolves to the authenticated user id here too.
   app.use('/api', apiLimiter);
-  app.use('/api', authRoutes, jobsRoutes, applicationsRoutes, profilesRoutes, adminRoutes, reportsRoutes, aiRoutes);
+  app.use('/api', authRoutes, jobsRoutes, applicationsRoutes, profilesRoutes, adminRoutes, reportsRoutes, aiRoutes, aiMatchRoutes);
 
   app.use('/api', (_req, res) => err(res, 404, 'NOT_FOUND', 'Route not found'));
   // eslint-disable-next-line no-unused-vars

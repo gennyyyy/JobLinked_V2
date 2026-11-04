@@ -37,6 +37,11 @@ describe('matchCache keys', () => {
     expect(keyFor('user-1', 'welder', ['b', 'a', 'c'])).toBe(keyFor('user-1', 'welder', ['a', 'b', 'c']));
   });
 
+  it('normalizes the prompt before hashing', () => {
+    expect(keyFor('user-1', '  Welder \n in   Poblacion ', ['a']))
+      .toBe(keyFor('user-1', 'Welder in Poblacion', ['a']));
+  });
+
   it('separates users, prompts, and candidates', () => {
     const base = keyFor('user-1', 'welder', ['a']);
 

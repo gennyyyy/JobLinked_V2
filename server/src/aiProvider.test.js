@@ -61,6 +61,21 @@ describe('aiProvider', () => {
     expect(resolveConfig().model).toBe('nvidia/test-model');
   });
 
+  it('warns exactly once when a custom base has a key but no model', async () => {
+    process.env.OPENROUTER_API_KEY = KEY;
+    process.env.OPENROUTER_BASE_URL = 'https://integrate.api.nvidia.com/v1';
+
+    // Fresh module instance: the "once" flag is module state, and earlier
+    // specs in this file already legitimately triggered it.
+    vi.resetModules();
+    const fresh = await import('./aiProvider.js');
+
+    expect(fresh.resolveConfig().model).toBeNull();
+    expect(fresh.isConfigured()).toBe(true);
+    expect(logs.warn).toHaveBeenCalledTimes(1);
+    expect(String(logs.warn.mock.calls[0][0])).toMatch(/OPENROUTER_MODEL/);
+  });
+
   it('returns OK for a valid completion', async () => {
     process.env.OPENROUTER_API_KEY = KEY;
     fetchMock.mockResolvedValueOnce(okResponse('hi'));

@@ -10,13 +10,19 @@ const BUDGET_WINDOW_MS = 60_000;
 
 const env = (name) => String(process.env[name] ?? '').trim() || null;
 
+// Key set + custom base + no model can only ever produce an upstream 4xx, so
+// the failure map wants one warning "at first use", never a per-request spam.
+let warnedMissingModel = false;
+
 export const resolveConfig = () => {
   const base = env('OPENROUTER_BASE_URL') || DEFAULT_BASE;
-  return {
-    key: env('OPENROUTER_API_KEY'),
-    base,
-    model: env('OPENROUTER_MODEL') || (base === DEFAULT_BASE ? DEFAULT_MODEL : null),
-  };
+  const key = env('OPENROUTER_API_KEY');
+  const model = env('OPENROUTER_MODEL') || (base === DEFAULT_BASE ? DEFAULT_MODEL : null);
+  if (key && !model && base !== DEFAULT_BASE && !warnedMissingModel) {
+    warnedMissingModel = true;
+    logger.warn('OPENROUTER_MODEL unset for a custom provider base — AI calls will fall back to deterministic results; set OPENROUTER_MODEL to a model id for this base');
+  }
+  return { key, base, model };
 };
 
 export const isConfigured = () => resolveConfig().key !== null;
