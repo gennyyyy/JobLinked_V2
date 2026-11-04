@@ -75,19 +75,41 @@ describe('Jobs accessibility', () => {
     expect(screen.getByText('Cashier')).toBeInTheDocument()
   })
 
-  it('filters the grid by skills added to the skill filter', async () => {
+  it('filters the grid from the sidebar filters', async () => {
     listJobs.mockResolvedValue({
       jobs: [
-        job({ id: 'job-1', title: 'Barangay Health Worker', requirements: 'Experience: 1 year\nNursing' }),
-        job({ id: 'job-2', title: 'Cashier', requirements: 'Experience: 1 year\nCustomer Service' }),
+        job({ id: 'job-1', location: 'Poblacion', requirements: 'Experience: 1 year\nCommunication' }),
+        job({ id: 'job-2', title: 'Cashier', location: 'Bagbaguin', requirements: 'Experience: 4 years\nCustomer Service' }),
       ],
       total: 2,
     })
     await renderJobs()
 
-    fireEvent.change(screen.getByPlaceholderText('Search for skills'), { target: { value: 'nursing,' } })
+    fireEvent.change(screen.getByLabelText('Barangay'), { target: { value: 'Bagbaguin' } })
+
+    expect(screen.queryByText('Barangay Health Worker')).not.toBeInTheDocument()
+    expect(screen.getByText('Cashier')).toBeInTheDocument()
+  })
+
+  it('clears every sidebar filter and the search with Reset all filters', async () => {
+    listJobs.mockResolvedValue({
+      jobs: [
+        job({ id: 'job-1', location: 'Poblacion', requirements: 'Experience: 1 year\nCommunication' }),
+        job({ id: 'job-2', title: 'Cashier', location: 'Bagbaguin', requirements: 'Experience: 4 years\nCustomer Service' }),
+      ],
+      total: 2,
+    })
+    await renderJobs()
+
+    fireEvent.change(screen.getByLabelText('Barangay'), { target: { value: 'Bagbaguin' } })
+    fireEvent.change(screen.getByLabelText('Search your recommendations'), { target: { value: 'cashier' } })
+    expect(screen.queryByText('Barangay Health Worker')).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: /reset all filters/i }))
 
     expect(screen.getByText('Barangay Health Worker')).toBeInTheDocument()
-    expect(screen.queryByText('Cashier')).not.toBeInTheDocument()
+    expect(screen.getByText('Cashier')).toBeInTheDocument()
+    expect(screen.getByLabelText('Barangay')).toHaveValue('')
+    expect(screen.getByLabelText('Search your recommendations')).toHaveValue('')
   })
 })

@@ -26,6 +26,19 @@ export const jobType = (job) => job.employment_type || 'Full-time'
 const EXPERIENCE_LINE = /^\s*Experience:\s*(.*)$/im
 export const experienceLabel = (job) => (String(job.requirements || '').match(EXPERIENCE_LINE)?.[1] || job.work_arrangement || '').trim()
 
+// Bucket the recorded years into the reference's experience-level filter.
+export function experienceLevel(job) {
+  const label = experienceLabel(job).toLowerCase()
+  if (!label) return ''
+  if (/no experience|fresh grad|entry/.test(label)) return 'No experience'
+  const years = Number((label.match(/\d+/) || [])[0])
+  if (!Number.isFinite(years)) return ''
+  if (years === 0) return 'No experience'
+  if (years === 1) return 'Entry level'
+  if (years <= 3) return '1–3 years'
+  return '3+ years'
+}
+
 // Closest analogue of the reference's "category" badge.
 export const categoryLabel = (job) => (Array.isArray(job.tags) && job.tags.length ? job.tags[0] : job.office || job.employment_type || '')
 
