@@ -105,7 +105,7 @@ export default function TopNavLayout({ role, navItems, profileTo, roleLabel, hom
 
   const sidebar = (small = false) => (
     <div className="flex h-full flex-col">
-      <div className="flex h-[85px] items-center px-6">
+      <div className="flex h-[110px] items-center px-6">
         <Logo compact={collapsed && !small} />
       </div>
       <div className={cn('px-6 pb-4', collapsed && !small && 'flex justify-center px-0 pb-4')}>
@@ -185,7 +185,7 @@ export default function TopNavLayout({ role, navItems, profileTo, roleLabel, hom
   return (
     <div className={cn('min-h-screen bg-muted/70', fixedContent && 'h-screen overflow-hidden')}>
       <SkipLink />
-      <aside className={cn('fixed inset-y-0 left-0 z-30 hidden border-r bg-white transition-[width] lg:block', collapsed ? 'w-[94px]' : 'w-[285px]')}>
+      <aside className={cn('fixed inset-y-0 left-0 z-30 hidden border-r bg-white transition-[width] lg:block', collapsed ? 'w-[122px]' : 'w-[370px]')}>
         {sidebar()}
       </aside>
       <Sheet open={mobile} onOpenChange={setMobile}>
@@ -197,8 +197,8 @@ export default function TopNavLayout({ role, navItems, profileTo, roleLabel, hom
           {sidebar(true)}
         </SheetContent>
       </Sheet>
-      <div className={cn('min-h-screen transition-[margin]', collapsed ? 'lg:ml-[94px]' : 'lg:ml-[285px]', fixedContent && 'flex h-screen flex-col')}>
-        <header className="sticky top-0 z-20 flex h-[85px] shrink-0 items-center justify-between gap-3 border-b bg-white/95 px-5 backdrop-blur-sm lg:px-8">
+      <div className={cn('min-h-screen transition-[margin]', collapsed ? 'lg:ml-[122px]' : 'lg:ml-[370px]', fixedContent && 'flex h-screen flex-col')}>
+        <header className="sticky top-0 z-20 flex h-[110px] shrink-0 items-center justify-between gap-3 border-b bg-white/95 px-5 backdrop-blur-sm lg:px-8">
           <div className="flex min-w-0 items-center gap-4">
             <Button variant="ghost" size="icon" className="hidden lg:inline-flex" aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'} onClick={() => setCollapsed((v) => !v)}>
               {collapsed ? <ChevronsRight /> : <ChevronsLeft />}
