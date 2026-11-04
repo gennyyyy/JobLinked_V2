@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react'
 import Applicants from '../Applicants'
 import { listByCompany, updateApplicationStatus } from '../../../shared/services/applications'
 
@@ -10,10 +10,9 @@ vi.mock('../../../shared/hooks/useAuth', () => ({
 vi.mock('../../../shared/services/applications', () => ({
   listByCompany: vi.fn(),
   updateApplicationStatus: vi.fn(),
+  getApplicationHistory: vi.fn().mockResolvedValue([]),
 }))
 
-// SeekerProfileCard (imported by Applicants) pulls the seeker/document services,
-// which reach the Supabase client — stub them out.
 vi.mock('../../../shared/services/seekers', () => ({
   listSeekerEducation: vi.fn(),
   listSeekerExperience: vi.fn(),
@@ -24,40 +23,37 @@ const APPLICANT = {
   id: 'app-1',
   status: 'Under Review',
   applied_at: '2026-01-05T00:00:00.000Z',
-  seeker: { id: 's1', full_name: 'juan dela cruz' },
-  job: { title: 'Warehouse Associate' },
+  seeker: { id: 's1', full_name: 'juan dela cruz', barangay_district: 'Bulac' },
+  job: { id: 'j1', title: 'Warehouse Associate' },
 }
 
-async function renderRow(applicant) {
-  listByCompany.mockResolvedValue([applicant])
-  render(<Applicants />)
-  await screen.findByText('Warehouse Associate')
-}
-
-describe('Applicants — revert Under Review to Applied', () => {
+describe('Applicants status updates', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    listByCompany.mockResolvedValue([APPLICANT])
     updateApplicationStatus.mockResolvedValue({ id: 'app-1', status: 'Applied' })
   })
 
   it('reverts an Under Review applicant back to Applied', async () => {
-    await renderRow(APPLICANT)
+    render(<Applicants />)
+    fireEvent.click(await screen.findByRole('button', { name: /review candidate juan dela cruz/i }))
 
-    const undo = screen.getByTitle('Revert to Applied')
-    expect(undo).toHaveTextContent('Undo Review')
-
-    fireEvent.click(undo)
+    fireEvent.change(within(await screen.findByRole('dialog')).getByLabelText(/recruitment status/i), { target: { value: 'Applied' } })
+    fireEvent.click(screen.getByRole('button', { name: /update candidate/i }))
 
     await waitFor(() => expect(updateApplicationStatus).toHaveBeenCalledTimes(1))
-    const [id, status] = updateApplicationStatus.mock.calls[0]
-    expect(id).toBe('app-1')
-    expect(status).toBe('Applied')
+    expect(updateApplicationStatus).toHaveBeenCalledWith('app-1', 'Applied', {
+      interviewAt: null,
+      interviewInstructions: null,
+      employerNotes: null,
+    })
   })
 
-  it('hides the revert button (and shows Review) for an Interview row', async () => {
-    await renderRow({ ...APPLICANT, status: 'Interview' })
+  it('shows the recorded status in the review dialog', async () => {
+    listByCompany.mockResolvedValue([{ ...APPLICANT, status: 'Interview' }])
+    render(<Applicants />)
+    fireEvent.click(await screen.findByRole('button', { name: /review candidate juan dela cruz/i }))
 
-    expect(screen.queryByTitle('Revert to Applied')).not.toBeInTheDocument()
-    expect(screen.getByTitle('Move back to Under Review')).toHaveTextContent('Review')
+    expect(within(await screen.findByRole('dialog')).getByLabelText(/recruitment status/i)).toHaveValue('Interview')
   })
 })

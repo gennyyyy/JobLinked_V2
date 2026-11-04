@@ -39,7 +39,8 @@ function job(overrides) {
   }
 }
 
-async function renderJobPosts(posts) {
+// Delete lives in the vacancy detail dialog (opened from the row title).
+async function openDetails(posts) {
   getEmployer.mockResolvedValue(APPROVED_EMPLOYER)
   listEmployerJobs.mockResolvedValue({ data: posts, total: posts.length, page: 1, pageSize: 25 })
   deleteJob.mockResolvedValue({ deleted: true, applications: posts[0]?.applicant_count ?? 0 })
@@ -48,14 +49,15 @@ async function renderJobPosts(posts) {
       <JobPosts />
     </MemoryRouter>
   )
-  return screen.findByRole('button', { name: /delete posting permanently/i })
+  fireEvent.click(await screen.findByRole('button', { name: 'Warehouse Associate' }))
+  return screen.findByRole('button', { name: /delete posting/i })
 }
 
 describe('JobPosts delete action', () => {
   beforeEach(() => vi.clearAllMocks())
 
   it('confirms with the exact application count, then calls deleteJob with the job id', async () => {
-    const deleteBtn = await renderJobPosts([job({ applicant_count: 3 })])
+    const deleteBtn = await openDetails([job({ applicant_count: 3 })])
 
     fireEvent.click(deleteBtn)
 
@@ -69,7 +71,7 @@ describe('JobPosts delete action', () => {
   })
 
   it('omits the application count when there are none', async () => {
-    const deleteBtn = await renderJobPosts([job({ applicant_count: 0 })])
+    const deleteBtn = await openDetails([job({ applicant_count: 0 })])
 
     fireEvent.click(deleteBtn)
 

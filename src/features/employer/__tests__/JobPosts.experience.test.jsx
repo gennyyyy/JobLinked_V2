@@ -54,7 +54,7 @@ function renderJobPosts() {
 async function openCreateForm() {
   listEmployerJobs.mockResolvedValue({ data: [], total: [].length, page: 1, pageSize: 25 })
   renderJobPosts()
-  const openBtn = await screen.findByRole('button', { name: /post a job/i })
+  const openBtn = (await screen.findAllByRole('button', { name: /create a vacancy/i }))[0]
   await waitFor(() => expect(openBtn).toBeEnabled())
   fireEvent.click(openBtn)
 }
@@ -62,7 +62,7 @@ async function openCreateForm() {
 async function openEditForm(job = JOB) {
   listEmployerJobs.mockResolvedValue({ data: [job], total: [job].length, page: 1, pageSize: 25 })
   renderJobPosts()
-  const editBtn = await screen.findByTitle('Edit Job')
+  const editBtn = await screen.findByRole('button', { name: /^edit /i })
   fireEvent.click(editBtn)
 }
 

@@ -22,12 +22,14 @@ vi.mock('../../../shared/services/jobs', () => ({
   deleteJob: vi.fn(),
 }))
 
+const emptyPage = { data: [], total: 0, page: 1, pageSize: 25 }
+
 describe('JobPosts empty state (U5)', () => {
   beforeEach(() => vi.clearAllMocks())
 
-  it('routes a non-accredited employer to accreditation instead of a dead-end CTA', async () => {
+  it('warns a non-accredited employer and links to the accreditation page', async () => {
     getEmployer.mockResolvedValue({ id: 'emp-1', accreditation_status: 'pending' })
-    listEmployerJobs.mockResolvedValue({ data: [], total: [].length, page: 1, pageSize: 25 })
+    listEmployerJobs.mockResolvedValue(emptyPage)
 
     render(
       <MemoryRouter>
@@ -35,15 +37,14 @@ describe('JobPosts empty state (U5)', () => {
       </MemoryRouter>,
     )
 
-    expect(await screen.findByText(/must first be accredited by PESO/i)).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: /view accreditation/i })).toHaveAttribute('href', '/employer/accreditation')
-    // The old dead-end "+ Post a Vacancy" advice must not appear.
-    expect(screen.queryByText(/Click '\+ Post a Job'/)).not.toBeInTheDocument()
+    expect(await screen.findByText(/publishing is unavailable until PESO approves your accreditation/i)).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /review requirements and feedback/i })).toHaveAttribute('href', '/employer/accreditation')
+    expect(screen.getByText('Your next opening starts here.')).toBeInTheDocument()
   })
 
-  it('keeps the original create-advice for approved employers with no posts', async () => {
+  it('keeps the create advice for approved employers with no posts', async () => {
     getEmployer.mockResolvedValue({ id: 'emp-1', accreditation_status: 'approved' })
-    listEmployerJobs.mockResolvedValue({ data: [], total: [].length, page: 1, pageSize: 25 })
+    listEmployerJobs.mockResolvedValue(emptyPage)
 
     render(
       <MemoryRouter>
@@ -51,8 +52,8 @@ describe('JobPosts empty state (U5)', () => {
       </MemoryRouter>,
     )
 
-    expect(await screen.findByText(/haven't posted any job vacancies yet/i)).toBeInTheDocument()
-    expect(screen.queryByText(/must first be accredited/i)).not.toBeInTheDocument()
-    expect(screen.queryByRole('link', { name: /view accreditation/i })).not.toBeInTheDocument()
+    expect(await screen.findByText('Your next opening starts here.')).toBeInTheDocument()
+    expect(screen.queryByText(/publishing is unavailable/i)).not.toBeInTheDocument()
+    expect((screen.getAllByRole('button', { name: /create a vacancy/i })).length).toBeGreaterThan(0)
   })
 })

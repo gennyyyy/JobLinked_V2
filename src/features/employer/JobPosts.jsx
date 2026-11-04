@@ -1,6 +1,7 @@
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { createPortal } from "react-dom";
 import { Link } from "react-router-dom";
@@ -10,13 +11,11 @@ import {
   Edit3,
   Eye,
   Send,
-  Trash2,
   AlertTriangle,
   CheckCircle2,
   Users,
   Building,
   X,
-  RotateCcw,
 } from "lucide-react";
 import useAuth from "../../shared/hooks/useAuth";
 import { JOB_TAGS, JOB_BENEFITS, JOB_EDUCATION_LEVELS, JOB_EXPERIENCE_PRESETS, SANTA_MARIA_BARANGAYS } from "../../shared/constants";
@@ -24,11 +23,31 @@ import { listEmployerJobs, createJob, updateJob, changeJobStatus, deleteJob } fr
 import { getEmployer } from "../../shared/services/auth";
 import ConfirmationModal from "../../shared/components/ConfirmationModal";
 import { PageSkeleton } from '../../shared/components/Skeletons';
-import { Pager } from "../../shared/components/dashboard";
-import useDialog from "../../shared/hooks/useDialog";
+import { Pager } from "../../shared/components/dashboard";import useDialog from "../../shared/hooks/useDialog";
 import { InlineError } from "../../shared/components/dashboard";
-import ApplicantsShell from "../../shared/components/ApplicantsShell";
-import { EmptyState, StatusBadge, TextField, SelectField } from "../../shared/components/design";
+import { EmptyState, Notice, PageHeading, Panel, SearchInput, StatusBadge, TextField, SelectField } from "../../shared/components/design";
+
+const POSTING_LABELS = {
+  draft: 'Draft',
+  pending: 'Pending review',
+  approved: 'Approved',
+  rejected: 'Rejected',
+  published: 'Published',
+  closed: 'Closed',
+  archived: 'Archived',
+}
+const POSTING_STATUSES = Object.entries(POSTING_LABELS).map(([value, label]) => ({ value, label }))
+const ACCREDITATION_LABELS = {
+  none: 'Pending Review',
+  pending: 'Pending Review',
+  approved: 'Approved',
+  rejected: 'Rejected',
+  resubmission: 'Resubmission Requested',
+  revoked: 'Revoked',
+}
+const formatDate = (value) => (value
+  ? new Date(value).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' })
+  : '—')
 
 const initialForm = {
   title: "",
@@ -86,92 +105,6 @@ const EXPERIENCE_OPTIONS = [
   { value: "custom", label: "Custom…" },
 ];
 
-const SIDEBAR_TILES = [
-  { id: null, label: "Total", title: "Show all job postings", tone: "border-border bg-blue-soft text-primary", fallback: "total" },
-  { id: "published", label: "Published", title: "Show published job postings", tone: "border-border bg-success-soft text-success", fallback: "published" },
-  { id: "closed", label: "Closed", title: "Show closed job postings", tone: "border-border bg-warning-soft text-warning", fallback: "closed" },
-  { id: "draft", label: "Draft", title: "Show draft job postings", tone: "border-border bg-secondary text-muted-foreground", fallback: "draft" },
-];
-
-// One job post card: title opens the detail dialog, actions sit beside it.
-function JobCard({ post, onView, onEdit, onToggleClose, onDelete }) {
-  return (
-    <article className="rounded-xl border bg-card p-4">
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <button
-            type="button"
-            onClick={() => onView(post)}
-            className="block max-w-full truncate text-left text-sm font-semibold text-navy transition-colors hover:text-primary"
-          >
-            {post.title}
-          </button>
-          <p className="mt-1 text-[10px] text-muted-foreground">
-            Posted on {new Date(post.created_at).toLocaleDateString("en-PH", { year: "numeric", month: "long", day: "numeric" })}
-          </p>
-        </div>
-        <div className="flex shrink-0 items-center gap-1">
-          <Button type="button" variant="ghost" size="icon-sm" onClick={() => onEdit(post)} title="Edit Job" aria-label="Edit Job">
-            <Edit3 />
-          </Button>
-          <Button type="button" variant="ghost" size="icon-sm" onClick={() => onView(post)} title="View job details" aria-label="View job details">
-            <Eye />
-          </Button>
-          <Button type="button" variant="ghost" size="icon-sm" onClick={() => onDelete(post)} title="Delete posting permanently" aria-label="Delete posting permanently" className="text-destructive hover:bg-danger-soft">
-            <Trash2 />
-          </Button>
-          {(post.status === "published" || post.status === "closed") && (
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={() => onToggleClose(post)}
-              data-action-tone={post.status === "published" ? "warning" : "success"}
-              title={post.status === "published" ? "Close recruitment" : "Reopen listing"}
-              className={`text-xs ${post.status === "published" ? "text-warning hover:bg-warning-soft" : "text-success hover:bg-success-soft"}`}
-            >
-              {post.status === "published" ? "Close" : "Reopen"}
-            </Button>
-          )}
-        </div>
-      </div>
-
-      <div className="mt-4">
-        <StatusBadge status={post.status === "published" ? "Published" : post.status === "closed" ? "Closed" : "Draft"} />
-      </div>
-
-      <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-3">
-        <div className="min-w-0">
-          <dt className="text-[10px] text-muted-foreground">Department</dt>
-          <dd className="mt-1 truncate text-xs font-medium text-navy">{post.office}</dd>
-        </div>
-        <div className="min-w-0">
-          <dt className="text-[10px] text-muted-foreground">Location</dt>
-          <dd className="mt-1 truncate text-xs font-medium text-navy">{`Brgy. ${post.location}, Santa Maria, Bulacan`}</dd>
-        </div>
-        <div className="min-w-0">
-          <dt className="text-[10px] text-muted-foreground">Employment Type</dt>
-          <dd className="mt-1 text-xs font-medium text-navy">{post.employment_type}</dd>
-        </div>
-        <div className="min-w-0">
-          <dt className="text-[10px] text-muted-foreground">Salary</dt>
-          <dd className="mt-1 text-xs font-medium text-navy">{formatSalary(post.salary_min, post.salary_max)}</dd>
-        </div>
-        <div className="min-w-0">
-          <dt className="text-[10px] text-muted-foreground">Vacancy</dt>
-          <dd className="mt-1 text-xs font-medium text-navy">{post.vacancies}</dd>
-        </div>
-      </dl>
-
-      <div className="mt-4 flex justify-end">
-        <Link to="/employer/applicants" data-action-tone="info" className="text-link text-xs">
-          <Users className="size-3.5" />
-          {post.applicant_count || 0} Applied
-        </Link>
-      </div>
-    </article>
-  );
-}
-
 function formatSalary(min, max) {
   if (!min && !max) return "Not disclosed";
   if (min && max) {
@@ -204,7 +137,6 @@ export default function JobPosts() {
   // null = Total (no status filter). Counts come from the API's company-wide
   // `counts` object so the tiles stay stable while paging/filtering.
   const [statusFilter, setStatusFilter] = useState(null);
-  const [statusCounts, setStatusCounts] = useState(null);
 
   // Feedback notifications
   const [actionError, setActionError] = useState("");
@@ -240,7 +172,7 @@ export default function JobPosts() {
 
   // Filter & Search states
   const [searchTerm, setSearchTerm] = useState("");
-  const [sortBy, setSortBy] = useState("newest");
+  const [sortBy] = useState("newest");
 
   // Escape / Tab-trap / focus-return for the two job modals (shared useDialog).
   // Escape inside the form goes through the discard guard so typing isn't lost,
@@ -283,7 +215,6 @@ export default function JobPosts() {
         setJobs(res.data);
         setTotal(res.total);
         setPageSize(res.pageSize);
-        setStatusCounts(res.counts || null);
       } else {
         setAccreditationStatus("none");
         setJobs([]);
@@ -333,7 +264,6 @@ export default function JobPosts() {
       setJobs(res.data);
       setTotal(res.total);
       setPageSize(res.pageSize);
-      setStatusCounts(res.counts || null);
     } catch (err) {
       setActionError(err.message || "Failed to refresh jobs");
     }
@@ -561,23 +491,6 @@ export default function JobPosts() {
       });
   }, [jobs, searchTerm, sortBy]);
 
-  // Counts come from the API (`counts` ignores status + paging); fall back to
-  // the current page when an older API/response omits them.
-  const sidebarTiles = SIDEBAR_TILES.map((tile) => ({
-    ...tile,
-    value:
-      (statusCounts ? statusCounts[tile.fallback] : null) ??
-      (tile.id ? jobs.filter((j) => j.status === tile.id).length : total),
-  }));
-
-  const emptyDescription = searchTerm
-    ? "Try adjusting your search criteria to locate the postings you're looking for."
-    : statusFilter
-      ? "No job postings with this status."
-      : accreditationStatus === "approved"
-        ? "You haven't posted any job vacancies yet. Click '+ Post a Job' to recruit Santa Maria talent."
-        : "To post job vacancies, your company must first be accredited by PESO.";
-
   if (loading) return <PageSkeleton stats={0} panels={2} />;
 
   if (loadError) return <InlineError message={loadError} onRetry={loadData} />;
@@ -630,91 +543,115 @@ export default function JobPosts() {
         </div>
       )}
 
-      <ApplicantsShell
-        title="Job Vacancy Postings"
-        subtitle="Publish municipal job openings and manage your vacancies"
-        controlAction={
-          <Button type="button" onClick={handleOpenCreate} disabled={!company} className="gap-2 px-5">
-            <Plus className="size-4" />
-            Post a Job
+      <PageHeading
+        eyebrow="Create local opportunities"
+        title="Good work starts with a great team."
+        description="Manage your vacancies, prepare drafts, and keep your recruitment up to date."
+        action={(
+          <Button type="button" onClick={handleOpenCreate} disabled={!company}>
+            <Plus data-icon="inline-start" />
+            Create a vacancy
           </Button>
-        }
-        sidebar={
-          <div className="space-y-3">
-            {sidebarTiles.map((tile) => (
-              <Button
-                key={tile.label}
-                type="button"
-                data-tone={tile.id === "published" ? "success" : tile.id === "closed" ? "warning" : tile.id === "draft" ? "neutral" : "info"}
-                title={tile.title}
-                aria-pressed={statusFilter === tile.id}
-                onClick={() => { setStatusFilter((prev) => (prev === tile.id ? null : tile.id)); setPage(1); }}
-                className={`w-full rounded-lg border px-4 py-3 text-left transition-all ${tile.tone} ${statusFilter === tile.id ? "ring-1 ring-current ring-offset-0" : ""}`}
-              >
-                <p className="text-2xl font-bold">{tile.value}</p>
-                <p className="mt-0.5 text-[10px] font-semibold uppercase tracking-wider">{tile.label}</p>
-              </Button>
-            ))}
-          </div>
-        }
-        footer={<Pager page={page} pageSize={pageSize} total={total} onChange={setPage} />}
-        sort={sortBy}
-        onSortChange={setSortBy}
-        sortOptions={[
-          { value: "newest", label: "Newest First" },
-          { value: "oldest", label: "Oldest First" },
-          { value: "title", label: "Title (A-Z)" },
-          { value: "applicants", label: "Most Candidates" },
-          { value: "deadline", label: "Deadline Soonest" },
-        ]}
-        sortLabel="Sort:"
-        sortAriaLabel="Sort job postings"
-        search={searchTerm}
-        onSearchChange={setSearchTerm}
-        searchPlaceholder="Search by job title, department, or barangay..."
-        searchAriaLabel="Search job postings by title, department, or barangay"
+        )}
+      />
+      {accreditationStatus !== "approved" && (
+        <Notice title={`Accreditation: ${ACCREDITATION_LABELS[accreditationStatus] || accreditationStatus || 'pending'}`} warning>
+          You can prepare drafts, but publishing is unavailable until PESO approves your accreditation.{" "}
+          <Link to="/employer/accreditation" className="font-medium underline underline-offset-4">Review requirements and feedback.</Link>
+        </Notice>
+      )}
+      <Panel
+        title="Your job postings"
+        description="Only vacancies owned by your current company are shown."
       >
-        {filteredJobs.length ? (
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-            {filteredJobs.map((post) => (
-              <JobCard
-                key={post.id}
-                post={post}
-                onView={setViewingJob}
-                onEdit={handleOpenEdit}
-                onToggleClose={handleToggleClose}
-                onDelete={setConfirmDeleteJob}
-              />
-            ))}
+        <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-end">
+          <SearchInput
+            value={searchTerm}
+            onChange={(value) => { setSearchTerm(value); setPage(1) }}
+            label="Search job postings"
+            placeholder="Search your job postings…"
+          />
+          <div className="sm:w-48">
+            <SelectField
+              id="posting-status"
+              label="Posting status"
+              placeholder="All statuses"
+              options={POSTING_STATUSES}
+              value={statusFilter || ""}
+              onChange={(event) => { setStatusFilter(event.target.value || null); setPage(1) }}
+            />
           </div>
+        </div>
+        {filteredJobs.length ? (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Vacancy</TableHead>
+                <TableHead>Applicants</TableHead>
+                <TableHead>Deadline</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredJobs.map((post) => (
+                <TableRow key={post.id}>
+                  <TableCell>
+                    <button type="button" onClick={() => setViewingJob(post)} className="text-left font-medium text-navy hover:text-primary">
+                      {post.title}
+                    </button>
+                    <p className="mt-1 text-[11px] text-muted-foreground">
+                      {post.location || 'Santa Maria'} · {post.employment_type || 'Full-time'} · {post.vacancies || 1} openings
+                    </p>
+                    {post.remarks && (
+                      <p className="mt-2 max-w-xs text-[11px] leading-5 text-destructive">PESO feedback: {post.remarks}</p>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    <Link to="/employer/applicants" className="text-link text-xs">
+                      <Users className="size-3.5" />
+                      {post.applicant_count || 0} applicants
+                    </Link>
+                  </TableCell>
+                  <TableCell className="whitespace-nowrap">{formatDate(post.deadline)}</TableCell>
+                  <TableCell><StatusBadge status={POSTING_LABELS[post.status] || post.status} /></TableCell>
+                  <TableCell>
+                    <div className="flex flex-wrap gap-2">
+                      <Button variant="outline" onClick={() => handleOpenEdit(post)} aria-label={`Edit ${post.title}`}>
+                        <Edit3 data-icon="inline-start" />
+                        Edit
+                      </Button>
+                      {post.status === 'published' ? (
+                        <Button variant="ghost" onClick={() => handleToggleClose(post)}>Close</Button>
+                      ) : (
+                        <Button
+                          variant="ghost"
+                          disabled={saving || accreditationStatus !== 'approved'}
+                          onClick={() => handleToggleClose(post)}
+                        >
+                          {post.status === 'closed' ? 'Reopen' : 'Publish'}
+                        </Button>
+                      )}
+                      {post.status === 'published' && (
+                        <Link to={`/jobs/${post.id}`} aria-label={`View ${post.title}`} className="inline-flex size-9 items-center justify-center rounded-lg text-muted-foreground hover:text-primary">
+                          <Eye />
+                        </Link>
+                      )}
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         ) : (
           <EmptyState
-            title="No job listings found"
-            description={emptyDescription}
-            action={
-              searchTerm || statusFilter ? (
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => {
-                    setSearchTerm("");
-                    setStatusFilter(null);
-                    setPage(1);
-                  }}
-                  className="gap-1.5 text-xs"
-                >
-                  <RotateCcw className="size-3.5" />
-                  Reset filters
-                </Button>
-              ) : accreditationStatus !== "approved" ? (
-                <Link to="/employer/accreditation" className="text-link text-xs">
-                  View accreditation →
-                </Link>
-              ) : null
-            }
+            title="Your next opening starts here."
+            description="No vacancies match this view. Clear the filters or create a new job posting."
+            action={<Button type="button" onClick={handleOpenCreate} disabled={!company}>Create a vacancy</Button>}
           />
         )}
-      </ApplicantsShell>
+        <Pager page={page} pageSize={pageSize} total={total} onChange={setPage} />
+      </Panel>
 
       {/* ========================================================================= */}
       {/* Post / Edit Job Modal Form                                                */}
@@ -1178,6 +1115,10 @@ export default function JobPosts() {
                   {viewingJob.status === "published" ? "Close Job" : "Reopen Job"}
                 </Button>
               )}
+
+              <Button type="button" variant="ghost" onClick={() => setConfirmDeleteJob(viewingJob)} className="text-xs text-destructive hover:bg-danger-soft">
+                Delete posting
+              </Button>
 
               <Button type="button" variant="secondary" onClick={() => setViewingJob(null)} className="text-xs">
                 Done

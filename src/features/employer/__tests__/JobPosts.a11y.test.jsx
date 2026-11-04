@@ -58,12 +58,12 @@ async function renderJobPosts(posts = [job()]) {
     </MemoryRouter>
   )
   if (posts.length) return screen.findByRole('button', { name: 'Warehouse Associate' })
-  return screen.findByText('No job listings found')
+  return screen.findByText('Your next opening starts here.')
 }
 
 async function openForm() {
   await renderJobPosts([])
-  fireEvent.click(await screen.findByRole('button', { name: /post a job/i }))
+  fireEvent.click((await screen.findAllByRole('button', { name: /create a vacancy/i }))[0])
   return screen.findByRole('heading', { name: /post a municipal vacancy/i })
 }
 
@@ -133,9 +133,8 @@ describe('JobPosts accessibility', () => {
     expect(screen.getByRole('heading', { name: /post a municipal vacancy/i })).toBeInTheDocument()
   })
 
-  it('labels the search and sort controls', async () => {
+  it('labels the search control', async () => {
     await renderJobPosts()
     expect(screen.getByLabelText(/search job postings/i)).toBeInTheDocument()
-    expect(screen.getByLabelText(/^sort/i)).toBeInTheDocument()
   })
 })

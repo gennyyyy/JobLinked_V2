@@ -27,18 +27,12 @@ const PAGE = [
   { id: 'j2', title: 'Cashier', status: 'draft', created_at: '2026-01-02', applicant_count: 0 },
 ]
 
-describe('JobPosts sidebar status filters', () => {
+describe('JobPosts status filter', () => {
   beforeEach(() => vi.clearAllMocks())
 
-  it('refetches with the status and marks the tile pressed', async () => {
+  it('refetches with the selected posting status', async () => {
     getEmployer.mockResolvedValue({ id: 'emp-1', accreditation_status: 'approved' })
-    listEmployerJobs.mockResolvedValue({
-      data: PAGE,
-      total: PAGE.length,
-      page: 1,
-      pageSize: 25,
-      counts: { total: 12, published: 7, closed: 3, draft: 2 },
-    })
+    listEmployerJobs.mockResolvedValue({ data: PAGE, total: PAGE.length, page: 1, pageSize: 25 })
 
     render(
       <MemoryRouter>
@@ -46,18 +40,13 @@ describe('JobPosts sidebar status filters', () => {
       </MemoryRouter>,
     )
 
-    // Tiles show the API's company-wide counts, not the 2 rows on this page.
-    const draft = await screen.findByTitle('Show draft job postings')
-    expect(draft).toHaveAttribute('aria-pressed', 'false')
-    expect(draft).toHaveTextContent('2')
-    expect(screen.getByTitle('Show published job postings')).toHaveTextContent('7')
+    await screen.findByRole('button', { name: 'Welder' })
     expect(listEmployerJobs).toHaveBeenLastCalledWith('emp-1', { page: 1, status: null })
 
-    fireEvent.click(draft)
+    fireEvent.change(screen.getByLabelText(/posting status/i), { target: { value: 'draft' } })
 
     await waitFor(() =>
       expect(listEmployerJobs).toHaveBeenLastCalledWith('emp-1', { page: 1, status: 'draft' }),
     )
-    expect(await screen.findByTitle('Show draft job postings')).toHaveAttribute('aria-pressed', 'true')
   })
 })

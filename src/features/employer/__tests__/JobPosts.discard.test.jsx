@@ -32,7 +32,7 @@ async function openForm() {
       <JobPosts />
     </MemoryRouter>
   )
-  fireEvent.click(await screen.findByRole('button', { name: /post a job/i }))
+  fireEvent.click((await screen.findAllByRole('button', { name: /create a vacancy/i }))[0])
   return screen.findByRole('heading', { name: /post a municipal vacancy/i })
 }
 
