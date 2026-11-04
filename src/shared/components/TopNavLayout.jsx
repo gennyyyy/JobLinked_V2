@@ -185,7 +185,7 @@ export default function TopNavLayout({ role, navItems, profileTo, roleLabel, hom
   return (
     <div className={cn('min-h-screen bg-muted/70', fixedContent && 'h-screen overflow-hidden')}>
       <SkipLink />
-      <aside className={cn('fixed inset-y-0 left-0 z-30 hidden border-r bg-white transition-[width] lg:block', collapsed ? 'w-[82px]' : 'w-[248px]')}>
+      <aside className={cn('fixed inset-y-0 left-0 z-30 hidden border-r bg-white transition-[width] lg:block', collapsed ? 'w-[94px]' : 'w-[285px]')}>
         {sidebar()}
       </aside>
       <Sheet open={mobile} onOpenChange={setMobile}>
@@ -197,8 +197,8 @@ export default function TopNavLayout({ role, navItems, profileTo, roleLabel, hom
           {sidebar(true)}
         </SheetContent>
       </Sheet>
-      <div className={cn('min-h-screen transition-[margin]', collapsed ? 'lg:ml-[82px]' : 'lg:ml-[248px]', fixedContent && 'flex h-screen flex-col')}>
-        <header className="sticky top-0 z-20 flex h-[74px] shrink-0 items-center justify-between gap-3 border-b bg-white/95 px-5 backdrop-blur-sm lg:px-8">
+      <div className={cn('min-h-screen transition-[margin]', collapsed ? 'lg:ml-[94px]' : 'lg:ml-[285px]', fixedContent && 'flex h-screen flex-col')}>
+        <header className="sticky top-0 z-20 flex h-[85px] shrink-0 items-center justify-between gap-3 border-b bg-white/95 px-5 backdrop-blur-sm lg:px-8">
           <div className="flex min-w-0 items-center gap-4">
             <Button variant="ghost" size="icon" className="hidden lg:inline-flex" aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'} onClick={() => setCollapsed((v) => !v)}>
               {collapsed ? <ChevronsRight /> : <ChevronsLeft />}
