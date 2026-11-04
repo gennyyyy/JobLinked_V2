@@ -192,9 +192,9 @@ function Logs() {
   return (
     <div className="flex h-full min-h-0 flex-col gap-6">
       <PageHeading
-        eyebrow="System audit"
-        title="Activity Logs"
-        description="Review user actions and system activity across the platform."
+        eyebrow="A clear record of every step"
+        title="Transparency is part of the work."
+        description="Review approvals, posting changes, application updates, and system configuration activity."
       />
 
       <section className="surface flex min-h-0 flex-1 flex-col overflow-hidden p-0">

@@ -10,6 +10,7 @@ import ConfirmationModal from '@/shared/components/ConfirmationModal'
 import LoadingScreen from '@/shared/components/LoadingScreen'
 import { InlineError, Pager } from '@/shared/components/dashboard'
 import { EmptyState, PageHeading, Panel, StatusBadge, TextField } from '@/shared/components/design'
+import { titleCase } from '@/shared/utils/titleCase'
 
 // Minimal admin edit modal (prefill → PATCH admin/jobs/:id). The employer
 // JobForm lives inside the employer page and can't be imported without
@@ -169,9 +170,9 @@ function JobPosts() {
   return (
     <>
       <PageHeading
-        eyebrow="Central bulletin"
-        title="All Municipal Job Postings"
-        description="Monitor active job listings from accredited Santa Maria employers."
+        eyebrow="Keep local opportunities trustworthy"
+        title="Clear standards. Better opportunities."
+        description="Inspect job postings, confirm employer approval, and record moderation decisions."
       />
 
       {actionError && <InlineError message={actionError} />}
@@ -226,11 +227,12 @@ function JobPosts() {
             </colgroup>
             <TableHeader>
               <TableRow>
-                <TableHead>Job Title</TableHead>
-                <TableHead>Company</TableHead>
-                <TableHead>Location</TableHead>
+                <TableHead>Vacancy</TableHead>
+                <TableHead>Employer</TableHead>
+                <TableHead>Approval</TableHead>
+                <TableHead>Deadline</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+                <TableHead className="text-right">Action</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -238,7 +240,12 @@ function JobPosts() {
                 <TableRow key={post.id}>
                   <TableCell className="whitespace-normal text-xs font-medium text-navy">{post.title}</TableCell>
                   <TableCell className="truncate text-[11px] uppercase text-muted-foreground">{post.employers?.company_name}</TableCell>
-                  <TableCell className="truncate text-[11px] text-muted-foreground">{post.location}</TableCell>
+                  <TableCell>
+                    <StatusBadge status={post.employers?.accreditation_status ? titleCase(post.employers.accreditation_status) : '—'} />
+                  </TableCell>
+                  <TableCell className="text-[11px] text-muted-foreground">
+                    {post.deadline ? new Date(post.deadline).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}
+                  </TableCell>
                   <TableCell>
                     <StatusBadge status={statusLabel(post.status)} />
                   </TableCell>

@@ -1,29 +1,17 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import {
   ArrowUpRight,
-  BarChart3,
-  Bell,
-  BriefcaseBusiness,
-  Building2,
   ChevronDown,
   ChevronRight,
   ChevronsLeft,
   ChevronsRight,
-  ClipboardList,
-  FileCheck2,
   HelpCircle,
-  LayoutDashboard,
   LogOut,
-  Megaphone,
   Menu,
-  ScrollText,
   Search,
   Settings,
   ShieldCheck,
-  UserCog,
-  UserRound,
-  Users,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -34,79 +22,66 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { InputGroup, InputGroupInput, InputGroupAddon } from '@/components/ui/input-group'
 import SkipLink from './SkipLink'
 import NotificationBell from './NotificationBell'
+import { Logo } from './design'
 import useAuth from '../hooks/useAuth'
 import useAFKTimer from '../hooks/useAFKTimer'
 import useDialog from '../hooks/useDialog'
 import { initialsOf } from '../utils/accountName'
+import { PORTAL_NAV, ROLE_LABELS } from '../constants'
+import { listNotifications } from '../services/notifications'
+import { getStats } from '../services/admin'
 import { cn } from '@/lib/utils'
 
-const ICONS = {
-  dashboard: LayoutDashboard,
-  'browse jobs': BriefcaseBusiness,
-  'job posts': BriefcaseBusiness,
-  'my applications': ClipboardList,
-  applications: ClipboardList,
-  employment: FileCheck2,
-  notifications: Bell,
-  accreditation: ShieldCheck,
-  applicants: Users,
-  employees: Users,
-  company: Building2,
-  profile: UserRound,
-  users: Users,
-  roles: UserCog,
-  reports: BarChart3,
-  logs: ScrollText,
-  settings: Settings,
-  broadcast: Megaphone,
-}
-
-function iconFor(label) {
-  return ICONS[String(label || '').toLowerCase()] || LayoutDashboard
-}
-
-function flattenItems(items) {
-  return items.flatMap((item) => (item.children ? [{ label: item.label, group: true }, ...item.children] : [item]))
-}
-
-export default function TopNavLayout({ navItems = [], profileTo, roleLabel, homeTo, fixedContent = false, badge, subhead }) {
+export default function TopNavLayout({ role, navItems, profileTo, roleLabel, homeTo, fixedContent = false }) {
   const navigate = useNavigate()
   const { pathname } = useLocation()
   const { logout, user } = useAuth()
+  const isAdmin = role === 'super-admin'
+  const label = roleLabel || ROLE_LABELS[role] || 'Workspace'
   const home = homeTo ?? `/${pathname.split('/')[1] || ''}`
+  const navigation = navItems || PORTAL_NAV[role] || []
   const [collapsed, setCollapsed] = useState(false)
   const [mobile, setMobile] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
   const [query, setQuery] = useState('')
   const [showWarning, setShowWarning] = useState(false)
-  const handleWarning = useCallback(() => setShowWarning(true), [])
+  const [unread, setUnread] = useState(0)
+  const [pendingAccreditations, setPendingAccreditations] = useState(0)
+  const handleWarning = useCallback(() => setShowWarning(true), [setShowWarning])
   const afkRef = useDialog(() => setShowWarning(false), showWarning)
   useAFKTimer(true, handleWarning)
+
+  useEffect(() => {
+    let alive = true
+    listNotifications(user?.id)
+      .then((rows) => { if (alive) setUnread((rows || []).filter((row) => !row.is_read).length) })
+      .catch(() => {})
+    if (isAdmin) {
+      getStats()
+        .then((stats) => { if (alive) setPendingAccreditations(Number(stats?.pendingAccreditations) || 0) })
+        .catch(() => {})
+    }
+    return () => { alive = false }
+  }, [user?.id, pathname, isAdmin])
 
   function handleLogout() {
     logout()
     navigate('/')
   }
 
-  const flat = flattenItems(navItems)
-  const activeItem = flat.find((item) => !item.group && (pathname === item.to || pathname.startsWith(`${item.to}/`)))
-  const pageLabel = activeItem?.label ?? 'Overview'
-  const subheadText = typeof subhead === 'function' ? subhead(user) : subhead
-  const displaySubhead = subheadText || user?.full_name || user?.name || user?.email || roleLabel || 'Workspace'
-  const initials = initialsOf(user, displaySubhead)
+  const activePath = pathname.split('/')[2] || 'dashboard'
+  const activeItem = navigation.find((item) => {
+    const itemPath = item.path.split('/').filter(Boolean).pop()
+    return itemPath === activePath || (item.end && item.path === pathname)
+  })
+  const pageLabel = activeItem?.label ?? 'Workspace'
+  const name = user?.full_name || user?.name || user?.email || 'Workspace'
+  const initials = initialsOf(user, name)
 
   const sidebar = (small = false) => (
     <div className="flex h-full flex-col">
       <div className="flex h-[85px] items-center px-6">
-        <Link to={home} className="flex items-center gap-2 font-semibold tracking-tight text-navy" aria-label="JobLinked home">
-          {collapsed && !small ? (
-            <span className="text-lg">J</span>
-          ) : (
-            <>
-              <span className="text-[22px] font-bold tracking-[-1px]">Job<span className="text-primary">Linked</span><span className="text-primary">.</span></span>
-            </>
-          )}
-        </Link>
+        <Logo compact={collapsed && !small} />
       </div>
       <div className={cn('px-6 pb-4', collapsed && !small && 'px-4')}>
         <Badge variant="secondary" className="gap-1.5 whitespace-nowrap">
@@ -115,38 +90,23 @@ export default function TopNavLayout({ navItems = [], profileTo, roleLabel, home
           ) : (
             <>
               <span className="size-1.5 rounded-full bg-teal" />
-              {badge || `${roleLabel || 'Portal'} workspace`}
+              {label} workspace
             </>
           )}
         </Badge>
       </div>
-      {(!collapsed || small) && displaySubhead && (
-        <div className="px-6 pb-4">
-          <p className="text-[10px] font-medium uppercase tracking-[.15em] text-muted-foreground">{roleLabel}</p>
-          <p className="mt-1 truncate text-xs font-medium text-navy">{displaySubhead}</p>
-        </div>
-      )}
-      <nav className="flex flex-1 flex-col gap-1 overflow-y-auto px-3" aria-label={`${roleLabel || 'Portal'} navigation`}>
-        {flat.map((item) => {
-          if (item.group) {
-            return (
-              (!collapsed || small) && (
-                <p key={item.label} className="px-3 pb-1 pt-4 text-[10px] font-semibold uppercase tracking-[.14em] text-muted-foreground">
-                  {item.label}
-                </p>
-              )
-            )
-          }
-          const Icon = iconFor(item.label)
-          const active = pathname === item.to || (item.end ? pathname === item.to : pathname.startsWith(`${item.to}/`))
+      <nav className="flex flex-1 flex-col gap-1 overflow-y-auto px-3" aria-label={`${label} navigation`}>
+        {navigation.map(({ label: title, path, icon: Icon, end }) => {
+          const active = end ? pathname === path : pathname === path || pathname.startsWith(`${path}/`)
+          const badge = path.endsWith('/notifications') ? unread : isAdmin && path.endsWith('/accreditation') ? pendingAccreditations : 0
           return (
             <NavLink
-              key={item.to}
-              to={item.to}
-              end={item.end}
+              key={path}
+              to={path}
+              end={end}
               onClick={() => setMobile(false)}
-              title={collapsed && !small ? item.label : undefined}
-              aria-label={item.label}
+              title={collapsed && !small ? title : undefined}
+              aria-label={title}
               aria-current={active ? 'page' : undefined}
               className={cn(
                 'flex min-h-11 items-center gap-3 rounded-lg px-3 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-navy',
@@ -154,8 +114,17 @@ export default function TopNavLayout({ navItems = [], profileTo, roleLabel, home
                 collapsed && !small && 'justify-center px-1',
               )}
             >
-              <Icon className="size-[17px] shrink-0" strokeWidth={1.7} />
-              {(!collapsed || small) && <span className="flex-1">{item.label}</span>}
+              {Icon ? <Icon className="size-[17px] shrink-0" strokeWidth={1.7} /> : null}
+              {(!collapsed || small) && (
+                <>
+                  <span className="flex-1">{title}</span>
+                  {badge > 0 && (
+                    <span className={cn('flex size-5 items-center justify-center rounded-md text-[9px]', path.endsWith('/accreditation') ? 'bg-warning-soft text-warning' : 'bg-primary/10 text-primary')}>
+                      {badge}
+                    </span>
+                  )}
+                </>
+              )}
             </NavLink>
           )
         })}
@@ -171,7 +140,7 @@ export default function TopNavLayout({ navItems = [], profileTo, roleLabel, home
         </div>
       )}
       <div className="flex flex-col gap-2 border-t p-4">
-        <Link className="flex min-h-10 items-center gap-3 px-2 text-[11px] text-muted-foreground" to="/faq">
+        <Link className="flex min-h-10 items-center gap-3 px-2 text-[11px] text-muted-foreground" to="/#faq">
           <HelpCircle className="size-4" />
           {(!collapsed || small) && 'Help & resources'}
         </Link>
@@ -180,9 +149,9 @@ export default function TopNavLayout({ navItems = [], profileTo, roleLabel, home
   )
 
   const lower = query.toLowerCase()
-  const results = flat
-    .filter((item) => !item.group && item.label.toLowerCase().includes(lower))
-    .map((item) => ({ title: item.label, subtitle: 'Workspace page', href: item.to }))
+  const results = navigation
+    .filter((item) => item.label.toLowerCase().includes(lower))
+    .map((item) => ({ title: item.label, subtitle: 'Workspace page', href: item.path }))
 
   return (
     <div className={cn('min-h-screen bg-muted/70', fixedContent && 'h-screen overflow-hidden')}>
@@ -230,8 +199,8 @@ export default function TopNavLayout({ navItems = [], profileTo, roleLabel, home
                   <AvatarFallback>{initials}</AvatarFallback>
                 </Avatar>
                 <span className="hidden text-left sm:block">
-                  <span className="block text-[11px] font-medium text-navy">{displaySubhead}</span>
-                  <span className="mt-0.5 block text-[9px] text-muted-foreground">{roleLabel}</span>
+                  <span className="block text-[11px] font-medium text-navy">{name}</span>
+                  <span className="mt-0.5 block text-[9px] text-muted-foreground">{label}</span>
                 </span>
                 <ChevronDown className="hidden sm:block" />
               </DropdownMenuTrigger>

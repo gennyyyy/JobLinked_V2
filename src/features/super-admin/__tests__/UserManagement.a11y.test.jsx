@@ -61,7 +61,7 @@ describe('UserManagement accessibility', () => {
     assignRole.mockRejectedValue(new Error('Role change rejected'))
     await renderUsers()
     fireEvent.change(screen.getByLabelText(/role for ada lovelace/i), { target: { value: 'sys:job-seeker' } })
-    await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('Role change rejected'))
+    await waitFor(() => expect(screen.getAllByRole('alert').some((alert) => alert.textContent.includes('Role change rejected'))).toBe(true))
   })
 
   it('closes the invite dialog on Escape', async () => {

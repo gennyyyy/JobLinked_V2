@@ -8,10 +8,10 @@ import { listUsers, updateUser, listAllAccreditations, listRoles, assignRole, as
 import { latestAccByCompany } from '@/shared/services/documents'
 import useAuth from '@/shared/hooks/useAuth'
 import LoadingScreen from '@/shared/components/LoadingScreen'
-import { InlineError, Pager } from '@/shared/components/dashboard'
+import { InlineError, Pager, StatCard } from '@/shared/components/dashboard'
 import useDialog from '@/shared/hooks/useDialog'
 import { titleCase } from '@/shared/utils/titleCase'
-import { PageHeading, SelectField, StatusBadge } from '@/shared/components/design'
+import { Notice, PageHeading, SelectField, StatusBadge } from '@/shared/components/design'
 
 const SYSTEM_ROLE_LABELS = { 'super-admin': 'Super Admin', employer: 'Employer', 'job-seeker': 'Job Seeker' }
 
@@ -175,19 +175,40 @@ function UserManagement() {
     { value: 'job-seeker', label: 'Job Seeker' },
   ]
 
+  const jobSeekerCount = users.filter((row) => row.role === 'job-seeker').length
+  const employerCount = users.filter((row) => row.role === 'employer').length
+  const adminCount = users.filter((row) => row.role === 'super-admin').length
+  const activeCount = users.filter((row) => row.status === 'active').length
+  const suspendedCount = users.filter((row) => row.status !== 'active').length
+
   return (
     <div className="flex h-full min-h-0 flex-col gap-4 overflow-hidden">
       <div className="shrink-0">
         <PageHeading
-          eyebrow="System administration"
+          eyebrow="Accountable access. Clear responsibilities."
           title="User Management"
-          description="Manage system users and assign them to roles."
+          description="Find registered users, assign their system roles, and manage account access."
           action={(
             <Button type="button" onClick={() => { setActionError(''); setShowInvite(true) }}>
               Add user
             </Button>
           )}
         />
+      </div>
+
+      <div className="shrink-0">
+        <Notice title="Frontend authorization preview">
+          Role checks are enforced by the shared API for this session, not by the browser. Production must validate JWT sessions, permissions, tenant scope, and audit writes server-side.
+        </Notice>
+      </div>
+
+      <div className="grid shrink-0 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        <StatCard label="Total system users" value={total} />
+        <StatCard label="Job seekers" value={jobSeekerCount} />
+        <StatCard label="Employers" value={employerCount} />
+        <StatCard label="PESO administrators" value={adminCount} />
+        <StatCard label="Active accounts" value={activeCount} />
+        <StatCard label="Suspended accounts" value={suspendedCount} />
       </div>
 
       {success && <p className="shrink-0 rounded-xl border border-success/20 bg-success-soft px-4 py-3 text-xs text-success">{success}</p>}

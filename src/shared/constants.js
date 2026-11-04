@@ -1,4 +1,63 @@
+import {
+  Bell,
+  BriefcaseBusiness,
+  Building2,
+  ChartNoAxesCombined,
+  ClipboardList,
+  Handshake,
+  LayoutDashboard,
+  Megaphone,
+  ScrollText,
+  Search,
+  Settings,
+  ShieldCheck,
+  UserRound,
+  Users,
+} from 'lucide-react';
+
 export const ROLES = { SUPER_ADMIN: 'super-admin', EMPLOYER: 'employer', JOB_SEEKER: 'job-seeker' };
+
+export const ROLE_LABELS = {
+  'super-admin': 'PESO Admin',
+  employer: 'Employer',
+  'job-seeker': 'Job Seeker',
+};
+
+// Mirrors the reference design's PORTAL_NAV, mapped onto this app's routes.
+export const PORTAL_NAV = {
+  'job-seeker': [
+    { label: 'Overview', path: '/job-seeker', icon: LayoutDashboard, end: true },
+    { label: 'My profile', path: '/job-seeker/profile', icon: UserRound },
+    { label: 'Browse Jobs', path: '/job-seeker/jobs', icon: Search },
+    { label: 'My applications', path: '/job-seeker/applications', icon: ClipboardList },
+    { label: 'Employment Tracking', path: '/job-seeker/employment', icon: BriefcaseBusiness },
+    { label: 'Notifications', path: '/job-seeker/notifications', icon: Bell },
+  ],
+  employer: [
+    { label: 'Overview', path: '/employer', icon: LayoutDashboard, end: true },
+    { label: 'Accreditation', path: '/employer/accreditation', icon: ShieldCheck },
+    { label: 'Company profile', path: '/employer/company', icon: Building2 },
+    { label: 'Job management', path: '/employer/job-posts', icon: BriefcaseBusiness },
+    { label: 'Applicants', path: '/employer/applicants', icon: Users },
+    { label: 'Employees Tracking', path: '/employer/employees', icon: BriefcaseBusiness },
+    { label: 'Notifications', path: '/employer/notifications', icon: Bell },
+  ],
+  'super-admin': [
+    { label: 'Overview', path: '/super-admin', icon: LayoutDashboard, end: true },
+    { label: 'My profile', path: '/super-admin/profile', icon: UserRound },
+    { label: 'Employer accreditation', path: '/super-admin/accreditation', icon: ShieldCheck },
+    { label: 'User management', path: '/super-admin/users', icon: Users },
+    { label: 'Role Management', path: '/super-admin/roles', icon: ShieldCheck },
+    { label: 'Employment oversight', path: '/super-admin/employment-tracking', icon: Handshake },
+    { label: 'Job vacancy oversight', path: '/super-admin/job-posts', icon: BriefcaseBusiness },
+    { label: 'Applications & placements', path: '/super-admin/applications', icon: Handshake },
+    { label: 'Reports & insights', path: '/super-admin/reports', icon: ChartNoAxesCombined },
+    { label: 'Announcements', path: '/super-admin/broadcast', icon: Megaphone },
+    { label: 'Audit log', path: '/super-admin/logs', icon: ScrollText },
+    { label: 'Notifications', path: '/super-admin/notifications', icon: Bell },
+    { label: 'System settings', path: '/super-admin/settings', icon: Settings },
+  ],
+};
 
 export const EMPLOYMENT_STATUSES = ['Employed', 'Unemployed', 'Underemployed', 'Fresh Graduate', 'Student'];
 

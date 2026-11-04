@@ -1,10 +1,11 @@
 import { Button } from '@/components/ui/button'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Download } from 'lucide-react'
 import { listAllJobs, listAllApplications, listUsers } from '@/shared/services/admin'
 import LoadingScreen from '@/shared/components/LoadingScreen'
 import { InlineError, SectionCard, StatCard } from '@/shared/components/dashboard'
 import { PageHeading, TextField } from '@/shared/components/design'
+import { BarangayVacancyChart, EmploymentActivityChart, EmploymentTypeChart } from '@/shared/components/EmploymentCharts'
 
 const REPORTS = [
   { id: 'referral', label: 'Referral', eyebrow: 'Referral activity', description: 'Track applicants referred through PESO services.' },
@@ -53,15 +54,37 @@ function Reports() {
   const periodApplications = applications.filter((application) => inRange(application.applied_at))
   const placed = periodApplications.filter((application) => application.status?.toLowerCase() === 'placed')
 
-  const reportRows = useMemo(() => {
-    if (active === 'placement') return placed
-    if (active === 'registration') return seekers
-    if (active === 'vacancy') return vacancies
-    return []
-  }, [active, placed, seekers, vacancies])
+  const reportRows = active === 'placement'
+    ? placed
+    : active === 'registration'
+      ? seekers
+      : active === 'vacancy'
+        ? vacancies
+        : []
   const pages = Math.max(1, Math.ceil(reportRows.length / PAGE_SIZE))
   const visibleRows = reportRows.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
   const current = REPORTS.find((item) => item.id === active)
+
+  const activityDays = Array.from({ length: 14 }, (_, index) => {
+    const date = new Date()
+    date.setDate(date.getDate() - 13 + index)
+    const key = date.toISOString().slice(0, 10)
+    const rows = periodApplications.filter((application) => String(application.applied_at || '').slice(0, 10) === key)
+    return {
+      month: new Intl.DateTimeFormat('en-PH', { month: 'short', day: 'numeric' }).format(date),
+      applications: rows.length,
+      placements: rows.filter((application) => ['Placed', 'Hired', 'Accepted'].includes(application.status)).length,
+    }
+  })
+  const employmentTypeData = ['Full-time', 'Part-time', 'Contractual', 'Seasonal', 'Job Order']
+    .map((name) => ({ name, value: vacancies.filter((job) => (job.employment_type || '') === name).length }))
+  const barangayData = Object.entries(
+    vacancies.reduce((acc, job) => {
+      const key = job.location || 'Unspecified'
+      acc[key] = (acc[key] || 0) + 1
+      return acc
+    }, {}),
+  ).map(([name, count]) => ({ name, vacancies: count }))
 
   function downloadCSV() {
     const fields = active === 'placement'
@@ -86,9 +109,9 @@ function Reports() {
   return (
     <>
       <PageHeading
-        eyebrow="Reports & analytics"
-        title="Reports"
-        description="A clear view of referrals, employment outcomes, applicant growth, and employer demand."
+        eyebrow="A more informed local picture"
+        title="Insights that keep people at the center."
+        description="Explore provided vacancies, referrals, and placement outcomes across Santa Maria's 24 barangays."
         action={(
           <Button type="button" variant="outline" onClick={downloadCSV}>
             <Download data-icon="inline-start" />
@@ -161,6 +184,18 @@ function Reports() {
           </>
         )}
       </div>
+
+      <div className="mb-6 grid gap-4 lg:grid-cols-2">
+        <SectionCard title="Local employment activity" subtitle="Last 14 days · applications and current outcomes">
+          <EmploymentActivityChart data={activityDays} />
+        </SectionCard>
+        <SectionCard title="Vacancies by employment type" subtitle="Published vacancies in the selected period">
+          <EmploymentTypeChart data={employmentTypeData} />
+        </SectionCard>
+      </div>
+      <SectionCard className="mb-6" title="Vacancies by barangay" subtitle="Top six barangays in the selected period">
+        <BarangayVacancyChart data={barangayData} />
+      </SectionCard>
 
       <SectionCard className="p-0" title="Report details" subtitle={`${reportRows.length} records`}>
         {active === 'referral' ? (

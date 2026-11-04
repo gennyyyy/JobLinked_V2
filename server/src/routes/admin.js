@@ -251,7 +251,7 @@ router.get('/admin/jobs', ...admin, ah(async (req, res) => {
   const base = `from job_vacancies j left join employers e on e.id = j.company_id ${cond}`;
   const total = (await pool.query(`select count(*)::int c ${base}`, vals)).rows[0].c;
   const { rows } = await pool.query(
-    `select j.*, json_build_object('id', e.id, 'company_name', e.company_name) as employers ${base}
+    `select j.*, json_build_object('id', e.id, 'company_name', e.company_name, 'accreditation_status', e.accreditation_status) as employers ${base}
      order by j.created_at desc limit $${vals.length + 1} offset $${vals.length + 2}`,
     [...vals, pg.pageSize, (pg.page - 1) * pg.pageSize]);
   res.json({ data: rows, total, page: pg.page, pageSize: pg.pageSize });

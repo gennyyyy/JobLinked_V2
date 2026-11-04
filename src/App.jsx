@@ -34,6 +34,7 @@ const Reports = lazy(() => import('./features/super-admin/Reports'))
 const Logs = lazy(() => import('./features/super-admin/Logs'))
 const SuperAdminNotifications = lazy(() => import('./features/super-admin/Notifications'))
 const SuperAdminProfile = lazy(() => import('./features/super-admin/Profile'))
+const SuperAdminPlaceholder = lazy(() => import('./features/super-admin/SectionPlaceholder'))
 const EmployerLayout = lazy(() => import('./features/employer/EmployerLayout'))
 const EmployerDashboard = lazy(() => import('./features/employer/Dashboard'))
 const EmployerJobPosts = lazy(() => import('./features/employer/JobPosts'))
@@ -64,8 +65,22 @@ function App() {
             {/* New-design flow aliases for the portal roots. */}
             <Route path="/jobseeker" element={<Navigate to="/job-seeker" replace />} />
             <Route path="/jobseeker/*" element={<LegacyRedirect to="/job-seeker" />} />
+            {/* New-design admin flow: /admin/<reference-section> maps onto this app. */}
             <Route path="/admin" element={<Navigate to="/super-admin" replace />} />
-            <Route path="/admin/*" element={<LegacyRedirect to="/super-admin" />} />
+            <Route path="/admin/dashboard" element={<Navigate to="/super-admin" replace />} />
+            <Route path="/admin/profile" element={<Navigate to="/super-admin/profile" replace />} />
+            <Route path="/admin/accreditation" element={<Navigate to="/super-admin/accreditation" replace />} />
+            <Route path="/admin/users" element={<Navigate to="/super-admin/users" replace />} />
+            <Route path="/admin/role-management" element={<Navigate to="/super-admin/roles" replace />} />
+            <Route path="/admin/employment-tracking" element={<Navigate to="/super-admin/employment-tracking" replace />} />
+            <Route path="/admin/jobs" element={<Navigate to="/super-admin/job-posts" replace />} />
+            <Route path="/admin/applications" element={<Navigate to="/super-admin/applications" replace />} />
+            <Route path="/admin/reports" element={<Navigate to="/super-admin/reports" replace />} />
+            <Route path="/admin/announcements" element={<Navigate to="/super-admin/broadcast" replace />} />
+            <Route path="/admin/audit" element={<Navigate to="/super-admin/logs" replace />} />
+            <Route path="/admin/notifications" element={<Navigate to="/super-admin/notifications" replace />} />
+            <Route path="/admin/settings" element={<Navigate to="/super-admin/settings" replace />} />
+            <Route path="/admin/*" element={<Navigate to="/super-admin" replace />} />
             {/* Legal pages are not PublicRoute: portals link here, and a signed-in
                 user must not be logged out just for reading the notice. */}
             <Route path="/privacy" element={<Legal title="Privacy notice" />} />
@@ -109,6 +124,14 @@ function App() {
               <Route path="logs" element={<Logs />} />
               <Route path="notifications" element={<SuperAdminNotifications />} />
               <Route path="profile" element={<SuperAdminProfile />} />
+              <Route
+                path="employment-tracking"
+                element={<SuperAdminPlaceholder title="Employment oversight" description="Track accepted applicants and their employment status across Santa Maria employers." />}
+              />
+              <Route
+                path="applications"
+                element={<SuperAdminPlaceholder title="Applications & placements" description="Review every application and placement recorded in the municipality." />}
+              />
             </Route>
 
             <Route
@@ -126,7 +149,7 @@ function App() {
               <Route path="company" element={<CompanyProfile />} />
               <Route path="accreditation" element={<EmployerAccreditation />} />
               <Route path="status" element={<EmployerStatus />} />
-              <Route path="notifications" element={<NotificationsPage title="Notifications" subtitle="Reviews, accreditations, and system updates" />} />
+              <Route path="notifications" element={<NotificationsPage />} />
             </Route>
 
             <Route
@@ -143,7 +166,7 @@ function App() {
               <Route path="applications" element={<Applications />} />
               <Route path="employment" element={<Employment />} />
               <Route path="profile" element={<Profile />} />
-              <Route path="notifications" element={<NotificationsPage title="Notifications" subtitle="Application updates and system announcements" />} />
+              <Route path="notifications" element={<NotificationsPage />} />
             </Route>
 
             <Route path="*" element={<Navigate to="/" replace />} />

@@ -1,18 +1,9 @@
-import { Button } from "../../components/ui/button";
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { AlertTriangle, X } from 'lucide-react'
-import TopNavLayout from '../../shared/components/TopNavLayout'
-import useAuth from '../../shared/hooks/useAuth'
-
-const navItems = [
-  { to: '/employer', label: 'Dashboard', end: true },
-  { to: '/employer/job-posts', label: 'Job Posts' },
-  { to: '/employer/applicants', label: 'Applicants' },
-  { to: '/employer/employees', label: 'Employees' },
-  { to: '/employer/notifications', label: 'Notifications' },
-  { to: '/employer/accreditation', label: 'Accreditation' },
-]
+import { Button } from '@/components/ui/button'
+import TopNavLayout from '@/shared/components/TopNavLayout'
+import useAuth from '@/shared/hooks/useAuth'
 
 // Why posting is unavailable. Visibility only — no POST/publish behaviour here.
 const ACCREDITATION_NOTICE = {
@@ -49,14 +40,14 @@ export default function EmployerLayout() {
         <div
           role="status"
           className={`w-full px-4 py-2.5 flex items-start sm:items-center gap-3 border-b ${
-            notice.rejected ? 'bg-danger/5 border-danger/20' : 'bg-amber-50 border-amber-200'
+            notice.rejected ? 'bg-danger-soft border-danger/20' : 'bg-warning-soft border-warning/20'
           }`}
         >
           <AlertTriangle
-            className={`w-4 h-4 shrink-0 mt-0.5 sm:mt-0 ${notice.rejected ? 'text-danger' : 'text-amber-600'}`}
+            className={`w-4 h-4 shrink-0 mt-0.5 sm:mt-0 ${notice.rejected ? 'text-danger' : 'text-warning'}`}
             aria-hidden="true"
           />
-          <p className={`flex-1 text-xs leading-relaxed ${notice.rejected ? 'text-danger' : 'text-amber-800'}`}>
+          <p className={`flex-1 text-xs leading-relaxed ${notice.rejected ? 'text-danger' : 'text-warning'}`}>
             <span className="font-semibold">{notice.title}:</span> {notice.body}{' '}
             <Link to="/employer/accreditation" className="underline font-semibold hover:opacity-80">
               View accreditation →
@@ -66,19 +57,17 @@ export default function EmployerLayout() {
             type="button"
             onClick={() => setDismissed(true)}
             aria-label="Dismiss accreditation notice"
-            className={`p-1 cursor-pointer shrink-0 ${notice.rejected ? 'text-danger hover:opacity-80' : 'text-amber-700 hover:text-amber-900'}`}
+            className={`p-1 cursor-pointer shrink-0 ${notice.rejected ? 'text-danger hover:opacity-80' : 'text-warning hover:opacity-80'}`}
           >
             <X className="w-4 h-4" aria-hidden="true" />
           </Button>
         </div>
       )}
       <TopNavLayout
-        navItems={navItems}
-        badge="EMPLOYER"
-        eyebrow="SANTA MARIA, BULACAN"
-        subhead={(user) => user?.company_name || 'My Company'}
+        role="employer"
         profileTo="/employer/company"
         roleLabel="Employer"
+        homeTo="/employer"
       />
     </>
   )

@@ -62,9 +62,9 @@ export default function Broadcast() {
   return (
     <>
       <PageHeading
-        eyebrow="System broadcast"
-        title="Broadcast"
-        description="Send an announcement to all users. Past broadcasts appear below."
+        eyebrow="Keep your community connected"
+        title="A little information opens new doors."
+        description="Create employment notices and preview a vacancy distribution plan."
       />
       <div role="group" aria-label="Broadcast sections" className="mb-6 flex flex-wrap gap-2">
         <Button type="button" onClick={() => setTab('compose')} aria-current={tab === 'compose' ? 'true' : undefined} className={tabClass('compose')}>

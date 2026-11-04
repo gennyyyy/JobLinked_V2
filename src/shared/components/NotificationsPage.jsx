@@ -55,7 +55,7 @@ function NotificationItem({ n, onMarkRead, selected, onToggleSelect, role }) {
   );
 }
 
-export default function NotificationsPage({ title = "Notifications", subtitle = "Updates on your activity" }) {
+export default function NotificationsPage({ eyebrow = 'Your workspace', title = 'Stay in the loop.', subtitle = 'Application updates, accreditation decisions, and community notices, all in one place.' }) {
   const { user } = useAuth();
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -154,7 +154,7 @@ export default function NotificationsPage({ title = "Notifications", subtitle = 
       )}
       {/* Header Section */}
       <header>
-        <p className="eyebrow mb-2">Your activity</p>
+        <p className="eyebrow mb-3">{eyebrow}</p>
         <h1 className="text-2xl font-semibold tracking-[-.035em] text-navy md:text-[30px]">{title}</h1>
         <p className="mt-2 text-sm leading-6 text-muted-foreground">{subtitle}</p>
       </header>

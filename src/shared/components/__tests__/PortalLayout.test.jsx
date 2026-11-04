@@ -7,49 +7,25 @@ vi.mock('../../hooks/useAuth', async (importOriginal) => {
   return { ...actual, default: vi.fn() }
 })
 vi.mock('../NotificationBell', () => ({ default: () => null }))
+vi.mock('../../services/notifications', () => ({ listNotifications: vi.fn().mockResolvedValue([]) }))
+vi.mock('../../services/admin', () => ({ getStats: vi.fn().mockResolvedValue({ pendingAccreditations: 0 }) }))
 
 import useAuth from '../../hooks/useAuth'
 import TopNavLayout from '../TopNavLayout'
 
-const navItems = [
-  { to: '/super-admin', label: 'Dashboard', end: true },
-  { to: '/super-admin/users', label: 'Users' },
-]
-
-function renderLayout(path, extraProps = {}) {
-  useAuth.mockReturnValue({ user: { id: 'u1', full_name: 'Super Admin' }, logout: vi.fn() })
+function renderLayout(path, props = {}) {
+  useAuth.mockReturnValue({ user: { id: 'u1', full_name: 'Gabriel Mendoza' }, logout: vi.fn() })
   return render(
     <MemoryRouter initialEntries={[path]}>
-      <TopNavLayout
-        navItems={navItems}
-        badge="ADMIN"
-        eyebrow="PESO"
-        subhead="Super Admin"
-        profileTo="/super-admin/profile"
-        roleLabel="Super Admin"
-        {...extraProps}
-      />
+      <TopNavLayout role="super-admin" profileTo="/super-admin/profile" roleLabel="PESO Admin" homeTo="/super-admin" {...props} />
     </MemoryRouter>,
   )
 }
 
 describe('Portal shell logo target', () => {
-  it('derives the portal root from the pathname when no homeTo is passed', () => {
+  it('links the logo to the public home like the reference shell', () => {
     renderLayout('/super-admin')
-    const logo = screen.getByRole('link', { name: /joblinked home/i })
-    expect(logo).toHaveAttribute('href', '/super-admin')
-  })
-
-  it('uses only the first path segment for nested portal routes', () => {
-    renderLayout('/super-admin/users')
-    const logo = screen.getByRole('link', { name: /joblinked home/i })
-    expect(logo).toHaveAttribute('href', '/super-admin')
-  })
-
-  it('respects an explicit homeTo when provided', () => {
-    renderLayout('/employer', { homeTo: '/employer/company', roleLabel: 'Employer' })
-    const logo = screen.getByRole('link', { name: /joblinked home/i })
-    expect(logo).toHaveAttribute('href', '/employer/company')
+    expect(screen.getByRole('link', { name: /joblinked home/i })).toHaveAttribute('href', '/')
   })
 })
 
@@ -68,21 +44,22 @@ describe('Portal shell AFK modal button order', () => {
   })
 })
 
-describe('Portal shell mobile navigation', () => {
+describe('Portal shell navigation', () => {
+  it('renders the reference admin navigation landmark and items', () => {
+    renderLayout('/super-admin')
+    const nav = screen.getByRole('navigation', { name: 'PESO Admin navigation' })
+    expect(nav).toHaveTextContent('Overview')
+    expect(nav).toHaveTextContent('User management')
+    expect(nav).toHaveTextContent('System settings')
+  })
+
   it('exposes the hamburger with an accessible name', () => {
     renderLayout('/super-admin')
     expect(screen.getByRole('button', { name: /open workspace navigation/i })).toBeInTheDocument()
   })
 
-  it('labels the sidebar as a navigation landmark', () => {
+  it('shows the role workspace badge', () => {
     renderLayout('/super-admin')
-    expect(screen.getByRole('navigation', { name: 'Super Admin navigation' })).toBeInTheDocument()
-  })
-
-  it('renders every nav item as a link', () => {
-    renderLayout('/super-admin')
-    const nav = screen.getByRole('navigation', { name: 'Super Admin navigation' })
-    expect(nav).toHaveTextContent('Dashboard')
-    expect(nav).toHaveTextContent('Users')
+    expect(screen.getByText(/PESO Admin workspace/i)).toBeInTheDocument()
   })
 })

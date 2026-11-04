@@ -284,9 +284,9 @@ function Accreditation() {
   return (
     <>
       <PageHeading
-        eyebrow="Employer directory"
-        title="Accreditation management"
-        description="Verify municipal employer applications and manage compliance statuses."
+        eyebrow="Build trust in every opportunity"
+        title="A thoughtful review, a stronger community."
+        description="Review employer accreditation, provide actionable feedback, and maintain a clear decision history."
       />
 
       {actionError && <InlineError message={actionError} />}

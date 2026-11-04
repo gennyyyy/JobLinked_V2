@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ArrowRight, BriefcaseBusiness, Building2, ChartNoAxesCombined, ClipboardCheck, Handshake, ShieldCheck, Users } from 'lucide-react'
-import { getStats, listAllAccreditations, listAuditLogs } from '@/shared/services/admin'
+import { getStats, listAllAccreditations, listAllApplications, listAuditLogs } from '@/shared/services/admin'
 import LoadingScreen from '@/shared/components/LoadingScreen'
 import { InlineError } from '@/shared/components/dashboard'
+import { EmploymentActivityChart } from '@/shared/components/EmploymentCharts'
 import useAuth from '@/shared/hooks/useAuth'
 import { CompanyMark, EmptyState, LinkButton, PageHeading, Panel, StatCards, StatusBadge } from '@/shared/components/design'
 import { titleCase } from '@/shared/utils/titleCase'
@@ -12,15 +13,17 @@ export default function Dashboard() {
   const { user } = useAuth() || {}
   const [stats, setStats] = useState(null)
   const [accreditations, setAccreditations] = useState([])
+  const [applications, setApplications] = useState([])
   const [logs, setLogs] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
   useEffect(() => {
-    Promise.all([getStats(), listAllAccreditations(), listAuditLogs({ limit: 5 })])
-      .then(([statsData, accs, audit]) => {
+    Promise.all([getStats(), listAllAccreditations(), listAllApplications({ pageSize: 500 }), listAuditLogs({ limit: 5 })])
+      .then(([statsData, accs, applicationRows, audit]) => {
         setStats(statsData)
         setAccreditations((accs.data || []).slice(0, 5))
+        setApplications(applicationRows.data || [])
         setLogs(Array.isArray(audit) ? audit.slice(0, 5) : (audit?.data || []).slice(0, 5))
       })
       .catch((err) => setError(err.message || 'Failed to load dashboard'))
@@ -32,6 +35,18 @@ export default function Dashboard() {
   if (!stats) return null
 
   const firstName = user?.first_name || String(user?.full_name || user?.name || 'reviewer').split(' ')[0]
+
+  const days = Array.from({ length: 14 }, (_, index) => {
+    const date = new Date()
+    date.setDate(date.getDate() - 13 + index)
+    const key = date.toISOString().slice(0, 10)
+    const rows = applications.filter((application) => String(application.applied_at || '').slice(0, 10) === key)
+    return {
+      month: new Intl.DateTimeFormat('en-PH', { month: 'short', day: 'numeric' }).format(date),
+      applications: rows.length,
+      placements: rows.filter((application) => application.status === 'Placed' || application.status === 'Hired' || application.status === 'Accepted').length,
+    }
+  })
 
   return (
     <>
@@ -46,14 +61,14 @@ export default function Dashboard() {
           { label: 'Registered job seekers', value: stats.seekers ?? 0, icon: Users },
           { label: 'Local employers', value: stats.employers ?? 0, icon: Building2 },
           { label: 'Pending accreditations', value: stats.pendingAccreditations ?? 0, icon: ShieldCheck, note: 'submissions awaiting review', tone: 'teal' },
-          { label: 'Total job posts', value: stats.jobs ?? 0, icon: BriefcaseBusiness, tone: 'teal' },
+          { label: 'Active vacancies', value: stats.approvedJobs ?? stats.jobs ?? 0, icon: BriefcaseBusiness, tone: 'teal' },
         ]}
       />
       <div className="mb-6 grid gap-4 sm:grid-cols-3">
         {[
-          { label: 'Applications', value: stats.applications ?? 0, icon: ClipboardCheck },
-          ...(stats.accreditedEmployers !== undefined ? [{ label: 'Accredited employers', value: stats.accreditedEmployers, icon: Handshake }] : []),
-          ...(stats.placedApplicants !== undefined ? [{ label: 'Placements', value: stats.placedApplicants, icon: Users }] : []),
+          { label: 'applications', value: stats.applications ?? 0, icon: ClipboardCheck },
+          { label: 'Recorded referrals', value: applications.filter((application) => application.referred_by).length, icon: Handshake },
+          ...(stats.placedApplicants !== undefined ? [{ label: 'placements', value: stats.placedApplicants, icon: Users }] : []),
         ].map(({ label, value, icon: Icon }) => (
           <div key={label} className="flex items-center gap-4 rounded-xl border bg-card px-5 py-4">
             <span className="teal-icon"><Icon className="size-5" /></span>
@@ -66,6 +81,12 @@ export default function Dashboard() {
       </div>
       <div className="portal-grid">
         <div className="flex min-w-0 flex-col gap-6">
+          <Panel
+            title="Local employment activity"
+            description="Last 14 days · Provided applications grouped by submission date; placements reflect current outcomes."
+          >
+            <EmploymentActivityChart data={days} />
+          </Panel>
           <Panel
             title="Accreditation review queue"
             description="Help local employers take the next step."

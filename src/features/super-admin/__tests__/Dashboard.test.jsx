@@ -2,11 +2,12 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import Dashboard from '../Dashboard'
-import { getStats, listAllAccreditations, listAuditLogs } from '../../../shared/services/admin'
+import { getStats, listAllAccreditations, listAllApplications, listAuditLogs } from '../../../shared/services/admin'
 
 vi.mock('../../../shared/services/admin', () => ({
   getStats: vi.fn(),
   listAllAccreditations: vi.fn(),
+  listAllApplications: vi.fn(),
   listAuditLogs: vi.fn(),
 }))
 
@@ -40,6 +41,7 @@ const statValue = (label) => {
 async function renderDashboard(stats = STATS, accs = ACCS) {
   getStats.mockResolvedValue(stats)
   listAllAccreditations.mockResolvedValue(accs)
+  listAllApplications.mockResolvedValue({ data: [], total: 0, page: 1, pageSize: 500 })
   listAuditLogs.mockResolvedValue([])
   render(<MemoryRouter><Dashboard /></MemoryRouter>)
   return waitFor(() => expect(screen.getByText('Registered job seekers')).toBeInTheDocument())
@@ -55,10 +57,10 @@ describe('Super-admin Dashboard', () => {
     expect(statValue('Registered job seekers')).toBe('10')
     expect(statValue('Local employers')).toBe('3')
     expect(statValue('Pending accreditations')).toBe('2')
-    expect(statValue('Total job posts')).toBe('4')
-    expect(statValue('Applications')).toBe('5')
-    expect(statValue('Accredited employers')).toBe('7')
-    expect(statValue('Placements')).toBe('11')
+    expect(statValue('Active vacancies')).toBe('4')
+    expect(statValue('applications')).toBe('5')
+    expect(statValue('Recorded referrals')).toBe('0')
+    expect(statValue('placements')).toBe('11')
   })
 
   it('renders recent applications with company name and status pill', async () => {
@@ -81,6 +83,6 @@ describe('Super-admin Dashboard', () => {
     const rest = { ...STATS }
     delete rest.placedApplicants
     await renderDashboard(rest)
-    expect(screen.queryByText('Placements')).not.toBeInTheDocument()
+    expect(screen.queryByText('placements', { selector: 'p' })).not.toBeInTheDocument()
   })
 })

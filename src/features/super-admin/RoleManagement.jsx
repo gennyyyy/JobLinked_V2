@@ -154,9 +154,9 @@ function RoleManagement() {
     <div className="flex h-full min-h-0 flex-col gap-4 overflow-hidden">
       <div className="shrink-0">
         <PageHeading
-          eyebrow="System administration"
-          title="Roles"
-          description="Define roles and their permissions — assign them to people from the Users page."
+          eyebrow="Clear responsibilities"
+          title="Role Management"
+          description="Manage role definitions here. Assign roles to individual accounts in User Management."
           action={(
             <Button type="button" onClick={openCreate}>
               <Plus data-icon="inline-start" />

@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent, act, waitFor, within } from '@testing-library/react'
+import { MemoryRouter } from 'react-router-dom'
 import Settings from '../Settings'
 import { listReferenceData, addReferenceData, removeReferenceData } from '../../../shared/services/admin'
 
@@ -8,6 +9,8 @@ vi.mock('../../../shared/services/admin', () => ({
   addReferenceData: vi.fn(),
   removeReferenceData: vi.fn(),
 }))
+
+const renderSettings = () => render(<MemoryRouter><Settings /></MemoryRouter>)
 
 const EMPLOYMENT = [{ id: 'e1', value: 'Full-Time' }, { id: 'e2', value: 'Part-Time' }]
 const EDUCATION = [{ id: 'ed1', value: 'High School' }]
@@ -25,13 +28,13 @@ describe('System Settings reference data', () => {
   it('shows the loading screen while fetching reference data', () => {
     let resolveOne
     listReferenceData.mockReturnValue(new Promise((res) => { resolveOne = res }))
-    render(<Settings />)
+    renderSettings()
     expect(screen.getByText(/loading database/i)).toBeInTheDocument()
     act(() => resolveOne([]))
   })
 
   it('renders the reference values for each category', async () => {
-    render(<Settings />)
+    renderSettings()
     expect(await screen.findByText('Full-Time')).toBeInTheDocument()
     expect(screen.getByText('Part-Time')).toBeInTheDocument()
     expect(screen.getByText('High School')).toBeInTheDocument()
@@ -40,7 +43,7 @@ describe('System Settings reference data', () => {
   })
 
   it('adds a reference value to the employment category', async () => {
-    render(<Settings />)
+    renderSettings()
     await screen.findByText('Full-Time')
 
     fireEvent.change(screen.getByPlaceholderText(/add employment type/i), {
@@ -53,7 +56,7 @@ describe('System Settings reference data', () => {
   })
 
   it('removes a reference value after confirmation', async () => {
-    render(<Settings />)
+    renderSettings()
     // Remove the first employment value (Full-Time / id e1).
     fireEvent.click((await screen.findAllByRole('button', { name: 'Remove' }))[0])
 
@@ -66,7 +69,7 @@ describe('System Settings reference data', () => {
 
   it('shows an error message when the reference data fails to load', async () => {
     listReferenceData.mockRejectedValueOnce(new Error('settings down'))
-    render(<Settings />)
+    renderSettings()
     expect(await screen.findByText('settings down')).toBeInTheDocument()
   })
 })
