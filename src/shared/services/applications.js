@@ -23,3 +23,7 @@ export async function getEmployerDashboard() {
 export async function updateApplicationStatus(id, status, { remarks = null, employerNotes = null, interviewAt = null, interviewInstructions = null } = {}) {
   return api.post(`applications/${id}/status`, { status, remarks, employerNotes, interviewAt, interviewInstructions });
 }
+
+export async function getApplicationHistory(id) {
+  return api.get(`applications/${id}/history`);
+}

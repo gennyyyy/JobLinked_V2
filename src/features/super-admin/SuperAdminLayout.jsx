@@ -3,7 +3,7 @@ import TopNavLayout from '@/shared/components/TopNavLayout'
 
 export default function SuperAdminLayout() {
   const { pathname } = useLocation()
-  const fixedContent = ['/super-admin/logs', '/super-admin/roles'].includes(pathname)
+  const fixedContent = ['/super-admin/roles'].includes(pathname)
 
   return (
     <TopNavLayout

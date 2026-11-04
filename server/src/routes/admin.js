@@ -286,8 +286,11 @@ router.get('/admin/applications', ...admin, ah(async (req, res) => {
 router.get('/admin/employees', ...admin, ah(async (req, res) => {
   const { rows } = await pool.query(
     `select a.*, json_build_object('id', j.id, 'title', j.title, 'company_id', j.company_id,
+       'employment_type', j.employment_type, 'location', j.location,
        'employers', json_build_object('id', e.id, 'company_name', e.company_name)) as job,
-     json_build_object(${SEEKER_COLS.split(', ').map((c) => `'${c.trim()}', s.${c.trim()}`).join(', ')}) as seeker
+     json_build_object(${SEEKER_COLS.split(', ').map((c) => `'${c.trim()}', s.${c.trim()}`).join(', ')}) as seeker,
+     (select json_build_object('start_date', h.start_date, 'end_date', h.end_date, 'is_current', h.is_current, 'created_at', h.created_at)
+      from employment_history h where h.application_id = a.id limit 1) as employment
      from job_applications a join job_vacancies j on j.id = a.job_id
      join employers e on e.id = j.company_id join job_seekers s on s.id = a.seeker_id
      where a.status in ('Accepted', 'Terminated') order by a.updated_at desc`);

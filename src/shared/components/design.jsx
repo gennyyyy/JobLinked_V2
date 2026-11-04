@@ -47,7 +47,7 @@ export function VerifiedBadge({ label = "Verified employer", }) {
     </Badge>);
 }
 export function StatusBadge({ status }) {
-    const good = ["Approved", "Published", "Hired", "Active"].includes(status);
+    const good = ["Approved", "Published", "Hired", "Active", "Accepted", "Placed"].includes(status);
     const pending = [
         "Pending Review",
         "Under Review",

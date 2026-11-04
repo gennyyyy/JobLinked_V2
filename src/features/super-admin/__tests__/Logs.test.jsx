@@ -1,102 +1,74 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, fireEvent, act, waitFor, within } from '@testing-library/react'
+import { render, screen, fireEvent, act, within, waitFor } from '@testing-library/react'
 import Logs from '../Logs'
-import { listAuditLogs, listUsers } from '../../../shared/services/admin'
+import { listAuditLogs } from '../../../shared/services/admin'
 
-vi.mock('../../../shared/services/admin', () => ({
-  listAuditLogs: vi.fn(),
-  listUsers: vi.fn(),
-}))
+vi.mock('../../../shared/services/admin', () => ({ listAuditLogs: vi.fn() }))
 
 const LOGS = [
-  { id: 'log-1', action: 'auth.login', actor_email: 'jane@acme.test', actor_name: 'Jane', created_at: '2026-01-05T10:00:00.000Z' },
-  { id: 'log-2', action: 'job.create', actor_email: 'joe@acme.test', actor_name: 'Joe', created_at: '2026-01-06T12:30:00.000Z' },
+  { id: 'log-1', action: 'auth.login', actor_name: 'Jane', entity: 'profiles', entity_id: 'p1', created_at: '2026-01-05T10:00:00.000Z' },
+  { id: 'log-2', action: 'job.create', actor_name: 'Joe', entity: 'job_vacancies', entity_id: 'j1', created_at: '2026-01-06T12:30:00.000Z' },
 ]
-const USERS = [{ id: 'u1', full_name: 'Jane Owner', email: 'jane@acme.test', role: 'employer', phone: '0917', status: 'active', city: 'Santa Maria' }]
 
 describe('Audit log viewer', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     listAuditLogs.mockResolvedValue(LOGS)
-    listUsers.mockResolvedValue({ data: USERS, total: USERS.length, page: 1, pageSize: 25 })
   })
 
   it('shows a layout skeleton while fetching', () => {
-    let resolveUsers
-    listUsers.mockReturnValue(new Promise((res) => { resolveUsers = res }))
+    let resolveLogs
+    listAuditLogs.mockReturnValue(new Promise((res) => { resolveLogs = res }))
     render(<Logs />)
     expect(screen.getByRole('status')).toHaveTextContent(/loading page/i)
-    act(() => resolveUsers({ data: [] }))
+    act(() => resolveLogs([]))
   })
 
-  it('renders the log rows and record count', async () => {
+  it('renders the newest activity first and counts the records', async () => {
     render(<Logs />)
     const table = await screen.findByRole('table')
-    // Scope to the table: action names also appear as filter <option> entries.
-    expect(within(table).getByText('auth.login')).toBeInTheDocument()
-    expect(within(table).getByText('job.create')).toBeInTheDocument()
-    expect(screen.getByText('2 records')).toBeInTheDocument()
+    const rows = within(table).getAllByRole('row').slice(1).map((row) => row.textContent)
+    expect(rows[0]).toContain('job.create')
+    expect(rows[1]).toContain('auth.login')
+    expect(screen.getByText('1–2 of 2 records')).toBeInTheDocument()
   })
 
-  it('opens the user profile modal when an actor email is clicked', async () => {
-    render(<Logs />)
-    fireEvent.click(await screen.findByRole('button', { name: 'jane@acme.test' }))
-
-    const dialog = await screen.findByRole('dialog')
-    // listUsers is queried for the clicked user's profile.
-    await waitFor(() => expect(listUsers).toHaveBeenCalledWith({ search: 'jane@acme.test' }))
-    expect(within(dialog).getByText('Jane Owner')).toBeInTheDocument()
-  })
-
-  it('user profile modal: Escape closes it and it is a labelled aria-modal dialog', async () => {
-    render(<Logs />)
-    fireEvent.click(await screen.findByRole('button', { name: 'jane@acme.test' }))
-    const dialog = await screen.findByRole('dialog')
-    expect(dialog).toHaveAttribute('aria-modal', 'true')
-    expect(dialog).toHaveAttribute('aria-labelledby', 'logs-user-title')
-
-    fireEvent.keyDown(document, { key: 'Escape' })
-    expect(screen.queryByRole('dialog')).toBeNull()
-  })
-
-  it('applies the Login History shortcut filter', async () => {
+  it('filters by actor, action, or record', async () => {
     render(<Logs />)
     await screen.findByRole('table')
-    listAuditLogs.mockClear()
 
-    fireEvent.click(screen.getByRole('button', { name: /login history/i }))
+    fireEvent.change(screen.getByPlaceholderText(/search actor, action, or record/i), { target: { value: 'jane' } })
+    expect(within(screen.getByRole('table')).queryByText('job.create')).toBeNull()
+    expect(within(screen.getByRole('table')).getByText('auth.login')).toBeInTheDocument()
 
-    await waitFor(() =>
-      expect(listAuditLogs).toHaveBeenCalledWith(expect.objectContaining({ action: 'auth.' }))
-    )
+    fireEvent.change(screen.getByPlaceholderText(/search actor, action, or record/i), { target: { value: 'job_vacancies' } })
+    expect(within(screen.getByRole('table')).getByText('job.create')).toBeInTheDocument()
+    expect(within(screen.getByRole('table')).queryByText('auth.login')).toBeNull()
+  })
+
+  it('exports the filtered log as CSV', async () => {
+    let blob
+    URL.createObjectURL = vi.fn((value) => { blob = value; return 'blob:mock' })
+    URL.revokeObjectURL = vi.fn()
+    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
+
+    render(<Logs />)
+    await screen.findByRole('table')
+    fireEvent.click(screen.getByRole('button', { name: /export log/i }))
+
+    await waitFor(() => expect(blob).toBeTruthy())
+    const text = await new Promise((resolve) => {
+      const reader = new FileReader()
+      reader.onload = () => resolve(reader.result)
+      reader.readAsText(blob)
+    })
+    expect(text).toContain('"DEMO timestamp","Actor","Action","Record"')
+    expect(text).toContain('"job.create"')
   })
 
   it('shows an error message when the logs fail to load', async () => {
     listAuditLogs.mockRejectedValue(new Error('logs down'))
     render(<Logs />)
     expect(await screen.findByText('logs down')).toBeInTheDocument()
-  })
-
-  it('asks for the 500-row max so the user filter is not capped at a server page', async () => {
-    render(<Logs />)
-    await screen.findByRole('table')
-    // Without this the "Filter by user" dropdown was silently truncated to 25.
-    expect(listUsers).toHaveBeenCalledWith({ pageSize: 500 })
-  })
-
-  it('lists accounts beyond the first server page in the user filter', async () => {
-    const all = Array.from({ length: 30 }, (_, i) => {
-      const n = String(i + 1).padStart(2, '0')
-      return { id: `u-${n}`, full_name: `User ${n}`, email: `user${n}@acme.test`, role: 'employer', status: 'active' }
-    })
-    // Mirror the server cap: without { pageSize: 500 } the list stops at 25.
-    listUsers.mockImplementation((params = {}) => {
-      const cap = params.pageSize ?? 25
-      return Promise.resolve({ data: all.slice(0, cap), total: all.length, page: 1, pageSize: cap })
-    })
-    render(<Logs />)
-    const filter = await screen.findByLabelText('Filter by user')
-    // The 30th account lives on server page 2 of the default pageSize.
-    expect(within(filter).getByText('User 30')).toBeInTheDocument()
   })
 })

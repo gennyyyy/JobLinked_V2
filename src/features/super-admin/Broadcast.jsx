@@ -1,12 +1,17 @@
 import { useState, useEffect } from 'react'
-import { Megaphone, Plus, Send } from 'lucide-react'
+import { CalendarDays, Plus, Send } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { sendSystemNotification } from '@/shared/services/admin'
 import { listNotifications } from '@/shared/services/notifications'
 import useAuth from '@/shared/hooks/useAuth'
 import { PanelSkeleton } from '@/shared/components/Skeletons'
-import { EmptyState, Notice, PageHeading, Panel, TextField } from '@/shared/components/design'
+import { EmptyState, Notice, PageHeading, Panel, SearchInput, TextField } from '@/shared/components/design'
+
+const formatDate = (value) => (value
+  ? new Date(value).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' })
+  : '')
 
 export default function Broadcast() {
   const { user } = useAuth()
@@ -19,6 +24,7 @@ export default function Broadcast() {
   const [sent, setSent] = useState([])
   const [loading, setLoading] = useState(true)
   const [composeOpen, setComposeOpen] = useState(false)
+  const [query, setQuery] = useState('')
 
   useEffect(() => {
     if (!user) return
@@ -76,24 +82,39 @@ export default function Broadcast() {
         </Notice>
       </div>
       <Panel title="Your employment notices" description="Published notices and working drafts, together in one place.">
+        <div className="mb-5 max-w-xl">
+          <SearchInput value={query} onChange={setQuery} placeholder="Search announcements…" />
+        </div>
         {loading ? (
           <PanelSkeleton lines={3} />
-        ) : sent.length === 0 ? (
-          <EmptyState title="No published notices yet." description="Announcements you send will be listed here." />
         ) : (
-          <ul className="flex flex-col gap-4">
-            {sent.map((n) => (
-              <li key={n.id} className="rounded-xl border bg-muted/40 p-4">
-                <p className="flex items-center gap-2 text-[10px] font-medium uppercase tracking-[.14em] text-primary">
-                  <Megaphone className="size-3.5 shrink-0" aria-hidden="true" />
-                  Published
-                </p>
-                <h2 className="mt-2 text-sm font-semibold text-navy">{n.title}</h2>
-                <p className="mt-1 text-xs leading-6 text-muted-foreground">{n.message}</p>
-                {n.created_at && <p className="mt-2 text-[10px] text-muted-foreground">Notice date: {new Date(n.created_at).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' })}</p>}
-              </li>
-            ))}
-          </ul>
+          (() => {
+            const visible = sent.filter((notice) => `${notice.title || ''} ${notice.message || ''}`.toLowerCase().includes(query.toLowerCase()))
+            if (!visible.length) {
+              return <EmptyState title="Make space for a useful update." description="No announcements match this search. Create a notice to see it here." />
+            }
+            return (
+              <ul className="flex flex-col gap-4">
+                {visible.map((notice) => (
+                  <li key={notice.id} className="rounded-xl border p-5">
+                    <div className="mb-3 flex flex-wrap gap-2">
+                      <Badge variant="secondary">{notice.expires_at && new Date(notice.expires_at) < new Date() ? 'Expired' : 'Published'}</Badge>
+                      <Badge variant="outline">In-app notice</Badge>
+                    </div>
+                    <h2 className="text-base font-semibold">{notice.title}</h2>
+                    <p className="mt-3 whitespace-pre-wrap break-words text-xs leading-7 text-muted-foreground">{notice.message}</p>
+                    <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2 text-[10px] text-muted-foreground">
+                      <span>Notice date: {formatDate(notice.created_at)}</span>
+                      <span className="flex items-center gap-1.5">
+                        <CalendarDays className="size-3" />
+                        {notice.expires_at ? `Expires ${formatDate(notice.expires_at)}` : 'No expiry planned'}
+                      </span>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )
+          })()
         )}
         {result && <p className="mt-4 text-xs text-success">{result}</p>}
       </Panel>
@@ -101,41 +122,43 @@ export default function Broadcast() {
       <Dialog open={composeOpen} onOpenChange={setComposeOpen}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle>Create announcement</DialogTitle>
-            <DialogDescription>Every active account receives this message in their notifications.</DialogDescription>
+            <DialogTitle>Create a useful community notice</DialogTitle>
+            <DialogDescription>Published notices appear on the PESO Services page and in in-app inboxes.</DialogDescription>
           </DialogHeader>
           <form onSubmit={handleSend} className="flex flex-col gap-5">
             <TextField
               id="sys-title"
-              label="Title"
+              label="Announcement title"
               type="text"
+              required
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="e.g. Job fair on Saturday"
             />
             <TextField
               id="sys-message"
-              label="Message"
+              label="Notice content"
               multiline
-              rows={3}
+              rows={5}
+              required
               value={message}
               onChange={(e) => setMessage(e.target.value)}
               placeholder="Announcement details…"
             />
             <TextField
               id="sys-expires"
-              label="Expires"
-              help="Optional. The announcement stops showing after this date."
+              label="Expiry date (optional)"
+              help="Planning only. The notice stops showing after this date."
               type="date"
               value={expiresAt}
               onChange={(e) => setExpiresAt(e.target.value)}
             />
             {error && <p role="alert" className="text-xs text-destructive">{error}</p>}
-            <div className="flex justify-end gap-3">
+            <div className="flex justify-end gap-3 border-t pt-4">
               <Button type="button" variant="outline" onClick={() => setComposeOpen(false)}>Cancel</Button>
               <Button type="submit" disabled={sending}>
                 <Send data-icon="inline-start" />
-                {sending ? 'Sending…' : 'Send Broadcast'}
+                {sending ? 'Saving…' : 'Save notice'}
               </Button>
             </div>
           </form>
