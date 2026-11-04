@@ -7,6 +7,21 @@ import { logAudit } from './audit';
 // provisioned' — accept both).
 const needsProvision = (e) => e?.status === 404 || (e?.status === 403 && /not provisioned/i.test(e?.message || ''));
 
+// Supabase surfaces an unreachable/deleted project as a bare "Failed to fetch".
+// Turn that into something the person at the keyboard can act on.
+function friendlyAuthError(error) {
+  if (!error) return error;
+  const message = String(error.message || '');
+  const network = error.name === 'AuthRetryableFetchError'
+    || error.name === 'TypeError'
+    || /failed to fetch|networkerror|load failed|fetch failed/i.test(message);
+  if (network) {
+    const url = import.meta.env.VITE_SUPABASE_URL || 'the configured Supabase URL';
+    return new Error(`Cannot reach the authentication service at ${url}. Check VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY in .env.local and confirm the Supabase project is active.`);
+  }
+  return error;
+}
+
 export async function getProfile(userId) {
   void userId; // identity comes from the session token, never params
   try {
@@ -76,7 +91,7 @@ export async function updateProfile(userId, patch) {
 
 export async function signIn(email, password) {
   const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-  if (error) throw error;
+  if (error) throw friendlyAuthError(error);
   let profile = data.user ? await getProfile(data.user.id) : null;
   if (!profile) {
     // First login after email-confirm: provision from the signup metadata, then retry.
@@ -137,7 +152,7 @@ export async function signUp({ email, password, role, firstName, middleName = ''
       emailRedirectTo: `${window.location.origin}/auth/callback`,
     },
   });
-  if (error) throw error;
+  if (error) throw friendlyAuthError(error);
   if (!data.user) throw new Error('Registration failed — please try again');
 
   // Session is null when Supabase requires email confirmation — first login
@@ -165,10 +180,13 @@ export async function changePassword(currentPassword, newPassword) {
   if (!user?.email) throw new Error('No active account found.');
 
   const { error: verifyError } = await supabase.auth.signInWithPassword({ email: user.email, password: currentPassword });
-  if (verifyError) throw new Error('Current password is incorrect.');
+  if (verifyError) {
+    const friendly = friendlyAuthError(verifyError);
+    throw friendly === verifyError ? new Error('Current password is incorrect.') : friendly;
+  }
 
   const { error } = await supabase.auth.updateUser({ password: newPassword });
-  if (error) throw error;
+  if (error) throw friendlyAuthError(error);
   logAudit('auth.password.change');
 }
 
@@ -176,6 +194,6 @@ export async function resetPassword(email) {
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
     redirectTo: `${window.location.origin}/reset-password`,
   });
-  if (error) throw error;
+  if (error) throw friendlyAuthError(error);
   logAudit('auth.password.reset.request');
 }

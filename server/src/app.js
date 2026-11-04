@@ -44,10 +44,18 @@ export function createApp() {
   // H1: gzip/deflate the JSON payloads (compression's own 1kb threshold keeps
   // tiny responses like /api/health untouched).
   app.use(compression());
-  // Fail closed: a forgotten CORS_ORIGIN must not reflect every origin.
+  // Fail closed in production: a forgotten CORS_ORIGIN must not reflect every
+  // origin. In local dev, accept any localhost port — Vite falls back to
+  // 5174/5175 when 5173 is taken, and the API must still answer.
   const corsOrigins = process.env.CORS_ORIGIN?.split(',').filter(Boolean);
+  const devOrigin = /^http:\/\/(localhost|127\.0\.0\.1):\d+$/;
+  const allowOrigin = corsOrigins?.length
+    ? corsOrigins
+    : process.env.NODE_ENV === 'production'
+      ? ['http://localhost:5173']
+      : [devOrigin];
   // L2: cache the preflight for a day so browsers stop re-OPTIONSing.
-  app.use(cors({ origin: corsOrigins?.length ? corsOrigins : ['http://localhost:5173'], maxAge: 86400 }));
+  app.use(cors({ origin: allowOrigin, maxAge: 86400 }));
   // L3: before the limiters so even 429 answers carry the correlation id.
   app.use(requestId);
   // H5: one JSON access line per request, wrapped around everything below.
