@@ -44,6 +44,15 @@ describe('Portal shell AFK modal button order', () => {
   })
 })
 
+describe('Portal shell dashboard footer', () => {
+  it('renders the minimal footer on every portal page through the shared layout', () => {
+    renderLayout('/super-admin')
+    expect(screen.getByText('JobLinked · Santa Maria, Bulacan')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Privacy Notice' })).toHaveAttribute('href', '/privacy')
+    expect(screen.getByRole('link', { name: 'Terms' })).toHaveAttribute('href', '/terms')
+  })
+})
+
 describe('Portal shell navigation', () => {
   beforeEach(() => vi.clearAllMocks())
   it('renders the reference admin navigation landmark and items', () => {
