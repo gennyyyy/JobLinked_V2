@@ -4,8 +4,7 @@ import { Label } from '@/components/ui/label'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { X } from 'lucide-react'
-import { listUsers, updateUser, listAllAccreditations, listRoles, assignRole, assignCustomRole, inviteUser } from '@/shared/services/admin'
-import { latestAccByCompany } from '@/shared/services/documents'
+import { listUsers, updateUser, listRoles, assignRole, assignCustomRole, inviteUser } from '@/shared/services/admin'
 import useAuth from '@/shared/hooks/useAuth'
 import LoadingScreen from '@/shared/components/LoadingScreen'
 import { InlineError, Pager, StatCard } from '@/shared/components/dashboard'
@@ -26,7 +25,6 @@ function UserManagement() {
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(0)
   const [total, setTotal] = useState(0)
-  const [accreditations, setAccreditations] = useState([])
   const [customRoles, setCustomRoles] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -68,20 +66,14 @@ function UserManagement() {
   }, [searchTerm])
 
   useEffect(() => {
-    Promise.all([listAllAccreditations(), listRoles().catch(() => [])])
-      .then(([accs, roles]) => {
-        setAccreditations(accs.data)
-        setCustomRoles(roles || [])
-      })
-      .catch((err) => setError(err.message || 'Failed to load users'))
+    listRoles()
+      .then((roles) => setCustomRoles(roles || []))
+      .catch(() => setCustomRoles([]))
       .finally(() => setLoading(false))
   }, [])
 
   if (loading) return <LoadingScreen />
   if (error) return <InlineError message={error} />
-
-  // accreditations ordered submitted_at desc → first row per company is its latest
-  const latestByCompany = latestAccByCompany(accreditations)
 
   // Role assignment lives ONLY here (the Roles page manages definitions).
   // - sys:<role>   → cross-table system-role move (+ clears any custom tag)
@@ -257,18 +249,20 @@ function UserManagement() {
               </colgroup>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Role</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Accreditation</TableHead>
-                  <TableHead>Created</TableHead>
+                  <TableHead>User ID</TableHead>
+                  <TableHead>Full Name</TableHead>
+                  <TableHead>Email Address</TableHead>
+                  <TableHead>Assigned Role</TableHead>
+                  <TableHead>Account Status</TableHead>
+                  <TableHead>Registered</TableHead>
+                  <TableHead>Last Updated</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {users.map((user) => (
                   <TableRow key={user.id}>
+                    <TableCell className="whitespace-normal text-[10px] text-muted-foreground">{user.id}</TableCell>
                     <TableCell className="whitespace-normal text-xs font-medium text-navy">{titleCase(user.full_name)}</TableCell>
                     <TableCell className="whitespace-normal break-all text-[11px] text-muted-foreground">{user.email}</TableCell>
                     <TableCell className="whitespace-normal">
@@ -313,17 +307,11 @@ function UserManagement() {
                       )}
                     </TableCell>
                     <TableCell><StatusBadge status={user.status} /></TableCell>
-                    <TableCell className="whitespace-normal">
-                      {user.role === 'employer' ? (() => {
-                        // accreditations is a capped page (C2) — fall back to the
-                        // denormalized employers.accreditation_status (kept in
-                        // sync by trigger) when this company's latest row aged out.
-                        const status = latestByCompany[user.id]?.status || user.accreditation_status || 'not applied'
-                        return <StatusBadge status={status} />
-                      })() : <span className="text-xs text-muted-foreground">—</span>}
-                    </TableCell>
                     <TableCell className="text-[11px] text-muted-foreground">
                       {new Date(user.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
+                    </TableCell>
+                    <TableCell className="text-[11px] text-muted-foreground">
+                      {new Date(user.updated_at || user.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
                     </TableCell>
                     <TableCell className="text-right">
                       <Button

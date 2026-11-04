@@ -1,11 +1,12 @@
-import { Button } from '@/components/ui/button'
 import { useState, useEffect } from 'react'
-import { Megaphone, Send } from 'lucide-react'
+import { Megaphone, Plus, Send } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { sendSystemNotification } from '@/shared/services/admin'
 import { listNotifications } from '@/shared/services/notifications'
 import useAuth from '@/shared/hooks/useAuth'
 import LoadingScreen from '@/shared/components/LoadingScreen'
-import { EmptyState, PageHeading, Panel, TextField } from '@/shared/components/design'
+import { EmptyState, Notice, PageHeading, Panel, TextField } from '@/shared/components/design'
 
 export default function Broadcast() {
   const { user } = useAuth()
@@ -17,7 +18,7 @@ export default function Broadcast() {
   const [sending, setSending] = useState(false)
   const [sent, setSent] = useState([])
   const [loading, setLoading] = useState(true)
-  const [tab, setTab] = useState('compose')
+  const [composeOpen, setComposeOpen] = useState(false)
 
   useEffect(() => {
     if (!user) return
@@ -44,6 +45,7 @@ export default function Broadcast() {
       setTitle('')
       setMessage('')
       setExpiresAt('')
+      setComposeOpen(false)
       try {
         const rows = await listNotifications(user.id)
         setSent((rows || []).filter((n) => n.type === 'system'))
@@ -55,28 +57,53 @@ export default function Broadcast() {
     }
   }
 
-  const tabClass = (name) => (tab === name
-    ? 'rounded-xl bg-primary px-4 text-xs font-medium text-primary-foreground'
-    : 'rounded-xl border border-border bg-card px-4 text-xs font-medium text-muted-foreground hover:bg-muted')
-
   return (
     <>
       <PageHeading
         eyebrow="Keep your community connected"
         title="A little information opens new doors."
         description="Create employment notices and preview a vacancy distribution plan."
+        action={
+          <Button type="button" onClick={() => { setError(''); setComposeOpen(true) }}>
+            <Plus data-icon="inline-start" />
+            Create announcement
+          </Button>
+        }
       />
-      <div role="group" aria-label="Broadcast sections" className="mb-6 flex flex-wrap gap-2">
-        <Button type="button" onClick={() => setTab('compose')} aria-current={tab === 'compose' ? 'true' : undefined} className={tabClass('compose')}>
-          Compose
-        </Button>
-        <Button type="button" onClick={() => setTab('recent')} aria-current={tab === 'recent' ? 'true' : undefined} className={tabClass('recent')}>
-          {`Recent broadcasts (${sent.length})`}
-        </Button>
+      <div className="mb-6">
+        <Notice title="No automatic distribution">
+          Published notices appear on the PESO Services page and in-app inboxes. A distribution date is a planning marker only; Facebook, email, SMS, and government-system integrations are unavailable.
+        </Notice>
       </div>
+      <Panel title="Your employment notices" description="Published notices and working drafts, together in one place.">
+        {loading ? (
+          <LoadingScreen />
+        ) : sent.length === 0 ? (
+          <EmptyState title="No published notices yet." description="Announcements you send will be listed here." />
+        ) : (
+          <ul className="flex flex-col gap-4">
+            {sent.map((n) => (
+              <li key={n.id} className="rounded-xl border bg-muted/40 p-4">
+                <p className="flex items-center gap-2 text-[10px] font-medium uppercase tracking-[.14em] text-primary">
+                  <Megaphone className="size-3.5 shrink-0" aria-hidden="true" />
+                  Published
+                </p>
+                <h2 className="mt-2 text-sm font-semibold text-navy">{n.title}</h2>
+                <p className="mt-1 text-xs leading-6 text-muted-foreground">{n.message}</p>
+                {n.created_at && <p className="mt-2 text-[10px] text-muted-foreground">Notice date: {new Date(n.created_at).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' })}</p>}
+              </li>
+            ))}
+          </ul>
+        )}
+        {result && <p className="mt-4 text-xs text-success">{result}</p>}
+      </Panel>
 
-      {tab === 'compose' ? (
-        <Panel title="Compose an announcement" description="Every active account receives this message in their notifications.">
+      <Dialog open={composeOpen} onOpenChange={setComposeOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Create announcement</DialogTitle>
+            <DialogDescription>Every active account receives this message in their notifications.</DialogDescription>
+          </DialogHeader>
           <form onSubmit={handleSend} className="flex flex-col gap-5">
             <TextField
               id="sys-title"
@@ -95,7 +122,6 @@ export default function Broadcast() {
               onChange={(e) => setMessage(e.target.value)}
               placeholder="Announcement details…"
             />
-            {error && <p role="alert" className="text-xs text-destructive">{error}</p>}
             <TextField
               id="sys-expires"
               label="Expires"
@@ -104,36 +130,17 @@ export default function Broadcast() {
               value={expiresAt}
               onChange={(e) => setExpiresAt(e.target.value)}
             />
-            {result && <p className="text-xs text-success">{result}</p>}
-            <div className="flex justify-end">
+            {error && <p role="alert" className="text-xs text-destructive">{error}</p>}
+            <div className="flex justify-end gap-3">
+              <Button type="button" variant="outline" onClick={() => setComposeOpen(false)}>Cancel</Button>
               <Button type="submit" disabled={sending}>
                 <Send data-icon="inline-start" />
                 {sending ? 'Sending…' : 'Send Broadcast'}
               </Button>
             </div>
           </form>
-        </Panel>
-      ) : (
-        <Panel title="Recent broadcasts" description="Announcements sent to all users.">
-          {loading ? (
-            <LoadingScreen />
-          ) : sent.length === 0 ? (
-            <EmptyState title="No system broadcasts yet." description="Announcements you send will be listed here." />
-          ) : (
-            <ul className="flex flex-col divide-y">
-              {sent.slice(0, 5).map((n) => (
-                <li key={n.id} className="py-3 first:pt-0">
-                  <p className="flex items-center gap-2 text-xs font-semibold text-navy">
-                    <Megaphone className="size-3.5 shrink-0 text-primary" aria-hidden="true" />
-                    {n.title}
-                  </p>
-                  <p className="mt-1 text-[11px] leading-5 text-muted-foreground">{n.message}</p>
-                </li>
-              ))}
-            </ul>
-          )}
-        </Panel>
-      )}
+        </DialogContent>
+      </Dialog>
     </>
   )
 }

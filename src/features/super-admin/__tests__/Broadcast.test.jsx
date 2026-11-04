@@ -20,15 +20,15 @@ beforeEach(() => {
   listNotifications.mockResolvedValue([])
 })
 
-describe('Broadcast tabs', () => {
-  it('shows the compose form by default', () => {
+describe('Broadcast', () => {
+  it('opens the compose form from the Create announcement action', () => {
     render(<Broadcast />)
+    fireEvent.click(screen.getByRole('button', { name: /create announcement/i }))
     expect(screen.getByRole('button', { name: /send broadcast/i })).toBeTruthy()
   })
 
-  it('shows the recent broadcasts empty state when the recent tab is selected', async () => {
+  it('shows the published-notices empty state', async () => {
     render(<Broadcast />)
-    fireEvent.click(screen.getByRole('button', { name: /recent broadcasts/i }))
-    expect(await screen.findByText('No system broadcasts yet.')).toBeTruthy()
+    expect(await screen.findByText('No published notices yet.')).toBeTruthy()
   })
 })
