@@ -22,7 +22,7 @@ import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuGro
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { InputGroup, InputGroupInput, InputGroupAddon } from '@/components/ui/input-group'
 import SkipLink from './SkipLink'
-import PortalFooter from './PortalFooter'
+import DashboardFooter from './DashboardFooter'
 import { Logo } from './design'
 import useAuth from '../hooks/useAuth'
 import useAFKTimer from '../hooks/useAFKTimer'
@@ -313,7 +313,7 @@ export default function TopNavLayout({ role, navItems, profileTo, roleLabel, hom
             ) : <Outlet />}
           </div>
         </main>
-        <PortalFooter />
+        <DashboardFooter />
       </div>
       <Dialog open={searchOpen} onOpenChange={setSearchOpen}>
         <DialogContent className="sm:max-w-lg">
