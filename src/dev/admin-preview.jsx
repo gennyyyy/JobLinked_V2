@@ -15,6 +15,7 @@ import Logs from '@/features/super-admin/Logs'
 import Profile from '@/features/super-admin/Profile'
 import AccountSettings from '@/shared/components/AccountSettings'
 import RoleManagement from '@/features/super-admin/RoleManagement'
+import EmployerDashboard from '@/features/employer/Dashboard'
 import { api } from '@/shared/lib/api'
 import '@/index.css'
 
@@ -70,7 +71,7 @@ const MOCKS = {
   'notifications/mine': [{ id: 'n1', is_read: false, title: 'Job fair', message: 'Saturday at the plaza', type: 'system', created_at: '2026-10-17T12:00:00Z' }],
 }
 api.get = async (path) => {
-  const key = Object.keys(MOCKS).find((candidate) => String(path).includes(candidate))
+  const key = Object.keys(MOCKS).sort((a, b) => b.length - a.length).find((candidate) => String(path).includes(candidate))
   return key ? MOCKS[key] : []
 }
 api.post = async () => ({})
@@ -78,10 +79,46 @@ api.patch = async () => ({})
 api.del = async () => ({})
 
 const path = new URLSearchParams(window.location.search).get('page') || '/super-admin'
+const isEmployer = path.startsWith('/employer')
+const activeUser = isEmployer
+  ? { id: 'company-1', full_name: 'Maria Santos', name: 'Maria Santos', email: 'employer@demo.joblinked.ph', role: 'employer' }
+  : user
+
+MOCKS['employers/me'] = { id: 'company-1', company_name: 'Northfield Business Solutions', accreditation_status: 'approved' }
+MOCKS['applications/employers/me/dashboard'] = {
+  jobs: [
+    { id: 'j1', title: 'Administrative Assistant', status: 'published', location: 'Poblacion', vacancies: 2, applicants: 6 },
+    { id: 'j2', title: 'Warehouse Associate', status: 'published', location: 'Bagbaguin', vacancies: 1, applicants: 3 },
+    { id: 'j3', title: 'Cashier', status: 'draft', location: 'Poblacion', vacancies: 1, applicants: 0 },
+  ],
+  stats: { total_candidates: 9, new_this_week: 4, shortlisted: 3, placements: 1 },
+  recent: applications.slice(0, 5),
+}
+const employerMocks = {
+  'employers/me': MOCKS['employers/me'],
+  'applications/employers/me/dashboard': MOCKS['applications/employers/me/dashboard'],
+}
+const baseGet = api.get
+api.get = async (requestPath) => {
+  if (isEmployer) {
+    const key = Object.keys(employerMocks).sort((a, b) => b.length - a.length).find((candidate) => String(requestPath).includes(candidate))
+    if (key) return employerMocks[key]
+  }
+  return baseGet(requestPath)
+}
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
-    <AuthContext.Provider value={{ user, logout: () => {}, refreshUser: async () => user }}>
+    <AuthContext.Provider value={{ user: activeUser, logout: () => {}, refreshUser: async () => activeUser }}>
+      {isEmployer ? (
+        <MemoryRouter initialEntries={['/employer']}>
+          <Routes>
+            <Route path="/employer" element={<TopNavLayout role="employer" profileTo="/employer/company" roleLabel="Employer" homeTo="/employer" />}>
+              <Route index element={<EmployerDashboard />} />
+            </Route>
+          </Routes>
+        </MemoryRouter>
+      ) : (
       <MemoryRouter initialEntries={[path]}>
         <Routes>
           <Route path="/super-admin" element={<TopNavLayout role="super-admin" profileTo="/super-admin/profile" roleLabel="PESO Admin" homeTo="/super-admin" />}>
@@ -100,6 +137,7 @@ createRoot(document.getElementById('root')).render(
           </Route>
         </Routes>
       </MemoryRouter>
+      )}
     </AuthContext.Provider>
   </StrictMode>,
 )
