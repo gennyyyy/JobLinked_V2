@@ -22,6 +22,7 @@ import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuGro
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { InputGroup, InputGroupInput, InputGroupAddon } from '@/components/ui/input-group'
 import SkipLink from './SkipLink'
+import PortalFooter from './PortalFooter'
 import { Logo } from './design'
 import useAuth from '../hooks/useAuth'
 import useAFKTimer from '../hooks/useAFKTimer'
@@ -312,13 +313,7 @@ export default function TopNavLayout({ role, navItems, profileTo, roleLabel, hom
             ) : <Outlet />}
           </div>
         </main>
-        <div className="no-print mt-auto flex shrink-0 flex-wrap items-center justify-between gap-3 px-8 pb-6 pt-4 text-[10px] text-muted-foreground">
-          <span>JobLinked · Santa Maria, Bulacan</span>
-          <div className="flex gap-4">
-            <Link to="/privacy">Privacy Notice</Link>
-            <Link to="/terms">Terms</Link>
-          </div>
-        </div>
+        <PortalFooter />
       </div>
       <Dialog open={searchOpen} onOpenChange={setSearchOpen}>
         <DialogContent className="sm:max-w-lg">
