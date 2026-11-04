@@ -1,4 +1,5 @@
 ﻿import { rateLimit, ipKeyGenerator } from 'express-rate-limit';
+import { cacheHit } from '../matching/matchCache.js';
 
 // ponytail: in-memory store (single instance). Use a Redis store if the API ever runs multi-instance.
 // 429s use the same { error: { code, message } } shape as the rest of the API.
@@ -62,4 +63,19 @@ export const apiLimiter = rateLimit({
   handler: (_req, res) => limited(res),
   keyGenerator: (req) => req.user?.id || ipKeyGenerator(req.ip),
   skip: stricterLimiterPaths,
+});
+
+// Job matching is the expensive path (LLM + ranking), so only cache misses
+// count against the 30/15min budget: replaying an identical request from
+// matchCache is free, while unique prompts stay throttled. Keyed by user id
+// like aiLimiter; the limit is own-bucket-only, so it never double-counts with
+// apiLimiter (which sees the same misses and has its own 300 budget).
+export const jobMatchLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 30,
+  standardHeaders: 'draft-7',
+  legacyHeaders: false,
+  handler: (_req, res) => limited(res),
+  keyGenerator: (req) => req.user?.id || ipKeyGenerator(req.ip),
+  skip: cacheHit,
 });
