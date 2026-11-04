@@ -44,43 +44,49 @@ if (!executablePath) {
 }
 
 const browser = await puppeteer.launch({ executablePath, headless: 'new' })
-const page = await browser.newPage()
-await page.setViewport({ width: 1280, height: 900 })
+// Wrap all post-launch work in try/finally so a throw (goto timeout, assertion
+// failure, etc.) cannot strand the Chrome process — the old version had a
+// single browser.close() at the end that was skipped on error.
+try {
+  const page = await browser.newPage()
+  await page.setViewport({ width: 1280, height: 900 })
 
-// Browser-extension chatter is not this app's failure and cannot be fixed here.
-const IGNORE = /font visibility|Extension context invalidated|chrome-extension:\/\//
-const problems = []
-const onConsole = (m) => { if (m.type() === 'error' && !IGNORE.test(m.text())) problems.push(`[console] ${page.url()}: ${m.text().slice(0, 300)}`) }
-const onPageError = (e) => problems.push(`[pageerror] ${page.url()}: ${String(e).slice(0, 400)}`)
-const onRequestFailed = (r) => {
-  const why = r.failure()?.errorText || 'unknown'
-  if (!/net::ERR_(ABORTED|BLOCKED_BY_CLIENT)/.test(why) && !IGNORE.test(r.url())) problems.push(`[reqfailed] ${r.url()}: ${why}`)
-}
-page.on('console', onConsole)
-page.on('pageerror', onPageError)
-page.on('requestfailed', onRequestFailed)
-
-for (const route of routes) {
-  const t0 = Date.now()
-  let status = 0
-  try {
-    status = (await page.goto(BASE + route, { waitUntil: 'networkidle2', timeout: 30000 }))?.status() ?? 0
-  } catch (e) {
-    problems.push(`[goto] ${route}: ${e.message.split('\n')[0]}`)
+  // Browser-extension chatter is not this app's failure and cannot be fixed here.
+  const IGNORE = /font visibility|Extension context invalidated|chrome-extension:\/\//
+  const problems = []
+  const onConsole = (m) => { if (m.type() === 'error' && !IGNORE.test(m.text())) problems.push(`[console] ${page.url()}: ${m.text().slice(0, 300)}`) }
+  const onPageError = (e) => problems.push(`[pageerror] ${page.url()}: ${String(e).slice(0, 400)}`)
+  const onRequestFailed = (r) => {
+    const why = r.failure()?.errorText || 'unknown'
+    if (!/net::ERR_(ABORTED|BLOCKED_BY_CLIENT)/.test(why) && !IGNORE.test(r.url())) problems.push(`[reqfailed] ${r.url()}: ${why}`)
   }
-  const text = await page.evaluate(() => document.body.innerText).catch(() => '')
-  const hasHeader = (await page.$('header')) !== null
-  console.log(`${route} -> ${status} ${Date.now() - t0}ms text:${text.length} header:${hasHeader}`)
-  if (status >= 400) problems.push(`[status] ${route}: HTTP ${status}`)
-  if (text.trim().length < 40) problems.push(`[blank] ${route}: body nearly empty`)
-  if (!hasHeader) problems.push(`[chrome] ${route}: no header rendered`)
-}
+  page.on('console', onConsole)
+  page.on('pageerror', onPageError)
+  page.on('requestfailed', onRequestFailed)
 
-await browser.close()
+  for (const route of routes) {
+    const t0 = Date.now()
+    let status = 0
+    try {
+      status = (await page.goto(BASE + route, { waitUntil: 'networkidle2', timeout: 30000 }))?.status() ?? 0
+    } catch (e) {
+      problems.push(`[goto] ${route}: ${e.message.split('\n')[0]}`)
+    }
+    const text = await page.evaluate(() => document.body.innerText).catch(() => '')
+    const hasHeader = (await page.$('header')) !== null
+    console.log(`${route} -> ${status} ${Date.now() - t0}ms text:${text.length} header:${hasHeader}`)
+    if (status >= 400) problems.push(`[status] ${route}: HTTP ${status}`)
+    if (text.trim().length < 40) problems.push(`[blank] ${route}: body nearly empty`)
+    if (!hasHeader) problems.push(`[chrome] ${route}: no header rendered`)
+  }
 
-console.log(`\n=== PROBLEMS (${problems.length}) ===`)
-if (problems.length) {
-  console.log(problems.join('\n'))
-  process.exit(1)
+  console.log(`\n=== PROBLEMS (${problems.length}) ===`)
+  if (problems.length) {
+    console.log(problems.join('\n'))
+    process.exitCode = 1
+  } else {
+    console.log('(none) — all public routes rendered')
+  }
+} finally {
+  await browser.close()
 }
-console.log('(none) — all public routes rendered')
