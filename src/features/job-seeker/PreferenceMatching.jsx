@@ -41,7 +41,7 @@ export default function PreferenceMatching({ prompt, onSubmit, compact = false, 
         >
           <Field>
             <FieldLabel htmlFor="job-preference-prompt">Your job preferences</FieldLabel>
-            <Textarea id="job-preference-prompt" value={draft} onChange={(event) => setDraft(event.target.value)} placeholder="What kind of job are you looking for?" maxLength={1000} rows={4} required />
+            <Textarea id="job-preference-prompt" value={draft} onChange={(event) => setDraft(event.target.value)} placeholder="What kind of job are you looking for?" maxLength={500} rows={4} required />
           </Field>
           <Button type="submit" disabled={!draft.trim() || busy}>
             <Send data-icon="inline-start" />

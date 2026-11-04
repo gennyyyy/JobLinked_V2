@@ -36,6 +36,9 @@ export default function OpportunityList({ saved = false }) {
   const [ranking, setRanking] = useState(null)
   const [matchNotice, setMatchNotice] = useState('')
   const [matchBusy, setMatchBusy] = useState(false)
+  // Every explicit submit bumps the nonce: re-sending the same prompt on the
+  // same page/filters must still dispatch a request (retry after a failure).
+  const [matchNonce, setMatchNonce] = useState(0)
   const matchSeq = useRef(0)
   const [page, setPage] = useState(1)
   const [jobs, setJobs] = useState([])
@@ -69,9 +72,10 @@ export default function OpportunityList({ saved = false }) {
     [jobs, saved, savedIds],
   )
 
-  // Local sequence guard: prompt/page/filter changes invalidate an in-flight
-  // ranking, so a late response can never reorder a list the user has moved on
-  // from. Turning matching off clears the ranking instantly in applyMatching.
+  // Local sequence guard: prompt/page/filter changes and explicit resubmits
+  // invalidate an in-flight ranking, so a late response can never reorder a
+  // list the user has moved on from. Turning matching off clears the ranking
+  // instantly in applyMatching.
   useEffect(() => {
     if (saved || !matchingPrompt || !candidates.length) return
     const seq = (matchSeq.current += 1)
@@ -91,7 +95,7 @@ export default function OpportunityList({ saved = false }) {
         setMatchNotice(MATCH_UNAVAILABLE)
       })
       .finally(() => { if (seq === matchSeq.current) setMatchBusy(false) })
-  }, [saved, matchingPrompt, candidates, page, filters])
+  }, [saved, matchingPrompt, candidates, page, filters, matchNonce])
 
   function updateFilter(name, value) {
     setFilters((previous) => ({ ...previous, [name]: value }))
@@ -113,6 +117,7 @@ export default function OpportunityList({ saved = false }) {
     setMatchNotice('')
     if (prompt) {
       setMatchBusy(candidates.length > 0)
+      setMatchNonce((nonce) => nonce + 1)
     } else {
       setRanking(null)
       setMatchBusy(false)

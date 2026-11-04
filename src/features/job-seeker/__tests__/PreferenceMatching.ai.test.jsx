@@ -42,4 +42,11 @@ describe('PreferenceMatching dialog copy', () => {
 
     expect(screen.getByRole('button', { name: /send preferences/i })).toBeDisabled()
   })
+
+  it('caps the preference input at the endpoint limit', () => {
+    renderPanel()
+    openDialog()
+
+    expect(screen.getByLabelText('Your job preferences')).toHaveAttribute('maxlength', '500')
+  })
 })

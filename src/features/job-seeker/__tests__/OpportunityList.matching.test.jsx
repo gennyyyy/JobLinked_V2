@@ -54,7 +54,9 @@ function renderList() {
 }
 
 async function submitPrompt(text) {
-  fireEvent.click(screen.getByRole('button', { name: 'AI job matching' }))
+  if (!screen.queryByRole('dialog')) {
+    fireEvent.click(screen.getByRole('button', { name: 'AI job matching' }))
+  }
   fireEvent.change(screen.getByLabelText('Your job preferences'), { target: { value: text } })
   fireEvent.click(screen.getByRole('button', { name: /send preferences/i }))
 }
@@ -104,6 +106,38 @@ describe('OpportunityList AI matching', () => {
     expect(screen.queryByText('AI ranking active')).toBeNull()
   })
 
+  it('dispatches a new request when the same prompt is submitted again', async () => {
+    matchJobs.mockResolvedValue({ mode: 'ai', ranking: ['j3', 'j1', 'j2'], reasons: [] })
+    renderList()
+    await screen.findByText('Administrative Assistant')
+
+    await submitPrompt('night shift')
+    await waitFor(() => expect(cardTitles()).toEqual(['Warehouse Helper', 'Administrative Assistant', 'Junior Web Developer']))
+
+    await submitPrompt('night shift')
+
+    await waitFor(() => expect(matchJobs).toHaveBeenCalledTimes(2))
+    // The second request settles, so Send is usable again (no stuck busy state).
+    await waitFor(() => expect(screen.getByRole('button', { name: /send preferences/i })).toBeEnabled())
+  })
+
+  it('retries the same prompt after a failure and clears the notice on success', async () => {
+    matchJobs
+      .mockRejectedValueOnce(new Error('provider unavailable'))
+      .mockResolvedValueOnce({ mode: 'ai', ranking: ['j3', 'j2', 'j1'], reasons: [] })
+    renderList()
+    await screen.findByText('Administrative Assistant')
+
+    await submitPrompt('night shift')
+    expect(await screen.findByText(NOTICE)).toBeInTheDocument()
+
+    await submitPrompt('night shift')
+
+    await waitFor(() => expect(matchJobs).toHaveBeenCalledTimes(2))
+    await waitFor(() => expect(cardTitles()).toEqual(['Warehouse Helper', 'Junior Web Developer', 'Administrative Assistant']))
+    expect(screen.queryByText(NOTICE)).toBeNull()
+  })
+
   it('ignores a late ranking after switching back to standard matching', async () => {
     const pending = deferred()
     matchJobs.mockReturnValue(pending.promise)
@@ -120,5 +154,32 @@ describe('OpportunityList AI matching', () => {
 
     expect(cardTitles()).toEqual(STANDARD)
     expect(screen.queryByText('Late reason')).toBeNull()
+  })
+
+  it('ignores an earlier response that lands after a newer request', async () => {
+    const first = deferred()
+    const second = deferred()
+    matchJobs.mockReturnValueOnce(first.promise).mockReturnValueOnce(second.promise)
+    renderList()
+    await screen.findByText('Administrative Assistant')
+
+    await submitPrompt('night shift')
+    fireEvent.click(screen.getByRole('button', { name: /view matching jobs/i }))
+    // Re-querying the list (filter change) starts a second request mid-flight.
+    fireEvent.change(screen.getByLabelText('Job category'), { target: { value: 'Full-time' } })
+    await waitFor(() => expect(matchJobs).toHaveBeenCalledTimes(2))
+
+    await act(async () => {
+      second.resolve({ mode: 'ai', ranking: ['j3', 'j2', 'j1'], reasons: [{ jobId: 'j3', reason: 'Newest reason' }] })
+    })
+    await waitFor(() => expect(cardTitles()).toEqual(['Warehouse Helper', 'Junior Web Developer', 'Administrative Assistant']))
+
+    await act(async () => {
+      first.resolve({ mode: 'ai', ranking: ['j1', 'j2', 'j3'], reasons: [{ jobId: 'j1', reason: 'Stale reason' }] })
+    })
+
+    expect(cardTitles()).toEqual(['Warehouse Helper', 'Junior Web Developer', 'Administrative Assistant'])
+    expect(screen.queryByText('Stale reason')).toBeNull()
+    expect(within(cardFor('Warehouse Helper')).getByText('Newest reason')).toBeInTheDocument()
   })
 })
