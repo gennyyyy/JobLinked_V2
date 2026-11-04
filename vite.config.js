@@ -9,10 +9,19 @@ export default defineConfig({
     alias: { "@": path.resolve(import.meta.dirname, "src") },
   },
   // Scratch files written by local probe/comparison scripts must never be
-  // watched: on Windows a locked temp file kills the whole dev server.
+  // watched: on Windows a locked temp file kills the whole dev server. Probe
+  // scripts are dot-prefixed (".probe-*.mjs", ".sys-probe.mjs") anywhere in the
+  // repo, so match them by name rather than one directory.
   server: {
     watch: {
-      ignored: ["**/.sys-probe.mjs", "**/*.out", "**/admin-page-diff.json", "**/dashboard-diff*.json"],
+      ignored: [
+        "**/.*probe*",
+        "**/probe-*.mjs",
+        "**/*.out",
+        "**/admin-page-diff.json",
+        "**/dashboard-diff*.json",
+        "**/scripts/**",
+      ],
     },
   },
   test: {
