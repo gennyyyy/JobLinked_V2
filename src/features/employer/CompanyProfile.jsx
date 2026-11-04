@@ -2,7 +2,7 @@ import { Button } from "../../components/ui/button";
 import { useState, useEffect } from "react";
 import useAuth from "../../shared/hooks/useAuth";
 import { updateProfile, getEmployer, provision } from "../../shared/services/auth";
-import LoadingScreen from "../../shared/components/LoadingScreen";
+import { PageSkeleton } from '../../shared/components/Skeletons';
 import ChangePassword from "../../shared/components/ChangePassword";
 import { formatFullAddress } from "../../shared/utils/address";
 import { buildFullName } from "../../shared/utils/names";
@@ -92,7 +92,7 @@ function CompanyProfile() {
       .finally(() => setLoading(false));
   }, [user]);
 
-  if (loading) return <LoadingScreen />;
+  if (loading) return <PageSkeleton stats={0} panels={2} />;
   if (error) return <p role="alert" className="py-8 text-center text-sm text-destructive">{error}</p>;
 
   async function handleSubmit(e) {
@@ -265,6 +265,8 @@ function CompanyProfile() {
             <img
               src={companyLogo}
               alt={`${form.name || "Company"} logo`}
+              loading="lazy"
+              decoding="async"
               className="size-16 rounded-2xl border object-cover"
               onError={() => setLogoFailed(true)}
             />

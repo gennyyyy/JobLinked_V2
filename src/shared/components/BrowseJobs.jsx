@@ -3,11 +3,15 @@ import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { BriefcaseBusiness, Check, MapPin, Search, SearchX } from "lucide-react";
+import { Bookmark, BookmarkCheck, BriefcaseBusiness, Check, MapPin, Search, SearchX } from "lucide-react";
+import useAuth from "../hooks/useAuth";
+import { getSavedJobIds, subscribeSavedJobs, toggleSavedJob } from "../lib/savedJobs";
 import { listJobs } from "../services/jobs";
 import { TagInput } from "./TagInput";
 import { InlineError, Pager } from "./dashboard";
 import { CompanyMark } from "./design";
+import { JobListSkeleton } from "./Skeletons";
+import { prefetchRoute } from "../lib/routeLoaders";
 
 const PAGE_SIZE = 10;
 const EMPLOYMENT_TYPES = ["Full-time", "Part-time", "Contractual", "Seasonal", "Job Order"];
@@ -52,6 +56,11 @@ function BrowseJobs({ jobHref, initialKeyword = "", initialLocation = "", initia
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const { user } = useAuth() || {};
+  const [savedIds, setSavedIds] = useState(() => getSavedJobIds());
+  const canSave = user?.role === "job-seeker";
+
+  useEffect(() => subscribeSavedJobs(() => setSavedIds(getSavedJobIds())), []);
 
   useEffect(() => {
     let cancelled = false;
@@ -180,10 +189,7 @@ function BrowseJobs({ jobHref, initialKeyword = "", initialLocation = "", initia
           <h2 className="text-sm font-semibold text-dark-blue">Displaying {jobs.length} out of {total} jobs:</h2>
 
           {loading ? (
-            <div className="flex items-center justify-center gap-3 rounded-lg border border-primary bg-card py-10 text-sm text-muted-foreground">
-              <span className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" aria-hidden="true" />
-              Loading jobs…
-            </div>
+            <JobListSkeleton count={4} />
           ) : error ? (
             <InlineError message={error} />
           ) : jobs.length === 0 ? (
@@ -204,6 +210,9 @@ function BrowseJobs({ jobHref, initialKeyword = "", initialLocation = "", initia
               {jobs.map((job) => {
                 const bullets = requirementLines(job.requirements);
                 const company = job.employers?.company_name || "Verified employer";
+                const href = jobHref(job.id);
+                const warm = () => prefetchRoute(href);
+                const saved = savedIds.includes(job.id);
                 return (
                   <li key={job.id}>
                     <article className="surface p-5">
@@ -213,10 +222,23 @@ function BrowseJobs({ jobHref, initialKeyword = "", initialLocation = "", initia
                           <p className="truncate text-[11px] font-medium text-muted-foreground">{company}</p>
                           <span className="mt-1 flex items-center gap-1 text-[10px] text-teal"><Check className="size-3" />Verified employer</span>
                         </div>
-                        <span className="shrink-0 text-[10px] text-muted-foreground">{formatPosted(job.created_at)}</span>
+                        <div className="flex shrink-0 items-center gap-2">
+                          <span className="text-[10px] text-muted-foreground">{formatPosted(job.created_at)}</span>
+                          {canSave && (
+                            <button
+                              type="button"
+                              aria-label={saved ? `Unsave ${job.title}` : `Save ${job.title}`}
+                              aria-pressed={saved}
+                              onClick={() => setSavedIds(toggleSavedJob(job.id))}
+                              className="inline-flex size-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-primary"
+                            >
+                              {saved ? <BookmarkCheck className="size-4 fill-primary text-primary" /> : <Bookmark className="size-4" />}
+                            </button>
+                          )}
+                        </div>
                       </div>
                       <h3 className="mt-4 text-[17px] font-semibold leading-6 tracking-[-.025em]">
-                        <Link to={jobHref(job.id)} className="transition-colors hover:text-primary">{job.title}</Link>
+                        <Link to={href} onMouseEnter={warm} onFocus={warm} className="transition-colors hover:text-primary">{job.title}</Link>
                       </h3>
                       <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
                         <span className="flex items-center gap-1"><MapPin className="size-3" />{job.location}</span>
@@ -229,7 +251,7 @@ function BrowseJobs({ jobHref, initialKeyword = "", initialLocation = "", initia
                           {bullets.map((line) => <li key={line}>{line}</li>)}
                         </ul>
                       )}
-                      <Link to={jobHref(job.id)} className="mt-4 inline-flex min-h-9 items-center text-[11px] font-medium text-primary">See more →</Link>
+                      <Link to={href} onMouseEnter={warm} onFocus={warm} className="mt-4 inline-flex min-h-9 items-center text-[11px] font-medium text-primary">See more →</Link>
                     </article>
                   </li>
                 );

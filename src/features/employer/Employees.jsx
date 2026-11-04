@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 import useAuth from "../../shared/hooks/useAuth";
 import { listByCompany, updateApplicationStatus } from "../../shared/services/applications";
-import LoadingScreen from "../../shared/components/LoadingScreen";
+import { PageSkeleton } from '../../shared/components/Skeletons';
 import SeekerProfileCard from "../../shared/components/SeekerProfileCard";
 import ApplicantsShell from "../../shared/components/ApplicantsShell";
 import { EmptyState } from "../../shared/components/design";
@@ -65,7 +65,7 @@ function Employees() {
     setExpandedId((prev) => (prev === employee.id ? null : employee.id));
   }
 
-  if (loading) return <LoadingScreen />;
+  if (loading) return <PageSkeleton stats={0} panels={2} />;
 
   if (error) {
     return (

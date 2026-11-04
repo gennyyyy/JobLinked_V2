@@ -36,11 +36,11 @@ describe('EmployerAccreditation', () => {
     listCompanyDocuments.mockResolvedValue([])
   })
 
-  it('shows the loading screen while fetching accreditation data', () => {
+  it('shows a layout skeleton while fetching accreditation data', () => {
     let resolveEmployer
     getEmployer.mockReturnValue(new Promise((res) => { resolveEmployer = res }))
     render(<EmployerAccreditation />)
-    expect(screen.getByText(/loading database/i)).toBeInTheDocument()
+    expect(screen.getByRole('status')).toHaveTextContent(/loading page/i)
     act(() => resolveEmployer(COMPANY))
   })
 

@@ -13,9 +13,9 @@ function Jobs() {
   return (
     <div className="space-y-6 pb-12">
       <PageHeading
-        eyebrow="Opportunities in Santa Maria"
-        title="Browse Verified Openings"
-        description="Search verified positions from accredited employers in Santa Maria."
+        eyebrow="Built around your skills"
+        title="Browse Jobs"
+        description="Explore local roles ranked by the skills you have added to your profile."
       />
 
       <BrowseJobs

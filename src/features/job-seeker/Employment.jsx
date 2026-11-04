@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useEffect, useState } from "react";
 import useAuth from "@/shared/hooks/useAuth";
-import LoadingScreen from "@/shared/components/LoadingScreen";
+import { PageSkeleton } from '@/shared/components/Skeletons';
 import { listEmployment } from "@/shared/services/seekers";
 import { SectionCard } from "@/shared/components/dashboard";
 import { EmptyState } from "@/shared/components/design";
@@ -31,7 +31,7 @@ function Employment() {
       .finally(() => setLoading(false));
   }, [user]);
 
-  if (loading) return <LoadingScreen />;
+  if (loading) return <PageSkeleton stats={0} panels={1} />;
   if (error) return <div className="py-8 text-center text-sm text-danger">{error}</div>;
 
   const currentCount = employments.filter((e) => e.is_current).length;
@@ -54,8 +54,9 @@ function Employment() {
 
   return (
     <ApplicantsShell
-      title="Employment"
-      subtitle="Your current and past employment records"
+      eyebrow="Beyond the hiring journey"
+      title="Employment Tracking"
+      subtitle="Linked employment records, recorded milestones, and accountable updates. Separate from recruitment."
       search={search}
       onSearchChange={setSearch}
       searchPlaceholder="Search by employer or position..."

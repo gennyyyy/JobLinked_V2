@@ -7,7 +7,7 @@ import { Switch } from '@/components/ui/switch'
 import { Field, FieldDescription, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { listReferenceData, addReferenceData, removeReferenceData } from '@/shared/services/admin'
 import ConfirmationModal from '@/shared/components/ConfirmationModal'
-import LoadingScreen from '@/shared/components/LoadingScreen'
+import { PanelSkeleton } from '@/shared/components/Skeletons'
 import { InlineError, SectionCard } from '@/shared/components/dashboard'
 import { Notice, PageHeading, Panel } from '@/shared/components/design'
 import useAuth from '@/shared/hooks/useAuth'
@@ -118,7 +118,7 @@ export default function Settings() {
       <div className="mt-8 flex flex-col gap-6">
         <h2 className="text-base font-semibold text-navy">Reference values</h2>
         {loading ? (
-          <LoadingScreen />
+          <PanelSkeleton lines={4} />
         ) : error ? (
           <InlineError message={error} />
         ) : (

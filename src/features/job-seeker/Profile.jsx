@@ -13,7 +13,7 @@ import ConfirmationModal from "@/shared/components/ConfirmationModal";
 import { formatFullAddress } from "@/shared/utils/address";
 import { buildFullName } from "@/shared/utils/names";
 import { titleCase } from "@/shared/utils/titleCase";
-import LoadingScreen from "@/shared/components/LoadingScreen";
+import { PageSkeleton } from '@/shared/components/Skeletons'
 import ChangePassword from "@/shared/components/ChangePassword";
 import { TagInput, splitTags } from "@/shared/components/TagInput";
 import { InlineError } from "@/shared/components/dashboard";
@@ -174,7 +174,7 @@ function Profile() {
       .finally(() => setLoading(false));
   }, [user]);
 
-  if (loading) return <LoadingScreen />;
+  if (loading) return <PageSkeleton stats={0} panels={2} />;
   if (error) return <InlineError message={error} />;
 
   const fullName = buildFullName(form.firstName, form.middleName, form.lastName, form.suffix) || user?.full_name || "Job Seeker";
@@ -379,9 +379,9 @@ function Profile() {
   return (
     <div className="w-full space-y-4 pb-12">
       <PageHeading
-        eyebrow="Accredited job seeker"
-        title="My Profile"
-        description="Keep your contact details, skills, and resume current so local employers see the real you."
+        eyebrow="Introduce yourself"
+        title="Your story, your next step."
+        description="Give local employers a clear picture of your experience and the skills you bring."
       />
 
       <section className="flex items-center gap-4 rounded-2xl bg-navy p-5 text-white shadow-md md:p-6">

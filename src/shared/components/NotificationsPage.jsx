@@ -7,7 +7,7 @@ import useAuth from "../hooks/useAuth";
 import { resolveNotificationLink } from "../utils/notificationLinks";
 import { getNotificationVisual } from "../utils/notificationVisual";
 import { listNotifications, markRead, markAllRead, deleteNotification } from "../services/notifications";
-import LoadingScreen from "./LoadingScreen";
+import { PageSkeleton } from './Skeletons'
 import ConfirmationModal from "./ConfirmationModal";
 import Toast from "./Toast";
 import { EmptyState } from "./design";
@@ -132,7 +132,7 @@ export default function NotificationsPage({ eyebrow = 'Your workspace', title = 
     );
   }, [notifications, search]);
 
-  if (loading) return <LoadingScreen />;
+  if (loading) return <PageSkeleton stats={0} panels={2} />;
 
   const allSelected = notifications.length > 0 && notifications.every((n) => selected.has(n.id));
   const someSelected = !allSelected && notifications.some((n) => selected.has(n.id));

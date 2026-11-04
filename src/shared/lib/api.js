@@ -84,7 +84,25 @@ async function bounce(res) {
   throwStatus(res, message);
 }
 
+// Concurrent identical GETs share one request — e.g. auth/me asked for by the
+// auth provider and again by a page on a cold load. Entries are dropped the
+// moment they settle, so this is dedupe only; nothing is cached and a later
+// call always hits the network.
+const inFlightGets = new Map();
+
 async function request(method, path, body) {
+  if (method !== 'GET') return send(method, path, body);
+  const url = `${apiUrl()}/api/${path}`;
+  const existing = inFlightGets.get(url);
+  if (existing) return existing;
+  const pending = send(method, path, body);
+  inFlightGets.set(url, pending);
+  const settle = () => inFlightGets.delete(url);
+  pending.then(settle, settle);
+  return pending;
+}
+
+async function send(method, path, body) {
   const isForm = body instanceof FormData;
   const url = `${apiUrl()}/api/${path}`;
   const base = isForm ? {} : { 'Content-Type': 'application/json' };

@@ -31,11 +31,11 @@ const PAST = {
 describe('Employment history', () => {
   beforeEach(() => vi.clearAllMocks())
 
-  it('shows the loading screen while fetching employment records', () => {
+  it('shows a layout skeleton while fetching employment records', () => {
     let resolveList
     listEmployment.mockReturnValue(new Promise((res) => { resolveList = res }))
     render(<Employment />)
-    expect(screen.getByText(/loading database/i)).toBeInTheDocument()
+    expect(screen.getByRole('status')).toHaveTextContent(/loading page/i)
     act(() => resolveList([]))
   })
 

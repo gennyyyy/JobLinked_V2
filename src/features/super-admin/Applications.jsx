@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
 import { listAllApplications } from '@/shared/services/admin'
-import LoadingScreen from '@/shared/components/LoadingScreen'
+import { PageSkeleton } from '@/shared/components/Skeletons'
 import { InlineError } from '@/shared/components/dashboard'
 import { EmptyState, PageHeading, Panel, SelectField, StatCards, StatusBadge } from '@/shared/components/design'
 import { titleCase } from '@/shared/utils/titleCase'
@@ -60,7 +60,7 @@ export default function Applications() {
     URL.revokeObjectURL(url)
   }
 
-  if (loading) return <LoadingScreen />
+  if (loading) return <PageSkeleton stats={0} table />
   if (error) return <InlineError message={error} />
 
   return (

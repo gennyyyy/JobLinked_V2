@@ -8,7 +8,7 @@ import { createPortal } from 'react-dom'
 import { X } from 'lucide-react'
 import { listAllAccreditations, listCompanies, updateUser, requestDocs } from '@/shared/services/admin'
 import { signedUrl, updateAccreditation, updateDocumentStatus, listCompanyDocuments, latestAccByCompany } from '@/shared/services/documents'
-import LoadingScreen from '@/shared/components/LoadingScreen'
+import { PageSkeleton } from '@/shared/components/Skeletons'
 import ConfirmationModal from '@/shared/components/ConfirmationModal'
 import useDialog from '@/shared/hooks/useDialog'
 import { InlineError, Pager, SectionCard } from '@/shared/components/dashboard'
@@ -180,7 +180,7 @@ function Accreditation() {
       .finally(() => setLoading(false))
   }, [accPage, companyPage])
 
-  if (loading) return <LoadingScreen />
+  if (loading) return <PageSkeleton stats={0} table />
   if (error) return <InlineError message={error} />
 
   // accs is ordered by submitted_at desc, so the first row per company is its latest

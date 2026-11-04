@@ -1,5 +1,6 @@
 import {
   Bell,
+  Bookmark,
   BriefcaseBusiness,
   Building2,
   ChartNoAxesCombined,
@@ -29,9 +30,11 @@ export const PORTAL_NAV = {
     { label: 'Overview', path: '/job-seeker', icon: LayoutDashboard, end: true },
     { label: 'My profile', path: '/job-seeker/profile', icon: UserRound },
     { label: 'Browse Jobs', path: '/job-seeker/jobs', icon: Search },
+    { label: 'Saved jobs', path: '/job-seeker/saved', icon: Bookmark },
     { label: 'My applications', path: '/job-seeker/applications', icon: ClipboardList },
     { label: 'Employment Tracking', path: '/job-seeker/employment', icon: BriefcaseBusiness },
     { label: 'Notifications', path: '/job-seeker/notifications', icon: Bell },
+    { label: 'Account settings', path: '/job-seeker/settings', icon: Settings },
   ],
   employer: [
     { label: 'Overview', path: '/employer', icon: LayoutDashboard, end: true },

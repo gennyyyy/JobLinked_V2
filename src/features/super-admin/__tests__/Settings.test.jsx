@@ -25,11 +25,11 @@ describe('System Settings reference data', () => {
     )
   })
 
-  it('shows the loading screen while fetching reference data', () => {
+  it('shows a layout skeleton while fetching reference data', () => {
     let resolveOne
     listReferenceData.mockReturnValue(new Promise((res) => { resolveOne = res }))
     renderSettings()
-    expect(screen.getByText(/loading database/i)).toBeInTheDocument()
+    expect(screen.getByRole('status')).toHaveTextContent(/loading panel/i)
     act(() => resolveOne([]))
   })
 

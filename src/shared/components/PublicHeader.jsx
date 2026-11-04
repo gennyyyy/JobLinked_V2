@@ -2,8 +2,8 @@ import { Button } from "../../components/ui/button";
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { ChevronDown } from "lucide-react";
-import logoImage from "../../assets/Logo.png";
-import textBasedLogo from "../../assets/TextBased Logo.png";
+import logoImage from "../../assets/logo-256.png";
+import textBasedLogo from "../../assets/wordmark-400.png";
 
 const howItWorksItems = [
   { label: "Jobseeker", to: "/register/job-seeker" },
@@ -41,9 +41,9 @@ function PublicHeader() {
     <header className="sticky top-0 z-20 bg-card border-b border-border shadow-sm">
       <div className="w-full px-[28px] h-16 flex items-center justify-between">
         <Link to="/" className="flex items-center gap-2">
-          <img src={logoImage} alt="JobLinked" className="h-12 w-auto" />
+          <img src={logoImage} alt="JobLinked" width={256} height={256} className="h-12 w-auto" />
           <span className="brand-mark-surface flex items-center rounded-md px-1.5 py-1">
-            <img src={textBasedLogo} alt="JobLinked" className="h-10 w-auto" />
+            <img src={textBasedLogo} alt="JobLinked" width={400} height={133} className="h-10 w-auto" />
           </span>
         </Link>
         <div className="flex items-center gap-3">

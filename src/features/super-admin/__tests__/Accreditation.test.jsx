@@ -51,11 +51,11 @@ describe('Accreditation management', () => {
     listCompanies.mockResolvedValue({ data: [COMPANY], total: 1, page: 1, pageSize: 25 })
   })
 
-  it('shows the loading screen while fetching', () => {
+  it('shows a layout skeleton while fetching', () => {
     let resolveAccs
     listAllAccreditations.mockReturnValue(new Promise((res) => { resolveAccs = res }))
     render(<Accreditation />)
-    expect(screen.getByText(/loading database/i)).toBeInTheDocument()
+    expect(screen.getByRole('status')).toHaveTextContent(/loading page/i)
     act(() => resolveAccs({ data: [] }))
   })
 

@@ -23,7 +23,7 @@ import { JOB_TAGS, JOB_BENEFITS, JOB_EDUCATION_LEVELS, JOB_EXPERIENCE_PRESETS, S
 import { listEmployerJobs, createJob, updateJob, changeJobStatus, deleteJob } from "../../shared/services/jobs";
 import { getEmployer } from "../../shared/services/auth";
 import ConfirmationModal from "../../shared/components/ConfirmationModal";
-import LoadingScreen from "../../shared/components/LoadingScreen";
+import { PageSkeleton } from '../../shared/components/Skeletons';
 import { Pager } from "../../shared/components/dashboard";
 import useDialog from "../../shared/hooks/useDialog";
 import { InlineError } from "../../shared/components/dashboard";
@@ -578,7 +578,7 @@ export default function JobPosts() {
         ? "You haven't posted any job vacancies yet. Click '+ Post a Job' to recruit Santa Maria talent."
         : "To post job vacancies, your company must first be accredited by PESO.";
 
-  if (loading) return <LoadingScreen />;
+  if (loading) return <PageSkeleton stats={0} panels={2} />;
 
   if (loadError) return <InlineError message={loadError} onRetry={loadData} />;
 

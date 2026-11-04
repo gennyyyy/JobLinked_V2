@@ -49,11 +49,11 @@ describe('Employees roster', () => {
     updateApplicationStatus.mockResolvedValue({ id: 'a1', status: 'Accepted' })
   })
 
-  it('shows the loading screen while fetching employees', () => {
+  it('shows a layout skeleton while fetching employees', () => {
     let resolveList
     listByCompany.mockReturnValue(new Promise((res) => { resolveList = res }))
     render(<Employees />)
-    expect(screen.getByText(/loading database/i)).toBeInTheDocument()
+    expect(screen.getByRole('status')).toHaveTextContent(/loading page/i)
     act(() => resolveList([]))
   })
 

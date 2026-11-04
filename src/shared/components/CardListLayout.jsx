@@ -43,6 +43,7 @@ function StandardControls({
 export default function CardListLayout({
   title,
   subtitle,
+  eyebrow,
   headerAction = null,
   // Standard controls (use these for identical search/sort bars):
   sort,
@@ -68,6 +69,7 @@ export default function CardListLayout({
     <div className={`space-y-6 pb-12 ${className}`}>
       <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="min-w-0">
+          {eyebrow && <p className="eyebrow mb-2">{eyebrow}</p>}
           <h1 className="text-2xl font-semibold tracking-[-.035em] text-navy">{title}</h1>
           {subtitle && <p className="mt-2 text-sm leading-6 text-muted-foreground">{subtitle}</p>}
         </div>

@@ -12,11 +12,16 @@ import { Field, FieldLabel, FieldError, FieldDescription, } from "@/components/u
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
-export function Logo({ light = false, compact = false, imageSrc = "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/Logo-lDM9L9yQL9F0cRDvGXNMeT2vrETT2m.png", wordmarkSrc = "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/TextBased%20Logo-VbwcOtvFwkjScF5hxpbierATwB6ncj.png", }) {
+import { prefetchRoute } from "@/shared/lib/routeLoaders";
+import logoImage from "@/assets/logo-256.png";
+import wordmarkImage from "@/assets/wordmark-400.png";
+export function Logo({ light = false, compact = false, imageSrc = logoImage, wordmarkSrc = wordmarkImage, }) {
+    // Local brand marks: the same files the public header ships, so no page
+    // depends on a third-party blob host for its logo.
     return (<Link to="/" className="inline-flex shrink-0 items-center gap-2.5" aria-label="JobLinked home">
-      {compact ? (<img src={imageSrc} alt="" width={64} height={64} className="size-9 shrink-0 rounded-full object-cover"/>) : (<>
-          <img src={imageSrc} alt="JobLinked logo" width={64} height={64} className="size-11 shrink-0 rounded-full object-cover"/>
-          <img src={wordmarkSrc} alt="JobLinked" width={211} height={60} className="h-auto w-[150px] object-contain"/>
+      {compact ? (<img src={imageSrc} alt="" width={256} height={256} decoding="async" className="size-9 shrink-0 rounded-full object-cover"/>) : (<>
+          <img src={imageSrc} alt="JobLinked logo" width={256} height={256} decoding="async" className="size-11 shrink-0 rounded-full object-cover"/>
+          <img src={wordmarkSrc} alt="JobLinked" width={400} height={133} decoding="async" className="h-auto w-[150px] object-contain"/>
         </>)}
       {!imageSrc && (<span className={cn("text-[23px] font-bold tracking-[-1px] text-navy", light && "text-white")}>
           Job
@@ -28,7 +33,9 @@ export function Logo({ light = false, compact = false, imageSrc = "https://hebbk
     </Link>);
 }
 export function LinkButton({ href, children, variant = "default", className, ...props }) {
-    return (<Link to={href} className={cn(buttonVariants({ variant }), "min-h-11 gap-2 px-5", className)} {...props}>
+    // Warm the destination chunk while the pointer is still travelling.
+    const warm = () => prefetchRoute(href);
+    return (<Link to={href} onMouseEnter={warm} onFocus={warm} className={cn(buttonVariants({ variant }), "min-h-11 gap-2 px-5", className)} {...props}>
       {children}
     </Link>);
 }

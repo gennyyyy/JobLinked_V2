@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
 import { listEmployees } from '@/shared/services/admin'
-import LoadingScreen from '@/shared/components/LoadingScreen'
+import { PageSkeleton } from '@/shared/components/Skeletons'
 import { InlineError } from '@/shared/components/dashboard'
 import { EmptyState, PageHeading, Panel, StatusBadge } from '@/shared/components/design'
 import { titleCase } from '@/shared/utils/titleCase'
@@ -18,7 +18,7 @@ export default function Employment() {
       .finally(() => setLoading(false))
   }, [])
 
-  if (loading) return <LoadingScreen />
+  if (loading) return <PageSkeleton stats={0} table />
   if (error) return <InlineError message={error} />
 
   const active = records.filter((record) => record.status === 'Accepted').length

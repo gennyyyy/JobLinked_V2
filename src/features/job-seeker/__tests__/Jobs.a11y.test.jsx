@@ -31,7 +31,7 @@ async function renderJobs() {
       <Jobs />
     </MemoryRouter>
   )
-  return screen.findByRole('heading', { name: /browse verified openings/i })
+  return screen.findByRole('heading', { name: /browse jobs/i })
 }
 
 describe('Jobs accessibility', () => {

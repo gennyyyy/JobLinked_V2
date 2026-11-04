@@ -7,7 +7,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { Shield, Plus, Pencil, Trash2, Lock, Users, X } from 'lucide-react'
 import { listRoles, createRole, updateRole, deleteRole, listPermissions } from '@/shared/services/admin'
 import ConfirmationModal from '@/shared/components/ConfirmationModal'
-import LoadingScreen from '@/shared/components/LoadingScreen'
+import { PageSkeleton } from '@/shared/components/Skeletons'
 import { SectionCard, StatCard } from '@/shared/components/dashboard'
 import { PageHeading, StatusBadge } from '@/shared/components/design'
 
@@ -167,7 +167,7 @@ function RoleManagement() {
     }
   }
 
-  if (loading) return <LoadingScreen />
+  if (loading) return <PageSkeleton stats={0} table />
 
   return (
     <div className="flex h-full min-h-0 flex-col gap-4 overflow-hidden">

@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 import useAuth from "../../shared/hooks/useAuth";
 import { listByCompany, updateApplicationStatus } from "../../shared/services/applications";
-import LoadingScreen from "../../shared/components/LoadingScreen";
+import { PageSkeleton } from '../../shared/components/Skeletons';
 import SeekerProfileCard from "../../shared/components/SeekerProfileCard";
 import ApplicantsShell from "../../shared/components/ApplicantsShell";
 import { TextField } from "../../shared/components/design";
@@ -140,7 +140,7 @@ function Applicants() {
     return c;
   }, [tracked]);
 
-  if (loading) return <LoadingScreen />;
+  if (loading) return <PageSkeleton stats={0} panels={2} />;
 
   if (error) {
     return (

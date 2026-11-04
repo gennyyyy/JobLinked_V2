@@ -6,7 +6,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { X } from 'lucide-react'
 import { listUsers, updateUser, listRoles, assignRole, assignCustomRole, inviteUser } from '@/shared/services/admin'
 import useAuth from '@/shared/hooks/useAuth'
-import LoadingScreen from '@/shared/components/LoadingScreen'
+import { PageSkeleton } from '@/shared/components/Skeletons'
 import { InlineError, Pager, StatCard } from '@/shared/components/dashboard'
 import useDialog from '@/shared/hooks/useDialog'
 import { titleCase } from '@/shared/utils/titleCase'
@@ -72,7 +72,7 @@ function UserManagement() {
       .finally(() => setLoading(false))
   }, [])
 
-  if (loading) return <LoadingScreen />
+  if (loading) return <PageSkeleton stats={0} table />
   if (error) return <InlineError message={error} />
 
   // Role assignment lives ONLY here (the Roles page manages definitions).

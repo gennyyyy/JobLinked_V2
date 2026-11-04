@@ -2,10 +2,10 @@ import { Button } from '@/components/ui/button'
 import { useEffect, useState } from 'react'
 import { Download } from 'lucide-react'
 import { listAllJobs, listAllApplications, listUsers } from '@/shared/services/admin'
-import LoadingScreen from '@/shared/components/LoadingScreen'
+import { PageSkeleton } from '@/shared/components/Skeletons'
 import { InlineError, SectionCard, StatCard } from '@/shared/components/dashboard'
 import { PageHeading, TextField } from '@/shared/components/design'
-import { BarangayVacancyChart, EmploymentActivityChart, EmploymentTypeChart } from '@/shared/components/EmploymentCharts'
+import { BarangayVacancyChart, EmploymentActivityChart, EmploymentTypeChart } from '@/shared/components/lazyCharts'
 
 const REPORTS = [
   { id: 'referral', label: 'Referral', eyebrow: 'Referral activity', description: 'Track applicants referred through PESO services.' },
@@ -103,7 +103,7 @@ function Reports() {
     URL.revokeObjectURL(url)
   }
 
-  if (loading) return <LoadingScreen />
+  if (loading) return <PageSkeleton stats={3} panels={2} />
   if (error) return <InlineError message={error} />
 
   return (

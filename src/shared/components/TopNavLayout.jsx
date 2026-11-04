@@ -29,6 +29,8 @@ import useDialog from '../hooks/useDialog'
 import { initialsOf } from '../utils/accountName'
 import { PORTAL_NAV, ROLE_LABELS } from '../constants'
 import { listNotifications } from '../services/notifications'
+import { NOTIFICATIONS_CHANGED } from '../utils/notificationEvents'
+import { prefetchRoute } from '../lib/routeLoaders'
 import { getStats } from '../services/admin'
 import { cn } from '@/lib/utils'
 
@@ -51,18 +53,38 @@ export default function TopNavLayout({ role, navItems, profileTo, roleLabel, hom
   const afkRef = useDialog(() => setShowWarning(false), showWarning)
   useAFKTimer(true, handleWarning)
 
+  // One fetch per signed-in user. The old version re-ran on every pathname
+  // change, so every portal navigation cost two extra requests.
   useEffect(() => {
+    if (!user?.id) return undefined
     let alive = true
-    listNotifications(user?.id)
-      .then((rows) => { if (alive) setUnread((rows || []).filter((row) => !row.is_read).length) })
-      .catch(() => {})
-    if (isAdmin) {
-      getStats()
-        .then((stats) => { if (alive) setPendingAccreditations(Number(stats?.pendingAccreditations) || 0) })
+
+    function refresh() {
+      listNotifications(user.id)
+        .then((rows) => { if (alive) setUnread((rows || []).filter((row) => !row.is_read).length) })
         .catch(() => {})
+      if (isAdmin) {
+        getStats()
+          .then((stats) => { if (alive) setPendingAccreditations(Number(stats?.pendingAccreditations) || 0) })
+          .catch(() => {})
+      }
     }
-    return () => { alive = false }
-  }, [user?.id, pathname, isAdmin])
+
+    // A read/delete elsewhere in the workspace refreshes the badge without a
+    // full page reload; returning to the tab catches changes made in another one.
+    function refreshWhenVisible() {
+      if (!document.hidden) refresh()
+    }
+
+    refresh()
+    window.addEventListener(NOTIFICATIONS_CHANGED, refresh)
+    document.addEventListener('visibilitychange', refreshWhenVisible)
+    return () => {
+      alive = false
+      window.removeEventListener(NOTIFICATIONS_CHANGED, refresh)
+      document.removeEventListener('visibilitychange', refreshWhenVisible)
+    }
+  }, [user?.id, isAdmin])
 
   function handleLogout() {
     logout()
@@ -83,7 +105,7 @@ export default function TopNavLayout({ role, navItems, profileTo, roleLabel, hom
       <div className="flex h-[85px] items-center px-6">
         <Logo compact={collapsed && !small} />
       </div>
-      <div className={cn('px-6 pb-4', collapsed && !small && 'px-4')}>
+      <div className={cn('px-6 pb-4', collapsed && !small && 'flex justify-center px-0 pb-4')}>
         <Badge variant="secondary" className="gap-1.5 whitespace-nowrap">
           {collapsed && !small ? (
             <ShieldCheck />
@@ -105,6 +127,8 @@ export default function TopNavLayout({ role, navItems, profileTo, roleLabel, hom
               to={path}
               end={end}
               onClick={() => setMobile(false)}
+              onMouseEnter={() => prefetchRoute(path)}
+              onFocus={() => prefetchRoute(path)}
               title={collapsed && !small ? title : undefined}
               aria-label={title}
               aria-current={active ? 'page' : undefined}
@@ -149,9 +173,11 @@ export default function TopNavLayout({ role, navItems, profileTo, roleLabel, hom
   )
 
   const lower = query.toLowerCase()
-  const results = navigation
-    .filter((item) => item.label.toLowerCase().includes(lower))
-    .map((item) => ({ title: item.label, subtitle: 'Workspace page', href: item.path }))
+  const results = searchOpen
+    ? navigation
+      .filter((item) => item.label.toLowerCase().includes(lower))
+      .map((item) => ({ title: item.label, subtitle: 'Workspace page', href: item.path }))
+    : []
 
   return (
     <div className={cn('min-h-screen bg-muted/70', fixedContent && 'h-screen overflow-hidden')}>

@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ArrowRight, BriefcaseBusiness, CalendarDays, CheckCircle2, ClipboardList, UserRound } from 'lucide-react'
+import { ArrowRight, Bookmark, BriefcaseBusiness, CalendarDays, CheckCircle2, ClipboardList, UserRound } from 'lucide-react'
 import { Progress } from '@/components/ui/progress'
 import useAuth from '@/shared/hooks/useAuth'
 import { listBySeeker } from '@/shared/services/applications'
 import { listJobs } from '@/shared/services/jobs'
-import LoadingScreen from '@/shared/components/LoadingScreen'
+import { PageSkeleton } from '@/shared/components/Skeletons'
 import { InlineError } from '@/shared/components/dashboard'
 import { CompanyMark, EmptyState, LinkButton, PageHeading, Panel, StatCards, StatusBadge } from '@/shared/components/design'
 import { titleCase } from '@/shared/utils/titleCase'
@@ -43,7 +43,6 @@ export default function Dashboard() {
   const [recommended, setRecommended] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const [today] = useState(() => Date.now())
 
   useEffect(() => {
     if (!user) return
@@ -63,11 +62,10 @@ export default function Dashboard() {
       .finally(() => setLoading(false))
   }, [user])
 
-  if (loading) return <LoadingScreen />
+  if (loading) return <PageSkeleton stats={4} panels={2} />
   if (error) return <InlineError message={error} />
 
-  const accepted = applications.filter((app) => app.status === 'Accepted').length
-  const newThisWeek = applications.filter((app) => (today - new Date(app.applied_at).getTime()) / 86400000 <= 7).length
+  const interviews = applications.filter((app) => app.status === 'Interview Scheduled').length
   const completion = profileCompletion(user)
   const recentApps = [...applications].sort((a, b) => new Date(b.applied_at) - new Date(a.applied_at)).slice(0, 4)
   const firstName = user?.first_name || String(user?.full_name || user?.name || 'there').split(' ')[0]
@@ -83,8 +81,8 @@ export default function Dashboard() {
       <StatCards
         stats={[
           { label: 'Applications sent', value: applications.length, icon: ClipboardList },
-          { label: 'Accepted', value: accepted, icon: CheckCircle2 },
-          { label: 'New this week', value: newThisWeek, icon: CalendarDays, tone: 'teal' },
+          { label: 'Saved opportunities', value: 0, icon: Bookmark },
+          { label: 'Upcoming interviews', value: interviews, icon: CalendarDays, tone: 'teal' },
           { label: 'Profile complete', value: `${completion}%`, icon: UserRound, note: 'Your profile, at a glance', tone: 'teal' },
         ]}
       />

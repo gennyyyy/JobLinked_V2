@@ -2,9 +2,9 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ArrowRight, BriefcaseBusiness, Building2, ChartNoAxesCombined, ClipboardCheck, Handshake, ShieldCheck, Users } from 'lucide-react'
 import { getStats, listAllAccreditations, listAllApplications, listAuditLogs } from '@/shared/services/admin'
-import LoadingScreen from '@/shared/components/LoadingScreen'
+import { PageSkeleton } from '@/shared/components/Skeletons'
 import { InlineError } from '@/shared/components/dashboard'
-import { EmploymentActivityChart } from '@/shared/components/EmploymentCharts'
+import { EmploymentActivityChart } from '@/shared/components/lazyCharts'
 import useAuth from '@/shared/hooks/useAuth'
 import { CompanyMark, EmptyState, LinkButton, PageHeading, Panel, StatCards, StatusBadge } from '@/shared/components/design'
 import { titleCase } from '@/shared/utils/titleCase'
@@ -30,7 +30,7 @@ export default function Dashboard() {
       .finally(() => setLoading(false))
   }, [])
 
-  if (loading) return <LoadingScreen />
+  if (loading) return <PageSkeleton stats={4} panels={2} />
   if (error) return <InlineError message={error} />
   if (!stats) return null
 

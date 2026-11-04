@@ -1,56 +1,65 @@
 import { Suspense, lazy, useEffect, useState } from 'react'
-import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import ProtectedRoute from './shared/components/ProtectedRoute'
 import LoadingScreen from './shared/components/LoadingScreen'
 import ErrorBoundary from './shared/components/ErrorBoundary'
 import useAuth from './shared/hooks/useAuth'
 import { Toaster } from './components/ui/sonner'
 
+import { routeLoaders } from './shared/lib/routeLoaders'
+
 // Route-level code splitting: each page is its own chunk, so a visitor on the
-// public site never downloads the admin / employer / seeker bundles.
-const Landing = lazy(() => import('./features/public-site/Landing'))
-const PublicJobs = lazy(() => import('./features/public-site/PublicJobs'))
-const PublicJobDetail = lazy(() => import('./features/public-site/PublicJobDetail'))
-const PortalSelect = lazy(() => import('./features/public-site/PortalSelect'))
-const Legal = lazy(() => import('./features/public-site/Legal'))
-const ForgotPassword = lazy(() => import('./features/auth/ForgotPassword'))
-const ResetPassword = lazy(() => import('./features/auth/ResetPassword'))
-const Login = lazy(() => import('./features/auth/Login'))
-const Register = lazy(() => import('./features/auth/Register'))
-const JobSeekerRegister = lazy(() => import('./features/auth/JobSeekerRegister'))
-const EmployerRegister = lazy(() => import('./features/auth/EmployerRegister'))
-const EmployerStatus = lazy(() => import('./features/auth/EmployerStatus'))
-const AuthCallback = lazy(() => import('./features/auth/AuthCallback'))
-const AcceptInvite = lazy(() => import('./features/auth/AcceptInvite'))
-const SuperAdminLayout = lazy(() => import('./features/super-admin/SuperAdminLayout'))
+// public site never downloads the admin / employer / seeker bundles. The
+// loaders live in shared/lib/routeLoaders.js so links can warm them on hover.
+const route = (path) => lazy(routeLoaders[path])
+
+const Landing = route('/')
+const PublicJobs = route('/jobs')
+const PublicJobDetail = route('/jobs/:id')
+const PortalSelect = route('/portals')
+const Legal = route('/privacy')
+const ForgotPassword = route('/forgot-password')
+const ResetPassword = route('/reset-password')
+const Login = route('/login')
+const Register = route('/register')
+const JobSeekerRegister = route('/register/job-seeker')
+const EmployerRegister = route('/register/employer')
+const EmployerStatus = route('/employer/status')
+const AuthCallback = route('/auth/callback')
+const AcceptInvite = route('/accept-invite')
+const SuperAdminLayout = route('/super-admin')
+const Accreditation = route('/super-admin/accreditation')
+const JobPosts = route('/super-admin/job-posts')
+const RoleManagement = route('/super-admin/roles')
+const UserManagement = route('/super-admin/users')
+const Settings = route('/super-admin/settings')
+const Broadcast = route('/super-admin/broadcast')
+const Reports = route('/super-admin/reports')
+const Logs = route('/super-admin/logs')
+const SuperAdminNotifications = route('/super-admin/notifications')
+const SuperAdminProfile = route('/super-admin/profile')
+const SuperAdminApplications = route('/super-admin/applications')
+const SuperAdminEmployment = route('/super-admin/employment-tracking')
+const EmployerLayout = route('/employer')
+const EmployerJobPosts = route('/employer/job-posts')
+const Applicants = route('/employer/applicants')
+const Employees = route('/employer/employees')
+const CompanyProfile = route('/employer/company')
+const EmployerAccreditation = route('/employer/accreditation')
+const JobSeekerLayout = route('/job-seeker')
+const JobDetail = route('/job-seeker/jobs/:id')
+const Applications = route('/job-seeker/applications')
+const Employment = route('/job-seeker/employment')
+const Profile = route('/job-seeker/profile')
+const Jobs = route('/job-seeker/jobs')
+const SavedJobs = route('/job-seeker/saved')
+const JobSeekerSettings = route('/job-seeker/settings')
+const NotificationsPage = route('/job-seeker/notifications')
+// The three portal index dashboards share their parent path, so they cannot be
+// keyed in routeLoaders — they stay inline.
 const Dashboard = lazy(() => import('./features/super-admin/Dashboard'))
-const Accreditation = lazy(() => import('./features/super-admin/Accreditation'))
-const JobPosts = lazy(() => import('./features/super-admin/JobPosts'))
-const RoleManagement = lazy(() => import('./features/super-admin/RoleManagement'))
-const UserManagement = lazy(() => import('./features/super-admin/UserManagement'))
-const Settings = lazy(() => import('./features/super-admin/Settings'))
-const Broadcast = lazy(() => import('./features/super-admin/Broadcast'))
-const Reports = lazy(() => import('./features/super-admin/Reports'))
-const Logs = lazy(() => import('./features/super-admin/Logs'))
-const SuperAdminNotifications = lazy(() => import('./features/super-admin/Notifications'))
-const SuperAdminProfile = lazy(() => import('./features/super-admin/Profile'))
-const SuperAdminApplications = lazy(() => import('./features/super-admin/Applications'))
-const SuperAdminEmployment = lazy(() => import('./features/super-admin/Employment'))
-const EmployerLayout = lazy(() => import('./features/employer/EmployerLayout'))
 const EmployerDashboard = lazy(() => import('./features/employer/Dashboard'))
-const EmployerJobPosts = lazy(() => import('./features/employer/JobPosts'))
-const Applicants = lazy(() => import('./features/employer/Applicants'))
-const Employees = lazy(() => import('./features/employer/Employees'))
-const CompanyProfile = lazy(() => import('./features/employer/CompanyProfile'))
-const EmployerAccreditation = lazy(() => import('./features/employer/EmployerAccreditation'))
-const JobSeekerLayout = lazy(() => import('./features/job-seeker/JobSeekerLayout'))
 const JobSeekerDashboard = lazy(() => import('./features/job-seeker/Dashboard'))
-const JobDetail = lazy(() => import('./features/job-seeker/JobDetail'))
-const Applications = lazy(() => import('./features/job-seeker/Applications'))
-const Employment = lazy(() => import('./features/job-seeker/Employment'))
-const Profile = lazy(() => import('./features/job-seeker/Profile'))
-const Jobs = lazy(() => import('./features/job-seeker/Jobs'))
-const NotificationsPage = lazy(() => import('./shared/components/NotificationsPage'))
 
 function App() {
   return (
@@ -64,8 +73,17 @@ function App() {
             <Route path="/jobs/:jobId" element={<PublicRoute><PublicJobDetail /></PublicRoute>} />
             <Route path="/portals" element={<PublicRoute><PortalSelect /></PublicRoute>} />
             {/* New-design flow aliases for the portal roots. */}
+            {/* New-design job-seeker flow: /jobseeker/<reference-section>. */}
             <Route path="/jobseeker" element={<Navigate to="/job-seeker" replace />} />
-            <Route path="/jobseeker/*" element={<LegacyRedirect to="/job-seeker" />} />
+            <Route path="/jobseeker/dashboard" element={<Navigate to="/job-seeker" replace />} />
+            <Route path="/jobseeker/profile" element={<Navigate to="/job-seeker/profile" replace />} />
+            <Route path="/jobseeker/recommended" element={<Navigate to="/job-seeker/jobs" replace />} />
+            <Route path="/jobseeker/saved" element={<Navigate to="/job-seeker/saved" replace />} />
+            <Route path="/jobseeker/applications" element={<Navigate to="/job-seeker/applications" replace />} />
+            <Route path="/jobseeker/employment-tracking" element={<Navigate to="/job-seeker/employment" replace />} />
+            <Route path="/jobseeker/notifications" element={<Navigate to="/job-seeker/notifications" replace />} />
+            <Route path="/jobseeker/settings" element={<Navigate to="/job-seeker/settings" replace />} />
+            <Route path="/jobseeker/*" element={<Navigate to="/job-seeker" replace />} />
             {/* New-design admin flow: /admin/<reference-section> maps onto this app. */}
             <Route path="/admin" element={<Navigate to="/super-admin" replace />} />
             <Route path="/admin/dashboard" element={<Navigate to="/super-admin" replace />} />
@@ -161,9 +179,11 @@ function App() {
               <Route index element={<JobSeekerDashboard />} />
               <Route path="jobs" element={<Jobs />} />
               <Route path="jobs/:jobId" element={<JobDetail />} />
+              <Route path="saved" element={<SavedJobs />} />
               <Route path="applications" element={<Applications />} />
               <Route path="employment" element={<Employment />} />
               <Route path="profile" element={<Profile />} />
+              <Route path="settings" element={<JobSeekerSettings />} />
               <Route path="notifications" element={<NotificationsPage />} />
             </Route>
 
@@ -176,13 +196,6 @@ function App() {
 }
 
 export default App
-
-// New-design portal roots (/jobseeker, /admin) redirect onto this app's
-// existing portal roots while preserving the nested path and query string.
-function LegacyRedirect({ to }) {
-  const { pathname, search } = useLocation()
-  return <Navigate to={`${to}${pathname.replace(/^\/[^/]+/, '')}${search}`} replace />
-}
 
 // ADR-021 rule 1: a session survives only inside its own portal — destroy it
 // on arrival at a public route, then render the page as guest.

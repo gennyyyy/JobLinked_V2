@@ -5,7 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { sendSystemNotification } from '@/shared/services/admin'
 import { listNotifications } from '@/shared/services/notifications'
 import useAuth from '@/shared/hooks/useAuth'
-import LoadingScreen from '@/shared/components/LoadingScreen'
+import { PanelSkeleton } from '@/shared/components/Skeletons'
 import { EmptyState, Notice, PageHeading, Panel, TextField } from '@/shared/components/design'
 
 export default function Broadcast() {
@@ -77,7 +77,7 @@ export default function Broadcast() {
       </div>
       <Panel title="Your employment notices" description="Published notices and working drafts, together in one place.">
         {loading ? (
-          <LoadingScreen />
+          <PanelSkeleton lines={3} />
         ) : sent.length === 0 ? (
           <EmptyState title="No published notices yet." description="Announcements you send will be listed here." />
         ) : (

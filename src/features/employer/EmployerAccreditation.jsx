@@ -7,7 +7,7 @@ import useAuth from "../../shared/hooks/useAuth";
 import { getEmployer } from "../../shared/services/auth";
 import { listAccreditations, createAccreditation, listCompanyDocuments, uploadDocument, validateFile, signedUrl } from "../../shared/services/documents";
 import { DOC_TYPES } from "../../shared/constants";
-import LoadingScreen from "../../shared/components/LoadingScreen";
+import { PageSkeleton } from '../../shared/components/Skeletons'
 import { InlineError } from "../../shared/components/dashboard";
 import { Notice, PageHeading, Panel, StatusBadge } from "../../shared/components/design";
 
@@ -72,7 +72,7 @@ function EmployerAccreditation() {
     }
   }
 
-  if (loading) return <LoadingScreen />;
+  if (loading) return <PageSkeleton stats={0} panels={2} />;
   if (error) return <InlineError message={error} />;
 
   const latest = accreditations[0] || null;

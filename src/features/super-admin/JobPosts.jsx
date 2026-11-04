@@ -7,7 +7,7 @@ import { createPortal } from 'react-dom'
 import { listAllJobs, editJob, publishJob, unpublishJob } from '@/shared/services/admin'
 import { changeJobStatus } from '@/shared/services/jobs'
 import ConfirmationModal from '@/shared/components/ConfirmationModal'
-import LoadingScreen from '@/shared/components/LoadingScreen'
+import { PageSkeleton } from '@/shared/components/Skeletons'
 import { InlineError, Pager } from '@/shared/components/dashboard'
 import { EmptyState, PageHeading, Panel, StatusBadge, TextField } from '@/shared/components/design'
 import { titleCase } from '@/shared/utils/titleCase'
@@ -125,7 +125,7 @@ function JobPosts() {
       .finally(() => setLoading(false))
   }, [page])
 
-  if (loading) return <LoadingScreen />
+  if (loading) return <PageSkeleton stats={0} table />
   if (error) return <InlineError message={error} />
 
   async function handleAction(job, action) {

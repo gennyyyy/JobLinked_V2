@@ -4,7 +4,7 @@ import { ArrowLeft, Banknote, BriefcaseBusiness, CalendarDays, MapPin, Users } f
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { getJob } from '@/shared/services/jobs'
-import LoadingScreen from '@/shared/components/LoadingScreen'
+import { PageSkeleton } from '@/shared/components/Skeletons'
 import PublicShell from '@/shared/components/PublicShell'
 import { CompanyMark, LinkButton, Panel, VerifiedBadge } from '@/shared/components/design'
 import { titleCase } from '@/shared/utils/titleCase'
@@ -37,7 +37,7 @@ export default function PublicJobDetail() {
       .finally(() => setLoading(false))
   }, [jobId])
 
-  if (loading) return <LoadingScreen />
+  if (loading) return <PageSkeleton stats={0} panels={2} />
   if (error) return <div className="py-8 text-center text-sm text-destructive">{error}</div>
   if (!job) return <Navigate to="/jobs" replace />
 

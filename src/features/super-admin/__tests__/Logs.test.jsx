@@ -21,11 +21,11 @@ describe('Audit log viewer', () => {
     listUsers.mockResolvedValue({ data: USERS, total: USERS.length, page: 1, pageSize: 25 })
   })
 
-  it('shows the loading screen while fetching', () => {
+  it('shows a layout skeleton while fetching', () => {
     let resolveUsers
     listUsers.mockReturnValue(new Promise((res) => { resolveUsers = res }))
     render(<Logs />)
-    expect(screen.getByText(/loading database/i)).toBeInTheDocument()
+    expect(screen.getByRole('status')).toHaveTextContent(/loading page/i)
     act(() => resolveUsers({ data: [] }))
   })
 

@@ -9,7 +9,7 @@ import useAuth from "@/shared/hooks/useAuth";
 import { getJob } from "@/shared/services/jobs";
 import { applyToJob, listBySeeker } from "@/shared/services/applications";
 import { listResumes, uploadResume, validateFile } from "@/shared/services/documents";
-import LoadingScreen from "@/shared/components/LoadingScreen";
+import { PageSkeleton } from '@/shared/components/Skeletons';
 import { CompanyMark, LinkButton, Panel } from "@/shared/components/design";
 import { titleCase } from "@/shared/utils/titleCase";
 
@@ -51,7 +51,7 @@ function JobDetail() {
     return () => { cancelled = true; };
   }, [jobId, user]);
 
-  if (loading) return <LoadingScreen />;
+  if (loading) return <PageSkeleton stats={0} panels={1} />;
   if (error) return <div className="py-8 text-center text-sm text-danger">{error}</div>;
   if (!job) return <Navigate to="/job-seeker" replace />;
 

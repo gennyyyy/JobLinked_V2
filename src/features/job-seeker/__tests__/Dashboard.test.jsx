@@ -40,8 +40,8 @@ describe('Job-seeker Dashboard', () => {
   it('renders the four tiles with their counts', async () => {
     await renderDashboard()
     expect(statValue('Applications sent')).toBe('4')
-    expect(statValue('Accepted')).toBe('2')
-    expect(statValue('New this week')).toBe('3')
+    expect(statValue('Saved opportunities')).toBe('0')
+    expect(statValue('Upcoming interviews')).toBe('0')
   })
 
   it('greets the user by first name', async () => {

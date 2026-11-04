@@ -18,7 +18,7 @@ import {
 } from "lucide-react";
 import useAuth from "@/shared/hooks/useAuth";
 import { listBySeeker } from "@/shared/services/applications";
-import LoadingScreen from "@/shared/components/LoadingScreen";
+import { PageSkeleton } from '@/shared/components/Skeletons';
 
 import ApplicantsShell from "@/shared/components/ApplicantsShell";
 import { SectionCard } from "@/shared/components/dashboard";
@@ -126,7 +126,7 @@ function Applications() {
     return () => { cancelled = true; };
   }, [user]);
 
-  if (loading) return <LoadingScreen />;
+  if (loading) return <PageSkeleton stats={0} panels={1} />;
   if (error) return <div className="py-8 text-center text-sm text-danger">{error}</div>;
 
   const acceptedCount = applications.filter((application) => ["Accepted", "Placed"].includes(application.status)).length;
@@ -157,8 +157,9 @@ function Applications() {
 
   return (
     <ApplicantsShell
-      title="My Applications"
-      subtitle="Live status of your submitted job applications with Santa Maria employers"
+      eyebrow="Every step counts"
+      title="See how your story is moving."
+      subtitle="Track your applications, from your first hello to the employer’s decision."
       search={search}
       onSearchChange={setSearch}
       searchPlaceholder="Search by company or position..."

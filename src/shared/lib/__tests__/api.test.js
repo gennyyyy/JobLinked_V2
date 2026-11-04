@@ -87,6 +87,39 @@ describe('401 handling', () => {
   })
 })
 
+describe('in-flight GET dedupe', () => {
+  it('shares one request between concurrent identical GETs', async () => {
+    let release
+    globalThis.fetch = vi.fn().mockReturnValue(new Promise((resolve) => {
+      release = () => resolve(json(200, { ok: true }))
+    }))
+    const first = api.get('auth/me')
+    const second = api.get('auth/me')
+    release()
+    await expect(Promise.all([first, second])).resolves.toEqual([{ ok: true }, { ok: true }])
+    expect(globalThis.fetch).toHaveBeenCalledTimes(1)
+  })
+
+  it('starts a fresh request once the previous one has settled', async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue(json(200, { ok: true }))
+    await api.get('auth/me')
+    await api.get('auth/me')
+    expect(globalThis.fetch).toHaveBeenCalledTimes(2)
+  })
+
+  it('keeps different query strings apart', async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue(json(200, { ok: true }))
+    await Promise.all([api.get('jobs', { page: 1 }), api.get('jobs', { page: 2 })])
+    expect(globalThis.fetch).toHaveBeenCalledTimes(2)
+  })
+
+  it('does not dedupe writes', async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue(json(200, { ok: true }))
+    await Promise.all([api.post('notifications/read-all'), api.post('notifications/read-all')])
+    expect(globalThis.fetch).toHaveBeenCalledTimes(2)
+  })
+})
+
 describe('signOut', () => {
   it('resolves even when the server revoke fails', async () => {
     supabase.auth.signOut.mockResolvedValue({ error: { message: 'revoked', status: 403 } })

@@ -4,7 +4,7 @@ import { ArrowRight, BriefcaseBusiness, ClipboardCheck, Handshake, Plus, ShieldC
 import useAuth from '@/shared/hooks/useAuth'
 import { getEmployerDashboard } from '@/shared/services/applications'
 import { getEmployer } from '@/shared/services/auth'
-import LoadingScreen from '@/shared/components/LoadingScreen'
+import { PageSkeleton } from '@/shared/components/Skeletons'
 import { InlineError } from '@/shared/components/dashboard'
 import { EmptyState, LinkButton, Notice, PageHeading, Panel, StatCards, StatusBadge } from '@/shared/components/design'
 import { titleCase } from '@/shared/utils/titleCase'
@@ -34,7 +34,7 @@ export default function Dashboard() {
       .finally(() => setLoading(false))
   }, [user])
 
-  if (loading) return <LoadingScreen />
+  if (loading) return <PageSkeleton stats={4} panels={2} />
   if (error) return <InlineError message={error} />
 
   const totalCandidates = summaryStats.total_candidates || 0

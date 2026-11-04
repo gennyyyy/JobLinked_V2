@@ -1,5 +1,5 @@
-import { describe, it, expect, vi } from 'vitest'
-import { render, screen, act } from '@testing-library/react'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { render, screen, act, fireEvent } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 
 vi.mock('../../hooks/useAuth', async (importOriginal) => {
@@ -45,6 +45,7 @@ describe('Portal shell AFK modal button order', () => {
 })
 
 describe('Portal shell navigation', () => {
+  beforeEach(() => vi.clearAllMocks())
   it('renders the reference admin navigation landmark and items', () => {
     renderLayout('/super-admin')
     const nav = screen.getByRole('navigation', { name: 'PESO Admin navigation' })
@@ -61,5 +62,27 @@ describe('Portal shell navigation', () => {
   it('shows the role workspace badge', () => {
     renderLayout('/super-admin')
     expect(screen.getByText(/PESO Admin workspace/i)).toBeInTheDocument()
+  })
+
+  it('centers the shield logo when collapsed', () => {
+    renderLayout('/super-admin')
+    const collapseBtn = screen.getByRole('button', { name: /collapse sidebar/i })
+    fireEvent.click(collapseBtn)
+    const shieldContainer = screen.getByRole('navigation', { name: /PESO Admin navigation/i }).previousElementSibling
+    expect(shieldContainer).toHaveClass('justify-center')
+  })
+
+  it('fetches notifications and admin stats once, even after navigating', async () => {
+    const { listNotifications } = await import('../../services/notifications')
+    const { getStats } = await import('../../services/admin')
+    renderLayout('/super-admin')
+    await act(async () => {})
+    expect(listNotifications).toHaveBeenCalledTimes(1)
+    expect(getStats).toHaveBeenCalledTimes(1)
+
+    fireEvent.click(screen.getByRole('link', { name: /user management/i }))
+    await act(async () => {})
+    expect(listNotifications).toHaveBeenCalledTimes(1)
+    expect(getStats).toHaveBeenCalledTimes(1)
   })
 })

@@ -4,7 +4,7 @@ import { createPortal } from 'react-dom'
 import { X } from 'lucide-react'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
 import { listAuditLogs, listUsers } from '@/shared/services/admin'
-import LoadingScreen from '@/shared/components/LoadingScreen'
+import { PageSkeleton } from '@/shared/components/Skeletons'
 import useDialog from '@/shared/hooks/useDialog'
 import { InlineError } from '@/shared/components/dashboard'
 import { EmptyState, PageHeading, SelectField, StatusBadge, TextField } from '@/shared/components/design'
@@ -186,7 +186,7 @@ function Logs() {
     setFilters((current) => ({ ...current, [key]: value }))
   }
 
-  if (loading) return <LoadingScreen />
+  if (loading) return <PageSkeleton stats={0} table />
   if (error) return <InlineError message={error} />
 
   return (
