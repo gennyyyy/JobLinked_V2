@@ -1,3 +1,5 @@
+import { lazy } from 'react'
+
 // One loader per route chunk. App.jsx builds its lazy components from this map,
 // and links call prefetchRoute() on hover/focus so the chunk is already warm by
 // the time the click lands — the Suspense fallback then never appears.
@@ -8,15 +10,11 @@ export const routeLoaders = {
   '/': () => import('../../features/public-site/Landing'),
   '/jobs': () => import('../../features/public-site/PublicJobs'),
   '/jobs/:id': () => import('../../features/public-site/PublicJobDetail'),
-  '/portals': () => import('../../features/public-site/PortalSelect'),
   '/privacy': () => import('../../features/public-site/Legal'),
   '/terms': () => import('../../features/public-site/Legal'),
   '/forgot-password': () => import('../../features/auth/ForgotPassword'),
   '/reset-password': () => import('../../features/auth/ResetPassword'),
   '/login': () => import('../../features/auth/Login'),
-  '/super-admin/login': () => import('../../features/auth/Login'),
-  '/employer/login': () => import('../../features/auth/Login'),
-  '/job-seeker/login': () => import('../../features/auth/Login'),
   '/register': () => import('../../features/auth/Register'),
   '/signup': () => import('../../features/auth/Register'),
   '/register/job-seeker': () => import('../../features/auth/JobSeekerRegister'),
@@ -58,6 +56,30 @@ export const routeLoaders = {
 }
 
 const started = new Set()
+const RELOAD_FLAG = 'joblinked:route-reload'
+
+// React.lazy caches a rejected import for the life of the page, so one failed
+// chunk — a dev-server restart while a tab is open, or a deploy that replaced
+// the hashed files the running bundle still points at — used to kill that route
+// until a manual reload. Reload once automatically (the fresh document resolves
+// every chunk URL again); the flag stops a genuinely missing chunk from looping.
+export function lazyRoute(load) {
+  return lazy(() => load().then(
+    (module) => {
+      try { sessionStorage.removeItem(RELOAD_FLAG) } catch { /* private mode */ }
+      return module
+    },
+    (error) => {
+      try {
+        if (!sessionStorage.getItem(RELOAD_FLAG)) {
+          sessionStorage.setItem(RELOAD_FLAG, '1')
+          window.location.reload()
+        }
+      } catch { /* private mode: fall through to the error boundary */ }
+      throw error
+    },
+  ))
+}
 
 function loaderFor(href) {
   const path = String(href || '').split('?')[0]

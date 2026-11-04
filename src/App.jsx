@@ -1,22 +1,21 @@
-import { Suspense, lazy, useEffect, useState } from 'react'
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { Suspense, useEffect, useState } from 'react'
+import { MemoryRouter, Routes, Route, Navigate } from 'react-router-dom'
 import ProtectedRoute from './shared/components/ProtectedRoute'
 import LoadingScreen from './shared/components/LoadingScreen'
 import ErrorBoundary from './shared/components/ErrorBoundary'
 import useAuth from './shared/hooks/useAuth'
 import { Toaster } from './components/ui/sonner'
 
-import { routeLoaders } from './shared/lib/routeLoaders'
+import { lazyRoute, routeLoaders } from './shared/lib/routeLoaders'
 
 // Route-level code splitting: each page is its own chunk, so a visitor on the
 // public site never downloads the admin / employer / seeker bundles. The
 // loaders live in shared/lib/routeLoaders.js so links can warm them on hover.
-const route = (path) => lazy(routeLoaders[path])
+const route = (path) => lazyRoute(routeLoaders[path])
 
 const Landing = route('/')
 const PublicJobs = route('/jobs')
 const PublicJobDetail = route('/jobs/:id')
-const PortalSelect = route('/portals')
 const Legal = route('/privacy')
 const ForgotPassword = route('/forgot-password')
 const ResetPassword = route('/reset-password')
@@ -57,21 +56,27 @@ const JobSeekerSettings = route('/job-seeker/settings')
 const NotificationsPage = route('/job-seeker/notifications')
 // The three portal index dashboards share their parent path, so they cannot be
 // keyed in routeLoaders — they stay inline.
-const Dashboard = lazy(() => import('./features/super-admin/Dashboard'))
-const EmployerDashboard = lazy(() => import('./features/employer/Dashboard'))
-const JobSeekerDashboard = lazy(() => import('./features/job-seeker/Dashboard'))
+const Dashboard = lazyRoute(() => import('./features/super-admin/Dashboard'))
+const EmployerDashboard = lazyRoute(() => import('./features/employer/Dashboard'))
+const JobSeekerDashboard = lazyRoute(() => import('./features/job-seeker/Dashboard'))
+
+// The address bar is intentionally frozen: routes live in memory so clicking
+// around never rewrites the URL. The router is still *seeded* from the URL the
+// page was loaded with, so an emailed /auth/callback or /reset-password link
+// lands on the right screen. Trade-off: page URLs are not bookmarkable and the
+// browser Back button leaves the app.
+const entryPath = `${window.location.pathname}${window.location.search}${window.location.hash}`
 
 function App() {
   return (
     <ErrorBoundary>
-      <BrowserRouter>
+      <MemoryRouter initialEntries={[entryPath]}>
         <Suspense fallback={<LoadingScreen />}>
           <Toaster position="top-center" />
           <Routes>
             <Route path="/" element={<PublicRoute><Landing /></PublicRoute>} />
             <Route path="/jobs" element={<PublicRoute><PublicJobs /></PublicRoute>} />
             <Route path="/jobs/:jobId" element={<PublicRoute><PublicJobDetail /></PublicRoute>} />
-            <Route path="/portals" element={<PublicRoute><PortalSelect /></PublicRoute>} />
             {/* New-design flow aliases for the portal roots. */}
             {/* New-design job-seeker flow: /jobseeker/<reference-section>. */}
             <Route path="/jobseeker" element={<Navigate to="/job-seeker" replace />} />
@@ -104,9 +109,6 @@ function App() {
                 user must not be logged out just for reading the notice. */}
             <Route path="/privacy" element={<Legal title="Privacy notice" />} />
             <Route path="/terms" element={<Legal title="Demo terms" />} />
-            <Route path="/super-admin/login" element={<Login portalKey="super-admin" />} />
-            <Route path="/employer/login" element={<Login portalKey="employer" />} />
-            <Route path="/job-seeker/login" element={<Login portalKey="job-seeker" />} />
             <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
             <Route path="/forgot-password" element={<PublicRoute><ForgotPassword /></PublicRoute>} />
             <Route path="/reset-password" element={<PublicRoute><ResetPassword /></PublicRoute>} />
@@ -114,10 +116,10 @@ function App() {
             <Route path="/accept-invite" element={<AcceptInvite />} />
             <Route path="/register/job-seeker" element={<PublicRoute><JobSeekerRegister /></PublicRoute>} />
             <Route path="/register/employer" element={<PublicRoute><EmployerRegister /></PublicRoute>} />
-            {/* New-design flow aliases: /login and /signup[/role]. */}
-            {/* Not wrapped in PublicRoute: that wrapper destroys a session on
-                arrival, which raced the post-login redirect and forced a second
-                sign-in. Login itself redirects an existing session by role. */}
+            {/* The only sign-in page: /login signs any role in and forwards to
+                that role's workspace, so there is no portal chooser. Not wrapped
+                in PublicRoute: that wrapper destroys a session on arrival, which
+                raced the post-login redirect and forced a second sign-in. */}
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<PublicRoute><Register /></PublicRoute>} />
             <Route path="/signup/jobseeker" element={<PublicRoute><JobSeekerRegister /></PublicRoute>} />
@@ -190,7 +192,7 @@ function App() {
             <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </Suspense>
-        </BrowserRouter>
+        </MemoryRouter>
       </ErrorBoundary>
   )
 }
