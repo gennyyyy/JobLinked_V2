@@ -49,7 +49,7 @@ describe('EmployerAccreditation', () => {
     listAccreditations.mockResolvedValue([])
     render(<EmployerAccreditation />)
 
-    expect(await screen.findByText('Start Your Accreditation')).toBeInTheDocument()
+    expect(await screen.findByText('Start your accreditation')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /begin accreditation application/i })).toBeInTheDocument()
   })
 
@@ -67,16 +67,16 @@ describe('EmployerAccreditation', () => {
     expect(refreshUser).toHaveBeenCalledWith({ id: 'employer-1' })
   })
 
-  it('shows the pending-review banner and document tabs for a pending application', async () => {
+  it('shows the review notice and document list for a pending application', async () => {
     getEmployer.mockResolvedValue(COMPANY)
     listAccreditations.mockResolvedValue([
       { id: 'acc-1', status: 'pending', company_id: 'comp-1', submitted_at: '2026-01-05T00:00:00.000Z' },
     ])
     render(<EmployerAccreditation />)
 
-    expect(await screen.findByText(/under review by peso/i)).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /required documents/i })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /history \(1\)/i })).toBeInTheDocument()
+    expect(await screen.findByText(/publishing requires approval/i)).toBeInTheDocument()
+    expect(screen.getByText('Submitted document metadata')).toBeInTheDocument()
+    expect(screen.getByText('Review history')).toBeInTheDocument()
   })
 
   it('shows the rejection banner with remarks for a rejected application', async () => {
@@ -86,7 +86,8 @@ describe('EmployerAccreditation', () => {
     ])
     render(<EmployerAccreditation />)
 
-    expect(await screen.findByText(/your accreditation was rejected\. missing permits\./i)).toBeInTheDocument()
+    expect((await screen.findAllByText(/missing permits/i)).length).toBeGreaterThan(0)
+    expect(screen.getByText('Feedback from the reviewer')).toBeInTheDocument()
   })
 
   it('shows an error message when the accreditation fails to load', async () => {

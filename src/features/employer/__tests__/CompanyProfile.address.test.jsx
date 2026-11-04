@@ -15,7 +15,7 @@ import { getEmployer, updateProfile } from '../../../shared/services/auth'
 
 async function openProfile() {
   render(<CompanyProfile />)
-  fireEvent.click(await screen.findByRole('button', { name: 'Edit Profile' }))
+  await screen.findByLabelText(/^company name/i)
 }
 
 describe('CompanyProfile address fields', () => {

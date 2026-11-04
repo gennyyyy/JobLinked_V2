@@ -4,24 +4,25 @@ import useAuth from "../../shared/hooks/useAuth";
 import { updateProfile, getEmployer, provision } from "../../shared/services/auth";
 import { PageSkeleton } from '../../shared/components/Skeletons';
 import ChangePassword from "../../shared/components/ChangePassword";
-import { formatFullAddress } from "../../shared/utils/address";
 import { buildFullName } from "../../shared/utils/names";
 import { titleCase } from "../../shared/utils/titleCase";
 import { SANTA_MARIA_BARANGAYS } from "../../shared/constants";
 import { CompanyMark, PageHeading, Panel, SelectField, StatusBadge, TextField } from "../../shared/components/design";
 
 const COMPANY_FIELDS = [
-  ["name", "Company Name", "e.g. Santa Maria Trading"],
+  ["name", "Company name", "e.g. Santa Maria Trading"],
   ["industry", "Industry", "e.g. Manufacturing, IT, Retail"],
-  ["company_email", "Official Company Email", "hr@company.com"],
-  ["phone", "Company Contact No.", "02-XXXX-XXXX / 0917 123 4567"],
-  ["website", "Website", "https://..."],
+];
+
+const CONTACT_FIELDS = [
+  ["company_email", "Recruitment contact email", "hr@company.com"],
+  ["phone", "Business phone", "02-XXXX-XXXX / 0917 123 4567"],
 ];
 
 const ADDRESS_FIELDS = [
   ["house_number_unit", "House / Building / Unit No.", "e.g. Unit 402 or Bldg 3"],
-  ["street_address", "Street Address & Lot / Block", "Street address"],
-  ["subdivision_building", "Subdivision / Village / Building Name", "Subdivision name"],
+  ["street_address", "Street address", "Street address & lot / block"],
+  ["subdivision_building", "Subdivision / Village / Building", "Subdivision name"],
   ["city_municipality", "City / Municipality", "e.g. Santa Maria"],
   ["province_state", "Province / State", "e.g. Bulacan"],
   ["postal_code", "Postal Code", "e.g. 3022"],
@@ -36,23 +37,12 @@ const REPRESENTATIVE_FIELDS = [
   ["representative_email", "Representative Email", "maria@company.com"],
 ];
 
-// Label/value pair used by the read-only panels.
-function Detail({ label, children }) {
-  return (
-    <div className="min-w-0">
-      <dt className="text-[10px] text-muted-foreground">{label}</dt>
-      <dd className="mt-1 break-words text-xs text-navy">{children || "Not set"}</dd>
-    </div>
-  );
-}
-
 function CompanyProfile() {
   const { user, refreshUser } = useAuth();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [saved, setSaved] = useState(false);
-  const [editing, setEditing] = useState(false);
   const [company, setCompany] = useState(null);
   const [form, setForm] = useState({});
   const [logoFailed, setLogoFailed] = useState(false);
@@ -93,7 +83,7 @@ function CompanyProfile() {
   }, [user]);
 
   if (loading) return <PageSkeleton stats={0} panels={2} />;
-  if (error) return <p role="alert" className="py-8 text-center text-sm text-destructive">{error}</p>;
+  if (error && !company) return <p role="alert" className="py-8 text-center text-sm text-destructive">{error}</p>;
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -122,7 +112,6 @@ function CompanyProfile() {
         if (refreshUser) await refreshUser(user);
       }
 
-      setEditing(false);
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
     } catch (err) {
@@ -156,109 +145,79 @@ function CompanyProfile() {
   return (
     <>
       <PageHeading
-        eyebrow="Employer profile"
-        title="My Profile"
-        description="Keep your company details and authorized representative current — they appear on your accreditation record."
-        action={
-          !editing ? (
-            <Button variant="outline" onClick={() => setEditing(true)}>
-              Edit Profile
-            </Button>
-          ) : null
-        }
+        eyebrow="Let your company shine"
+        title="A good team starts with your story."
+        description="Help candidates understand who you are, what you do, and where they can find you."
       />
 
       <div className="grid items-start gap-6 xl:grid-cols-[1fr_280px]">
-        <div className="flex min-w-0 flex-col gap-6">
+        <form onSubmit={handleSubmit} noValidate className="flex min-w-0 flex-col gap-6">
           {saved && (
             <p role="status" className="rounded-lg border border-success/20 bg-success-soft px-4 py-3 text-xs font-medium text-success">
               Company profile updated successfully.
             </p>
           )}
+          {error && <p role="alert" className="text-xs text-destructive">{error}</p>}
 
-          {editing ? (
-            <form onSubmit={handleSubmit} className="flex flex-col gap-6">
-              <Panel title="Company details" description="Shown alongside your public vacancies.">
-                <div className="grid gap-5 sm:grid-cols-2">
-                  {COMPANY_FIELDS.map(([name, label, placeholder]) => (
-                    <TextField key={name} label={label} placeholder={placeholder} type={name === "company_email" ? "email" : "text"} {...field(name)} />
-                  ))}
-                </div>
-                <div className="mt-5">
-                  <TextField label="Company Description" multiline rows={4} placeholder="Brief description of your company..." {...field("description")} />
-                </div>
-              </Panel>
+          <Panel title="Company details" description="These details appear alongside your public vacancies.">
+            <div className="grid gap-5 sm:grid-cols-2">
+              {COMPANY_FIELDS.map(([name, label, placeholder]) => (
+                <TextField key={name} label={label} placeholder={placeholder} required {...field(name)} />
+              ))}
+            </div>
+            <div className="mt-5">
+              <TextField label="About the company" multiline rows={5} placeholder="Brief description of your company…" {...field("description")} />
+            </div>
+            <div className="mt-5">
+              <TextField label="Website (optional)" placeholder="https://…" {...field("website")} />
+            </div>
+          </Panel>
 
-              <Panel title="Business address" description="Where candidates can find your office.">
-                <div className="grid gap-5 sm:grid-cols-2">
-                  {ADDRESS_FIELDS.map(([name, label, placeholder]) => (
-                    <TextField key={name} label={label} placeholder={placeholder} {...field(name)} />
-                  ))}
-                </div>
-                <div className="mt-5">
-                  <SelectField
-                    label="Barangay / District"
-                    id="barangay_district"
-                    placeholder="Select barangay"
-                    options={barangayOptions}
-                    {...field("barangay_district")}
-                  />
-                </div>
-              </Panel>
+          <Panel title="Contact & location" description="Where candidates can reach and find your office.">
+            <div className="grid gap-5 sm:grid-cols-2">
+              {CONTACT_FIELDS.map(([name, label, placeholder]) => (
+                <TextField key={name} label={label} placeholder={placeholder} type={name === "company_email" ? "email" : "text"} {...field(name)} />
+              ))}
+            </div>
+            <div className="mt-5 grid gap-5 sm:grid-cols-2">
+              {ADDRESS_FIELDS.map(([name, label, placeholder]) => (
+                <TextField key={name} label={label} placeholder={placeholder} {...field(name)} />
+              ))}
+            </div>
+            <div className="mt-5">
+              <SelectField
+                label="Barangay / District"
+                id="barangay_district"
+                placeholder="Select barangay"
+                options={barangayOptions}
+                {...field("barangay_district")}
+              />
+            </div>
+          </Panel>
 
-              <Panel title="Authorized representative" description="The person PESO contacts about this company.">
-                <div className="grid gap-5 sm:grid-cols-2">
-                  {REPRESENTATIVE_FIELDS.map(([name, label, placeholder]) => (
-                    <TextField
-                      key={name}
-                      label={label}
-                      placeholder={placeholder}
-                      type={name === "representative_email" ? "email" : "text"}
-                      {...field(name)}
-                    />
-                  ))}
-                </div>
-                <div className="mt-5">
-                  <TextField label="Login Email (read-only)" value={form.email || ""} disabled />
-                </div>
-              </Panel>
+          <Panel title="Authorized representative" description="The person PESO contacts about this company.">
+            <div className="grid gap-5 sm:grid-cols-2">
+              {REPRESENTATIVE_FIELDS.map(([name, label, placeholder]) => (
+                <TextField
+                  key={name}
+                  label={label}
+                  placeholder={placeholder}
+                  type={name === "representative_email" ? "email" : "text"}
+                  {...field(name)}
+                />
+              ))}
+            </div>
+            <div className="mt-5">
+              <TextField label="Login Email (read-only)" value={form.email || ""} disabled />
+            </div>
+          </Panel>
 
-              <div className="flex flex-wrap items-center justify-end gap-3">
-                <Button type="button" variant="outline" onClick={() => setEditing(false)}>
-                  Cancel
-                </Button>
-                <Button type="submit" disabled={saving}>
-                  {saving ? "Saving…" : "Save Profile"}
-                </Button>
-              </div>
-            </form>
-          ) : (
-            <>
-              <Panel title="Company details" description="These details appear alongside your public vacancies.">
-                <dl className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-                  <Detail label="Company Name">{titleCase(form.name)}</Detail>
-                  <Detail label="Industry">{form.industry}</Detail>
-                  <Detail label="Official Company Email">{form.company_email}</Detail>
-                  <Detail label="Contact No.">{form.phone}</Detail>
-                  <Detail label="Website">{form.website}</Detail>
-                  <Detail label="Login Email">{form.email}</Detail>
-                  <Detail label="Business Address">{formatFullAddress(form)}</Detail>
-                </dl>
-              </Panel>
-
-              <Panel title="Authorized representative" description="Employer contact on record with PESO.">
-                <dl className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-                  <Detail label="Full Name">{representativeName}</Detail>
-                  <Detail label="Designation / Position">{titleCase(form.representative_position)}</Detail>
-                  <Detail label="Representative Email">{form.representative_email}</Detail>
-                  <Detail label="Representative Mobile">{form.phone}</Detail>
-                </dl>
-              </Panel>
-
-              <ChangePassword />
-            </>
-          )}
-        </div>
+          <div className="flex justify-end">
+            <Button type="submit" disabled={saving}>
+              {saving ? "Saving…" : "Save Profile"}
+            </Button>
+          </div>
+        </form>
 
         <Panel title="Your company at a glance">
           {companyLogo ? (
@@ -284,7 +243,7 @@ function CompanyProfile() {
         </Panel>
       </div>
 
-      {editing && <div className="mt-6"><ChangePassword /></div>}
+      <div className="mt-6"><ChangePassword /></div>
     </>
   );
 }
