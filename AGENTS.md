@@ -6,6 +6,7 @@
 - `src/shared/` holds reusable components, context, hooks, API clients, services, and constants.
 - `server/` contains the Express API; `db/` contains the portable PostgreSQL schema and SQL.
 - `docs/arch/` holds architecture decisions and API contracts. Tests use Vitest and live alongside source files or in the established test directories.
+- Design reference lives in the separate `peso_project-next-upgrade` app. Match its **visual design only** — never copy its file tree, framework, routing, or build setup into this repo.
 
 ## Build, Test, and Development
 
