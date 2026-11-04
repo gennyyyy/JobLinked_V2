@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import {
   ArrowUpRight,
+  Bell,
   ChevronDown,
   ChevronRight,
   ChevronsLeft,
@@ -21,7 +22,6 @@ import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuGro
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { InputGroup, InputGroupInput, InputGroupAddon } from '@/components/ui/input-group'
 import SkipLink from './SkipLink'
-import NotificationBell from './NotificationBell'
 import { Logo } from './design'
 import useAuth from '../hooks/useAuth'
 import useAFKTimer from '../hooks/useAFKTimer'
@@ -191,7 +191,14 @@ export default function TopNavLayout({ role, navItems, profileTo, roleLabel, hom
             <button className="flex size-11 items-center justify-center text-muted-foreground md:hidden" aria-label="Search workspace" onClick={() => setSearchOpen(true)}>
               <Search className="size-4" />
             </button>
-            <NotificationBell />
+            <Link
+              to={`/${pathname.split('/')[1] || ''}/notifications`}
+              aria-label={`Notifications, ${unread} unread`}
+              className="relative flex size-11 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted"
+            >
+              <Bell className="size-[18px]" />
+              {unread > 0 && <span className="absolute right-2.5 top-2 size-1.5 rounded-full bg-primary" />}
+            </Link>
             <span className="hidden h-7 w-px bg-border sm:block" />
             <DropdownMenu>
               <DropdownMenuTrigger render={<Button variant="ghost" className="gap-2 px-1.5" />}>
