@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { SlidersHorizontal } from 'lucide-react'
 import useAuth from '@/shared/hooks/useAuth'
 import { listJobs } from '@/shared/services/jobs'
+import { matchJobs } from '@/shared/services/ai'
 import { getSavedJobIds, subscribeSavedJobs, toggleSavedJob } from '@/shared/lib/savedJobs'
 import { PageHeading, Notice, EmptyState, SearchInput, SelectField } from '@/shared/components/design'
 import JobCard from '@/shared/components/JobCard'
@@ -21,6 +22,9 @@ const SALARY_OPTIONS = [
   { label: '₱40,000 and above', value: '40000-10000000' },
 ]
 const EXPERIENCE_OPTIONS = ['No experience', 'Entry level', '1–3 years', '3+ years']
+const MATCH_UNAVAILABLE = 'AI matching is unavailable right now — showing standard results.'
+// The only jobs that may enter the AI candidate pool, same rule as the list.
+const isBrowsable = (job) => isJobOpen(job) && (!job.employers?.accreditation_status || job.employers.accreditation_status === 'approved')
 
 // 1:1 port of the reference opportunities page, shared by Browse Jobs and
 // Saved jobs (saved=true renders the collection variant).
@@ -29,6 +33,10 @@ export default function OpportunityList({ saved = false }) {
   const [query, setQuery] = useState('')
   const [filters, setFilters] = useState(EMPTY_FILTERS)
   const [matchingPrompt, setMatchingPrompt] = useState('')
+  const [ranking, setRanking] = useState(null)
+  const [matchNotice, setMatchNotice] = useState('')
+  const [matchBusy, setMatchBusy] = useState(false)
+  const matchSeq = useRef(0)
   const [page, setPage] = useState(1)
   const [jobs, setJobs] = useState([])
   const [savedIds, setSavedIds] = useState(() => getSavedJobIds())
@@ -55,6 +63,36 @@ export default function OpportunityList({ saved = false }) {
     [jobs],
   )
 
+  // The AI may only rank the jobs that already pass the open + accredited gate.
+  const candidates = useMemo(
+    () => jobs.filter((job) => (saved ? savedIds.includes(job.id) : isBrowsable(job))),
+    [jobs, saved, savedIds],
+  )
+
+  // Local sequence guard: prompt/page/filter changes invalidate an in-flight
+  // ranking, so a late response can never reorder a list the user has moved on
+  // from. Turning matching off clears the ranking instantly in applyMatching.
+  useEffect(() => {
+    if (saved || !matchingPrompt || !candidates.length) return
+    const seq = (matchSeq.current += 1)
+    matchJobs(matchingPrompt, candidates.map((job) => job.id))
+      .then((result) => {
+        if (seq !== matchSeq.current) return
+        setRanking({
+          mode: result?.mode ?? null,
+          order: new Map((result?.ranking ?? []).map((id, index) => [String(id), index])),
+          reasons: new Map((result?.reasons ?? []).map(({ jobId, reason }) => [String(jobId), reason])),
+        })
+        setMatchNotice('')
+      })
+      .catch(() => {
+        if (seq !== matchSeq.current) return
+        setRanking(null)
+        setMatchNotice(MATCH_UNAVAILABLE)
+      })
+      .finally(() => { if (seq === matchSeq.current) setMatchBusy(false) })
+  }, [saved, matchingPrompt, candidates, page, filters])
+
   function updateFilter(name, value) {
     setFilters((previous) => ({ ...previous, [name]: value }))
     setPage(1)
@@ -66,11 +104,26 @@ export default function OpportunityList({ saved = false }) {
     setPage(1)
   }
 
+  function applyMatching(prompt) {
+    // Bump first: a request already in flight for the previous prompt must not
+    // land after this one. Clearing happens on this render, not one frame later.
+    matchSeq.current += 1
+    setMatchingPrompt(prompt)
+    setPage(1)
+    setMatchNotice('')
+    if (prompt) {
+      setMatchBusy(candidates.length > 0)
+    } else {
+      setRanking(null)
+      setMatchBusy(false)
+    }
+  }
+
   const records = useMemo(() => {
     const text = query.toLowerCase()
     const [salaryLow, salaryHigh] = filters.salary ? filters.salary.split('-').map(Number) : [null, null]
-    return jobs
-      .filter((job) => (saved ? savedIds.includes(job.id) : isJobOpen(job) && (!job.employers?.accreditation_status || job.employers.accreditation_status === 'approved')))
+    const rank = ranking?.order
+    return candidates
       .filter((job) => `${job.title} ${job.employers?.company_name || ''}`.toLowerCase().includes(text))
       .filter((job) => (!filters.barangay || job.location === filters.barangay))
       .filter((job) => (!filters.category || categoryLabel(job) === filters.category))
@@ -83,11 +136,19 @@ export default function OpportunityList({ saved = false }) {
         const max = Number.isFinite(Number(job.salary_max)) ? Number(job.salary_max) : min
         return max >= salaryLow && min <= salaryHigh
       })
-      .sort((a, b) => (saved
-        ? String(b.created_at).localeCompare(String(a.created_at))
-        : (matchingPrompt ? preferenceScore(b, matchingPrompt) - preferenceScore(a, matchingPrompt) : 0)
-          || matchJob(b, user).score - matchJob(a, user).score))
-  }, [jobs, saved, savedIds, query, filters, matchingPrompt, user])
+      .sort((a, b) => {
+        // Unknown ids (NaN when both are absent from ranking) sort last and fall
+        // through to the standard order, so the fallback is never a reshuffle.
+        const byRank = rank
+          ? (rank.get(String(a.id)) ?? Infinity) - (rank.get(String(b.id)) ?? Infinity) || 0
+          : 0
+        if (byRank) return byRank
+        return saved
+          ? String(b.created_at).localeCompare(String(a.created_at))
+          : (matchingPrompt ? preferenceScore(b, matchingPrompt) - preferenceScore(a, matchingPrompt) : 0)
+            || matchJob(b, user).score - matchJob(a, user).score
+      })
+  }, [candidates, saved, query, filters, matchingPrompt, user, ranking])
 
   const pages = Math.max(1, Math.ceil(records.length / PAGE_SIZE))
   const currentPage = saved ? 1 : Math.min(page, pages)
@@ -98,7 +159,7 @@ export default function OpportunityList({ saved = false }) {
   }
 
   const filterFields = (prefix) => (
-    <div className="flex flex-col gap-5">
+    <div className="flex flex-col gap-4">
       <SelectField
         id={`${prefix}-barangay`}
         label="Barangay"
@@ -156,8 +217,25 @@ export default function OpportunityList({ saved = false }) {
       />
       <div className="flex flex-col gap-7 lg:flex-row">
         {!saved && (
-          <aside className="surface h-fit w-full shrink-0 lg:w-[235px]">
-            <div className="mb-6 flex items-center gap-2">
+          <aside className="surface h-fit w-full shrink-0 lg:sticky lg:top-[90px] lg:z-10 lg:max-h-[calc(100vh-110px)] lg:w-[235px] lg:self-start lg:overflow-y-auto">
+            {/* Search + AI live in the same floating panel as the filters, so the
+                whole refinement stack rides along while the results scroll. */}
+            <div className="mb-4 flex items-center gap-2">
+              <SearchInput
+                value={query}
+                onChange={(value) => { setQuery(value); setPage(1) }}
+                label="Search your recommendations"
+                placeholder="Search jobs…"
+              />
+              <PreferenceMatching
+                compact
+                prompt={matchingPrompt}
+                mode={ranking?.mode ?? null}
+                busy={matchBusy}
+                onSubmit={applyMatching}
+              />
+            </div>
+            <div className="mb-4 flex items-center gap-2 border-t pt-4">
               <SlidersHorizontal className="size-4 text-primary" />
               <h2 className="text-sm font-semibold">Narrow your search</h2>
             </div>
@@ -166,29 +244,28 @@ export default function OpportunityList({ saved = false }) {
         )}
         <div className="min-w-0 flex-1">
           {!saved && (
-            <PreferenceMatching
-              prompt={matchingPrompt}
-              onSubmit={(prompt) => { setMatchingPrompt(prompt); setPage(1) }}
-            />
-          )}
-          {!saved && (
             <div className="mb-6">
               <Notice title="A match you can understand">
                 Skills overlap is the number of your exact, case-insensitive skill matches divided by the skills listed in the vacancy. It is not AI, a hiring score, or a guarantee. Add skills in My Profile to update your recommendations.
               </Notice>
             </div>
           )}
-          <div className="mb-5 max-w-lg">
-            <SearchInput
-              value={query}
-              onChange={(value) => { setQuery(value); setPage(1) }}
-              label={saved ? 'Search saved opportunities' : 'Search your recommendations'}
-              placeholder={saved ? 'Search saved opportunities…' : 'Search your recommendations…'}
-            />
-          </div>
+          {saved && (
+            <div className="mb-5 max-w-lg">
+              <SearchInput
+                value={query}
+                onChange={(value) => { setQuery(value); setPage(1) }}
+                label="Search saved opportunities"
+                placeholder="Search saved opportunities…"
+              />
+            </div>
+          )}
           <p className="mb-4 text-xs text-muted-foreground" aria-live="polite">
             {records.length} {saved ? 'saved opportunities' : 'matching vacancies'}
           </p>
+          {matchNotice && (
+            <p role="status" className="mb-4 text-xs text-muted-foreground">{matchNotice}</p>
+          )}
           {loading ? (
             <JobListSkeleton count={4} />
           ) : error ? (
@@ -202,6 +279,7 @@ export default function OpportunityList({ saved = false }) {
                   href={jobHref(job.id)}
                   showMatch={!saved}
                   match={matchJob(job, user)}
+                  matchReason={ranking?.reasons.get(String(job.id))}
                   saved={savedIds.includes(job.id)}
                   canSave={user?.role === 'job-seeker'}
                   onToggleSave={toggleSave}
@@ -217,11 +295,11 @@ export default function OpportunityList({ saved = false }) {
               href="/jobs"
             />
           )}
-          {!saved && records.length > 0 && (
-            <Pager page={currentPage} pageSize={PAGE_SIZE} total={records.length} onChange={setPage} />
-          )}
         </div>
       </div>
+      {!saved && records.length > 0 && (
+        <Pager page={currentPage} pageSize={PAGE_SIZE} total={records.length} onChange={setPage} align="center" />
+      )}
     </>
   )
 }

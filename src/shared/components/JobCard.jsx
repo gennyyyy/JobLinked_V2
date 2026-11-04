@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { ArrowUpRight, Bookmark, BookmarkCheck, BriefcaseBusiness, Check, Clock3, MapPin } from 'lucide-react'
+import { Bookmark, BookmarkCheck, BriefcaseBusiness, Check, Clock3, MapPin } from 'lucide-react'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { CompanyMark } from './design'
@@ -16,9 +16,9 @@ import {
 } from '../utils/jobDisplay'
 
 // 1:1 port of the reference job card (components/jobs/job-card.tsx).
-export default function JobCard({ job, href, showMatch = false, match, saved = false, canSave = false, onToggleSave }) {
+export default function JobCard({ job, href, showMatch = false, match, matchReason, saved = false, canSave = false, onToggleSave }) {
   return (
-    <Card className="job-card h-full gap-5 [--card-spacing:--spacing(5)]">
+    <Card className="job-card relative h-full gap-5 [--card-spacing:--spacing(5)]">
       <CardHeader>
         <div className="mb-4 flex items-start gap-3">
           <CompanyMark initials={companyInitial(job)} />
@@ -32,14 +32,14 @@ export default function JobCard({ job, href, showMatch = false, match, saved = f
               aria-label={saved ? `Unsave ${job.title}` : `Save ${job.title}`}
               aria-pressed={saved}
               onClick={() => onToggleSave(job.id)}
-              className="inline-flex size-8 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-primary"
+              className="relative z-10 inline-flex size-8 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-primary"
             >
               {saved ? <BookmarkCheck className="size-4 fill-primary text-primary" /> : <Bookmark className="size-4" />}
             </button>
           )}
         </div>
         <CardTitle>
-          <Link to={href} className="text-[17px] leading-6 tracking-[-.025em] transition-colors hover:text-primary">{job.title}</Link>
+          <Link to={href} className="text-[17px] leading-6 tracking-[-.025em] transition-colors hover:text-primary after:absolute after:inset-0 after:content-['']">{job.title}</Link>
         </CardTitle>
         <CardDescription className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-2 text-[11px]">
           <span className="flex items-center gap-1"><MapPin className="size-3" />{jobLocation(job)}</span>
@@ -61,14 +61,14 @@ export default function JobCard({ job, href, showMatch = false, match, saved = f
             {match.matched.length} of {match.total} listed skills match: {match.matched.join(', ') || 'no exact matches yet'}.
           </p>
         )}
+        {matchReason && (
+          <p className="text-[11px] leading-5 text-muted-foreground">{matchReason}</p>
+        )}
       </CardContent>
       <CardFooter className="justify-between bg-white py-3">
         <span className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
           <Clock3 className="size-3" />{isJobOpen(job) ? timeAgo(job.created_at) : 'Applications closed'}
         </span>
-        <Link to={href} className="flex min-h-9 items-center gap-1 text-[11px] font-medium text-primary">
-          View job<ArrowUpRight className="size-3.5" />
-        </Link>
       </CardFooter>
     </Card>
   )
