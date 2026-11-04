@@ -136,7 +136,19 @@ describe('auth/me status gate', () => {
     mocks.resolveRole.mockResolvedValue({ role: 'job-seeker', profile: { id: 'user-1', status: 'active' } });
     const r = await me();
     expect(r.status).toBe(200);
-    expect(await r.json()).toEqual({ id: 'user-1', status: 'active', role: 'job-seeker' });
+    expect(await r.json()).toEqual({
+      id: 'user-1', status: 'active', role: 'job-seeker', has_avatar: false, avatar_updated_at: null,
+    });
+  });
+
+  it('reports has_avatar for a seeker with a photo, never the bytes', async () => {
+    mocks.resolveRole.mockResolvedValue({ role: 'job-seeker', profile: { id: 'user-1', status: 'active' } });
+    mocks.poolQuery.mockResolvedValueOnce({ rows: [{ updated_at: '2026-01-01T00:00:00.000Z' }] });
+    const r = await me();
+    expect(r.status).toBe(200);
+    const body = await r.json();
+    expect(body).toMatchObject({ has_avatar: true, avatar_updated_at: '2026-01-01T00:00:00.000Z' });
+    expect(JSON.stringify(body)).not.toContain('bytes');
   });
 
   it('403 for an inactive profile (no stale role leak)', async () => {

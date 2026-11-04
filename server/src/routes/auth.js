@@ -173,6 +173,14 @@ router.get('/auth/me', tokenAuth, ah(async (req, res) => {
   const found = await resolveRole(req.user.id);
   if (!found) return err(res, 404, 'NOT_FOUND', 'Profile not found for this account');
   if (found.profile.status !== 'active') return err(res, 403, 'FORBIDDEN', 'This account has been suspended or deactivated. Contact PESO.');
+  // ADR-040: tell the client whether an avatar exists so a photo-less profile
+  // makes no image request at all (and a removed photo does not 404 on reload).
+  if (found.role === 'job-seeker') {
+    const { rows: [img] } = await pool.query(
+      `select updated_at from profile_images where owner_id = $1 and kind = 'seeker-avatar'`,
+      [req.user.id]);
+    return res.json({ ...found.profile, role: found.role, has_avatar: Boolean(img), avatar_updated_at: img?.updated_at || null });
+  }
   res.json({ ...found.profile, role: found.role });
 }));
 

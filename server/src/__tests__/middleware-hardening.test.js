@@ -7,6 +7,7 @@ vi.mock('@supabase/supabase-js', async () => { const h = await import('./helpers
 import { on, reset } from './helpers/db.js';
 import { resetAuth, supabaseAuth } from './helpers/auth.js';
 import { makeHardenedApp } from './helpers/app.js';
+import { createApp } from '../app.js';
 
 const app = makeHardenedApp();
 beforeEach(() => { reset(); resetAuth(); });
@@ -35,6 +36,31 @@ describe('L2 — CORS preflight caching', () => {
     expect(res.status).toBe(204);
     expect(res.headers['access-control-allow-origin']).toBe('http://localhost:5173');
     expect(res.headers['access-control-max-age']).toBe('86400');
+  });
+
+  // Vite falls back to 5174+ when 5173 is taken; a CORS_ORIGIN pinned to 5173
+  // used to lock those sessions out with a headerless 204.
+  it('also allows a Vite fallback port when CORS_ORIGIN lists only 5173', async () => {
+    const previous = process.env.CORS_ORIGIN;
+    process.env.CORS_ORIGIN = 'http://localhost:5173';
+    try {
+      const devApp = createApp();
+      const res = await request(devApp)
+        .options('/api/jobs')
+        .set('Origin', 'http://localhost:5174')
+        .set('Access-Control-Request-Method', 'GET');
+      expect(res.headers['access-control-allow-origin']).toBe('http://localhost:5174');
+    } finally {
+      if (previous === undefined) delete process.env.CORS_ORIGIN;
+      else process.env.CORS_ORIGIN = previous;
+    }
+  });
+
+  it('still rejects a non-localhost origin outside production', async () => {
+    const res = await request(app)
+      .get('/api/health')
+      .set('Origin', 'https://evil.test');
+    expect(res.headers['access-control-allow-origin']).toBeUndefined();
   });
 });
 

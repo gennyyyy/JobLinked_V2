@@ -184,13 +184,13 @@ describe('entrypoint hardening (server/src/index.js)', () => {
     expect(logged).not.toContain('not json');
   });
 
-  it('error middleware maps 413 payload-too-large to 400 PAYLOAD_TOO_LARGE, not 500', async () => {
+  it('error middleware maps 413 payload-too-large to 413 PAYLOAD_TOO_LARGE, not 500', async () => {
     const { status, body } = await call(`${base}/api/boom`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ pad: 'x'.repeat(1024 * 1024 + 1024) }),
     });
-    expect(status).toBe(400);
+    expect(status).toBe(413);
     expect(body).toEqual({ error: { code: 'PAYLOAD_TOO_LARGE', message: 'Payload too large' } });
   });
 

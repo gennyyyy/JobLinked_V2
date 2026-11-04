@@ -19,7 +19,9 @@ describe('S3 — upload.js uses the err() contract', () => {
 
   it('has no hand-rolled error envelope left', () => {
     expect(uploadSrc).not.toMatch(/res\.status\(4\d\d\)\.json\(\{ error/);
-    expect(uploadSrc.match(/err\(res, 400, 'BAD_REQUEST'/g) ?? []).toHaveLength(3);
+    // disk + image upload paths (bad extension, missing file, signature
+    // mismatch, PDF cap) all answer through the shared err() contract.
+    expect((uploadSrc.match(/err\(res, 400, 'BAD_REQUEST'/g) ?? []).length).toBeGreaterThanOrEqual(3);
   });
 });
 

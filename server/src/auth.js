@@ -14,6 +14,12 @@ export function supa() { return _supa ??= createClient(process.env.SUPABASE_URL,
 // a role move deactivates the old table's row instead of deleting it (the FK
 // cascade would destroy the user's jobs and applications), so without the
 // status term the stale row would shadow the user's current role.
+//
+// `inactive` is the role-move STALE marker and nothing else (the admin UI only
+// sets active/suspended; PATCH rejects `inactive`). A suspended CURRENT row
+// must therefore outrank a stale row in a higher-precedence table — otherwise
+// a suspended account cannot be resolved (or reinstated) at all. Order is:
+// non-stale first, then active, then table precedence.
 export async function resolveRole(id) {
   const { rows } = await pool.query(
     `select role, profile from (
@@ -22,7 +28,7 @@ export async function resolveRole(id) {
        select 'employer' as role, to_jsonb(e) as profile, 2 as ord from employers e where id = $1
        union all
        select 'job-seeker' as role, to_jsonb(j) as profile, 3 as ord from job_seekers j where id = $1
-     ) t order by (profile->>'status' = 'active') desc, ord limit 1`, [id]);
+     ) t order by (profile->>'status' <> 'inactive') desc, (profile->>'status' = 'active') desc, ord limit 1`, [id]);
   return rows[0] || null;
 }
 

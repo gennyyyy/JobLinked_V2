@@ -7,11 +7,17 @@ pg.types.setTypeParser(1082, (value) => value);
 
 // M5: explicit pool sizing — max 20 under load, fail fast instead of queueing
 // forever when the database is saturated, and reap idle connections.
+// statement_timeout / idle_in_transaction_session_timeout go into the startup
+// packet (pg supports them per connection): a query wedged on a lock or a
+// leaked transaction can never pin a pool slot forever — 20 wedged slots used
+// to be the whole API answering 503 until it was restarted by hand.
 export const pool = new pg.Pool({
   connectionString: process.env.DATABASE_URL,
   max: 20,
   connectionTimeoutMillis: 5000,
   idleTimeoutMillis: 30000,
+  statement_timeout: 120_000,
+  idle_in_transaction_session_timeout: 180_000,
 });
 
 // Stability: when Postgres drops an idle pooled connection (server restart,

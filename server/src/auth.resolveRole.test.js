@@ -49,6 +49,27 @@ describe('resolveRole', () => {
     expect((await resolveRole('id-3')).profile.status).toBe('suspended');
   });
 
+  // Regression (live, 2026-11-05): a suspended CURRENT row used to lose to the
+  // stale `inactive` row a previous role move left in a higher-precedence
+  // table. resolveRole then reported the wrong role, and an admin "activate"
+  // PATCH targeted the stale row while the real row stayed suspended.
+  it('a suspended CURRENT row outranks a stale inactive higher-precedence row', async () => {
+    seedRoleTable('id-11', JS, { status: 'suspended', full_name: 'Real Seeker' });
+    seedRoleTable('id-11', EMP, { status: 'inactive', company_name: 'Stale Co' });
+    const found = await resolveRole('id-11');
+    expect(found.role).toBe('job-seeker');
+    expect(found.profile.status).toBe('suspended');
+  });
+
+  it('findUserTable resolves the same suspended current row', async () => {
+    const uuid = '99999999-9999-4999-8999-999999999999';
+    seedRoleTable(uuid, JS, { status: 'suspended', full_name: 'Real Seeker' });
+    seedRoleTable(uuid, EMP, { status: 'inactive', company_name: 'Stale Co' });
+    const found = await findUserTable(uuid);
+    expect(found.table).toBe('job_seekers');
+    expect(found.profile.status).toBe('suspended');
+  });
+
   it('returns null when the id is in no role table', async () => {
     expect(await resolveRole('id-4')).toBeNull();
   });

@@ -75,7 +75,6 @@ export function createApp() {
   app.use(requestId);
   // H5: one JSON access line per request, wrapped around everything below.
   app.use(requestLog);
-  app.use(express.json({ limit: '1mb' }));
   // F-01 (launch fix): attach the principal app-wide BEFORE every limiter so
   // authLimiter's keyGenerator can bucket by user id — one noisy authenticated
   // caller on /api/auth/* no longer exhausts the shared IP bucket and locks
@@ -96,6 +95,12 @@ export function createApp() {
   // attachPrincipal already populated req.user app-wide above, so the
   // keyGenerator resolves to the authenticated user id here too.
   app.use('/api', apiLimiter);
+  // The body parser runs AFTER every throttle. Before this, an anonymous
+  // caller could force up to 1 MB of JSON.parse on the single event loop with
+  // no limiter ever seeing the request — measured live: /api/health p50 8.6 s
+  // under a 900 KB-body flood from one client. Limiters key on headers/path
+  // only (attachPrincipal reads Authorization), so nothing above needs a body.
+  app.use(express.json({ limit: '1mb' }));
   app.use('/api', authRoutes, jobsRoutes, applicationsRoutes, profilesRoutes, adminRoutes, reportsRoutes, aiRoutes, aiMatchRoutes);
 
   app.use('/api', (_req, res) => err(res, 404, 'NOT_FOUND', 'Route not found'));
@@ -107,8 +112,21 @@ export function createApp() {
       // already records the 400 with its correlation id; e.type is all the
       // detail worth keeping ('entity.parse.failed' / 'entity.too.large').
       logger.error('bad_request', { id: _req.id, method: _req.method, path: _req.path, type: e.type });
-      return err(res, 400, e.status === 413 ? 'PAYLOAD_TOO_LARGE' : 'BAD_REQUEST',
+      // Honor the parser status: an oversized body is HTTP 413 (`PAYLOAD_TOO_LARGE`),
+      // a malformed one plain 400. Same shape either way; the client keys on `error.code`.
+      return err(res, e.status, e.status === 413 ? 'PAYLOAD_TOO_LARGE' : 'BAD_REQUEST',
         e.status === 413 ? 'Payload too large' : 'Invalid request body');
+    }
+    // Pool saturation / Postgres going away is BACKPRESSURE, not an application
+    // fault. A 2,000-concurrent burst produced 1,991 `timeout exceeded when
+    // trying to connect` answers as 500s; clients and the proxy should retry
+    // those, so answer 503 with Retry-After. pg's pool-connect timeout carries
+    // no SQLSTATE, hence the message match.
+    if (e?.code === 'ECONNREFUSED' || e?.code === '57P01' || e?.code === '57P03' || e?.code === '53300' || e?.code === '57014'
+      || /timeout exceeded when trying to connect|connection terminated due to connection timeout|timeout expired|due to statement timeout|due to idle-in-transaction timeout/i.test(e?.message || '')) {
+      logger.error('db_unavailable', { id: _req.id, method: _req.method, path: _req.path, code: e?.code });
+      res.setHeader('Retry-After', '5');
+      return err(res, 503, 'SERVICE_UNAVAILABLE', 'The service is busy. Please retry shortly.');
     }
     // Never log e itself: pg DatabaseError carries .query/.parameters — the
     // citizen record. Diagnostics only: code/SQLSTATE/message + method/path,

@@ -27,16 +27,23 @@ export function seedRoleTable(id, table, profile) {
 }
 
 // Comparator over role-union rows that sorts them the way the ORDER BY in `sql`
-// reads: the boolean active-status term, then table precedence `ord`, each in
-// the direction the SQL states (Postgres DESC puts the larger value first, so
-// the active boolean runs ahead). Parsing the directions from the SQL is the
-// whole trick — it is what makes a reversed ORDER BY reverse the comparator.
+// reads: the non-stale term (`status <> 'inactive'`), then the boolean
+// active-status term, then table precedence `ord`, each in the direction the
+// SQL states (Postgres DESC puts the larger value first, so the non-stale and
+// active booleans run ahead). Parsing the directions from the SQL is the whole
+// trick — it is what makes a reversed ORDER BY reverse the comparator.
 export function unionOrder(sql) {
   const text = String(sql);
+  const currentDir = (/'inactive'\)\s*(desc|asc)?/i.exec(text)?.[1] || '').toLowerCase();
   const statusDir = (/'active'\)\s*(desc|asc)?/i.exec(text)?.[1] || 'asc').toLowerCase();
   const ordDir = (/,\s*ord\b\s*(desc|asc)?/i.exec(text)?.[1] || 'asc').toLowerCase();
   const isActive = (r) => (r.profile?.status === 'active' ? 1 : 0);
+  const isCurrent = (r) => (r.profile?.status === 'inactive' ? 0 : 1);
   return (a, b) => {
+    if (currentDir) {
+      const stale = isCurrent(a) - isCurrent(b);
+      if (stale) return currentDir === 'desc' ? -stale : stale;
+    }
     let d = isActive(a) - isActive(b);
     if (d) return statusDir === 'desc' ? -d : d;
     d = a.ord - b.ord;

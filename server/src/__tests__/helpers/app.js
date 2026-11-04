@@ -23,7 +23,8 @@ export function makeApp() {
   // eslint-disable-next-line no-unused-vars
   app.use((e, _req, res, _next) => {
     if (e?.status === 400 || e?.status === 413) {
-      return err(res, 400, e.status === 413 ? 'PAYLOAD_TOO_LARGE' : 'BAD_REQUEST',
+      // Mirror of app.js: honor the parser status (413 oversized / 400 malformed).
+      return err(res, e.status, e.status === 413 ? 'PAYLOAD_TOO_LARGE' : 'BAD_REQUEST',
         e.status === 413 ? 'Payload too large' : 'Invalid request body');
     }
     err(res, 500, 'INTERNAL', 'Something went wrong');

@@ -24,20 +24,29 @@ const tokenUsers = new Map(); // exact token -> { user, at }
 // principals memoized by a previous test must not leak into the next one.
 export function clearTokenCache() { tokenUsers.clear(); }
 
-// Only positives are memoized: an invalid or expired token hits Supabase every
-// time, so a transient Supabase error or a revocation is never frozen into the
-// cache, and a token that becomes valid again is picked up immediately.
+// Only definite answers are memoized. A present user, or an explicit 4xx from
+// the auth service (expired/invalid token), is remembered for the TTL: an
+// expired token in a long-running tab otherwise pays a Supabase round-trip on
+// every request. Transport failures (status 0), rate limits and 5xx are NOT
+// memoized — a transient Supabase outage must never turn a valid session into
+// a remembered 401 for a minute.
 export async function cachedGetUser(token, getUser) {
   const hit = tokenUsers.get(token);
   if (hit && Date.now() - hit.at < TOKEN_TTL_MS) return hit.user;
   const { data, error } = await getUser(token);
-  if (error || !data?.user) return null;
-  tokenUsers.set(token, { user: data.user, at: Date.now() });
-  // FIFO eviction, no LRU library: Map iterates in insertion order, and
-  // re-setting an existing key keeps its original position, so a hot token
-  // eventually ages out instead of becoming immortal.
-  // ponytail: cheapest cap that holds; bump TOKEN_CACHE_MAX before adding
-  // eviction logic.
-  while (tokenUsers.size > TOKEN_CACHE_MAX) tokenUsers.delete(tokenUsers.keys().next().value);
-  return data.user;
+  const user = data?.user ?? null;
+  const status = Number(error?.status);
+  // 4xx is a verdict on the token — except 429, which is the auth service rate
+  // limiting us, not judging the token. 429/5xx/status-0 are never memoized:
+  // a transient outage must never turn a valid session into a remembered 401.
+  if (user || (status >= 400 && status < 500 && status !== 429)) {
+    tokenUsers.set(token, { user, at: Date.now() });
+    // FIFO eviction, no LRU library: Map iterates in insertion order, and
+    // re-setting an existing key keeps its original position, so a hot token
+    // eventually ages out instead of becoming immortal.
+    // ponytail: cheapest cap that holds; bump TOKEN_CACHE_MAX before adding
+    // eviction logic.
+    while (tokenUsers.size > TOKEN_CACHE_MAX) tokenUsers.delete(tokenUsers.keys().next().value);
+  }
+  return user;
 }

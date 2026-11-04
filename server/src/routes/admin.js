@@ -92,7 +92,7 @@ router.get('/admin/users', ...admin, ah(async (req, res) => {
   // (the union spans that one table). Scan all three tables under a role
   // filter if that view ever matters — it costs the single-table contract.
   const base = `from (select distinct on (id) role, profile, created_at, id from (${union}) t
-    order by id, (profile->>'status' = 'active') desc, ord) t${where}`;
+    order by id, (profile->>'status' <> 'inactive') desc, (profile->>'status' = 'active') desc, ord) t${where}`;
   const total = (await pool.query(`select count(*)::int c ${base}`, vals)).rows[0].c;
   const { rows } = await pool.query(
     `select t.role, t.profile ${base} order by t.created_at desc, t.id desc limit $${vals.length + 1} offset $${vals.length + 2}`,
@@ -115,7 +115,7 @@ export async function findUserTable(id) {
        select 'employers' as tbl, to_jsonb(e) as profile, 2 as ord from employers e where id = $1
        union all
        select 'job_seekers' as tbl, to_jsonb(j) as profile, 3 as ord from job_seekers j where id = $1
-     ) t order by (profile->>'status' = 'active') desc, ord limit 1`, [id]);
+     ) t order by (profile->>'status' <> 'inactive') desc, (profile->>'status' = 'active') desc, ord limit 1`, [id]);
   const row = rows[0];
   return row ? { table: row.tbl, profile: { ...row.profile, role: ROLE_BY_TABLE[row.tbl] } } : {};
 }
@@ -127,6 +127,13 @@ router.patch('/admin/users/:id', ...admin, ah(async (req, res) => {
   // undo it — refuse self-edits that could lock the account out.
   if (req.params.id === req.user.id && (body.status !== undefined || body.custom_role_id !== undefined)) {
     return err(res, 403, 'FORBIDDEN', 'You cannot change your own status or custom role');
+  }
+  // 'inactive' is the role-move STALE marker, not an admin-selectable state
+  // (the UI offers Active/Suspended only). Accepting it here would make the
+  // user's current row indistinguishable from the stale row a role move
+  // leaves behind, and the next reactivation could target the wrong table.
+  if (body.status === 'inactive') {
+    return err(res, 400, 'BAD_REQUEST', "status must be 'active' or 'suspended'");
   }
   const { table, profile } = await findUserTable(req.params.id);
   if (!profile) return err(res, 404, 'NOT_FOUND', 'User account not found');
@@ -212,7 +219,23 @@ router.post('/admin/users/invite', ...admin, ah(async (req, res) => {
   const { data, error } = await supa().auth.admin.inviteUserByEmail(email, {
     data: metadata, redirectTo: `${appOrigin}/accept-invite`,
   });
-  if (error) return err(res, 409, 'CONFLICT', 'Could not send the invite — the email may already be registered');
+  if (error) {
+    // Never collapse every upstream failure into "already registered": an SMTP
+    // or Supabase rate limit told the admin the address existed when it did
+    // not, and a retryable outage looked like a permanent conflict.
+    const message = String(error.message || '');
+    if (error.status === 429 || /rate limit/i.test(message)) {
+      return err(res, 429, 'RATE_LIMITED', 'Invite email rate limit reached. Please try again later.');
+    }
+    if (/invalid format|validate email/i.test(message)) {
+      return err(res, 400, 'BAD_REQUEST', 'Enter a valid email address');
+    }
+    if (/already|registered|exists/i.test(message)) {
+      return err(res, 409, 'CONFLICT', 'Email is already registered');
+    }
+    logger.error('invite_failed', { status: error.status });
+    return err(res, 502, 'UPSTREAM_ERROR', 'The invite email could not be sent. Please try again later.');
+  }
 
   // app_metadata is service-role-only, so it is the role signal a client cannot
   // forge: POST /auth/provision honours a 'super-admin' body role only when it
