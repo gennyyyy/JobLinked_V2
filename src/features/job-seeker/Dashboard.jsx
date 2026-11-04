@@ -5,6 +5,7 @@ import { Progress } from '@/components/ui/progress'
 import useAuth from '@/shared/hooks/useAuth'
 import { listBySeeker } from '@/shared/services/applications'
 import { listJobs } from '@/shared/services/jobs'
+import { getSavedJobIds, subscribeSavedJobs } from '@/shared/lib/savedJobs'
 import { PageSkeleton } from '@/shared/components/Skeletons'
 import { InlineError } from '@/shared/components/dashboard'
 import { CompanyMark, EmptyState, LinkButton, PageHeading, Panel, StatCards, StatusBadge } from '@/shared/components/design'
@@ -41,8 +42,11 @@ export default function Dashboard() {
   const { user } = useAuth()
   const [applications, setApplications] = useState([])
   const [recommended, setRecommended] = useState([])
+  const [savedCount, setSavedCount] = useState(() => getSavedJobIds().length)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+
+  useEffect(() => subscribeSavedJobs(() => setSavedCount(getSavedJobIds().length)), [])
 
   useEffect(() => {
     if (!user) return
@@ -65,7 +69,7 @@ export default function Dashboard() {
   if (loading) return <PageSkeleton stats={4} panels={2} />
   if (error) return <InlineError message={error} />
 
-  const interviews = applications.filter((app) => app.status === 'Interview Scheduled').length
+  const interviews = applications.filter((app) => app.status === 'Interview').length
   const completion = profileCompletion(user)
   const recentApps = [...applications].sort((a, b) => new Date(b.applied_at) - new Date(a.applied_at)).slice(0, 4)
   const firstName = user?.first_name || String(user?.full_name || user?.name || 'there').split(' ')[0]
@@ -81,7 +85,7 @@ export default function Dashboard() {
       <StatCards
         stats={[
           { label: 'Applications sent', value: applications.length, icon: ClipboardList },
-          { label: 'Saved opportunities', value: 0, icon: Bookmark },
+          { label: 'Saved opportunities', value: savedCount, icon: Bookmark },
           { label: 'Upcoming interviews', value: interviews, icon: CalendarDays, tone: 'teal' },
           { label: 'Profile complete', value: `${completion}%`, icon: UserRound, note: 'Your profile, at a glance', tone: 'teal' },
         ]}
