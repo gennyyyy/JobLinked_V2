@@ -49,7 +49,7 @@
 **Interfaces:**
 - Produces: `warnIfProdCorsMissing()` not required — keep it inline; the only contract is `corsOrigins` stays the array passed to `cors({ origin })`.
 
-- [ ] **Step 1: Write the failing test** — in the existing CORS describe, add:
+- [x] **Step 1: Write the failing test** — in the existing CORS describe, add:
 
 ```js
 it('honours every entry of the comma-separated CORS_ORIGIN list', async () => {
@@ -59,13 +59,13 @@ it('honours every entry of the comma-separated CORS_ORIGIN list', async () => {
 });
 ```
 
-- [ ] **Step 2: Run** `npx vitest run --root server -- src/index.test.js` → the comma-list test passes only if the current code already splits (verify; the **real** failing part is Step 3's guard).
-- [ ] **Step 3: Add the boot warning in `app.js`**: after computing `corsOrigins`, if `process.env.NODE_ENV === 'production'` and `!corsOrigins` → `logger.warn` (existing zero-dep logger) `"CORS_ORIGIN unset in production — failing closed to localhost only"` once, not per request.
-- [ ] **Step 4: Update env files**:
+- [x] **Step 2: Run** `npx vitest run --root server -- src/index.test.js` → the comma-list test passes only if the current code already splits (verify; the **real** failing part is Step 3's guard).
+- [x] **Step 3: Add the boot warning in `app.js`**: after computing `corsOrigins`, if `process.env.NODE_ENV === 'production'` and `!corsOrigins` → `logger.warn` (existing zero-dep logger) `"CORS_ORIGIN unset in production — failing closed to localhost only"` once, not per request.
+- [x] **Step 4: Update env files**:
   - `server/.env` → `CORS_ORIGIN=http://localhost:5173,http://localhost:4173`
   - `server/.env.example` → document the comma list + "add your production origin here; unset in production = locked to localhost (warned at boot)"
-- [ ] **Step 5: Run** full server suite + `npx vitest run --root server` → green; restart the dev API and re-run the headless smoke against `:4173` → `/jobs` now renders ≥1 job card and `[reqfailed]` list is empty.
-- [ ] **Step 6: Commit** `fix: allow comma-separated CORS origins and warn when production is unconfigured`
+- [x] **Step 5: Run** full server suite + `npx vitest run --root server` → green; restart the dev API and re-run the headless smoke against `:4173` → `/jobs` now renders ≥1 job card and `[reqfailed]` list is empty.
+- [x] **Step 6: Commit** `fix: allow comma-separated CORS origins and warn when production is unconfigured`
 
 ### Task 2: Unprovisioned account gets a recovery path, not an error wall
 
@@ -78,10 +78,10 @@ it('honours every entry of the comma-separated CORS_ORIGIN list', async () => {
 - Consumes: backend contract — 403 `{error:{code:'FORBIDDEN',message:'Account not provisioned'}}` from `GET /api/notifications/mine`, 404 "Profile not found…" from `GET /api/auth/me` (unchanged).
 - Produces: `isUnprovisioned(err)` used by any future caller; the recovery panel inside TopNavLayout.
 
-- [ ] **Step 1: Failing test**: mock `listNotifications`/`getStats` to reject with the 403 payload above → render `<TopNavLayout>` → expect a "complete your registration" panel (visible heading) instead of the error toast, plus links "Job seeker registration" → `/register/job-seeker` and "Employer registration" → `/register/employer`. Run → FAIL.
-- [ ] **Step 2: Implement**: in TopNavLayout's error state, branch on `isUnprovisioned(err)` to render the two-link panel (reuse the page's card styling and the register routes from `src/shared/constants.js` if the paths live there); other errors keep today's behavior.
-- [ ] **Step 3: Run** `npx vitest run src/shared/components` → green; then full root suite.
-- [ ] **Step 4: Commit** `feat(topnav): recover unprovisioned accounts with a finish-registration panel`
+- [x] **Step 1: Failing test**: mock `listNotifications`/`getStats` to reject with the 403 payload above → render `<TopNavLayout>` → expect a "complete your registration" panel (visible heading) instead of the error toast, plus links "Job seeker registration" → `/register/job-seeker` and "Employer registration" → `/register/employer`. Run → FAIL.
+- [x] **Step 2: Implement**: in TopNavLayout's error state, branch on `isUnprovisioned(err)` to render the two-link panel (reuse the page's card styling and the register routes from `src/shared/constants.js` if the paths live there); other errors keep today's behavior.
+- [x] **Step 3: Run** `npx vitest run src/shared/components` → green; then full root suite.
+- [x] **Step 4: Commit** `feat(topnav): recover unprovisioned accounts with a finish-registration panel`
 
 ### Task 3: Provisioned test fixture so authed coverage is real
 
@@ -92,25 +92,25 @@ it('honours every entry of the comma-separated CORS_ORIGIN list', async () => {
 **Interfaces:**
 - Produces: `node scripts/loadtest.mjs --mint-token --mint-email <email> --ensure-provisioned [--provision-role job-seeker|employer|super-admin]` — mints, checks `/api/auth/me` for 404 "Profile not found…", and (only then) calls `POST /api/auth/provision` with the registration payload for that role; writes nothing unless the account lacks a profile.
 
-- [ ] **Step 1: Implement** the flag in `loadtest.mjs`: capture the profile-absent 404, then POST provision with the existing registration payload shape (firstName/lastName/email/role from constants) using the minted token; treat 409/"already provisioned" as success so re-runs are idempotent.
-- [ ] **Step 2: Run** `node scripts/loadtest.mjs --mint-token --mint-email <fixture-email> --ensure-provisioned` → token mint + provision OK (one line in output).
-- [ ] **Step 3: Re-run the authed slice** and record numbers here:
+- [x] **Step 1: Implement** the flag in `loadtest.mjs`: capture the profile-absent 404, then POST provision with the existing registration payload shape (firstName/lastName/email/role from constants) using the minted token; treat 409/"already provisioned" as success so re-runs are idempotent.
+- [x] **Step 2: Run** `node scripts/loadtest.mjs --mint-token --mint-email <fixture-email> --ensure-provisioned` → token mint + provision OK (one line in output).
+- [x] **Step 3: Re-run the authed slice** and record numbers here:
 
 ```
 node scripts/loadtest.mjs --label syscheck-auth2 --requests 300 --concurrency 15 --xff \
   --route "auth:/api/auth/me" --route "auth:/api/notifications/mine"
 ```
 Expected: 200s dominate; zero 404s; p95 < 500ms at this scale. (429s allowed only if a prior run's 15-min bucket is still hot — if so, restart the dev API first.)
-- [ ] **Step 4: Commit** `feat(loadtest): ensure-provisioned fixture accounts for authed runs`
+- [x] **Step 4: Commit** `feat(loadtest): ensure-provisioned fixture accounts for authed runs`
 
 ### Task 4: Git hygiene — protect the redesign work, retire dead scratch
 
 **Files:** delete: `admin-page-diff.json`, `preview.html`; decide-and-delete-or-ignore: `scripts/compare-admin-pages.mjs`, `scripts/diff-admin-dashboard.mjs`; decide: 4 draft PNGs (`LOGO MEANING.png`, `Logo(1).png`, `logomobile.png`, `whitelogo(website).png`).
 
-- [ ] **Step 1:** `git push origin main` (8 commits — the redesign suddenly becomes recoverable).
-- [ ] **Step 2:** Delete the two pure artifacts (`admin-page-diff.json`, `preview.html`). Keep the two `scripts/*.mjs` reference-compare tools only if `plan/` or docs reference them; otherwise delete (they are one-off diff runs).
-- [ ] **Step 3:** Ask the owner (user) per PNG: referenced nowhere in `src/` today (verified by grep) — delete or promote to use. Default: move to `.gitignore`d `assets_draft/`? No — simplest: delete if unreferenced; they are re-creatable from the design source.
-- [ ] **Step 4:** Commit `chore: retire admin-page diff scratch and unused draft assets` (whatever survived), push.
+- [ ] **Step 1:** `git push origin main` (8 commits — the redesign suddenly becomes recoverable). **Not done:** this branch is deliberately not pushed (owner instruction); the commits exist locally only.
+- [x] **Step 2:** Delete the two pure artifacts (`admin-page-diff.json`, `preview.html`). Keep the two `scripts/*.mjs` reference-compare tools only if `plan/` or docs reference them; otherwise delete (they are one-off diff runs). **Deviation:** `admin-page-diff.json` deleted; `preview.html` KEPT — tracked `scripts/compare-employer-pages.mjs:51` loads it, so it is the dev harness, not scratch. Both admin compare scripts kept (referenced by this plan; same class as their tracked siblings).
+- [ ] **Step 3:** Ask the owner (user) per PNG: referenced nowhere in `src/` today (verified by grep) — delete or promote to use. Default: move to `.gitignore`d `assets_draft/`? No — simplest: delete if unreferenced; they are re-creatable from the design source. **Left alone:** owner decision.
+- [ ] **Step 4:** Commit `chore: retire admin-page diff scratch and unused draft assets` (whatever survived), push. **No tracked change survived, so there is nothing to commit; no push.**
 
 ### Task 5 (optional capstone): make the system smoke repeatable
 
@@ -118,9 +118,9 @@ Expected: 200s dominate; zero 404s; p95 < 500ms at this scale. (429s allowed onl
 - Create: `scripts/system-check.mjs` (headless-Chrome route smoke: boot `vite preview` check, hit the 11 public routes, assert header + non-blank body, collect console/page/requestfailed errors; reuse the browser-candidate paths from the smoke that ran this session)
 - Modify: `package.json` — `"syscheck": "node scripts/system-check.mjs"`
 
-- [ ] **Step 1:** Port the smoke script (temp-file version used for this test) into `scripts/`, add a `--base` flag, exit non-zero when `[reqfailed]`/`[pageerror]` lines appear.
-- [ ] **Step 2:** Run `npm run syscheck` → all routes 200, zero failures.
-- [ ] **Step 3:** Commit `feat(scripts): repeatable headless system smoke`.
+- [x] **Step 1:** Port the smoke script (temp-file version used for this test) into `scripts/`, add a `--base` flag, exit non-zero when `[reqfailed]`/`[pageerror]` lines appear.
+- [x] **Step 2:** Run `npm run syscheck` → all routes 200, zero failures.
+- [x] **Step 3:** Commit `feat(scripts): repeatable headless system smoke`.
 
 ## Execution order
 
@@ -131,3 +131,32 @@ Task 1 → Task 4 Step 1 (push immediately after the CORS fix is committed — p
 - Demo-data seeding (DB currently holds exactly 1 published job) — tell the team if showcase depth matters before the next demo.
 - Browser-extension "font visibility level 2" and CORS console noise — client-side, not this repo.
 - The dev API currently runs as a bare `node src/index.js` (PID will differ after Task 1's restart) — start it via `npm run dev:api` going forward so the `concurrently` dev setup stays canonical.
+
+## Results (2026-11-04)
+
+**Baseline before this pass:** `npm run lint` clean · `npm test` 143 files / **874 tests** · `npx vitest run --root server` 50 files / **388 tests** · `npm run build` 1.46s. Nothing was red because of the uncommitted v2-structure work (unified `/login`, PortalSelect removal, `lazyRoute` chunk guard, MemoryRouter experiment); all of it was preserved and committed.
+
+**Commits (this branch, not pushed):**
+
+| Commit | Subject |
+|---|---|
+| `8863e9f` | fix: allow comma-separated CORS origins and warn when production is unconfigured (Task 1) |
+| `4a66387` | fix(jobs): survive a malformed list payload and ignore scratch files in the dev watcher (also carries the untracked `plan/2026-11-04-*` + ADR-035..037 docs) |
+| `0397ba2` | feat(routes): auto-recover failed lazy chunks once |
+| `21ff073` | refactor(auth): single sign-in entry and remove portal chooser |
+| `0c8f105` | fix(dev): ignore probe scripts anywhere in the repo so the watcher cannot die |
+| `dcd5e65` | feat(loadtest): ensure-provisioned fixture accounts for authed runs (also carries the Task 2 panel + test) |
+| `f4cb696` | feat(scripts): repeatable headless system smoke |
+| `b87b67c` | fix(layout): let fixed-content portal pages fill the main area |
+
+Note: several agents worked this tree at once, so two commits absorbed files staged by another task (`4a66387` carries the docs commit's content, `dcd5e65` carries Task 2's panel). Content is complete; only the subjects are broader than their diffs.
+
+**Verified live**
+
+- Task 1: `OPTIONS /api/health` with `Origin: http://localhost:4173` → `ACAO: http://localhost:4173`; headless smoke on `:4173` shows `/jobs` rendering the live job with zero `[reqfailed]`; boot warning covered by `warns once at boot when production has no CORS_ORIGIN`.
+- Task 2: `TopNavLayout.unprovisioned.test.jsx` green; panel links to `/register/job-seeker` and `/register/employer`; other errors unchanged.
+- Task 3: fixture `loadtest.fixture@joblinked.test` provisioned as job-seeker; re-run prints "already provisioned". Authed slice (`--label syscheck-auth2 --requests 300 --concurrency 15 --xff --route auth:/api/auth/me --route auth:/api/notifications/mine`): **200:247, 429:53, 0 fetch errors, 0 404s, p50 8.5ms, p95 44.8ms, p99 223.4ms** — the F-3 degenerate slice is gone.
+- Task 5: `npm run syscheck` against `vite preview` on `:4173` → 11 public routes all 200, header present, **0 problems**.
+- Final gate: lint clean · root suite **144 files / 875 tests** · server suite **50 / 388** · build ~0.9s.
+
+**Pending / deliberately not done:** Task 4 Step 1 and Step 4's push (no remote writes from this pass); Task 4 Step 3 PNGs (owner decision). Untracked leftovers: `preview.html` (needed by `scripts/compare-employer-pages.mjs`), `scripts/compare-admin-pages.mjs`, `scripts/diff-admin-dashboard.mjs`.
