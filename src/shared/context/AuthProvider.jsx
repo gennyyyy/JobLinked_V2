@@ -6,17 +6,28 @@ import { getProfile, signOut as apiSignOut } from '../services/auth';
 function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  // Distinguish "no session" from "session exists but no local profile row yet".
+  // The recovery page (/complete-registration) needs to know both: there IS a
+  // Supabase session (don't sign out) but there is no profile (can't route to a
+  // portal). `needsProvisioning` is true only in that exact gap.
+  const [needsProvisioning, setNeedsProvisioning] = useState(false);
+  const [sessionUser, setSessionUser] = useState(null);
   const signedInId = useRef(null);
   // Every profile load takes a ticket. When the ticket no longer matches, a
   // newer load (or a sign-out) already decided the state — the late response
   // is stale and must not overwrite it (user A's slow reply vs. user B).
   const loadSeq = useRef(0);
 
-  const loadProfile = useCallback(async (sessionUser) => {
-    if (!sessionUser) { setUser(null); return; }
+  const loadProfile = useCallback(async (sessUser) => {
+    if (!sessUser) {
+      setUser(null);
+      setNeedsProvisioning(false);
+      setSessionUser(null);
+      return;
+    }
     const seq = ++loadSeq.current;
     try {
-      const profile = await getProfile(sessionUser.id);
+      const profile = await getProfile(sessUser.id);
       if (seq !== loadSeq.current) return;
       // A refetch that returns identical data must not mint a new `user`
       // object: ~16 pages fetch from `useEffect(..., [user])`, so every
@@ -27,11 +38,22 @@ function AuthProvider({ children }) {
       // JSON.stringify covers non-primitive fields (`skills` is an array)
       // without a deep-equal helper; a mere key-order difference just falls
       // through to the normal update below.
+      if (!profile) {
+        // Session is valid but no local profile row yet — surface that to
+        // ProtectedRoute and Login so they can route to /complete-registration
+        // instead of bouncing the visitor to /login or signing them out.
+        setNeedsProvisioning(true);
+        setSessionUser({ id: sessUser.id, email: sessUser.email });
+        setUser(null);
+        return;
+      }
+      setNeedsProvisioning(false);
+      setSessionUser(null);
       setUser((current) => {
         const unchanged = current && profile
           && Object.keys(profile).every((key) => JSON.stringify(profile[key]) === JSON.stringify(current[key]));
         if (unchanged) return current;
-        return profile ? { ...sessionUser, ...profile } : null;
+        return { ...sessUser, ...profile };
       });
     } catch {
       // A failed refetch is not a logout — the Supabase session is still valid.
@@ -58,6 +80,8 @@ function AuthProvider({ children }) {
         // resurrect the signed-out user.
         loadSeq.current += 1;
         setUser(null);
+        setNeedsProvisioning(false);
+        setSessionUser(null);
         setLoading(false);
         return;
       }
@@ -84,6 +108,9 @@ function AuthProvider({ children }) {
     loadSeq.current += 1;
     signedInId.current = nextUser?.id || null;
     setUser(nextUser || null);
+    // A seeded profile means provisioning is complete (or was never needed).
+    setNeedsProvisioning(false);
+    setSessionUser(null);
     setLoading(false);
   }, []);
 
@@ -92,10 +119,21 @@ function AuthProvider({ children }) {
       await apiSignOut();
     } finally {
       setUser(null);
+      setNeedsProvisioning(false);
+      setSessionUser(null);
     }
   }, []);
 
-  const value = { user, role: user?.role || null, loading, logout, refreshUser: loadProfile, authenticate };
+  const value = {
+    user,
+    role: user?.role || null,
+    loading,
+    logout,
+    refreshUser: loadProfile,
+    authenticate,
+    needsProvisioning,
+    sessionUser,
+  };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

@@ -42,6 +42,14 @@ function Login() {
       authenticate?.(loggedIn)
       navigate(PORTALS.find((p) => p.key === loggedIn.role)?.homePath || '/')
     } catch (err) {
+      // An unprovisioned account (valid Supabase session but no local profile)
+      // used to show the raw "needs provision" error and leave the visitor
+      // stuck. Route them to the recovery page instead — the session is kept
+      // alive there, and they can provision without signing up a new account.
+      if (/needs provision/i.test(err.message || '')) {
+        navigate('/complete-registration', { replace: true })
+        return
+      }
       setError(err.message || 'Invalid email or password')
     } finally {
       setBusy(false)

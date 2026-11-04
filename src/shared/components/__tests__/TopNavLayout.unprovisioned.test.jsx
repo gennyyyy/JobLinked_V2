@@ -28,8 +28,8 @@ describe('TopNavLayout unprovisioned recovery', () => {
     )
 
     expect(await screen.findByRole('heading', { name: /complete your registration/i })).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Job seeker registration' })).toHaveAttribute('href', '/register/job-seeker')
-    expect(screen.getByRole('link', { name: 'Employer registration' })).toHaveAttribute('href', '/register/employer')
+    expect(screen.getByRole('link', { name: 'Job seeker registration' })).toHaveAttribute('href', '/complete-registration?role=job-seeker')
+    expect(screen.getByRole('link', { name: 'Employer registration' })).toHaveAttribute('href', '/complete-registration?role=employer')
   })
 
   it('returns to the portal after a successful notification refresh', async () => {

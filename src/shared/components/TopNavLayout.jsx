@@ -272,10 +272,10 @@ export default function TopNavLayout({ role, navItems, profileTo, roleLabel, hom
                   Choose the registration path that matches your account to finish setting up your JobLinked profile.
                 </p>
                 <div className="mt-6 flex flex-wrap gap-3">
-                  <Link to="/register/job-seeker" className="inline-flex min-h-11 items-center rounded-lg bg-primary px-4 text-sm font-medium text-white hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
+                  <Link to="/complete-registration?role=job-seeker" className="inline-flex min-h-11 items-center rounded-lg bg-primary px-4 text-sm font-medium text-white hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
                     Job seeker registration
                   </Link>
-                  <Link to="/register/employer" className="inline-flex min-h-11 items-center rounded-lg border px-4 text-sm font-medium text-navy hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
+                  <Link to="/complete-registration?role=employer" className="inline-flex min-h-11 items-center rounded-lg border px-4 text-sm font-medium text-navy hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
                     Employer registration
                   </Link>
                 </div>

@@ -22,6 +22,7 @@ export const routeLoaders = {
   '/register/employer': () => import('../../features/auth/EmployerRegister'),
   '/signup/employer': () => import('../../features/auth/EmployerRegister'),
   '/employer/status': () => import('../../features/auth/EmployerStatus'),
+  '/complete-registration': () => import('../../features/auth/CompleteRegistration'),
   '/auth/callback': () => import('../../features/auth/AuthCallback'),
   '/accept-invite': () => import('../../features/auth/AcceptInvite'),
   '/super-admin': () => import('../../features/super-admin/SuperAdminLayout'),
