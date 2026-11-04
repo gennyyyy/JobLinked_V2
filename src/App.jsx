@@ -97,7 +97,10 @@ function App() {
             <Route path="/register/job-seeker" element={<PublicRoute><JobSeekerRegister /></PublicRoute>} />
             <Route path="/register/employer" element={<PublicRoute><EmployerRegister /></PublicRoute>} />
             {/* New-design flow aliases: /login and /signup[/role]. */}
-            <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
+            {/* Not wrapped in PublicRoute: that wrapper destroys a session on
+                arrival, which raced the post-login redirect and forced a second
+                sign-in. Login itself redirects an existing session by role. */}
+            <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<PublicRoute><Register /></PublicRoute>} />
             <Route path="/signup/jobseeker" element={<PublicRoute><JobSeekerRegister /></PublicRoute>} />
             <Route path="/signup/employer" element={<PublicRoute><EmployerRegister /></PublicRoute>} />

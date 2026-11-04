@@ -38,6 +38,9 @@ function AuthProvider({ children }) {
       // Only clear when we never had a user; otherwise keep the session alive so
       // a dropped packet after a save can't bounce the user to the login page.
       if (seq !== loadSeq.current) return;
+      // Let the next SIGNED_IN retry: otherwise a transient first-login failure
+      // is permanently suppressed by the signedInId guard above.
+      signedInId.current = null;
       setUser((current) => (current ? current : null));
     }
   }, []);

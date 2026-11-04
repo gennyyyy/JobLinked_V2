@@ -123,6 +123,19 @@ describe('AuthProvider redundant auth events', () => {
     expect(screen.getByTestId('auth-loading')).toHaveTextContent('no')
   })
 
+  it('retries a failed profile load on the next SIGNED_IN for the same user', async () => {
+    getProfile.mockRejectedValueOnce(new Error('network down'))
+    render(<AuthProvider><Child /></AuthProvider>)
+    emit('SIGNED_IN', 'u1')
+    await waitFor(() => expect(getProfile).toHaveBeenCalledTimes(1))
+    await waitFor(() => expect(screen.getByTestId('auth-loading')).toHaveTextContent('no'))
+    expect(screen.getByTestId('auth-role')).toHaveTextContent('anon')
+
+    getProfile.mockResolvedValueOnce({ id: 'u1', role: 'job-seeker' })
+    emit('SIGNED_IN', 'u1')
+    await waitFor(() => expect(screen.getByTestId('auth-role')).toHaveTextContent('job-seeker'))
+  })
+
   it('leaves the user null when there is none and getProfile rejects', async () => {
     getProfile.mockRejectedValueOnce(new Error('network down'))
     render(<AuthProvider><Child /></AuthProvider>)
