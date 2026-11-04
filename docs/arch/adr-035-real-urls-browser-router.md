@@ -1,6 +1,12 @@
 # ADR-035 — Real URLs: BrowserRouter replaces the frozen-address MemoryRouter
 
-**Status:** Accepted 2026-11-04 (Lead Architect; plan `plan/2026-11-04-02-routing-seo-plan.md` signed off)
+**Status:** Superseded 2026-11-04 — product owner directed the frozen address bar
+(no URL changes during in-app navigation). `App.jsx` uses `MemoryRouter` seeded
+from the entry URL again; the `lazyRoute` chunk guard and `usePageTitle` stay.
+This ADR's rationale still stands for a public, shareable job board, so reopen it
+deliberately if shareable `/jobs/:jobId` links become a requirement — do not flip
+the router back and forth per session.
+**Original status:** Accepted 2026-11-04 (Lead Architect; plan `plan/2026-11-04-02-routing-seo-plan.md` signed off)
 
 ## Context
 

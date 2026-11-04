@@ -90,7 +90,7 @@ it('honours every entry of the comma-separated CORS_ORIGIN list', async () => {
 - Test: none beyond the harness's own smoke run (script change; verified by running it)
 
 **Interfaces:**
-- Produces: `node scripts/loadtest.mjs --mint-token --mint-email <email> --ensure-provisioned [--provision-role job-seeker|employer|super-admin]` — mints, checks `/api/auth/me` for 404 "Profile not found…", and (only then) calls `POST /api/auth/provision` with the registration payload for that role; writes nothing unless the account lacks a profile.
+- Produces: `node scripts/loadtest.mjs --mint-token --mint-email <email> --ensure-provisioned [--provision-role job-seeker|employer]` - mints, checks `/api/auth/me` for 404 "Profile not found…", and (only then) calls `POST /api/auth/provision` with the registration payload for that role; writes nothing unless the account lacks a profile. **Ruling 2026-11-04 (final review finding 4): `super-admin` is deliberately excluded** — super-admin accounts are provisioned by admin seeding, not by the public `/auth/provision` registration path, and a load fixture for that role has no authed route coverage value here. Documented exclusion, not an implementation gap.
 
 - [x] **Step 1: Implement** the flag in `loadtest.mjs`: capture the profile-absent 404, then POST provision with the existing registration payload shape (firstName/lastName/email/role from constants) using the minted token; treat 409/"already provisioned" as success so re-runs are idempotent.
 - [x] **Step 2: Run** `node scripts/loadtest.mjs --mint-token --mint-email <fixture-email> --ensure-provisioned` → token mint + provision OK (one line in output).
