@@ -3,6 +3,7 @@ import useAuth from '@/shared/hooks/useAuth'
 import { listJobs } from '@/shared/services/jobs'
 import { getSavedJobIds, subscribeSavedJobs, toggleSavedJob } from '@/shared/lib/savedJobs'
 import { PageHeading, Notice, EmptyState, SearchInput } from '@/shared/components/design'
+import { TagInput, splitTags } from '@/shared/components/TagInput'
 import JobCard from '@/shared/components/JobCard'
 import PreferenceMatching from './PreferenceMatching'
 import { JobListSkeleton } from '@/shared/components/Skeletons'
@@ -17,6 +18,7 @@ const jobHref = (id) => `/job-seeker/jobs/${id}`
 export default function OpportunityList({ saved = false }) {
   const { user } = useAuth()
   const [query, setQuery] = useState('')
+  const [skillFilter, setSkillFilter] = useState('')
   const [matchingPrompt, setMatchingPrompt] = useState('')
   const [page, setPage] = useState(1)
   const [jobs, setJobs] = useState([])
@@ -37,14 +39,22 @@ export default function OpportunityList({ saved = false }) {
 
   const records = useMemo(() => {
     const text = query.toLowerCase()
+    const skillTerms = splitTags(skillFilter).map((skill) => skill.toLowerCase())
     return jobs
       .filter((job) => (saved ? savedIds.includes(job.id) : isJobOpen(job) && (!job.employers?.accreditation_status || job.employers.accreditation_status === 'approved')))
       .filter((job) => `${job.title} ${job.employers?.company_name || ''}`.toLowerCase().includes(text))
+      // Same rule as the public board / API: any selected skill, case-insensitive
+      // substring of title + description + requirements + tags.
+      .filter((job) => {
+        if (!skillTerms.length) return true
+        const haystack = `${job.title || ''} ${job.description || ''} ${job.requirements || ''} ${(job.tags || []).join(' ')}`.toLowerCase()
+        return skillTerms.some((term) => haystack.includes(term))
+      })
       .sort((a, b) => (saved
         ? String(b.created_at).localeCompare(String(a.created_at))
         : (matchingPrompt ? preferenceScore(b, matchingPrompt) - preferenceScore(a, matchingPrompt) : 0)
           || matchJob(b, user).score - matchJob(a, user).score))
-  }, [jobs, saved, savedIds, query, matchingPrompt, user])
+  }, [jobs, saved, savedIds, query, skillFilter, matchingPrompt, user])
 
   const pages = Math.max(1, Math.ceil(records.length / PAGE_SIZE))
   const currentPage = saved ? 1 : Math.min(page, pages)
@@ -76,13 +86,27 @@ export default function OpportunityList({ saved = false }) {
           </Notice>
         </div>
       )}
-      <div className="mb-5 max-w-lg">
-        <SearchInput
-          value={query}
-          onChange={(value) => { setQuery(value); setPage(1) }}
-          label={saved ? 'Search saved opportunities' : 'Search your recommendations'}
-          placeholder={saved ? 'Search saved opportunities…' : 'Search your recommendations…'}
-        />
+      <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-end">
+        <div className="min-w-0 flex-1 sm:max-w-lg">
+          <SearchInput
+            value={query}
+            onChange={(value) => { setQuery(value); setPage(1) }}
+            label={saved ? 'Search saved opportunities' : 'Search your recommendations'}
+            placeholder={saved ? 'Search saved opportunities…' : 'Search your recommendations…'}
+          />
+        </div>
+        {!saved && (
+          <div className="min-w-0 sm:w-72">
+            <label htmlFor="browse-jobs-skills" className="mb-2 block text-xs text-muted-foreground">Filter by skills</label>
+            <TagInput
+              id="browse-jobs-skills"
+              value={skillFilter}
+              onChange={(value) => { setSkillFilter(value); setPage(1) }}
+              max={3}
+              placeholder="Search for skills"
+            />
+          </div>
+        )}
       </div>
       <p className="mb-4 text-xs text-muted-foreground" aria-live="polite">
         {records.length} {saved ? 'saved opportunities' : 'matching vacancies'}

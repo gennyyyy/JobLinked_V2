@@ -74,4 +74,20 @@ describe('Jobs accessibility', () => {
     expect(screen.queryByText('Barangay Health Worker')).not.toBeInTheDocument()
     expect(screen.getByText('Cashier')).toBeInTheDocument()
   })
+
+  it('filters the grid by skills added to the skill filter', async () => {
+    listJobs.mockResolvedValue({
+      jobs: [
+        job({ id: 'job-1', title: 'Barangay Health Worker', requirements: 'Experience: 1 year\nNursing' }),
+        job({ id: 'job-2', title: 'Cashier', requirements: 'Experience: 1 year\nCustomer Service' }),
+      ],
+      total: 2,
+    })
+    await renderJobs()
+
+    fireEvent.change(screen.getByPlaceholderText('Search for skills'), { target: { value: 'nursing,' } })
+
+    expect(screen.getByText('Barangay Health Worker')).toBeInTheDocument()
+    expect(screen.queryByText('Cashier')).not.toBeInTheDocument()
+  })
 })
