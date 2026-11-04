@@ -1,12 +1,13 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { CheckCircle2, Eye, FileText, Save, Trash2, UploadCloud, UserRound } from 'lucide-react'
-import { Button, buttonVariants } from '@/components/ui/button'
+import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Field, FieldError, FieldLabel } from '@/components/ui/field'
 import useAuth from '@/shared/hooks/useAuth'
 import { updateProfile } from '@/shared/services/auth'
 import { listResumes, uploadResume, setActiveResume, deleteResume, validateFile, signedUrl } from '@/shared/services/documents'
+import { uploadAvatar, removeAvatar, fetchAvatarObjectUrl } from '@/shared/services/images'
 import { buildFullName } from '@/shared/utils/names'
 import { PageSkeleton } from '@/shared/components/Skeletons'
 import { InlineError } from '@/shared/components/dashboard'
@@ -36,24 +37,42 @@ function formFromUser(user) {
 }
 
 function ResumeLinks({ resume }) {
-  const [url, setUrl] = useState('')
-  useEffect(() => {
-    let live = true
-    let objectUrl = ''
-    signedUrl('resumes', resume.file_path)
-      .then((value) => {
-        if (live) { objectUrl = value; setUrl(value) } else URL.revokeObjectURL(value)
-      })
-      .catch(() => {})
-    return () => { live = false; if (objectUrl) URL.revokeObjectURL(objectUrl) }
-  }, [resume.file_path])
-  if (!url) return null
+  const [busy, setBusy] = useState('')
+  // Fetch on demand: prefetching every resume made one profile visit download
+  // every file in full just to render two links (audit F9).
+  async function open(kind) {
+    setBusy(kind)
+    // Open the tab inside the click gesture so the popup blocker allows it.
+    const tab = kind === 'view' ? window.open('', '_blank') : null
+    if (tab) tab.opener = null
+    try {
+      const url = await signedUrl('resumes', resume.file_path)
+      if (kind === 'view') {
+        if (tab) tab.location.href = url
+      } else {
+        const a = document.createElement('a')
+        a.href = url
+        a.download = resume.file_name
+        a.rel = 'noopener'
+        document.body.appendChild(a)
+        a.click()
+        a.remove()
+      }
+      setTimeout(() => URL.revokeObjectURL(url), 60_000)
+    } catch {
+      tab?.close()
+    } finally {
+      setBusy('')
+    }
+  }
   return (
     <>
-      <a href={url} target="_blank" rel="noopener noreferrer" className={buttonVariants({ variant: 'outline' })}>
-        <Eye data-icon="inline-start" />View<span className="sr-only"> (opens in new tab)</span>
-      </a>
-      <a href={url} download={resume.file_name} className={buttonVariants({ variant: 'outline' })}>Download</a>
+      <Button type="button" variant="outline" onClick={() => open('view')} disabled={Boolean(busy)}>
+        <Eye data-icon="inline-start" />{busy === 'view' ? 'Opening…' : 'View'}<span className="sr-only"> (opens in new tab)</span>
+      </Button>
+      <Button type="button" variant="outline" onClick={() => open('download')} disabled={Boolean(busy)}>
+        {busy === 'download' ? 'Preparing…' : 'Download'}
+      </Button>
     </>
   )
 }
@@ -69,7 +88,10 @@ function Profile() {
   const [saving, setSaving] = useState(false)
   const [form, setForm] = useState(() => formFromUser(user))
   const [errors, setErrors] = useState({})
-  const [picture, setPicture] = useState(null)
+  const [avatarUrl, setAvatarUrl] = useState(null)
+  const [photoBusy, setPhotoBusy] = useState(false)
+  const [photoStatus, setPhotoStatus] = useState('')
+  const [photoError, setPhotoError] = useState('')
   const [resumes, setResumes] = useState([])
   const [draft, setDraft] = useState(null)
   const [uploadError, setUploadError] = useState('')
@@ -84,6 +106,33 @@ function Profile() {
       .catch((err) => setError(err.message || 'Failed to load profile'))
       .finally(() => setLoading(false))
   }, [userId])
+
+  // One object URL at a time: whichever path loads a photo (page load, upload,
+  // remove) revokes the previous blob and publishes the new one.
+  const avatarObjectUrl = useRef('')
+  const showAvatar = useCallback((url) => {
+    if (avatarObjectUrl.current) URL.revokeObjectURL(avatarObjectUrl.current)
+    avatarObjectUrl.current = url || ''
+    setAvatarUrl(url || null)
+  }, [])
+
+  // Load the saved avatar as an object URL (the endpoint needs the bearer
+  // token, so <img src> cannot point at it directly). A photo-less profile
+  // makes no request (the API reports has_avatar).
+  useEffect(() => {
+    if (!userId || user?.has_avatar === false) return undefined
+    let live = true
+    fetchAvatarObjectUrl(userId)
+      .then((url) => {
+        if (!url) return
+        if (live) showAvatar(url)
+        else URL.revokeObjectURL(url)
+      })
+      .catch(() => { /* unavailable */ })
+    return () => { live = false }
+  }, [userId, user?.has_avatar, showAvatar])
+
+  useEffect(() => () => { if (avatarObjectUrl.current) URL.revokeObjectURL(avatarObjectUrl.current) }, [])
 
   if (loading) return <PageSkeleton stats={0} panels={2} />
   if (error) return <InlineError message={error} />
@@ -191,13 +240,39 @@ function Profile() {
     setPendingDelete(null)
   }
 
-  function handlePicture(event) {
+  async function handlePicture(event) {
     const file = event.target.files?.[0]
+    event.target.value = ''
     if (!file) return
-    if (file.size > 5 * 1024 * 1024) { event.target.value = ''; return }
-    const reader = new FileReader()
-    reader.onload = () => setPicture(typeof reader.result === 'string' ? reader.result : null)
-    reader.readAsDataURL(file)
+    setPhotoError('')
+    setPhotoStatus('')
+    setPhotoBusy(true)
+    try {
+      await uploadAvatar(file) // resized client-side, bytes persisted in Postgres
+      if (refreshUser) await refreshUser(user)
+      showAvatar(await fetchAvatarObjectUrl(userId))
+      setPhotoStatus('Photo saved.')
+    } catch (err) {
+      setPhotoError(err.message || 'Could not save the photo')
+    } finally {
+      setPhotoBusy(false)
+    }
+  }
+
+  async function handleRemovePicture() {
+    setPhotoError('')
+    setPhotoStatus('')
+    setPhotoBusy(true)
+    try {
+      await removeAvatar()
+      if (refreshUser) await refreshUser(user)
+      showAvatar(null)
+      setPhotoStatus('Photo removed.')
+    } catch (err) {
+      setPhotoError(err.message || 'Could not remove the photo')
+    } finally {
+      setPhotoBusy(false)
+    }
   }
 
   return (
@@ -213,12 +288,22 @@ function Profile() {
           <Panel title="Personal & contact details" description="Use the information employers need to reach you.">
             <div className="flex flex-wrap items-center gap-4 rounded-lg border border-dashed border-border bg-muted/30 p-4">
               <div className="flex size-20 shrink-0 items-center justify-center overflow-hidden rounded-full bg-primary/10 text-primary">
-                {picture ? <img src={picture} alt="Profile preview" className="size-full object-cover" /> : <UserRound className="size-8" />}
+                {avatarUrl ? <img src={avatarUrl} alt="Profile picture" className="size-full object-cover" /> : <UserRound className="size-8" />}
               </div>
               <div className="flex min-w-0 flex-1 flex-col gap-1">
                 <label htmlFor="profile-picture" className="text-sm font-semibold text-foreground">Profile picture</label>
-                <p className="text-xs leading-5 text-muted-foreground">Upload a clear face photo. The preview is kept in memory until refresh.</p>
-                <input id="profile-picture" type="file" accept="image/png,image/jpeg,image/webp" className="mt-2 block w-full text-xs text-muted-foreground file:mr-3 file:rounded-md file:border-0 file:bg-primary file:px-3 file:py-1.5 file:text-xs file:font-medium file:text-primary-foreground hover:file:bg-primary/90" onChange={handlePicture} />
+                <p className="text-xs leading-5 text-muted-foreground">Upload a clear face photo. It is saved to your account and stays after refresh.</p>
+                <div className="mt-1 flex flex-wrap items-center gap-3">
+                  <input id="profile-picture" type="file" accept="image/png,image/jpeg,image/webp" disabled={photoBusy} className="block text-xs text-muted-foreground file:mr-3 file:rounded-md file:border-0 file:bg-primary file:px-3 file:py-1.5 file:text-xs file:font-medium file:text-primary-foreground hover:file:bg-primary/90" onChange={handlePicture} />
+                  {avatarUrl && (
+                    <Button type="button" variant="outline" size="sm" onClick={handleRemovePicture} disabled={photoBusy}>
+                      <Trash2 data-icon="inline-start" />Remove photo
+                    </Button>
+                  )}
+                </div>
+                {photoBusy && <p role="status" className="text-[11px] text-muted-foreground">Uploading…</p>}
+                {photoStatus && !photoBusy && <p role="status" className="text-[11px] font-medium text-success">{photoStatus}</p>}
+                {photoError && <p role="alert" className="text-[11px] text-destructive">{photoError}</p>}
               </div>
             </div>
             <div className="flex flex-col gap-5">

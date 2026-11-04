@@ -36,12 +36,28 @@ cp server/.env.example server/.env
 
 ## 5. Deploy dump / restore (the "not difficult to deploy later" path)
 
+**A database dump alone is not a complete backup.** Resume and accreditation
+PDFs live on disk; Postgres stores only their paths (`resumes.file_path`,
+`employer_documents.file_path`). Profile pictures and company logos are the
+exception: they are stored as bytes in `profile_images` and do come with the
+dump (ADR-040).
+
 ```sh
+# 1. database
 pg_dump -Fc joblinked > joblinked.dump
+# 2. the files those rows point at (run from the repo root)
+npm run backup:uploads          # -> backups/uploads-<timestamp>.tgz
+
+# restore on the new machine, same two halves
 pg_restore -d <newdb> joblinked.dump
+tar -xzf backups/uploads-<timestamp>.tgz -C server
 ```
 
-The dump restores to any Postgres, including Supabase.
+Restore the archive into the **same** `UPLOAD_DIR` the API uses. A relative
+`UPLOAD_DIR` resolves against `server/` regardless of the working directory;
+the API logs the resolved path at boot (`uploads directory`). If the files are
+missing, every file request answers `404 File not found` even though the row
+exists — the dump restored, the backup did not.
 
 ## Rules
 

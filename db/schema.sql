@@ -343,6 +343,23 @@ create table if not exists public.notifications (
 create index if not exists notifications_user_idx on public.notifications(user_id);
 
 -- ---------------------------------------------------------------------------
+-- Profile images (ADR-040): avatars and company logos as bytes. Kept out of
+-- the role tables so `select *` / to_jsonb profile paths never serialize image
+-- data. Resumes and accreditation documents stay on disk (file_path columns).
+-- ---------------------------------------------------------------------------
+create table if not exists public.profile_images (
+  owner_id   uuid        not null,
+  kind       text        not null check (kind in ('seeker-avatar','employer-logo')),
+  mime       text        not null check (mime in ('image/png','image/jpeg','image/webp')),
+  bytes      bytea       not null check (octet_length(bytes) <= 2097152),
+  updated_at timestamptz not null default now(),
+  primary key (owner_id, kind)
+);
+
+comment on table public.profile_images is
+  'Profile pictures and company logos. Small images only (<= 2 MB); resumes/documents stay on disk (ADR-040).';
+
+-- ---------------------------------------------------------------------------
 -- Audit log (API writes with the token user id, best-effort)
 -- ---------------------------------------------------------------------------
 create table if not exists public.audit_logs (

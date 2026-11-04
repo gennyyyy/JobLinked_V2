@@ -4,7 +4,7 @@ import { Save, ShieldCheck } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
 import { Field, FieldDescription, FieldGroup, FieldLabel } from '@/components/ui/field'
-import { Notice, PageHeading, Panel } from './design'
+import { PageHeading, Panel } from './design'
 import { LinkButton } from './design'
 import useAuth from '../hooks/useAuth'
 import { ROLE_LABELS } from '../constants'
@@ -22,11 +22,11 @@ export default function AccountSettings() {
       <PageHeading
         eyebrow="Make yourself at home"
         title={isAdmin ? 'Workspace & system settings' : 'Your account, your preferences.'}
-        description="Review your sample account, notification preferences, and privacy information."
+        description="Review your account, notification preferences, and privacy information."
       />
       <div className="grid items-start gap-6 xl:grid-cols-[1.25fr_1fr]">
         <div className="flex min-w-0 flex-col gap-6">
-          <Panel title="Account overview" description="This is a fictional demo identity, not a production account.">
+          <Panel id="account-overview" title="Account overview" description="Your JobLinked account details.">
             <dl className="grid grid-cols-[100px_1fr] gap-4 text-xs">
               <dt className="text-muted-foreground">Name</dt>
               <dd className="font-medium">{user?.full_name || user?.name || '—'}</dd>
@@ -41,20 +41,20 @@ export default function AccountSettings() {
               </LinkButton>
             )}
           </Panel>
-          <Panel title="Notifications" description="Preferences apply only to your current demo account.">
+          <Panel id="notification-preferences" title="Notifications" description="Preferences apply to your JobLinked account.">
             <form onSubmit={(event) => { event.preventDefault(); setSaved(true) }}>
               <FieldGroup>
                 <Field orientation="horizontal">
                   <Field>
                     <FieldLabel htmlFor="application-updates">Application & recruitment updates</FieldLabel>
-                    <FieldDescription>Sample application, interview, and accreditation notices.</FieldDescription>
+                    <FieldDescription>Application, interview, and accreditation notices.</FieldDescription>
                   </Field>
                   <Switch id="application-updates" checked={updates} onCheckedChange={setUpdates} />
                 </Field>
                 <Field orientation="horizontal">
                   <Field>
                     <FieldLabel htmlFor="community-notices">Community announcements</FieldLabel>
-                    <FieldDescription>Sample PESO programs and employment notices.</FieldDescription>
+                    <FieldDescription>PESO programs and employment notices.</FieldDescription>
                   </Field>
                   <Switch id="community-notices" checked={announcements} onCheckedChange={setAnnouncements} />
                 </Field>
@@ -68,18 +68,15 @@ export default function AccountSettings() {
           </Panel>
         </div>
         <div className="flex min-w-0 flex-col gap-6">
-          <Panel title="Privacy comes first" action={<ShieldCheck className="size-5 text-teal" />}>
+          <Panel id="privacy" title="Privacy comes first" action={<ShieldCheck className="size-5 text-teal" />}>
             <p className="text-xs leading-6 text-muted-foreground">
-              Review what a future production service would process and who could access it. These configurable drafts require organizational and legal review.
+              Review what JobLinked processes and who can access it.
             </p>
             <div className="mt-4 flex flex-col">
               <Link className="text-link text-xs" to="/privacy">Read the full Privacy Notice</Link>
-              <Link className="text-link text-xs" to="/terms">Review the demo Terms</Link>
+              <Link className="text-link text-xs" to="/terms">Review the Terms of Use</Link>
             </div>
           </Panel>
-          <Notice title="A preview, not production auth">
-            Frontend role guards are for demonstration only. Password hashing, server-side authorization, secure sessions, and account deletion belong to the future Express backend.
-          </Notice>
         </div>
       </div>
     </>

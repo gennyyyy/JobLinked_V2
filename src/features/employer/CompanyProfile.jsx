@@ -1,7 +1,9 @@
 import { Button } from "../../components/ui/button";
+import { Trash2 } from "lucide-react";
 import { useState, useEffect } from "react";
 import useAuth from "../../shared/hooks/useAuth";
 import { updateProfile, getEmployer, provision } from "../../shared/services/auth";
+import { uploadLogo, removeLogo, logoUrl } from "../../shared/services/images";
 import { PageSkeleton } from '../../shared/components/Skeletons';
 import ChangePassword from "../../shared/components/ChangePassword";
 import { buildFullName } from "../../shared/utils/names";
@@ -46,6 +48,9 @@ function CompanyProfile() {
   const [company, setCompany] = useState(null);
   const [form, setForm] = useState({});
   const [logoFailed, setLogoFailed] = useState(false);
+  const [logoBusy, setLogoBusy] = useState(false);
+  const [logoStatus, setLogoStatus] = useState("");
+  const [logoError, setLogoError] = useState("");
 
   useEffect(() => {
     if (!user) return;
@@ -121,6 +126,46 @@ function CompanyProfile() {
     }
   }
 
+  async function refreshCompany() {
+    const data = await getEmployer();
+    setCompany(data);
+    setLogoFailed(false);
+    return data;
+  }
+
+  async function handleLogo(event) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+    setLogoError("");
+    setLogoStatus("");
+    setLogoBusy(true);
+    try {
+      await uploadLogo(file); // resized client-side, bytes persisted in Postgres
+      await refreshCompany();
+      setLogoStatus("Logo saved.");
+    } catch (err) {
+      setLogoError(err.message || "Could not save the logo");
+    } finally {
+      setLogoBusy(false);
+    }
+  }
+
+  async function handleRemoveLogo() {
+    setLogoError("");
+    setLogoStatus("");
+    setLogoBusy(true);
+    try {
+      await removeLogo();
+      await refreshCompany();
+      setLogoStatus("Logo removed.");
+    } catch (err) {
+      setLogoError(err.message || "Could not remove the logo");
+    } finally {
+      setLogoBusy(false);
+    }
+  }
+
   // Read directly from the employers row — kept in sync by documents.js
   const accreditationStatus = company?.accreditation_status || "Not Applied";
 
@@ -129,7 +174,11 @@ function CompanyProfile() {
     titleCase([form.first_name, form.middle_name, form.last_name].filter(Boolean).join(" ")),
     (form.suffix || "").toUpperCase(),
   ].filter(Boolean).join(" ");
-  const companyLogo = !logoFailed && typeof company?.logo_path === "string" && company.logo_path ? company.logo_path : null;
+  const companyLogo = !logoFailed && company
+    ? (company.has_logo
+      ? logoUrl(company.id, company.logo_updated_at)
+      : (typeof company.logo_path === "string" && company.logo_path ? company.logo_path : null))
+    : null;
   const barangayOptions = [
     ...(!form.barangay_district || SANTA_MARIA_BARANGAYS.includes(form.barangay_district)
       ? []
@@ -159,7 +208,7 @@ function CompanyProfile() {
           )}
           {error && <p role="alert" className="text-xs text-destructive">{error}</p>}
 
-          <Panel title="Company details" description="These details appear alongside your public vacancies.">
+          <Panel id="company-details" title="Company details" description="These details appear alongside your public vacancies.">
             <div className="grid gap-5 sm:grid-cols-2">
               {COMPANY_FIELDS.map(([name, label, placeholder]) => (
                 <TextField key={name} label={label} placeholder={placeholder} required {...field(name)} />
@@ -173,7 +222,7 @@ function CompanyProfile() {
             </div>
           </Panel>
 
-          <Panel title="Contact & location" description="Where candidates can reach and find your office.">
+          <Panel id="contact-location" title="Contact & location" description="Where candidates can reach and find your office.">
             <div className="grid gap-5 sm:grid-cols-2">
               {CONTACT_FIELDS.map(([name, label, placeholder]) => (
                 <TextField key={name} label={label} placeholder={placeholder} required type={name === "company_email" ? "email" : "text"} {...field(name)} />
@@ -195,7 +244,7 @@ function CompanyProfile() {
             </div>
           </Panel>
 
-          <Panel title="Authorized representative" description="The person PESO contacts about this company.">
+          <Panel id="authorized-representative" title="Authorized representative" description="The person PESO contacts about this company.">
             <div className="grid gap-5 sm:grid-cols-2">
               {REPRESENTATIVE_FIELDS.map(([name, label, placeholder]) => (
                 <TextField
@@ -224,6 +273,7 @@ function CompanyProfile() {
             <img
               src={companyLogo}
               alt={`${form.name || "Company"} logo`}
+              data-testid="company-logo-image"
               loading="lazy"
               decoding="async"
               className="size-16 rounded-2xl border object-cover"
@@ -237,6 +287,29 @@ function CompanyProfile() {
             {[form.industry || "Company profile", form.barangay_district].filter(Boolean).join(" · ")}
           </p>
           <StatusBadge status={accreditationStatus} />
+          {company && (
+            <div className="mt-4 flex flex-col gap-2 border-t pt-4">
+              <label htmlFor="company-logo" className="text-xs font-semibold text-navy">Company logo</label>
+              <input
+                id="company-logo"
+                type="file"
+                accept="image/png,image/jpeg,image/webp"
+                disabled={logoBusy}
+                onChange={handleLogo}
+                className="block w-full text-[11px] text-muted-foreground file:mr-3 file:rounded-md file:border-0 file:bg-primary file:px-3 file:py-1.5 file:text-xs file:font-medium file:text-primary-foreground hover:file:bg-primary/90"
+              />
+              <div className="flex flex-wrap items-center gap-3">
+                {company.has_logo && (
+                  <Button type="button" variant="outline" size="sm" onClick={handleRemoveLogo} disabled={logoBusy}>
+                    <Trash2 data-icon="inline-start" />Remove logo
+                  </Button>
+                )}
+                {logoBusy && <span role="status" className="text-[11px] text-muted-foreground">Uploading…</span>}
+                {logoStatus && !logoBusy && <span role="status" className="text-[11px] font-medium text-success">{logoStatus}</span>}
+              </div>
+              {logoError && <p role="alert" className="text-[11px] text-destructive">{logoError}</p>}
+            </div>
+          )}
           <p className="mt-4 text-[11px] leading-6 text-muted-foreground">
             Authorized representative: {representativeName || "Not set"}. Editing your profile does not replace the accreditation review.
           </p>

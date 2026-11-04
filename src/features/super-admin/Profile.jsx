@@ -40,6 +40,7 @@ export default function Profile() {
       />
       <div className="grid items-start gap-6 xl:grid-cols-[1.25fr_1fr]">
         <Panel
+          id="personal-details"
           title="Personal details"
           description="Keep your administrator identity current for workspace activity and audit records."
         >
@@ -55,6 +56,7 @@ export default function Profile() {
           </form>
         </Panel>
         <Panel
+          id="administrator-access"
           title="Administrator access"
           description="Your role and access level are managed by the system."
           action={<ShieldCheck className="size-5 text-teal" />}

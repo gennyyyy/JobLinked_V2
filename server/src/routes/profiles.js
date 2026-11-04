@@ -4,7 +4,8 @@ import path from 'node:path';
 import { pool } from '../db.js';
 import { auth, requireRole } from '../auth.js';
 import { ah, err, audit, notifyUser, notifyAdmins, isUuid, isNumericId, withTransaction } from '../util.js';
-import { uploadSingle, uploadDir, relPath } from '../upload.js';
+import { uploadSingle, uploadImage, uploadDir, relPath, mimeForExt } from '../upload.js';
+import { putImage, getImage, deleteImage } from '../profileImages.js';
 
 const router = Router();
 
@@ -25,8 +26,17 @@ const LOWERCASE_FIELDS = new Set(['first_name', 'middle_name', 'last_name', 'suf
 // must persist '' (NULL violates the constraint and 500s the whole PATCH).
 const REQUIRED_TEXT = new Set(['first_name', 'middle_name', 'last_name', 'suffix', 'full_name', 'country', 'company_name']);
 const meRoutes = (path, table, role, allow) => {
+  // ADR-040: expose image presence + version without ever selecting the bytes.
+  const isEmployer = table === 'employers';
+  const imageKind = isEmployer ? 'employer-logo' : 'seeker-avatar';
+  const hasCol = isEmployer ? 'has_logo' : 'has_avatar';
+  const versionCol = isEmployer ? 'logo_updated_at' : 'avatar_updated_at';
   router.get(path, auth, requireRole(role), ah(async (req, res) => {
-    const { rows } = await pool.query(`select * from ${table} where id = $1`, [req.user.id]);
+    const { rows } = await pool.query(
+      `select t.*, (i.owner_id is not null) as ${hasCol}, i.updated_at as ${versionCol}
+         from ${table} t
+         left join profile_images i on i.owner_id = t.id and i.kind = '${imageKind}'
+        where t.id = $1`, [req.user.id]);
     if (!rows[0]) return err(res, 404, 'NOT_FOUND', 'Profile not found');
     res.json(rows[0]);
   }));
@@ -51,6 +61,71 @@ const meRoutes = (path, table, role, allow) => {
 };
 meRoutes('/employers/me', 'employers', 'employer', EMPLOYER_ALLOW);
 meRoutes('/seekers/me', 'job_seekers', 'job-seeker', SEEKER_ALLOW);
+
+// ─── Profile images (ADR-040) ───────────────────────────────────────────────
+// Small images live in Postgres (profile_images); resumes/documents stay on
+// disk. The bytes are never part of a profile SELECT — only presence/version.
+const sendImage = (res, image, { publicImage = false } = {}) => {
+  // Logos are versioned by ?v=<updated_at> (CompanyProfile), so a long public
+  // cache can never serve a replaced logo. Avatars are fetched with the bearer
+  // token and must revalidate, otherwise a freshly replaced photo would show
+  // the previous bytes until max-age expired.
+  res.setHeader('Cache-Control', publicImage ? 'public, max-age=300' : 'private, max-age=0, must-revalidate');
+  if (!publicImage) res.vary('Authorization');
+  res.type(image.mime);
+  res.setHeader('Content-Length', String(image.bytes.length));
+  res.send(image.bytes);
+};
+
+const upsertImage = async (req, res, ownerId, kind) => {
+  const mime = mimeForExt(req.imageExt);
+  const row = await putImage(ownerId, kind, mime, req.file.buffer);
+  void audit(req.user.id, kind === 'seeker-avatar' ? 'avatar.update' : 'logo.update', 'profile_images', ownerId);
+  res.status(201).json({ ok: true, mime, updated_at: row.updated_at });
+};
+
+router.post('/seekers/me/avatar', auth, requireRole('job-seeker'), uploadImage(), ah(async (req, res) => {
+  await upsertImage(req, res, req.user.id, 'seeker-avatar');
+}));
+
+router.delete('/seekers/me/avatar', auth, requireRole('job-seeker'), ah(async (req, res) => {
+  const deleted = await deleteImage(req.user.id, 'seeker-avatar');
+  if (deleted) void audit(req.user.id, 'avatar.remove', 'profile_images', req.user.id);
+  res.json({ deleted });
+}));
+
+router.get('/seekers/:id/avatar', auth, ah(async (req, res) => {
+  const seekerId = req.params.id;
+  if (!isUuid(seekerId)) return err(res, 400, 'BAD_REQUEST', 'Invalid id');
+  if (req.user.role !== 'super-admin' && seekerId !== req.user.id) {
+    if (req.user.role !== 'employer') return err(res, 403, 'FORBIDDEN', 'Not your applicant');
+    const { rows } = await pool.query(
+      `select 1 from job_applications a join job_vacancies j on j.id = a.job_id
+        where j.company_id = $1 and a.seeker_id = $2 limit 1`, [req.user.id, seekerId]);
+    if (!rows[0]) return err(res, 403, 'FORBIDDEN', 'Not your applicant');
+  }
+  const image = await getImage(seekerId, 'seeker-avatar');
+  if (!image) return err(res, 404, 'NOT_FOUND', 'Avatar not found');
+  sendImage(res, image);
+}));
+
+router.post('/employers/me/logo', auth, requireRole('employer'), uploadImage(), ah(async (req, res) => {
+  await upsertImage(req, res, req.user.id, 'employer-logo');
+}));
+
+router.delete('/employers/me/logo', auth, requireRole('employer'), ah(async (req, res) => {
+  const deleted = await deleteImage(req.user.id, 'employer-logo');
+  if (deleted) void audit(req.user.id, 'logo.remove', 'profile_images', req.user.id);
+  res.json({ deleted });
+}));
+
+// Public: a company logo is business branding and must render on public cards.
+router.get('/employers/:id/logo', ah(async (req, res) => {
+  if (!isUuid(req.params.id)) return err(res, 404, 'NOT_FOUND', 'Logo not found');
+  const image = await getImage(req.params.id, 'employer-logo');
+  if (!image) return err(res, 404, 'NOT_FOUND', 'Logo not found');
+  sendImage(res, image, { publicImage: true });
+}));
 
 const ACC_STATUSES = ['none', 'pending', 'approved', 'rejected', 'resubmission', 'revoked'];
 const accSelect = `select a.*, json_build_object('full_name', s.full_name) as decided_by
@@ -181,11 +256,24 @@ router.patch('/documents/:id', auth, requireRole('super-admin'), ah(async (req, 
 }));
 
 // Upload + resume row. New upload becomes the active resume (setActiveResume, server-side).
-router.post('/files/resumes', auth, requireRole('job-seeker'), uploadSingle('resumes'), ah(async (req, res) => {
+// Concurrent uploads used to race the one-active partial index (three 500s out
+// of six live); the advisory lock serialises the deactivate+insert per user.
+const MAX_RESUMES_PER_SEEKER = 20;
+// Count BEFORE multer writes the file: an over-quota upload costs no bytes and
+// leaves the route's only unlink as the failed-insert compensation.
+const resumeQuota = ah(async (req, res, next) => {
+  const { rows } = await pool.query('select count(*)::int n from resumes where seeker_id = $1', [req.user.id]);
+  if (rows[0].n >= MAX_RESUMES_PER_SEEKER) {
+    return err(res, 400, 'BAD_REQUEST', `You can keep at most ${MAX_RESUMES_PER_SEEKER} resumes. Delete an old one first.`);
+  }
+  next();
+});
+router.post('/files/resumes', auth, requireRole('job-seeker'), resumeQuota, uploadSingle('resumes'), ah(async (req, res) => {
   const rel = relPath('resumes', req.user.id, path.basename(req.file.path));
   let row;
   try {
     row = await withTransaction(async (client) => {
+      await client.query('select pg_advisory_xact_lock(hashtext($1))', [req.user.id]);
       await client.query('update resumes set is_active = false where seeker_id = $1', [req.user.id]);
       const { rows } = await client.query(
         'insert into resumes (seeker_id, file_path, file_name, is_active) values ($1,$2,$3,true) returning *',
@@ -222,13 +310,29 @@ router.post('/files/documents', auth, requireRole('employer'), uploadSingle('doc
 
 router.delete('/files/resumes/:id', auth, ah(async (req, res) => {
   if (!isUuid(req.params.id)) return err(res, 404, 'NOT_FOUND', 'Resume not found');
-  const { rows } = await pool.query('select * from resumes where id = $1', [req.params.id]);
+  const { rows } = await pool.query('select seeker_id, file_path, is_active from resumes where id = $1', [req.params.id]);
   if (!rows[0]) return err(res, 404, 'NOT_FOUND', 'Resume not found');
   if (req.user.role !== 'super-admin' && rows[0].seeker_id !== req.user.id) {
     return err(res, 403, 'FORBIDDEN', 'Not your resume');
   }
-  await pool.query('delete from resumes where id = $1', [req.params.id]);
-  try { fs.unlinkSync(path.join(uploadDir, rows[0].file_path)); } catch { /* file already gone */ }
+  const removedFile = rows[0].file_path;
+  const removed = await withTransaction(async (client) => {
+    await client.query('select pg_advisory_xact_lock(hashtext($1))', [rows[0].seeker_id]);
+    const del = await client.query('delete from resumes where id = $1 returning id', [req.params.id]);
+    if (!del.rowCount) return false;
+    // Never strand the seeker without an active resume: promote the newest one.
+    if (rows[0].is_active) {
+      await client.query(
+        `update resumes set is_active = true where id = (
+           select id from resumes where seeker_id = $1 order by uploaded_at desc, id desc limit 1)`,
+        [rows[0].seeker_id]);
+    }
+    return true;
+  });
+  if (!removed) return err(res, 404, 'NOT_FOUND', 'Resume not found');
+  try { fs.unlinkSync(path.join(uploadDir, removedFile)); } catch { /* file already gone */ }
+  // Remove the per-user folder once its last file is gone (audit F10).
+  try { fs.rmdirSync(path.dirname(path.join(uploadDir, removedFile))); } catch { /* not empty or missing */ }
   res.json({ deleted: true });
 }));
 
@@ -244,6 +348,9 @@ router.post('/files/resumes/:id/activate', auth, requireRole('job-seeker'), ah(a
   if (!rows[0]) return err(res, 404, 'NOT_FOUND', 'Resume not found');
   if (rows[0].seeker_id !== req.user.id) return err(res, 403, 'FORBIDDEN', 'Not your resume');
   const row = await withTransaction(async (client) => {
+    // Same per-user lock as upload/delete: two concurrent activates (or an
+    // activate racing an upload) would otherwise trip the one-active index.
+    await client.query('select pg_advisory_xact_lock(hashtext($1))', [req.user.id]);
     await client.query('update resumes set is_active = false where seeker_id = $1', [req.user.id]);
     const r = await client.query('update resumes set is_active = true where id = $1 returning *', [req.params.id]);
     return r.rows[0];
@@ -301,10 +408,12 @@ router.get('/files/:bucket/*', auth, ah(async (req, res) => {
     return err(res, 400, 'BAD_REQUEST', 'Invalid path');
   }
   const fullRel = `${bucket}/${rel}`;
+  let fileName = path.basename(abs);
   if (req.user.role !== 'super-admin') {
     if (bucket === 'resumes') {
-      const { rows } = await pool.query('select seeker_id from resumes where file_path = $1', [fullRel]);
+      const { rows } = await pool.query('select seeker_id, file_name from resumes where file_path = $1', [fullRel]);
       if (!rows[0]) return err(res, 404, 'NOT_FOUND', 'File not found');
+      fileName = rows[0].file_name || fileName;
       if (rows[0].seeker_id !== req.user.id) {
         // Addendum A: an employer may read a resume linked to one of their
         // jobs via a job_applications row (same join rule as credential reads).
@@ -315,12 +424,17 @@ router.get('/files/:bucket/*', auth, ah(async (req, res) => {
         if (!link[0]) return err(res, 403, 'FORBIDDEN', 'Not your file');
       }
     } else {
-      const { rows } = await pool.query('select id from employer_documents where file_path = $1 and company_id = $2', [fullRel, req.user.id]);
+      const { rows } = await pool.query('select file_name from employer_documents where file_path = $1 and company_id = $2', [fullRel, req.user.id]);
       if (!rows[0]) return err(res, 403, 'FORBIDDEN', 'Not your file');
+      fileName = rows[0].file_name || fileName;
     }
   }
   if (!fs.existsSync(abs)) return err(res, 404, 'NOT_FOUND', 'File not found');
   void audit(req.user.id, 'document.view', bucket, fullRel);
+  // Private PII (audit F5): never let a shared cache reuse a resume/document.
+  res.setHeader('Cache-Control', 'private, max-age=0, must-revalidate');
+  res.vary('Authorization');
+  res.setHeader('Content-Disposition', `inline; filename="${path.basename(String(fileName)).replace(/["\r\n]/g, '')}"`);
   res.sendFile(abs);
 }));
 
