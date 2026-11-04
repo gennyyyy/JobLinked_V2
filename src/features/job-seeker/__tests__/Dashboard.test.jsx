@@ -6,10 +6,12 @@ import Dashboard from '../Dashboard'
 vi.mock('../../../shared/hooks/useAuth', () => ({ default: vi.fn() }))
 vi.mock('../../../shared/services/applications', () => ({ listBySeeker: vi.fn() }))
 vi.mock('../../../shared/services/jobs', () => ({ listJobs: vi.fn() }))
+vi.mock('../../../shared/services/notifications', () => ({ listNotifications: vi.fn() }))
 
 import useAuth from '../../../shared/hooks/useAuth'
 import { listBySeeker } from '../../../shared/services/applications'
 import { listJobs } from '../../../shared/services/jobs'
+import { listNotifications } from '../../../shared/services/notifications'
 
 const daysAgo = (n) => new Date(Date.now() - n * 86400000).toISOString()
 
@@ -35,6 +37,7 @@ describe('Job-seeker Dashboard', () => {
     useAuth.mockReturnValue({ user: { id: 'seeker-1', full_name: 'juan dela cruz' } })
     listBySeeker.mockResolvedValue(APPLICATIONS)
     listJobs.mockResolvedValue({ jobs: JOBS })
+    listNotifications.mockResolvedValue([])
   })
 
   it('renders the four tiles with their counts', async () => {

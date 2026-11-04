@@ -25,9 +25,25 @@ export default defineConfig({
     },
   },
   test: {
-    environment: "jsdom",
-    setupFiles: "./src/test/setup.js",
     globals: true,
-    include: ["src/**/*.{test,spec}.{js,jsx}", "server/**/*.{test,spec}.js"],
+    projects: [
+      {
+        extends: true,
+        test: {
+          name: "client",
+          environment: "jsdom",
+          setupFiles: "./src/test/setup.js",
+          include: ["src/**/*.{test,spec}.{js,jsx}"],
+        },
+      },
+      {
+        extends: true,
+        test: {
+          name: "server",
+          environment: "node",
+          include: ["server/**/*.{test,spec}.js"],
+        },
+      },
+    ],
   },
 });

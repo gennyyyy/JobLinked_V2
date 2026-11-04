@@ -74,6 +74,7 @@ describe('Super-admin Dashboard', () => {
   it('shows an alert when getStats rejects', async () => {
     getStats.mockRejectedValue(new Error('boom'))
     listAllAccreditations.mockResolvedValue(ACCS)
+    listAllApplications.mockResolvedValue({ data: [], total: 0, page: 1, pageSize: 500 })
     listAuditLogs.mockResolvedValue([])
     render(<MemoryRouter><Dashboard /></MemoryRouter>)
     expect(await screen.findByRole('alert')).toBeInTheDocument()
