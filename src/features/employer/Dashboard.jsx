@@ -126,7 +126,7 @@ export default function Dashboard() {
         </div>
         <div className="flex min-w-0 flex-col gap-6">
           <Panel title="Your accreditation" action={<ShieldCheck className="size-5 text-teal" />}>
-            {accreditation ? <StatusBadge status={accreditation} /> : null}
+            {accreditation ? <StatusBadge status={{ approved: 'Approved', pending: 'Pending Review', rejected: 'Rejected', resubmission: 'Resubmission Requested', revoked: 'Suspended', none: 'Pending Review' }[accreditation] || accreditation} /> : null}
             <p className="mt-4 text-xs leading-6 text-muted-foreground">
               {accreditation === 'approved'
                 ? 'Your business is approved to publish vacancies in this demonstration.'

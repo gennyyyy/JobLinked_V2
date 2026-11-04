@@ -26,7 +26,7 @@ const user = {
   city_municipality: 'Santa Maria',
   province_state: 'Bulacan',
   headline: 'Customer service professional',
-  skills: ['Customer Service', 'Communication', 'MS Office'],
+  skills: ['Microsoft Office', 'Communication', 'Organization'],
   preferred_position: 'Customer Service',
   preferred_location: 'Poblacion',
   education: 'Senior High School',
@@ -36,15 +36,18 @@ const user = {
 const jobs = [
   {
     id: 'j1',
-    title: 'Customer Service Associate',
+    title: 'Administrative Assistant',
     employment_type: 'Full-time',
     work_arrangement: 'On-site',
     location: 'Poblacion',
-    salary_min: 15000,
-    salary_max: 18000,
+    salary_min: 18000,
+    salary_max: 22000,
     vacancies: 2,
     deadline: '2026-12-31',
-    created_at: '2026-10-01T00:00:00Z',
+    created_at: '2026-10-18T00:00:00Z',
+    tags: ['Administration', 'Entry level'],
+    description: 'Support the office with Microsoft Office, Communication, and Organization.',
+    requirements: 'Microsoft Office. Communication. Organization.',
     employers: { company_name: 'Northfield Business Solutions', accreditation_status: 'approved' },
   },
   {
@@ -58,6 +61,9 @@ const jobs = [
     vacancies: 1,
     deadline: '2026-12-15',
     created_at: '2026-09-20T00:00:00Z',
+    tags: ['Logistics', 'Entry level'],
+    description: 'Handle inbound stock and inventory records. MS Office and Communication.',
+    requirements: 'Warehouse or logistics experience. Communication.',
     employers: { company_name: 'Lakbay Logistics', accreditation_status: 'approved' },
   },
   {
@@ -71,6 +77,9 @@ const jobs = [
     vacancies: 1,
     deadline: '2026-11-30',
     created_at: '2026-09-10T00:00:00Z',
+    tags: ['Retail', 'Entry level'],
+    description: 'Handle payments and customer inquiries. Customer Service.',
+    requirements: 'Customer Service and Communication.',
     employers: { company_name: 'Alaga Community Pharmacy', accreditation_status: 'approved' },
   },
 ]
@@ -90,7 +99,10 @@ const MOCKS = {
   'seekers/me/education': [],
   'seekers/me/experience': [],
   'files/resumes/mine': [],
-  'notifications/mine': [],
+  'notifications/mine': [
+    { id: 'n1', is_read: false, title: 'You have an interview coming up', type: 'application', created_at: '2026-10-17T00:00:00Z' },
+    { id: 'n2', is_read: false, title: 'Your application is under review', type: 'application', created_at: '2026-10-16T00:00:00Z' },
+  ],
   jobs: { jobs, total: jobs.length, page: 1, pageSize: 10 },
 }
 
@@ -103,6 +115,11 @@ api.patch = async () => ({})
 api.del = async () => ({})
 
 const path = new URLSearchParams(window.location.search).get('page') || '/job-seeker'
+
+// Seed a couple of saved jobs so the dashboard counters/cards match the demo.
+try {
+  window.localStorage.setItem('joblinked.savedJobs', JSON.stringify(['j1', 'j3']))
+} catch { /* ignore */ }
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
