@@ -67,7 +67,7 @@ export default function AcceptInvite() {
         <AuthFrame title="Invite link issue." subtitle="We couldn’t open this invitation.">
           <div className="flex flex-col gap-5">
             <p role="alert" className="text-xs leading-6 text-destructive">{error}</p>
-            <Link to="/portals" className="text-xs font-medium text-primary">Go to sign in</Link>
+            <Link to="/login" className="text-xs font-medium text-primary">Go to sign in</Link>
           </div>
         </AuthFrame>
       </PublicShell>

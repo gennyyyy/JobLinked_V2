@@ -14,7 +14,7 @@ function renderWithRouter(ui, { route = '/' } = {}) {
     <MemoryRouter initialEntries={[route]}>
       <Routes>
         <Route path={route} element={ui} />
-        <Route path="/employer/login" element={<div>Employer Login</div>} />
+        <Route path="/login" element={<div>Sign In</div>} />
       </Routes>
     </MemoryRouter>
   )
@@ -33,7 +33,7 @@ describe('ProtectedRoute', () => {
       <ProtectedRoute role="employer"><div>Secret</div></ProtectedRoute>,
       { route: '/employer' }
     )
-    expect(await screen.findByText('Employer Login')).toBeInTheDocument()
+    expect(await screen.findByText('Sign In')).toBeInTheDocument()
     expect(screen.queryByText('Secret')).not.toBeInTheDocument()
   })
 
@@ -43,7 +43,7 @@ describe('ProtectedRoute', () => {
       <ProtectedRoute role="employer"><div>Secret</div></ProtectedRoute>,
       { route: '/employer' }
     )
-    expect(await screen.findByText('Employer Login')).toBeInTheDocument()
+    expect(await screen.findByText('Sign In')).toBeInTheDocument()
     expect(screen.queryByText('Secret')).not.toBeInTheDocument()
   })
 

@@ -8,7 +8,7 @@ import textBasedLogo from "../../assets/wordmark-400.png";
 const howItWorksItems = [
   { label: "Jobseeker", to: "/register/job-seeker" },
   { label: "Employer", to: "/register/employer" },
-  { label: "FAQ", to: "/portals" },
+  { label: "FAQ", to: "/#faq" },
 ];
 
 function PublicHeader() {
@@ -80,7 +80,7 @@ function PublicHeader() {
             )}
           </div>
           <Link
-            to="/portals"
+            to="/login"
             className="min-h-[40px] inline-flex items-center px-5 rounded-lg bg-primary text-white text-sm font-semibold hover:bg-primary-hover transition-colors shadow-sm"
           >
             LOG IN

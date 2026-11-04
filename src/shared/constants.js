@@ -189,10 +189,12 @@ export const NOTIFICATION_TYPES = {
   SYSTEM: 'system',
 };
 
+// Single sign-in entry for every role: the portal is resolved from the account,
+// so there is no portal chooser and no per-portal login page.
 export const PORTALS = [
-  { key: ROLES.SUPER_ADMIN, name: 'PESO Super Admin', path: '/super-admin/login', homePath: '/super-admin' },
-  { key: ROLES.EMPLOYER, name: 'Employer Portal', path: '/employer/login', homePath: '/employer' },
-  { key: ROLES.JOB_SEEKER, name: 'Job Seeker Portal', path: '/job-seeker/login', homePath: '/job-seeker' },
+  { key: ROLES.SUPER_ADMIN, name: 'PESO Super Admin', homePath: '/super-admin' },
+  { key: ROLES.EMPLOYER, name: 'Employer Portal', homePath: '/employer' },
+  { key: ROLES.JOB_SEEKER, name: 'Job Seeker Portal', homePath: '/job-seeker' },
 ];
 
 

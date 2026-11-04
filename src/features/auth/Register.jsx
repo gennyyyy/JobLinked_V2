@@ -72,7 +72,7 @@ export default function Register() {
             </div>
             <p className="mt-7 text-center text-xs text-muted-foreground">
               Already have an account?{' '}
-              <Link to="/portals" className="font-medium text-primary">Log in</Link>
+              <Link to="/login" className="font-medium text-primary">Log in</Link>
             </p>
           </div>
         </div>

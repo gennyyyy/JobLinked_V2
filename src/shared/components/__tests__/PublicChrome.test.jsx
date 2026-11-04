@@ -15,7 +15,7 @@ describe('PublicHeader', () => {
 
     const login = screen.getByRole('link', { name: /log in/i })
     const signup = screen.getByRole('link', { name: /sign up/i })
-    expect(login).toHaveAttribute('href', '/portals')
+    expect(login).toHaveAttribute('href', '/login')
     expect(signup).toHaveAttribute('href', '/register')
   })
 
@@ -35,7 +35,7 @@ describe('PublicHeader', () => {
     for (const [name, href] of [
       ['Jobseeker', '/register/job-seeker'],
       ['Employer', '/register/employer'],
-      ['FAQ', '/portals'],
+      ['FAQ', '/#faq'],
     ]) {
       expect(screen.getByRole('link', { name })).toHaveAttribute('href', href)
     }

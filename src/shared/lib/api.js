@@ -25,10 +25,15 @@ function withQuery(path, params = {}) {
   return s ? `${path}?${s}` : path;
 }
 
-function throwStatus(res, message) {
+function throwStatus(res, message, apiError) {
   const error = new Error(message || res.statusText || 'Request failed');
   error.status = res.status;
+  if (apiError) error.error = apiError;
   throw error;
+}
+
+export function isUnprovisioned(err) {
+  return err?.error?.code === 'FORBIDDEN' && /provisioned/i.test(err?.error?.message);
 }
 
 function unreachable(url) {
@@ -57,11 +62,11 @@ async function settleAuth(res, sent, url, retry) {
     if (res.status === 401) await bounce(res);
   }
   if (!res.ok) {
-    let message;
+    let apiError;
     try {
-      message = (await res.json())?.error?.message;
+      apiError = (await res.json())?.error;
     } catch { /* non-JSON error body */ }
-    throwStatus(res, message);
+    throwStatus(res, apiError?.message, apiError);
   }
   return res;
 }
@@ -80,7 +85,7 @@ async function bounce(res) {
   try {
     await supabase.auth.signOut();
   } catch { /* best-effort cleanup before bounce */ }
-  window.location.href = '/portals';
+  window.location.href = '/login';
   throwStatus(res, message);
 }
 

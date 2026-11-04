@@ -80,7 +80,7 @@ export function PublicShell({ children }) {
             </div>
             {[
               { title: 'For job seekers', items: [['Browse jobs', '/jobs'], ['Create an account', '/register/job-seeker'], ['Application tracking', '/job-seeker/applications'], ['Career resources', '/#peso-services']] },
-              { title: 'For employers', items: [['Post a job', '/register/employer'], ['Employer registration', '/register'], ['Accreditation process', '/#how-it-works'], ['Employer portal', '/portals']] },
+              { title: 'For employers', items: [['Post a job', '/register/employer'], ['Employer registration', '/register'], ['Accreditation process', '/#how-it-works'], ['Employer portal', '/login']] },
               { title: 'JobLinked', items: [['About the platform', '/#about'], ['PESO services', '/#peso-services'], ['Frequently asked questions', '/#faq']] },
             ].map(group => (
               <div key={group.title}>

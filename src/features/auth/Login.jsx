@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Link, Navigate, useNavigate } from 'react-router-dom'
 import { ArrowRight, Eye, EyeOff, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -11,33 +11,23 @@ import LoadingScreen from '@/shared/components/LoadingScreen'
 import PublicShell from '@/shared/components/PublicShell'
 import AuthFrame from './AuthFrame'
 
-function Login({ portalKey }) {
-  const portal = portalKey ? PORTALS.find((p) => p.key === portalKey) : null
+// One sign-in form for every account. The role comes from the profile the API
+// returns, so there is no portal to pick and no per-portal login route: a
+// signed-in visitor is forwarded straight to their own workspace.
+function Login() {
   const navigate = useNavigate()
-  const { user, role: currentRole, loading, logout, authenticate } = useAuth()
+  const { user, role, loading, authenticate } = useAuth()
   const [error, setError] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [show, setShow] = useState(false)
   const [busy, setBusy] = useState(false)
-  const [resetDone, setResetDone] = useState(false)
 
-  // ADR-021 rule 2: session with a different role — destroy it, show this portal's login form.
-  useEffect(() => {
-    if (!portalKey) return
-    if (!loading && user && portal && currentRole !== portalKey && !resetDone) {
-      Promise.resolve(typeof logout === 'function' ? logout() : null).then(() => setResetDone(true), () => setResetDone(true))
-    }
-  }, [loading, user, portal, currentRole, portalKey, resetDone, logout])
+  const signedInRole = role || user?.role
+  const homePath = PORTALS.find((p) => p.key === signedInRole)?.homePath
 
-  if (portalKey && !portal) return <Navigate to="/" replace />
   if (loading) return <LoadingScreen />
-  if (portal && user && currentRole === portalKey) return <Navigate to={portal.homePath} replace />
-  if (!portalKey && user) {
-    const home = PORTALS.find((p) => p.key === currentRole)?.homePath
-    if (home) return <Navigate to={home} replace />
-  }
-  if (user && !resetDone) return <LoadingScreen />
+  if (user && homePath) return <Navigate to={homePath} replace />
 
   async function handleSubmit(event) {
     event.preventDefault()
@@ -58,13 +48,9 @@ function Login({ portalKey }) {
     }
   }
 
-  const subtitle = portal
-    ? `Sign in to the ${portal.name} to continue.`
-    : 'A new opportunity could be waiting for you.'
-
   return (
     <PublicShell>
-      <AuthFrame title="Welcome back." subtitle={subtitle}>
+      <AuthFrame title="Welcome back." subtitle="A new opportunity could be waiting for you.">
         <form onSubmit={handleSubmit} className="flex flex-col gap-5">
           <FieldGroup>
             <Field>
@@ -112,12 +98,10 @@ function Login({ portalKey }) {
         </form>
         <div className="mt-6 flex items-center justify-between text-xs text-muted-foreground">
           <Link to="/forgot-password" className="inline-flex min-h-11 items-center font-medium text-primary">Forgot password?</Link>
-          {(!portal || portal.key !== 'super-admin') && (
-            <Link to={portal ? `/register/${portal.key}` : '/signup'} className="inline-flex min-h-11 items-center font-medium text-primary">Register here</Link>
-          )}
+          <Link to="/signup" className="inline-flex min-h-11 items-center font-medium text-primary">Register here</Link>
         </div>
         <p className="mt-6 text-center text-xs text-muted-foreground">
-          <Link to={portal ? '/portals' : '/'} className="font-medium text-primary">{portal ? '← Back to portals' : '← Back to home'}</Link>
+          <Link to="/" className="font-medium text-primary">← Back to home</Link>
         </p>
       </AuthFrame>
     </PublicShell>

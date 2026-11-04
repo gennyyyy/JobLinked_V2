@@ -51,13 +51,13 @@ describe('401 handling', () => {
     expect(globalThis.fetch.mock.calls[1][1].headers.Authorization).toBe('Bearer fresh')
   })
 
-  it('bounces to /portals when the retry still 401s (no further retries)', async () => {
+  it('bounces to /login when the retry still 401s (no further retries)', async () => {
     globalThis.fetch = vi.fn().mockResolvedValue(err401())
     await expect(api.get('auth/me')).rejects.toMatchObject({ status: 401 })
     expect(globalThis.fetch).toHaveBeenCalledTimes(2)
     expect(supabase.auth.refreshSession).toHaveBeenCalledTimes(1)
     expect(supabase.auth.signOut).toHaveBeenCalledTimes(1)
-    expect(window.location.href).toBe('/portals')
+    expect(window.location.href).toBe('/login')
   })
 
   it('bounces when refresh itself throws', async () => {
@@ -65,7 +65,7 @@ describe('401 handling', () => {
     globalThis.fetch = vi.fn().mockResolvedValue(err401())
     await expect(api.get('auth/me')).rejects.toMatchObject({ status: 401 })
     expect(globalThis.fetch).toHaveBeenCalledTimes(1)
-    expect(window.location.href).toBe('/portals')
+    expect(window.location.href).toBe('/login')
   })
 
   it('never bounces public (tokenless) calls on 401', async () => {

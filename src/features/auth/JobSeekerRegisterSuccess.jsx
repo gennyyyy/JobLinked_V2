@@ -16,7 +16,7 @@ export default function JobSeekerRegisterSuccess({ needsConfirmation, submittedE
               ? `We sent a verification link to ${submittedEmail || 'your email'}. Open it to activate your account, then sign in to the portal.`
               : 'Your JobLinked applicant account has been created. You can now log in and apply to verified Santa Maria postings.'}
           </Notice>
-          <LinkButton href="/job-seeker/login">Sign In to Portal →</LinkButton>
+          <LinkButton href="/login">Sign In to Portal →</LinkButton>
         </div>
       </AuthFrame>
     </PublicShell>

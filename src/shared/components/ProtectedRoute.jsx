@@ -7,8 +7,8 @@ function ProtectedRoute({ role, children }) {
   const { user, role: currentRole, loading, logout } = useAuth();
   const [resetDone, setResetDone] = useState(false);
 
-  // ADR-021 rule 3: wrong role — destroy the foreign session, then redirect
-  // to the attempted portal's login (renders as guest per rule 2).
+  // Wrong role — destroy the foreign session, then send the visitor to the one
+  // shared sign-in page (there are no per-portal login routes any more).
   useEffect(() => {
     if (!loading && user && currentRole !== role && !resetDone) {
       Promise.resolve(typeof logout === 'function' ? logout() : null).then(() => setResetDone(true), () => setResetDone(true));
@@ -16,10 +16,10 @@ function ProtectedRoute({ role, children }) {
   }, [loading, user, currentRole, role, resetDone, logout]);
 
   if (loading) return <LoadingScreen />;
-  if (!user) return <Navigate to={`/${role}/login`} replace />;
+  if (!user) return <Navigate to="/login" replace />;
   if (currentRole !== role) {
     if (!resetDone) return <LoadingScreen />;
-    return <Navigate to={`/${role}/login`} replace />;
+    return <Navigate to="/login" replace />;
   }
 
   return children;

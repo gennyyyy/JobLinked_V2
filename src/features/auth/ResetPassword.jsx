@@ -30,7 +30,7 @@ export default function ResetPassword() {
     try {
       const { error: updateError } = await supabase.auth.updateUser({ password })
       if (updateError) throw updateError
-      navigate('/portals')
+      navigate('/login')
     } catch (err) {
       setError(err.message || 'Could not reset password. The link may have expired.')
     } finally {
@@ -82,7 +82,7 @@ export default function ResetPassword() {
           </Button>
         </form>
         <p className="mt-6 text-center text-xs">
-          <Link to="/portals" className="text-primary">← Back to Portals</Link>
+          <Link to="/login" className="text-primary">← Back to sign in</Link>
         </p>
       </AuthFrame>
     </PublicShell>

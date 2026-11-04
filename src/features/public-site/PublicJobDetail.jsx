@@ -144,7 +144,7 @@ export default function PublicJobDetail() {
                 <div className="rounded-xl bg-muted p-4">
                   <p className="text-xs font-medium text-navy">Interested in this position?</p>
                   <p className="mt-1 text-[11px] leading-5 text-muted-foreground">Apply online through your PESO Job Seeker account.</p>
-                  <LinkButton href="/job-seeker/login" className="mt-4 w-full">Log in to Apply</LinkButton>
+                  <LinkButton href="/login" className="mt-4 w-full">Log in to Apply</LinkButton>
                 </div>
               </CardContent>
             </Card>

@@ -17,7 +17,7 @@ export default function EmployerRegisterSuccess({ needsConfirmation }) {
               ? "We sent a verification link to your company email. Confirm it, then sign in — you'll finish setting up your company profile on first login."
               : 'Your business accreditation application is now being reviewed by the Santa Maria PESO staff.'}
           </Notice>
-          <LinkButton href="/employer/login">Go to Login →</LinkButton>
+          <LinkButton href="/login">Go to Login →</LinkButton>
           <p className="text-center text-xs text-muted-foreground">
             <Link to="/" className="text-primary">Return to home</Link>
           </p>

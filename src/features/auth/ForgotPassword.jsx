@@ -66,7 +66,7 @@ export default function ForgotPassword() {
           </Button>
         </form>
         <p className="mt-6 text-center text-xs">
-          <Link to="/portals" className="text-primary">← Back to Portals</Link>
+          <Link to="/login" className="text-primary">← Back to sign in</Link>
         </p>
       </AuthFrame>
     </PublicShell>

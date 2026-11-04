@@ -174,7 +174,7 @@ function JobSeekerRegister() {
 
           <p className="mt-8 text-center text-xs text-muted-foreground">
             Already registered?{" "}
-            <Link to="/job-seeker/login" className="text-primary hover:underline underline-offset-4 font-medium">
+            <Link to="/login" className="text-primary hover:underline underline-offset-4 font-medium">
               Log in here
             </Link>
           </p>

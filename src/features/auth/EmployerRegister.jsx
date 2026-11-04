@@ -155,7 +155,7 @@ function EmployerRegister() {
 
           <p className="mt-8 text-center text-xs text-muted-foreground">
             Already verified?{" "}
-            <Link to="/employer/login" className="text-primary hover:underline underline-offset-4 font-medium">
+            <Link to="/login" className="text-primary hover:underline underline-offset-4 font-medium">
               Log in here
             </Link>
           </p>

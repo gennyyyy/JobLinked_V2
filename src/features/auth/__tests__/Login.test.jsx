@@ -18,7 +18,7 @@ import { signIn } from '../../../shared/services/auth'
 function renderLogin() {
   return render(
     <MemoryRouter>
-      <Login portalKey="employer" />
+      <Login />
     </MemoryRouter>
   )
 }
