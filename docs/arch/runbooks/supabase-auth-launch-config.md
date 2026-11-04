@@ -60,4 +60,5 @@ Watch Dashboard → **Logs → Auth** for `429` / `email rate limit` entries dur
 
 - Our API's auth limiter now keys authenticated requests by **user id** (`23c2c18`), so 150 simultaneous provisions no longer collapse into one IP bucket. Anonymous login/signup keep the IP-keyed 100/15 min brute-force guard.
 - `TRUST_PROXY` stays `0` by default (fail-safe). **If the API runs behind nginx/Caddy/Vercel, set `TRUST_PROXY` to the hop count (usually `1`)** in `server/.env` — otherwise every request appears to come from the proxy IP and IP-keyed limits apply site-wide. `server/src/app.js` now logs a boot warning when production runs with `TRUST_PROXY=0`.
-- Matching-seeker notifications gained a duplicate guard (`4051a13`) — a re-published job no longer notifies the same seeker twice. Fan-out *volume* (1,811 rows per 100 posts) remains per-match; a digest/queue needs a product decision.
+- Matching-seeker notifications gained a duplicate guard (`4051a13`) — a re-published job no longer notifies the same seeker twice — plus a defensive **25-per-day cap per seeker** (`2e98f60`). Fan-out *volume* itself (1,811 rows per 100 posts) remains per-match; a digest/queue needs a product decision.
+- The API now survives PostgreSQL connection drops: the `pg` pool has an `'error'` listener, so an admin DB restart no longer exits the Node process (`2e98f60`).
