@@ -24,7 +24,7 @@ export default function JobCard({ job, href, showMatch = false, match, saved = f
           <CompanyMark initials={companyInitial(job)} />
           <div className="min-w-0 flex-1 pt-0.5">
             <p className="truncate text-[11px] font-medium text-muted-foreground">{companyName(job)}</p>
-            <span className="mt-1 flex items-center gap-1 text-[10px] text-teal"><Check className="size-3" />Verified employer · demo</span>
+            <span className="mt-1 flex items-center gap-1 text-[10px] text-teal"><Check className="size-3" />Verified employer</span>
           </div>
           {canSave && (
             <button

@@ -12,7 +12,7 @@ export default function PreferenceMatching({ prompt, onSubmit }) {
   return (
     <section className="mb-6 flex flex-col gap-3 rounded-xl border bg-background p-4 sm:flex-row sm:items-center sm:justify-between" aria-label="Job matching mode">
       <div className="min-w-0">
-        <p className="text-sm font-semibold">{prompt ? 'Preference matching · demo' : 'Standard matching · no AI'}</p>
+        <p className="text-sm font-semibold">{prompt ? 'Preference matching' : 'Standard matching · no AI'}</p>
         <p className="mt-1 text-xs text-muted-foreground">
           {prompt ? `Your request: ${prompt}` : 'Normal search and ranking are active. The assistant is optional.'}
         </p>
@@ -23,7 +23,7 @@ export default function PreferenceMatching({ prompt, onSubmit }) {
         )}
         <Button variant="outline" onClick={() => setOpen(true)}>
           <MessageCircle data-icon="inline-start" />
-          AI job matching (demo)
+          AI job matching
         </Button>
       </div>
       <Dialog open={open} onOpenChange={setOpen}>
@@ -31,7 +31,7 @@ export default function PreferenceMatching({ prompt, onSubmit }) {
           <DialogHeader>
             <DialogTitle>Describe your ideal job</DialogTitle>
             <DialogDescription>
-              Opening this chat does not change your matches. Send your preferences to start the demo matching experience. No actual AI service is connected.
+              Opening this chat does not change your matches. Send your preferences to start the matching experience. No actual AI service is connected.
             </DialogDescription>
           </DialogHeader>
           <p className="rounded-lg bg-muted p-4 text-sm">
@@ -39,7 +39,7 @@ export default function PreferenceMatching({ prompt, onSubmit }) {
           </p>
           {prompt && (
             <p role="status" className="text-sm text-muted-foreground">
-              Demo assistant: Your request is applied to the jobs on this page using keyword overlap. You can refine it below or return to standard matching.
+              Assistant: Your request is applied to the jobs on this page using keyword overlap. You can refine it below or return to standard matching.
             </p>
           )}
           <form
