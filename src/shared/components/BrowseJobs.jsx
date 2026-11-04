@@ -77,7 +77,12 @@ function BrowseJobs({ jobHref, initialKeyword = "", initialLocation = "", initia
           pageSize: PAGE_SIZE,
           order: "created_at.desc",
         });
-        if (!cancelled) { setJobs(result.jobs); setTotal(result.total); }
+        // Trust boundary: a malformed/legacy payload must not white-screen the
+        // job list — fall back to an empty page instead of undefined state.
+        if (!cancelled) {
+          setJobs(Array.isArray(result?.jobs) ? result.jobs : []);
+          setTotal(Number(result?.total) || 0);
+        }
       } catch (err) {
         if (!cancelled) setError(err.message || "Failed to load jobs");
       } finally {

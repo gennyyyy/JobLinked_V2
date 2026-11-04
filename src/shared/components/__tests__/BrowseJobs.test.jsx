@@ -84,6 +84,15 @@ describe('BrowseJobs', () => {
     await waitFor(() => expect(listJobs).toHaveBeenLastCalledWith(expect.objectContaining({ skills: 'Welding, Cooking, Driving', page: 1 })))
   })
 
+  it('renders an empty list instead of crashing on a malformed payload', async () => {
+    listJobs.mockResolvedValue({})
+
+    renderBrowseJobs()
+
+    expect(await screen.findByText('Displaying 0 out of 0 jobs:')).toBeInTheDocument()
+    expect(screen.getByText(/no jobs match your search/i)).toBeInTheDocument()
+  })
+
   it('re-fetches from the search bar and offers a filter reset when nothing matches', async () => {
     listJobs.mockResolvedValue({ jobs: [], total: 0 })
 
