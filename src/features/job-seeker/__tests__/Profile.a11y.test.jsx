@@ -13,21 +13,12 @@ vi.mock('../../../shared/services/documents', () => ({
   validateFile: vi.fn(() => null),
   signedUrl: vi.fn(),
 }))
-vi.mock('../../../shared/services/seekers', () => ({
-  listEducation: vi.fn(),
-  addEducation: vi.fn(),
-  removeEducation: vi.fn(),
-  listExperience: vi.fn(),
-  addExperience: vi.fn(),
-  removeExperience: vi.fn(),
-  listEmployment: vi.fn(),
-}))
 
 import useAuth from '../../../shared/hooks/useAuth'
-import { listEducation, listExperience, listEmployment } from '../../../shared/services/seekers'
 import { listResumes, signedUrl } from '../../../shared/services/documents'
 
-async function openEditForm() {
+async function openProfile() {
+  render(<Profile />)
   return screen.findByRole('button', { name: /save my profile/i })
 }
 
@@ -35,73 +26,38 @@ describe('Profile accessibility', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     useAuth.mockReturnValue({
-      user: {
-        id: 'u1',
-        email: 'a@b.ph',
-        first_name: 'Juana',
-        last_name: 'Santos',
-        city_municipality: 'Santa Maria',
-        province_state: 'Bulacan',
-        postal_code: '3022',
-      },
+      user: { id: 'u1', email: 'a@b.ph', first_name: 'Juana', last_name: 'Santos' },
       refreshUser: vi.fn(),
     })
-    listEducation.mockResolvedValue([])
-    listExperience.mockResolvedValue([])
-    listEmployment.mockResolvedValue([])
     listResumes.mockResolvedValue([])
   })
 
-  it('pairs every edit-form label with its control', async () => {
-    render(<Profile />)
-    await openEditForm()
+  it('pairs every form label with its control', async () => {
+    await openProfile()
 
     for (const name of [
-      'First Name', /Middle Name/, 'Last Name', /Suffix/, 'Contact number', 'Date of Birth',
-      'Block', 'Lot', 'Street or local address', /Subdivision/, /City \/ Municipality/,
-      /Province \/ State/, 'Postal Code', 'Barangay / District', 'Employment Status',
-      /Your skills/, /Preferred Jobs/, /Preferred Locations/, 'Start Date', /End Date/,
+      /full name/i, /contact number/i, /professional headline/i, 'Barangay',
+      /street or local address/i, 'Education or training', 'Work experience', 'Your skills',
+      'Choose a resume', 'Profile picture',
     ]) {
       expect(screen.getByLabelText(name)).toBeInTheDocument()
     }
   })
 
-  it('names the placeholder-only experience and education inputs', async () => {
-    render(<Profile />)
-    await openEditForm()
-
-    for (const name of [/company name/i, /job title/i, /description of responsibilities/i]) {
-      expect(screen.getByLabelText(name)).toBeInTheDocument()
-    }
-    for (const name of [/education level/i, /school name/i, /course \/ field of study/i, /graduation year/i]) {
-      expect(screen.getByLabelText(name)).toBeInTheDocument()
-    }
+  it('shows no validation message until the form is submitted', async () => {
+    await openProfile()
+    expect(screen.queryByText('Enter your full name.')).toBeNull()
+    expect(screen.queryByText(/couldn't read this format/i)).toBeNull()
   })
 
-  it('renders the avatar initials with a compliant token', async () => {
-    const { container } = render(<Profile />)
-    await screen.findByRole('button', { name: /save my profile/i })
-    const avatar = container.querySelector('.text-dark-blue')
-    expect(avatar).toBeInTheDocument()
-    expect(avatar.className).not.toContain('text-gray-400')
-    expect(avatar).toHaveTextContent('JS')
+  it('keeps the save hint in a status region', async () => {
+    await openProfile()
+    expect(screen.getAllByRole('status').some((node) => node.textContent === 'Changes are saved to your JobLinked account.')).toBe(true)
   })
 
-  it('shows no alert and no status region until something actually fails or loads', async () => {
-    render(<Profile />)
-    await openEditForm()
-    expect(screen.queryByRole('alert')).toBeNull()
-    expect(screen.queryByRole('status')).toBeNull()
-  })
-
-  it('exposes profile completion as a labelled progressbar with ARIA values', async () => {
-    render(<Profile />)
-    await screen.findByRole('button', { name: /save my profile/i })
-    const bar = screen.getByRole('progressbar', { name: /profile completion/i })
-    expect(bar).toHaveAttribute('aria-valuenow', '17')
-    expect(bar).toHaveAttribute('aria-valuemin', '0')
-    expect(bar).toHaveAttribute('aria-valuemax', '100')
-    expect(bar).toHaveAttribute('aria-valuetext', '17% complete')
+  it('reports profile completion as text', async () => {
+    await openProfile()
+    expect(screen.getByText(/13% complete/i)).toBeInTheDocument()
   })
 
   it('announces that the resume "View" link opens in a new tab', async () => {
@@ -109,10 +65,8 @@ describe('Profile accessibility', () => {
       { id: 'r1', file_path: 'u1/resume.pdf', file_name: 'resume.pdf', is_active: true, uploaded_at: '2026-01-01T00:00:00.000Z' },
     ])
     signedUrl.mockResolvedValue('blob:test')
-    render(<Profile />)
-    await screen.findByRole('button', { name: /save my profile/i })
+    await openProfile()
     const notice = await screen.findByText(/opens in new tab/i)
-    const link = notice.closest('a')
-    expect(link).toHaveAttribute('target', '_blank')
+    expect(notice.closest('a')).toHaveAttribute('target', '_blank')
   })
 })

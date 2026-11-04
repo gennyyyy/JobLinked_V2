@@ -13,73 +13,85 @@ vi.mock('../../../shared/services/documents', () => ({
   validateFile: vi.fn(() => null),
   signedUrl: vi.fn(),
 }))
-vi.mock('../../../shared/services/seekers', () => ({
-  listEducation: vi.fn(),
-  addEducation: vi.fn(),
-  removeEducation: vi.fn(),
-  listExperience: vi.fn(),
-  addExperience: vi.fn(),
-  removeExperience: vi.fn(),
-  listEmployment: vi.fn(),
-}))
 
 import useAuth from '../../../shared/hooks/useAuth'
 import { updateProfile } from '../../../shared/services/auth'
 import { listResumes } from '../../../shared/services/documents'
-import { listEducation, listExperience, listEmployment } from '../../../shared/services/seekers'
 
-const CITY = 'e.g. Santa Maria'
-const PROVINCE = 'e.g. Bulacan'
-const POSTAL = 'e.g. 3022'
+const STORED = {
+  id: 'u1',
+  email: 'juana@example.com',
+  full_name: 'Juana Santos',
+  phone: '09171234567',
+  headline: 'Cashier',
+  barangay_district: 'Poblacion',
+  street_address: '12 Mabini Street',
+  education_summary: 'College — PUP Santa Maria',
+  experience_summary: 'Cashier, 2 years',
+  skills: ['Data Entry'],
+}
 
 async function openProfile() {
   render(<Profile />)
   await screen.findByRole('button', { name: /save my profile/i })
 }
 
-describe('Profile address fields', () => {
+describe('Profile fields and save', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    listEducation.mockResolvedValue([])
-    listExperience.mockResolvedValue([])
-    listEmployment.mockResolvedValue([])
     listResumes.mockResolvedValue([])
     updateProfile.mockResolvedValue({})
-    useAuth.mockReturnValue({
-      user: {
-        id: 'u1',
-        email: 'a@b.ph',
-        first_name: '',
-        last_name: '',
-        city_municipality: 'Santa Maria',
-        province_state: 'Bulacan',
-        postal_code: '3022',
-      },
-      refreshUser: vi.fn(),
-    })
+    useAuth.mockReturnValue({ user: STORED, refreshUser: vi.fn() })
   })
 
-  it('loads the stored city, province, and postal code', async () => {
+  it('loads the stored profile into the form', async () => {
     await openProfile()
 
-    expect(screen.getByPlaceholderText(CITY)).toHaveValue('Santa Maria')
-    expect(screen.getByPlaceholderText(PROVINCE)).toHaveValue('Bulacan')
-    expect(screen.getByPlaceholderText(POSTAL)).toHaveValue('3022')
+    expect(screen.getByLabelText(/full name/i)).toHaveValue('Juana Santos')
+    expect(screen.getByLabelText(/contact number/i)).toHaveValue('09171234567')
+    expect(screen.getByLabelText(/professional headline/i)).toHaveValue('Cashier')
+    expect(screen.getByLabelText('Barangay')).toHaveValue('Poblacion')
+    expect(screen.getByLabelText(/street or local address/i)).toHaveValue('12 Mabini Street')
+    expect(screen.getByText('College — PUP Santa Maria')).toBeInTheDocument()
+    expect(screen.getAllByText('Cashier').length).toBeGreaterThan(0)
+    expect(screen.getByText('2 years')).toBeInTheDocument()
+    expect(screen.getAllByText('Data Entry').length).toBeGreaterThan(0)
   })
 
-  it('saves the typed city, province, and postal code', async () => {
+  it('saves the edited details', async () => {
     await openProfile()
 
-    fireEvent.change(screen.getByPlaceholderText(CITY), { target: { value: 'Angat' } })
-    fireEvent.change(screen.getByPlaceholderText(PROVINCE), { target: { value: 'Bulacan' } })
-    fireEvent.change(screen.getByPlaceholderText(POSTAL), { target: { value: '3012' } })
+    fireEvent.change(screen.getByLabelText(/full name/i), { target: { value: 'Juana S. Santos' } })
+    fireEvent.change(screen.getByLabelText(/professional headline/i), { target: { value: 'Head cashier' } })
+    fireEvent.change(screen.getByLabelText('Barangay'), { target: { value: 'Bagbaguin' } })
+    fireEvent.change(screen.getByLabelText(/street or local address/i), { target: { value: '48 Rizal Street' } })
+    fireEvent.change(screen.getByLabelText('Your skills'), { target: { value: 'Customer Service' } })
+    fireEvent.keyDown(screen.getByLabelText('Your skills'), { key: 'Enter' })
     fireEvent.click(screen.getByRole('button', { name: /save my profile/i }))
 
     await waitFor(() => expect(updateProfile).toHaveBeenCalled())
     expect(updateProfile).toHaveBeenCalledWith('u1', expect.objectContaining({
-      city_municipality: 'Angat',
-      province_state: 'Bulacan',
-      postal_code: '3012',
+      full_name: 'Juana S. Santos',
+      phone: '09171234567',
+      headline: 'Head cashier',
+      barangay_district: 'Bagbaguin',
+      street_address: '48 Rizal Street',
+      education_summary: 'College — PUP Santa Maria',
+      experience_summary: 'Cashier, 2 years',
+      skills: ['Data Entry', 'Customer Service'],
     }))
+  })
+
+  it('blocks the save and explains what is missing', async () => {
+    useAuth.mockReturnValue({ user: { id: 'u1', email: 'a@b.ph' }, refreshUser: vi.fn() })
+    await openProfile()
+
+    fireEvent.click(screen.getByRole('button', { name: /save my profile/i }))
+
+    expect(await screen.findByText('Enter your full name.')).toBeInTheDocument()
+    expect(screen.getByText('Add a short professional headline.')).toBeInTheDocument()
+    expect(screen.getByText('Choose your barangay.')).toBeInTheDocument()
+    expect(screen.getByText('Add at least one skill, separated by commas.')).toBeInTheDocument()
+    expect(updateProfile).not.toHaveBeenCalled()
   })
 })

@@ -10,7 +10,8 @@ const router = Router();
 
 const SEEKER_ALLOW = ['first_name', 'middle_name', 'last_name', 'suffix', 'full_name', 'phone',
   'lot', 'block', 'house_number_unit', 'street_address', 'subdivision_building', 'barangay_district',
-  'city_municipality', 'province_state', 'postal_code', 'country', 'birthdate',
+  'city_municipality', 'province_state', 'postal_code', 'country', 'birthdate', 'headline',
+  'education_summary', 'experience_summary',
   'skills', 'employment_status', 'preferred_position', 'preferred_location'];
 const EMPLOYER_ALLOW = ['first_name', 'middle_name', 'last_name', 'suffix', 'full_name', 'phone',
   'company_name', 'company_email', 'industry', 'house_number_unit', 'street_address',

@@ -13,19 +13,9 @@ vi.mock('../../../shared/services/documents', () => ({
   validateFile: vi.fn(() => null),
   signedUrl: vi.fn(),
 }))
-vi.mock('../../../shared/services/seekers', () => ({
-  listEducation: vi.fn(),
-  addEducation: vi.fn(),
-  removeEducation: vi.fn(),
-  listExperience: vi.fn(),
-  addExperience: vi.fn(),
-  removeExperience: vi.fn(),
-  listEmployment: vi.fn(),
-}))
 
 import useAuth from '../../../shared/hooks/useAuth'
 import { listResumes } from '../../../shared/services/documents'
-import { listEducation, listExperience, listEmployment } from '../../../shared/services/seekers'
 
 async function openProfile() {
   render(<Profile />)
@@ -35,9 +25,6 @@ async function openProfile() {
 describe('Profile barangay field', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    listEducation.mockResolvedValue([])
-    listExperience.mockResolvedValue([])
-    listEmployment.mockResolvedValue([])
     listResumes.mockResolvedValue([])
   })
 
@@ -52,14 +39,14 @@ describe('Profile barangay field', () => {
     storedBarangay('Poblacion')
     await openProfile()
 
-    expect(screen.getByLabelText('Barangay / District')).toHaveValue('Poblacion')
+    expect(screen.getByLabelText('Barangay')).toHaveValue('Poblacion')
   })
 
   it('keeps a legacy stored barangay that is not in the official list', async () => {
     storedBarangay('Sto. Rosario')
     await openProfile()
 
-    expect(screen.getByLabelText('Barangay / District')).toHaveValue('Sto. Rosario')
+    expect(screen.getByLabelText('Barangay')).toHaveValue('Sto. Rosario')
     expect(screen.getByRole('option', { name: 'Sto. Rosario' })).toBeInTheDocument()
   })
 })

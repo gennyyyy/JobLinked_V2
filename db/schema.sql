@@ -43,6 +43,9 @@ create table if not exists public.job_seekers (
   postal_code          text,
   country              text        not null default 'Philippines',
   birthdate            date,
+  headline             text,
+  education_summary    text,
+  experience_summary   text,
   skills               text[]      not null default '{}',
   employment_status    text,
   preferred_position   text,
@@ -56,6 +59,9 @@ create table if not exists public.job_seekers (
 
 alter table public.job_seekers add column if not exists lot text;
 alter table public.job_seekers add column if not exists block text;
+alter table public.job_seekers add column if not exists headline text;
+alter table public.job_seekers add column if not exists education_summary text;
+alter table public.job_seekers add column if not exists experience_summary text;
 
 create table if not exists public.employers (
   id                     uuid        primary key,
