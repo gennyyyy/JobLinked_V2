@@ -54,6 +54,11 @@ export function createApp() {
     : process.env.NODE_ENV === 'production'
       ? ['http://localhost:5173']
       : [devOrigin];
+  // Boot-time, not per request: a silent localhost-only lock-out makes every
+  // app fetch fail with no ACAO while the pages still render chrome.
+  if (!corsOrigins?.length && process.env.NODE_ENV === 'production') {
+    logger.warn('CORS_ORIGIN unset in production — failing closed to localhost only');
+  }
   // L2: cache the preflight for a day so browsers stop re-OPTIONSing.
   app.use(cors({ origin: allowOrigin, maxAge: 86400 }));
   // L3: before the limiters so even 429 answers carry the correlation id.

@@ -214,11 +214,38 @@ describe('entrypoint hardening (server/src/index.js)', () => {
     expect(other.acao).toBeNull();
   });
 
-  it('cors still honours the comma-separated list when CORS_ORIGIN is set', async () => {
-    const listed = await boot('http://a.test,http://b.test');
-    const ok = await call(`${listed}/api/health`, { headers: { Origin: 'http://b.test' } });
-    expect(ok.acao).toBe('http://b.test');
-    const no = await call(`${listed}/api/health`, { headers: { Origin: 'http://localhost:5173' } });
-    expect(no.acao).toBeNull();
+  it('honours every entry of the comma-separated CORS_ORIGIN list', async () => {
+    const listed = await boot('http://localhost:5173,http://localhost:4173');
+    const dev = await call(`${listed}/api/health`, { headers: { Origin: 'http://localhost:5173' } });
+    expect(dev.acao).toBe('http://localhost:5173');
+    const preview = await call(`${listed}/api/health`, { headers: { Origin: 'http://localhost:4173' } });
+    expect(preview.acao).toBe('http://localhost:4173');
+    const other = await call(`${listed}/api/health`, { headers: { Origin: 'https://evil.example' } });
+    expect(other.acao).toBeNull();
+  });
+
+  it('warns once at boot when production has no CORS_ORIGIN, not per request', async () => {
+    const prevEnv = process.env.NODE_ENV;
+    process.env.NODE_ENV = 'production';
+    try {
+      const prod = await boot(undefined);
+      await call(`${prod}/api/health`, { headers: { Origin: 'http://localhost:5173' } });
+      await call(`${prod}/api/health`, { headers: { Origin: 'http://localhost:5173' } });
+      const warnings = warnSpy.mock.calls
+        .map((a) => JSON.parse(a[0]))
+        .filter((l) => l.msg === 'CORS_ORIGIN unset in production — failing closed to localhost only');
+      expect(warnings).toHaveLength(1);
+      expect(warnings[0]).toMatchObject({ level: 'warn' });
+    } finally {
+      process.env.NODE_ENV = prevEnv;
+    }
+  });
+
+  it('does not warn about CORS at boot outside production', async () => {
+    await boot(undefined);
+    const warnings = warnSpy.mock.calls
+      .map((a) => JSON.parse(a[0]))
+      .filter((l) => l.msg?.startsWith('CORS_ORIGIN'));
+    expect(warnings).toHaveLength(0);
   });
 });
