@@ -130,10 +130,10 @@ function seekerIdentity(i) {
 
 function employerIdentity(i) {
   const prefix = pick(PREFIXES, i);
-  // Unique pair per employer: 25 prefixes x 20 trades = 500 combos. (The old
-  // formula used i%7 for the trade, which collided every 20 accounts — caught
-  // by the 150-account spike verification: 37 unique names for 50 employers.)
-  const trade = pick(TRADES, Math.floor(i / PREFIXES.length));
+  // Unique (prefix, trade) pairs across the 50-account cohort: prefix cycles
+  // every 25, trade advances by 7 mod 20. (Earlier formulas either collided or
+  // collapsed every company into two industries — both caught by DB checks.)
+  const trade = pick(TRADES, (i * 7) % TRADES.length);
   const company = `${prefix} ${trade}`;
   const first = pick(FIRST, i * 3 + 1);
   const last = pick(LAST, i * 7 + 4);
