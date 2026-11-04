@@ -1,6 +1,6 @@
 "use client";
 import { Link } from "react-router-dom";
-import { useState } from "react";
+import { useId, useState } from "react";
 import { ArrowRight, CheckCircle2, Search, ShieldCheck, Loader2, } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -10,6 +10,7 @@ import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, A
 import { Empty, EmptyHeader, EmptyMedia, EmptyTitle, EmptyDescription, EmptyContent, } from "@/components/ui/empty";
 import { Field, FieldLabel, FieldError, FieldDescription, } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { prefetchRoute } from "@/shared/lib/routeLoaders";
@@ -108,6 +109,22 @@ export function EmptyState({ title = "No results found", description = "Try anot
             </LinkButton>) : (action)}
         </EmptyContent>)}
     </Empty>);
+}
+export function SearchInput({ value, onChange, placeholder = "Search records…", label = "Search records", className, }) {
+    // Shared list-page search field: sr-only label + input-group with a search
+    // icon, matching the reference list controls.
+    const id = useId();
+    return (<div className={cn("min-w-0 flex-1", className)}>
+      <label htmlFor={id} className="sr-only">
+        {label}
+      </label>
+      <InputGroup>
+        <InputGroupInput id={id} value={value} onChange={(event) => onChange(event.target.value)} placeholder={placeholder}/>
+        <InputGroupAddon>
+          <Search />
+        </InputGroupAddon>
+      </InputGroup>
+    </div>);
 }
 export function StatCards({ stats, }) {
     return (<div className="mb-6 grid grid-cols-2 gap-4 xl:grid-cols-4">

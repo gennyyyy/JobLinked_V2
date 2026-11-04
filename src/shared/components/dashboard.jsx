@@ -1,7 +1,7 @@
 import { Button } from "../../components/ui/button";
 // Shared building blocks for the three portal dashboards so headers, stat
 // cards, and section cards stay visually identical everywhere.
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, ChevronLeft, ChevronRight } from "lucide-react";
 import { displayName, initialsOf } from "../utils/accountName";
 
 export function PageHeader({ eyebrow, title, subtitle, action, logo, className = "" }) {
@@ -108,15 +108,23 @@ export function SectionCard({ title, subtitle, action, children, className = "",
 // pageSize } envelopes). Renders nothing while everything fits on one page —
 // so small datasets (and tests with short fixtures) see no UI change.
 export function Pager({ page, pageSize, total, onChange }) {
-  if (!total || !pageSize || total <= pageSize) return null;
-  const pages = Math.ceil(total / pageSize);
+  // Reference list pagination: "1–8 of 26 records" plus icon prev/next.
+  const pages = Math.max(1, Math.ceil((total || 0) / (pageSize || 1)))
+  const current = Math.min(page || 1, pages)
   return (
-    <div className="mt-4 flex items-center justify-between border-t border-border pt-3 text-xs text-muted-foreground">
-      <span>Page {page} of {pages}</span>
-      <div className="flex gap-2">
-        <Button type="button" disabled={page <= 1} onClick={() => onChange(page - 1)} className="rounded-xl border border-border bg-card px-3 py-1.5 cursor-pointer disabled:opacity-40">Previous</Button>
-        <Button type="button" disabled={page >= pages} onClick={() => onChange(page + 1)} className="rounded-xl border border-border bg-card px-3 py-1.5 cursor-pointer disabled:opacity-40">Next</Button>
-      </div>
+    <div className="flex flex-wrap items-center justify-between gap-3 pt-4 text-xs text-muted-foreground">
+      <p aria-live="polite">
+        {total ? `${(current - 1) * pageSize + 1}–${Math.min(current * pageSize, total)} of ${total} records` : 'No records'}
+      </p>
+      <nav aria-label="Results pagination" className="flex items-center gap-2">
+        <Button variant="outline" size="icon" aria-label="Previous page" disabled={current <= 1} onClick={() => onChange(current - 1)}>
+          <ChevronLeft />
+        </Button>
+        <span className="px-2">{current} / {pages}</span>
+        <Button variant="outline" size="icon" aria-label="Next page" disabled={current >= pages} onClick={() => onChange(current + 1)}>
+          <ChevronRight />
+        </Button>
+      </nav>
     </div>
-  );
+  )
 }

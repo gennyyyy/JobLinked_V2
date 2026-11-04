@@ -53,15 +53,15 @@ describe('UserManagement pagination (C2)', () => {
     // Page 1 rows only — the envelope's data, never the whole user table.
     expect(screen.getByText('Page 1 User 0')).toBeInTheDocument()
     expect(screen.queryByText('Page 2 User 0')).toBeNull()
-    expect(screen.getByText('Page 1 of 3')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Previous' })).toBeDisabled()
+    expect(screen.getByText('1–25 of 60 records')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Previous page' })).toBeDisabled()
 
-    fireEvent.click(screen.getByRole('button', { name: 'Next' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Next page' }))
 
     await waitFor(() => expect(listUsers).toHaveBeenCalledWith({ page: 2 }))
     expect(await screen.findByText('Page 2 User 0')).toBeInTheDocument()
     expect(screen.queryByText('Page 1 User 0')).toBeNull()
-    expect(screen.getByRole('button', { name: 'Previous' })).toBeEnabled()
+    expect(screen.getByRole('button', { name: 'Previous page' })).toBeEnabled()
   })
 
   it('refetches the current page after a role assignment', async () => {
