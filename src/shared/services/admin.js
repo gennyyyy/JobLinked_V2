@@ -36,6 +36,10 @@ export async function listAllApplications({ status = null, search = '', page = 1
   return api.get('admin/applications', { status, search, page, pageSize });
 }
 
+export async function listEmployees() {
+  return api.get('admin/employees');
+}
+
 export async function listAllJobs({ status = null, page = 1, pageSize = 25 } = {}) {
   return api.get('admin/jobs', { status, page, pageSize });
 }

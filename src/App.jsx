@@ -34,7 +34,8 @@ const Reports = lazy(() => import('./features/super-admin/Reports'))
 const Logs = lazy(() => import('./features/super-admin/Logs'))
 const SuperAdminNotifications = lazy(() => import('./features/super-admin/Notifications'))
 const SuperAdminProfile = lazy(() => import('./features/super-admin/Profile'))
-const SuperAdminPlaceholder = lazy(() => import('./features/super-admin/SectionPlaceholder'))
+const SuperAdminApplications = lazy(() => import('./features/super-admin/Applications'))
+const SuperAdminEmployment = lazy(() => import('./features/super-admin/Employment'))
 const EmployerLayout = lazy(() => import('./features/employer/EmployerLayout'))
 const EmployerDashboard = lazy(() => import('./features/employer/Dashboard'))
 const EmployerJobPosts = lazy(() => import('./features/employer/JobPosts'))
@@ -124,14 +125,8 @@ function App() {
               <Route path="logs" element={<Logs />} />
               <Route path="notifications" element={<SuperAdminNotifications />} />
               <Route path="profile" element={<SuperAdminProfile />} />
-              <Route
-                path="employment-tracking"
-                element={<SuperAdminPlaceholder title="Employment oversight" description="Track accepted applicants and their employment status across Santa Maria employers." />}
-              />
-              <Route
-                path="applications"
-                element={<SuperAdminPlaceholder title="Applications & placements" description="Review every application and placement recorded in the municipality." />}
-              />
+              <Route path="employment-tracking" element={<SuperAdminEmployment />} />
+              <Route path="applications" element={<SuperAdminApplications />} />
             </Route>
 
             <Route
