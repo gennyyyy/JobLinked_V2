@@ -61,8 +61,8 @@ export default function ResumeAutofill({ onApply }) {
   }
 
   return (
-    <section aria-label="Resume autofill" className="flex flex-col gap-4 rounded-xl border border-dashed border-primary/40 bg-primary/5 p-5">
-      <div className="flex items-center gap-2"><FileText className="size-5 text-primary" aria-hidden="true" /><h3 className="text-sm font-semibold">Autofill from your resume</h3></div>
+    <section aria-label="Resume autofill" className="flex flex-col gap-3 rounded-xl border border-dashed border-border bg-muted/20 p-4">
+      <div className="flex items-center gap-2"><FileText className="size-4 text-muted-foreground" aria-hidden="true" /><h3 className="text-sm font-medium">Autofill from your resume</h3><span className="text-xs text-muted-foreground">Optional</span></div>
       <Field data-invalid={!!error} data-disabled={busy}>
         <FieldLabel htmlFor={id}>Choose a resume to autofill</FieldLabel>
         <Input
