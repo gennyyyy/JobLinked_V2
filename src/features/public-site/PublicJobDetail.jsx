@@ -31,11 +31,21 @@ export default function PublicJobDetail() {
   const [error, setError] = useState('')
 
   useEffect(() => {
+    let active = true;
     getJob(jobId)
-      .then(setJob)
-      .catch((err) => setError(err.message || 'Failed to load job'))
-      .finally(() => setLoading(false))
-  }, [jobId])
+      .then((job) => {
+        if (!active) return;
+        setJob(job);
+      })
+      .catch((err) => {
+        if (!active) return;
+        setError(err.message || 'Failed to load job');
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => { active = false; };
+  }, [jobId]);
 
   if (loading) return <PageSkeleton stats={0} panels={2} />
   if (error) return <div className="py-8 text-center text-sm text-destructive">{error}</div>
