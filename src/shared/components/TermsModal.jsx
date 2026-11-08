@@ -43,7 +43,10 @@ Participation in research or system evaluation requires a separate explanation a
 7. Legal Basis and Policy Updates
 Information will be processed in accordance with Republic Act No. 10173, or the Data Privacy Act of 2012, its implementing rules, applicable PESO legislation, and relevant municipal requirements.
 Processing required for government functions or legal obligations will be identified accordingly. Specific consent will be requested where consent is the applicable legal basis.
-Material policy changes will be communicated through JobLinked. New purposes requiring consent will be presented separately.`;
+Material policy changes will be communicated through JobLinked. New purposes requiring consent will be presented separately.
+
+8. AI Features
+Some in-app assistance (help answers and vacancy ranking) may be processed by an external AI provider on our behalf. JobLinked transmits only the content you type or public job information. We do not transmit your name, contact details, resume, or application records to that provider. Processor arrangements and safeguards apply; to exercise your privacy rights, contact the PESO Santa Maria office listed in section 5.`;
 
 function TermsModal({ open, onClose, onRead, title = "Data Collection Terms & Privacy Policy", body = TERMS_PLACEHOLDER }) {
   const bodyRef = useRef(null);

@@ -257,3 +257,24 @@ reads, and the `/notifications/*` routes still being mounted from
   email, profile row, resume, and application data never leave the server; logs carry only status class and
   latency. The prompt is free text the seeker types, and the dialog warns against including personal details.
   Contract detail: `server/src/routes/aiMatch.js`; ADR: `docs/arch/rework/08-ai-provider-and-matching.md`.
+
+## Addendum F (2026-11-05, role-aware AI help — plan `2026-11-05-role-aware-help-plan`)
+
+Supersedes the role clause of Addendum D: `POST /api/ai/help` is no longer
+`job-seeker`-only. Every other clause of Addendum D is unchanged (auth,
+`aiLimiter` 20 req / 15 min, ≤10 messages × 1000 chars, 10 s timeout,
+`502 UPSTREAM_ERROR`, no table reads, no personal data in the response).
+
+- **Roles served:** `job-seeker`, `employer`, `super-admin`. The help brief is
+  selected by the **server-resolved DB role** (`req.user.role` from
+  `server/src/auth.js`, the same resolution the guard matrix uses) — never a
+  client-decodable claim. Any other role value (including an unknown one) is
+  **403 `FORBIDDEN`**; anonymous stays **401**. The client widget is mounted
+  once in `TopNavLayout`, which serves all three roles.
+- **Model resolution:** the default model is resolved in code when
+  `OPENROUTER_BASE_URL` is the OpenRouter default. With a **non-default**
+  `OPENROUTER_BASE_URL`, `OPENROUTER_MODEL` is required — a missing model logs
+  a boot warning and requests fail closed.
+- **Config failures widen 503:** `503 AI_NOT_CONFIGURED` is returned when
+  `OPENROUTER_API_KEY` is unset **or** the required model is missing (the API
+  still boots either way). Contract detail: `server/src/routes/ai.js`.

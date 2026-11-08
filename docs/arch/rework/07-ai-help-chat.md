@@ -62,6 +62,11 @@ memory, no answers about the seeker's own account data.
 ## Follow-up (separate task, not this ADR)
 
 Audit whether the browse-jobs AI matching can take the same OpenRouter key.
+**RESOLVED (2026-11-05, plan `2026-11-05-role-aware-help-plan`):** yes — both
+endpoints share the single `OPENROUTER_API_KEY` through the Plan A provider
+layer, with per-endpoint briefs and limiters on top. ADR-023's own decisions
+are unchanged; see `docs/arch/rework/08-ai-provider-and-matching.md` (ADR-041)
+and Addendum F in `docs/arch/rework/02-api-contract.md`.
 
 ## ponytail ceilings
 
