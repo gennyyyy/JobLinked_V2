@@ -104,6 +104,20 @@ describe('HelpChat', () => {
     ).toBeInTheDocument()
   })
 
+  it('shows the PESO fallback on 502', async () => {
+    const err = new Error('AI help is unavailable right now.')
+    err.status = 502
+    askHelp.mockRejectedValue(err)
+    render(<HelpChat />)
+    await open()
+    await ask('How do I apply?')
+
+    expect(
+      await screen.findByText("The assistant isn't available right now. For help, contact PESO Santa Maria.")
+    ).toBeInTheDocument()
+    expect(screen.queryByText('AI help is unavailable right now.')).toBeNull()
+  })
+
   it('keeps the original error for other failures', async () => {
     const err = new Error('')
     err.status = 500

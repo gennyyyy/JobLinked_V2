@@ -23,6 +23,9 @@ const SALARY_OPTIONS = [
 ]
 const EXPERIENCE_OPTIONS = ['No experience', 'Entry level', '1–3 years', '3+ years']
 const MATCH_UNAVAILABLE = 'AI matching is unavailable right now — showing standard results.'
+// Same wording the matching dialog carries, restated next to the results so the
+// disclosure survives closing that dialog (compact mode hides it in there).
+const matchModeLabel = (mode) => (mode === 'ai' ? 'AI ranking active' : 'Standard matching · no AI')
 // The only jobs that may enter the AI candidate pool, same rule as the list.
 const isBrowsable = (job) => isJobOpen(job) && (!job.employers?.accreditation_status || job.employers.accreditation_status === 'approved')
 
@@ -268,6 +271,9 @@ export default function OpportunityList({ saved = false }) {
           <p className="mb-4 text-xs text-muted-foreground" aria-live="polite">
             {records.length} {saved ? 'saved opportunities' : 'matching vacancies'}
           </p>
+          {matchingPrompt && (
+            <p role="status" className="mb-4 text-xs text-muted-foreground">{matchModeLabel(ranking?.mode)}</p>
+          )}
           {matchNotice && (
             <p role="status" className="mb-4 text-xs text-muted-foreground">{matchNotice}</p>
           )}

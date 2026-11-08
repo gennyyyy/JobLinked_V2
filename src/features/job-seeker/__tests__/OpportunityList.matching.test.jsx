@@ -91,7 +91,8 @@ describe('OpportunityList AI matching', () => {
     // Only the open + accredited jobs are sent as candidates.
     expect(matchJobs).toHaveBeenCalledWith('night shift', ['j1', 'j2', 'j3'])
     expect(within(cardFor('Warehouse Helper')).getByText('Same barangay and warehouse experience')).toBeInTheDocument()
-    expect(screen.getByText('AI ranking active')).toBeInTheDocument()
+    // The dialog and the results area both disclose the mode.
+    expect(screen.getAllByText('AI ranking active')).toHaveLength(2)
   })
 
   it('falls back to the standard order with one discreet notice when the request fails', async () => {
@@ -181,5 +182,28 @@ describe('OpportunityList AI matching', () => {
     expect(cardTitles()).toEqual(['Warehouse Helper', 'Junior Web Developer', 'Administrative Assistant'])
     expect(screen.queryByText('Stale reason')).toBeNull()
     expect(within(cardFor('Warehouse Helper')).getByText('Newest reason')).toBeInTheDocument()
+  })
+
+  it('keeps disclosing the matching mode in the results area after the dialog closes', async () => {
+    matchJobs.mockResolvedValue({ mode: 'deterministic', ranking: ['j2', 'j1', 'j3'], reasons: [] })
+    renderList()
+    await screen.findByText('Administrative Assistant')
+
+    await submitPrompt('night shift')
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }))
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+
+    // The disclosure outlives the closable dialog, so the per-card reasons are
+    // never mistaken for AI output.
+    expect(screen.getByText('Standard matching · no AI')).toBeInTheDocument()
+    await waitFor(() => expect(cardTitles()).toEqual(['Junior Web Developer', 'Administrative Assistant', 'Warehouse Helper']))
+
+    matchJobs.mockResolvedValue({ mode: 'ai', ranking: ['j3', 'j1', 'j2'], reasons: [] })
+    await submitPrompt('night shift')
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }))
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+
+    expect(screen.getByText('AI ranking active')).toBeInTheDocument()
+    expect(screen.queryByText('Standard matching · no AI')).toBeNull()
   })
 })
