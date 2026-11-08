@@ -233,3 +233,27 @@ Not changed here (recorded as gaps, not decisions): the unbounded
 `/admin/employees`, `/admin/referrals` and `GET /applications/{job,company}/…`
 reads, and the `/notifications/*` routes still being mounted from
 `routes/admin.js` instead of `routes/notifications.js` (ADR-026 is still open).
+
+## Addendum E (2026-11-05, arch-approved AI job matching — ADR-041)
+- `POST /api/ai/job-match` (role `job-seeker` only; anonymous → 401, every other role → 403) → 200
+  `{ mode: "ai" | "deterministic", ranking: string[], reasons: [{ jobId, reason }], generatedAt: string }`.
+  Body `{ prompt: string, candidateIds: string[] }` — `prompt` is whitespace-normalized and must be 1–500 chars;
+  `candidateIds` is 0–200 UUIDs.
+  `ranking` covers every **live** candidate: the ids are reloaded from `job_vacancies` with `status = 'published'`,
+  and unknown, draft, closed, or archived ids are dropped rather than 404'd. `reasons` covers the top 30
+  ranked entries only (`{ jobId, reason }`, reason ≤200 normalized plain-text chars); `generatedAt` is ISO-8601 and
+  is replayed unchanged from the cache entry on a hit.
+  `400 BAD_REQUEST` "Invalid job-match request" on any shape/limit violation · `429 RATE_LIMITED` via
+  `jobMatchLimiter` (30 requests / 15 min per user, key `req.user?.id || ipKeyGenerator(req.ip)`, applied after
+  `auth`; a live cache hit is skipped with the library's `skip` and spends no quota — the general `apiLimiter`
+  300/15 min still counts every call) · `401`/`403` from `auth`/`requireRole`.
+  **Provider, parse, timeout, config, and budget failures are never error responses:** the endpoint answers
+  **200 with `mode: "deterministic"`** and the full deterministic ranking, and never returns 503. The database
+  read is the expected 500; provider failures are never an error response.
+  Results are cached per user + prompt + candidate-id set for 15 min (LRU, 300 entries); identical concurrent
+  misses share one run. All of it is per process — see `docs/arch/adr-037-production-api-single-node.md`.
+  Privacy: the provider receives only the system instruction, the seeker's prompt, and public job fields (title,
+  company, location, employment type, salary min/max, tags, ≤300-char description excerpt). The seeker's name,
+  email, profile row, resume, and application data never leave the server; logs carry only status class and
+  latency. The prompt is free text the seeker types, and the dialog warns against including personal details.
+  Contract detail: `server/src/routes/aiMatch.js`; ADR: `docs/arch/rework/08-ai-provider-and-matching.md`.
