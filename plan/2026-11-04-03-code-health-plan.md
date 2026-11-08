@@ -32,6 +32,45 @@ admin seeker depth tabs (server routes exist: `/admin/seekers/:id/education|
 experience|employment`); admin accreditation "request additional docs";
 admin dashboard counters; ADR-001 one-liners book-closing.
 
+## Re-scope — Lead Architect sign-off (2026-11-09)
+
+Baseline re-verified against the working tree today; the 11-04 baseline has four stale rows.
+**This section supersedes the Baseline where they disagree.**
+
+1. **`NotificationBell.jsx` is LIVE — do not delete it.** `src/shared/components/TopNavLayout.jsx`
+   imports it. Phase A's deletion list is now: `SiteHeader.jsx`, `SiteFooter.jsx`,
+   `AccountMenu.jsx` (all three verified with zero importers outside their own files/tests).
+2. **The dead chain lives in `src/shared/components/`**: `ApplicantsShell.jsx` is unreferenced;
+   `CardListLayout.jsx` is imported only by `ApplicantsShell.jsx` and `SearchBar.jsx`, and
+   `SearchBar.jsx` only by `CardListLayout.jsx` — a closed island with no external importer.
+   Delete all three plus their tests in one commit.
+3. **Decision gate 1 (`AiMatchModal`) is closed by events**: the file is already deleted
+   (0 grep hits). Chosen option: cut — the real `/api/ai/job-match` ranking replaced it.
+4. **Decision gate 3 (`public/images/*.png`) is closed by events**: `public/images/` no longer
+   exists (AGENTS.md: `public/` holds only `joblinked-icon.png`).
+5. **Decision gate 2 (dark mode) is the only one still open** — see the table below; it does not
+   block Phases A-C.
+6. **Phase C Step 3 is already implemented**: "request additional documents" ships as the
+   `resubmission` decision with required remarks (`src/features/super-admin/Accreditation.jsx:154-166`);
+   no new status, no schema change. Step closed — do not edit `db/schema.sql`.
+7. **Phase C Step 5 is partially done**: the "Active vacancies" tile exists
+   (`src/features/super-admin/Dashboard.jsx:71`, sourced `approvedJobs`). Remaining: accepted/
+   placed totals. Keep as optional.
+8. **Phase C Step 2's target file does not exist** (`super-admin/Employees.jsx`). No admin UI
+   consumes `/admin/seekers/:id/education|experience|employment` (`server/src/routes/admin.js:557-559`).
+   Re-scoped target: a seeker detail dialog opened from the **UserManagement** row (tabs:
+   Background / Experience / Employment) plus an admin resume view through the existing
+   `/files/:bucket/*` route (`server/src/routes/profiles.js:402`).
+9. **Phase D applies only to `employer/JobPosts.jsx` (~1090 lines) and
+   `server/src/routes/admin.js` (~681 lines)**: `job-seeker/Profile.jsx` is already split
+   (730 → ~412 lines).
+10. **ADR-001 has no standalone file** — it lives in `docs/arch/adr-backlog.md`. Its
+    `'revoked'`-in-ACC_STATUSES item is already satisfied (`server/src/routes/profiles.js:130`);
+    the remaining three items (register navigate path, getStats dedup, Logs user-join) get the
+    verify pass in Phase C Step 4.
+11. Phase B unchanged: the four `/notifications/*` routes are still inside
+    `server/src/routes/admin.js` (lines 562-590); none of the split files exist yet.
+
 ## Task order
 
 ### Phase A — deletions (each step grep-verified before delete)
@@ -46,6 +85,12 @@ admin dashboard counters; ADR-001 one-liners book-closing.
       live `Toast` in NotificationsPage. Commit with "remove unused sonner toasts".
 - [ ] Step 4: `npm run lint && npm test` — tests referencing removed exports are
       exactly the dead ones; make sure no live test silently overwritten/skipped.
+- [ ] Step 5 (added 2026-11-09, Decision gate 2): delete the dormant dark mode —
+      the `@custom-variant dark` line (`src/index.css:641`) **must** be removed together
+      with all 54 `dark:` utilities (Tailwind v4 fails the build on an unknown variant).
+      Verified dead: no `.dark` token block, nothing toggles the class, no
+      `prefers-color-scheme` reader. Keep `docs/superpowers/specs/2026-10-18-dark-mode-design.md`.
+      Verify with `npm run build` (Tailwind compiles) + `npm test` + `npm run lint`.
 
 ### Phase B — server decomposition (ADR-026, execute finally)
 - [ ] Step 1: In `server/src/routes/admin.js`, lift the 4 `notifications/*` routes
@@ -89,11 +134,11 @@ admin dashboard counters; ADR-001 one-liners book-closing.
 
 ## Decision gates (user input blocks these)
 
-| Decision | Default proposal | Effect |
-|---|---|---|
-| AiMatchModal (`AiMatchModal.jsx:8,19` fake) | **Cut the button**; keep the real HelpChat (live `/api/ai/help`) | no backend work; one JSX deletion |
-| Dark mode (dormant tokens + signed spec) | **Implement spec** (`docs/superpowers/design/2026-10-18-dark-mode-design.md`) as one scoped pass OR **delete** tokens+spec; commit either way | ~22 `dark:` usages + provider |
-| `public/images/*.png` (11 MB unused) | Keep (supplied brand assets), note in build | none |
+| Decision | Default proposal | Effect | Status 2026-11-09 |
+|---|---|---|---|
+| AiMatchModal (`AiMatchModal.jsx:8,19` fake) | **Cut the button**; keep the real HelpChat (live `/api/ai/help`) | no backend work; one JSX deletion | **CLOSED — cut, file already deleted** |
+| Dark mode (dormant tokens + signed spec) | **DECIDED 2026-11-09: delete the dormant tokens; keep the spec** (`docs/superpowers/specs/2026-10-18-dark-mode-design.md` — the plan's `design/` path was wrong) as the design record. Re-implement later from the spec if wanted | actual surface is **54** `dark:` usages across 14 `src/components/ui/*` files + the variant line `src/index.css:641` — more than the ~22 first counted; no `.dark` token override block exists, and nothing toggles the class anywhere | **CLOSED — deletion is Phase A Step 5** |
+| `public/images/*.png` (11 MB unused) | Keep (supplied brand assets), note in build | none | **CLOSED — directory no longer exists** |
 
 ## Acceptance
 
