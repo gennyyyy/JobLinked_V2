@@ -23,6 +23,7 @@ import { InputGroup, InputGroupInput, InputGroupAddon } from '@/components/ui/in
 import SkipLink from './SkipLink'
 import NotificationBell from './NotificationBell'
 import DashboardFooter from './DashboardFooter'
+import HelpChat from './HelpChat'
 import { Logo } from './design'
 import useAuth from '../hooks/useAuth'
 import useAFKTimer from '../hooks/useAFKTimer'
@@ -338,6 +339,8 @@ export default function TopNavLayout({ role, navItems, profileTo, roleLabel, hom
           </div>
         </DialogContent>
       </Dialog>
+      {/* Floating help: mounted once here so every portal using this shell gets it. */}
+      {user && <HelpChat />}
       {showWarning && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
           <div ref={afkRef} role="dialog" aria-modal="true" aria-labelledby="afk-title" className="mx-4 max-w-sm rounded-lg border border-primary bg-card p-5 shadow-xl">

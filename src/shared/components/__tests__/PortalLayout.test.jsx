@@ -95,3 +95,20 @@ describe('Portal shell navigation', () => {
     expect(getStats).toHaveBeenCalledTimes(1)
   })
 })
+
+describe('Portal shell help widget', () => {
+  it('renders the help chat once for a signed-in user', () => {
+    renderLayout('/super-admin')
+    expect(screen.getAllByRole('button', { name: 'Open help chat' })).toHaveLength(1)
+  })
+
+  it('hides the help chat when no user is signed in', () => {
+    useAuth.mockReturnValue({ user: null, logout: vi.fn() })
+    render(
+      <MemoryRouter initialEntries={['/super-admin']}>
+        <TopNavLayout role="super-admin" />
+      </MemoryRouter>,
+    )
+    expect(screen.queryByRole('button', { name: 'Open help chat' })).toBeNull()
+  })
+})
