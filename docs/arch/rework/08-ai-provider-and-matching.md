@@ -25,8 +25,10 @@ NVIDIA NIM) later, or no provider at all.
 
 `server/src/aiProvider.js` is the shared layer for every matching provider
 call: one native `fetch` to `POST {base}/chat/completions`. No SDK, no new
-dependency, no browser-side key. (`/api/ai/help` has not adopted it yet — see
-the ADR-023 section below.)
+dependency, no browser-side key. ~~(`/api/ai/help` has not adopted it yet — see
+the ADR-023 section below.)~~ **[superseded 2026-11-09: `/api/ai/help` now calls
+this same layer via `callChat` (Plan B, commits `5a8d915`..`e08928a`) — see the
+amended ADR-023 section below.]**
 
 - Env is read **per call**, never at boot: a missing `OPENROUTER_API_KEY` must
   not stop the API from starting (the ADR-023 rule).
@@ -149,19 +151,27 @@ counters **before** adding replicas; "just add replicas" is still forbidden.
 ## ADR-023 remains valid for `/api/ai/help`
 
 This ADR does not change the help-chat contract. `POST /api/ai/help` keeps the
-ADR-023 scope (role `job-seeker` today), 10 s timeout, 200 `{ reply }`, 400
-`BAD_REQUEST`, 429 via `aiLimiter` (20/15 min), 502 `UPSTREAM_ERROR`, and 503
-`AI_NOT_CONFIGURED`; Addendum D in `docs/arch/rework/02-api-contract.md` remains
-the canonical shape.
+ADR-023 shape — 10 s timeout, 200 `{ reply }`, 400 `BAD_REQUEST`, 429 via
+`aiLimiter` (20/15 min), 502 `UPSTREAM_ERROR`, and 503 `AI_NOT_CONFIGURED` — but
+~~keeps the ADR-023 scope (role `job-seeker` today)~~ **[superseded 2026-11-09:
+serves `job-seeker`, `employer`, `super-admin` via `Object.hasOwn(BRIEFS, role)`]**,
+and ~~Addendum D in `docs/arch/rework/02-api-contract.md` remains the canonical
+shape~~ **[superseded 2026-11-09: Addendum F is now the canonical shape]**.
+Help also runs on this ADR's shared provider layer and shares its process-wide
+20-calls/60 s budget with job-match (exhaustion → 502 `UPSTREAM_ERROR` for help).
 
 One provider bug is fixed at the shared layer: a custom base with no model used
 to produce a request with an empty/undefined model and a guaranteed upstream
 4xx. `resolveConfig()` now resolves `model: null` for that case, logs one
 warning per process, and `callChat` refuses to call; the match route also gates
-on `resolveConfig().model`. `/api/ai/help` still has its own inline fetch in
+on `resolveConfig().model`. ~~`/api/ai/help` still has its own inline fetch in
 `server/src/routes/ai.js`; moving it onto the shared layer (and answering 503
 for an unresolvable model) is the separate role-aware help plan
-(`docs/superpowers/plans/2026-11-05-role-aware-help-plan.md`), not this ADR.
+(`docs/superpowers/plans/2026-11-05-role-aware-help-plan.md`), not this ADR.~~
+**[shipped 2026-11-09 (Plan B, commits `5a8d915`..`e08928a`): `/api/ai/help` now
+calls `callChat` from `server/src/aiProvider.js` and answers 503 `AI_NOT_CONFIGURED`
+for an unresolvable/model-less config; see the amended ADR-023 (`07-ai-help-chat.md`)
+and Addendum F.]**
 
 ## Consequences
 

@@ -36,7 +36,7 @@ token into the cache and never blocks a valid one. The per-request memo
 the principal once. The cache is per-process; multiple instances behind a load
 balancer are unaffected because each simply memoizes its own tokens.
 
-**Rate limiting & proxy keying (Phase 4 C1/F1/F2/F5, 2026-10-16).** Four
+**Rate limiting & proxy keying (Phase 4 C1/F1/F2/F5, 2026-10-16).** Five
 in-memory buckets, all answering `429` with `{ error: { code: 'RATE_LIMITED', … } }`
 and emitting `RateLimit`/`RateLimit-Policy` draft-7 headers:
 
@@ -45,11 +45,16 @@ and emitting `RateLimit`/`RateLimit-Policy` draft-7 headers:
 | `authLimiter` | everything under `/api/auth` | 100 req / 15 min |
 | `uploadLimiter` | `POST /api/documents`, `POST /api/files/*` | 50 req / 15 min |
 | `aiLimiter` | `POST /api/ai/help` only, applied *after* `auth` | 20 req / 15 min |
+| `jobMatchLimiter` | `POST /api/ai/job-match` only, applied *after* `auth` | 30 cache misses / 15 min (a live cache hit is skipped) |
 | `apiLimiter` | every other `/api` route | 300 req / 15 min |
 
 `GET /api/health` is mounted **before** the limiters, so load-balancer probes
 are never throttled. `apiLimiter`'s `skip` mirrors the auth + upload scopes
-exactly, so a request is never double-counted.
+exactly, so a request is never double-counted. `jobMatchLimiter`
+(`server/src/middleware/rateLimit.js`) is keyed `req.user?.id || ipKeyGenerator(req.ip)`
+like `aiLimiter`; its library `skip` (`matchCache.cacheHit`) exempts **only a live
+cache entry**, so a miss counts and spends quota while a replay is free, and it
+never double-counts with `apiLimiter` (which keeps its own 300/15 min budget).
 
 **Admission order (2026-11-05 load campaign).** The JSON body parser now runs
 *after* every limiter. Before this, an anonymous caller could force up to 1 MB
@@ -201,7 +206,7 @@ Guard matrix (only rules the API enforces; everything else is 403): seeker ⇄ o
 ## Addendum D (2026-10-13, arch-approved AI help chat — ADR-023)
 - `POST /api/ai/help` (role `job-seeker` only; every other role and anonymous → 403/401) → 200 `{ reply: string }`.
   Body `{ messages: [{ role: "user" | "assistant", content: string }] }`, 1–10 entries, final entry must be `user`, each `content` 1–1000 chars.
-  `400 BAD_REQUEST` on any shape/limit violation · `429 RATE_LIMITED` via `aiLimiter` (20 req / 15 min, keyed `req.user?.id || req.ip`, applied after `auth`) · `502 UPSTREAM_ERROR` when the provider returns non-OK or exceeds 10s · `503 AI_NOT_CONFIGURED` when `OPENROUTER_API_KEY` is unset (the API still boots). Errors: `{ error: { code, message } }`.
+  `400 BAD_REQUEST` on any shape/limit violation · `429 RATE_LIMITED` via `aiLimiter` (20 req / 15 min, keyed `req.user?.id || ipKeyGenerator(req.ip)`, applied after `auth`) · `502 UPSTREAM_ERROR` when the provider returns non-OK or exceeds 10s · `503 AI_NOT_CONFIGURED` when `OPENROUTER_API_KEY` is unset (the API still boots). Errors: `{ error: { code, message } }`.
   Reads no tables and returns no personal data. No streaming, no history, no per-user memory.
 
 ## Reconciliation pass (2026-10-16)
@@ -238,7 +243,7 @@ reads, and the `/notifications/*` routes still being mounted from
 - `POST /api/ai/job-match` (role `job-seeker` only; anonymous → 401, every other role → 403) → 200
   `{ mode: "ai" | "deterministic", ranking: string[], reasons: [{ jobId, reason }], generatedAt: string }`.
   Body `{ prompt: string, candidateIds: string[] }` — `prompt` is whitespace-normalized and must be 1–500 chars;
-  `candidateIds` is 0–200 UUIDs.
+  `candidateIds` is 0–200 UUIDs **[reconciliation 2026-11-09: the route guard `MAX_CANDIDATES` (aiMatch.js:11) accepts up to 200, but the client's live base pool is capped at `100` — `listJobs({pageSize: 200})` is clamped to 100 by the server `pageParams` on `GET /jobs` (max 100). The shipped pool is genuinely lower than the guard documents, 100 not 200]**.
   `ranking` covers every **live** candidate: the ids are reloaded from `job_vacancies` with `status = 'published'`,
   and unknown, draft, closed, or archived ids are dropped rather than 404'd. `reasons` covers the top 30
   ranked entries only (`{ jobId, reason }`, reason ≤200 normalized plain-text chars); `generatedAt` is ISO-8601 and
@@ -274,7 +279,16 @@ Supersedes the role clause of Addendum D: `POST /api/ai/help` is no longer
 - **Model resolution:** the default model is resolved in code when
   `OPENROUTER_BASE_URL` is the OpenRouter default. With a **non-default**
   `OPENROUTER_BASE_URL`, `OPENROUTER_MODEL` is required — a missing model logs
-  a boot warning and requests fail closed.
+  a first-use warning and requests fail closed.
 - **Config failures widen 503:** `503 AI_NOT_CONFIGURED` is returned when
   `OPENROUTER_API_KEY` is unset **or** the required model is missing (the API
   still boots either way). Contract detail: `server/src/routes/ai.js`.
+- **Shared provider budget (new; help did not have this before):** `/api/ai/help`
+  now consumes the **process-wide 20-calls/rolling-60 s** budget in
+  `server/src/aiProvider.js` — one counter across **all users and both endpoints**.
+  `job-match` and `help` **compete** for it: exhaustion blocks calls from both until
+  the window rolls. For help a spent budget is one more `UPSTREAM_FAILURE`, so it
+  surfaces as **502 `UPSTREAM_ERROR`** (job-match instead degrades to a
+  deterministic 200). The help call now also sends `max_tokens: 1200` (the
+  `callChat` provider-layer default), where the pre-Plan-B inline fetch sent none.
+  Contract detail: `server/src/routes/ai.js:40-48`, `server/src/aiProvider.js:8-9,49,64,71`.

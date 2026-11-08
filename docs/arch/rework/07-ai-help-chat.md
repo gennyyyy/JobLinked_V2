@@ -1,8 +1,26 @@
-# ADR-023 — Job-seeker AI help chat (server-mediated OpenRouter) [SIGNED OFF 2026-10-13]
+# ADR-023 — Job-seeker AI help chat (server-mediated OpenRouter) [SIGNED OFF 2026-10-13] — **[amended 2026-11-09: help now serves all three portal roles; see note]**
 
-Scope: general "how do I…" help about PESO JobLinked, for the `job-seeker`
-role only. This is **not** job matching — `AiMatchModal.jsx` stays a separate,
-still-unwired feature (see follow-up task below).
+> **Amended 2026-11-09** — post-ship doc reconciliation (final AI review). The
+> original signed-off decision below is kept verbatim as history; the specific
+> lines the shipped code has superseded are struck through with the current fact
+> beside them. What the shipped work changed:
+>
+> - **Help is no longer `job-seeker`-only.** Plan B (role-aware help, commits
+>   `5a8d915`..`e08928a`) serves `job-seeker`, `employer`, and `super-admin`. The
+>   brief is chosen from the server-side role in `server/src/ai/briefs.js`
+>   (`BRIEFS`), gated by `Object.hasOwn(BRIEFS, role)` in `server/src/routes/ai.js:30`
+>   — no `requireRole`.
+> - **The provider layer has a successor ADR:** ADR-041,
+>   `docs/arch/rework/08-ai-provider-and-matching.md` (Plan A, commits
+>   `5cf98ca`..`397a651`). `/api/ai/help` now calls `callChat` from
+>   `server/src/aiProvider.js` and shares its **process-wide 20-calls/60 s budget**
+>   with job-match (a constraint it did not have before; exhaustion → 502
+>   `UPSTREAM_ERROR` for help). Canonical contract is **Addendum F** in
+>   `docs/arch/rework/02-api-contract.md`.
+
+Scope: general "how do I…" help about PESO JobLinked, ~~for the `job-seeker`
+role only.~~ **[superseded 2026-11-09: serves `job-seeker`, `employer`, `super-admin` (`server/src/ai/briefs.js`).]** This is **not** job matching — ~~`AiMatchModal.jsx` stays a separate,
+still-unwired feature (see follow-up task below).~~ **[superseded 2026-11-09: job matching is now real and wired — see ADR-041 (`08-ai-provider-and-matching.md`); help itself stays non-matching.]**
 
 ## Decision
 
@@ -12,8 +30,11 @@ client-side secrets) and role/cost control lives in one place.
 
 - **Transport:** one native `fetch` to OpenRouter's OpenAI-compatible
   `POST {base}/chat/completions`. No SDK, no new dependency anywhere.
-- **Trust boundary:** `auth` + `requireRole('job-seeker')` — both already exist
-  (`server/src/auth.js:61`). Every other role is 403.
+- **Trust boundary:** ~~`auth` + `requireRole('job-seeker')` — both already exist
+  (`server/src/auth.js:61`). Every other role is 403.~~ **[superseded 2026-11-09:
+  the gate is `auth` + an `Object.hasOwn(BRIEFS, role)` check in the handler
+  (`server/src/routes/ai.js:30`), serving `job-seeker`/`employer`/`super-admin`; any
+  other role is still 403, anonymous still 401.]**
 - **No data access:** the endpoint reads no tables and echoes no personal data.
   The prompt is the conversation plus one static help brief.
 - **Rejected:** browser-side provider call (leaks the key); vendor SDK (one POST
@@ -22,8 +43,8 @@ client-side secrets) and role/cost control lives in one place.
 
 ## API contract
 
-`POST /api/ai/help` — see Addendum D in `docs/arch/rework/02-api-contract.md`
-for the canonical shape. Summary: body
+`POST /api/ai/help` — see Addenda **D + F** in `docs/arch/rework/02-api-contract.md`
+for the canonical shape (F supersedes D's role clause; see the Amended note above). Summary: body
 `{ messages: [{ role, content }] }` (last entry `user`), 200 `{ reply }`,
 errors `{ error: { code, message } }` with `400 BAD_REQUEST`,
 `401`/`403`, `429 RATE_LIMITED`, `502 UPSTREAM_ERROR`, `503 AI_NOT_CONFIGURED`.
@@ -40,8 +61,8 @@ booting; that request returns 503 instead.
 Ordered; backend and frontend are independent and may run in parallel against
 this contract.
 
-1. **backend** — `server/src/routes/ai.js` (router, validation, `HELP_BRIEF`
-   const, provider call with 10s `AbortController`), mount in
+1. **backend** — `server/src/routes/ai.js` (router, validation, ~~`HELP_BRIEF`
+   const~~ **[superseded: the brief is now `BRIEFS` in `server/src/ai/briefs.js`]**, provider call with 10s `AbortController`), mount in
    `server/src/index.js`, `aiLimiter` in `server/src/middleware/rateLimit.js`
    keyed `req.user?.id || req.ip` and applied inside the route **after** `auth`.
    Test: `server/src/routes/ai.test.js` (pattern: `reports.export.test.js`).
@@ -59,7 +80,7 @@ No streaming (the shared `lib/api.js` client parses JSON only), no persisted
 chat history (would need a schema change and its own approval), no per-user
 memory, no answers about the seeker's own account data.
 
-## Follow-up (separate task, not this ADR)
+## Follow-up (resolved 2026-11-05 — shipped, no longer a separate task)
 
 Audit whether the browse-jobs AI matching can take the same OpenRouter key.
 **RESOLVED (2026-11-05, plan `2026-11-05-role-aware-help-plan`):** yes — both
@@ -70,7 +91,8 @@ and Addendum F in `docs/arch/rework/02-api-contract.md`.
 
 ## ponytail ceilings
 
-- `HELP_BRIEF` lives in the route file; split into its own module when it
-  outgrows one screen.
+- ~~`HELP_BRIEF` lives in the route file; split into its own module when it
+  outgrows one screen.~~ **[superseded 2026-11-09: the split happened — briefs now
+  live in `server/src/ai/briefs.js` (`BRIEFS`).]**
 - `aiLimiter` uses the existing in-memory store; move to a Redis store if the
   API ever runs multi-instance.
