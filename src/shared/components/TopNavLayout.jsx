@@ -41,7 +41,7 @@ import { cn } from '@/lib/utils'
 export default function TopNavLayout({ role, navItems, profileTo, roleLabel, homeTo, fixedContent = false }) {
   const navigate = useNavigate()
   const { pathname, hash } = useLocation()
-  const { logout, user } = useAuth()
+  const { logout, user, needsProvisioning } = useAuth()
   const isAdmin = role === 'super-admin'
   const label = roleLabel || ROLE_LABELS[role] || 'Workspace'
   const home = homeTo ?? `/${pathname.split('/')[1] || ''}`
@@ -340,7 +340,7 @@ export default function TopNavLayout({ role, navItems, profileTo, roleLabel, hom
         </DialogContent>
       </Dialog>
       {/* Floating help: mounted once here so every portal using this shell gets it. */}
-      {user && <HelpChat />}
+      {user && !needsProvisioning && <HelpChat />}
       {showWarning && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
           <div ref={afkRef} role="dialog" aria-modal="true" aria-labelledby="afk-title" className="mx-4 max-w-sm rounded-lg border border-primary bg-card p-5 shadow-xl">

@@ -111,4 +111,14 @@ describe('Portal shell help widget', () => {
     )
     expect(screen.queryByRole('button', { name: 'Open help chat' })).toBeNull()
   })
+
+  it('hides the help chat for a signed-in but unprovisioned user', () => {
+    useAuth.mockReturnValue({ user: { id: 'u1', full_name: 'Someone' }, needsProvisioning: true, logout: vi.fn() })
+    render(
+      <MemoryRouter initialEntries={['/super-admin']}>
+        <TopNavLayout role="super-admin" />
+      </MemoryRouter>,
+    )
+    expect(screen.queryByRole('button', { name: 'Open help chat' })).toBeNull()
+  })
 })
