@@ -1,5 +1,16 @@
 # Routing & Discoverability Plan (MemoryRouter → real URLs)
 
+> **SUPERSEDED 2026-11-04 — DO NOT EXECUTE AS WRITTEN.** The product owner chose a
+> frozen address bar with working Back/Forward in ADR-036
+> (`docs/arch/adr-036-frozen-url-with-history.md`, Accepted 2026-11-04), which
+> **supersedes ADR-035 (real URLs)**. That decision is already implemented:
+> `src/shared/lib/StaticUrlRouter.jsx`, wired at `src/App.jsx:77`. Steps below that swap
+> `MemoryRouter` → `BrowserRouter` (Task 1, step 3) must not run. Bookmarkable/shareable
+> URLs and URL-dependent SEO need a new ADR first. The SEO-basics items are already
+> shipped (`index.html` meta description + OG tags); re-verified in
+> `plan/2026-11-04-01-system-gap-analysis.md` rows G1 and G16. If you are asked to
+> execute this plan, stop and take it to the Lead Architect for re-scope.
+
 **For agentic workers:** REQUIRED SUB-SKILL: superpowers:subagent-driven-development
 (after Lead Architect signs off; this plan starts with an ADR).
 

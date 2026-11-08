@@ -1,4 +1,15 @@
-﻿1. Employee / Job Seeker Module
+﻿> **Stale-premise banner (added 2026-11-09 by the system gap analysis,
+> `plan/2026-11-04-01-system-gap-analysis.md`).** This checklist is a
+> product-spec artifact, not a status tracker. It still lists features that
+> were removed on purpose (for example "Shortlisted", purged by
+> `db/migrations/004_remove_shortlisted.sql`) and features that already
+> shipped. Live status lives in two places, not here:
+> `docs/arch/gap-matrix.md` (per-feature DONE/PARTIAL/STUB/MISSING with
+> evidence) and `plan/2026-11-04-01-system-gap-analysis.md` (the ordered gap
+> register with severities and the plan that owns each row). Do not open
+> work from this file without checking those two first.
+
+1. Employee / Job Seeker Module
 
     Authentication & Account
 

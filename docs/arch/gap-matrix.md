@@ -8,7 +8,11 @@ Counts = DONE / PARTIAL / STUB / MISSING per module.
 > `src/features/<role>/` + `src/shared/`, and the live schema is `db/schema.sql` + `db/migrations/*`
 > (Supabase is auth-only, ADR-020). Row *statuses* are updated where re-verified below; several
 > *evidence paths* still point at files that no longer exist. See
-> **"Session close-out status (2026-10-16)"** at the bottom for the re-verified list.
+> **"Session close-out status (2026-10-16)"** and the newer
+> **"Re-verification (2026-11-09)"** at the bottom for the re-verified lists.
+>
+> **Current register:** `plan/2026-11-04-01-system-gap-analysis.md` supersedes this matrix as the
+> ordered, severity-ranked gap list. This file stays as the per-feature evidence ledger.
 
 ---
 
@@ -252,4 +256,36 @@ Re-verified against the working tree on 2026-10-16. Each row cites the file:line
 - **Unbounded reads:** `GET /admin/employees`, `GET /admin/referrals`, `GET /applications/job/:jobId`, `GET /applications/company/:companyId`.
 - **"Shortlist" application status** — rendered and counted, but no employer action sets it.
 - **Live-Postgres verification** of `resolveRole` / the `/admin/users` `distinct on` ordering (no DB in this environment; `not null default 'active'` closes the NULL-sort hole on paper only).
-- **Migrations 007–009** may not be applied to any environment; without them the retention purge still cascades through `employment_history` and the pending-unique index is missing.
+- **Migrations 007-009** may not be applied to any environment; without them the retention purge still cascades through `employment_history` and the pending-unique index is missing.
+
+---
+
+## Re-verification (2026-11-09)
+
+Maintenance pass owned by `plan/2026-11-04-01-system-gap-analysis.md` ("Maintenance tasks:
+do here, no code"). Every row below was re-checked against the working tree on 2026-11-09.
+Existing row text above is not rewritten; this section is the authoritative correction.
+
+### Closed since 2026-10-16
+
+| Item | Evidence (2026-11-09) | Notes |
+|---|---|---|
+| Publish fan-out (`notifyMatchingSeekers`) | `server/src/routes/jobs.js:171`; called at `:268` (create), `:305` (patch), `:357` (republish); `server/src/routes/admin.js:653,670` | Daily cap + duplicate guard pinned by `server/src/__tests__/jobs.notify-cap.test.js`, `server/src/__tests__/notify-duplicate-guard.test.js` |
+| "Shortlisted" status removed entirely | `db/migrations/004_remove_shortlisted.sql` (rows moved to `Under Review` at `:22-23`; enum recreated without it) | Supersedes the old "rendered and counted, no action sets it" row. NOTE: `Shortlist` (the employer action) is a different string from `Shortlisted` and is untouched by migration 004 |
+| Admin job edit / publish shipped | `server/src/routes/admin.js:653` (`approved`/`published` patch), `:670` (publish) | Notifications fire on transition; covered by `server/src/routes/admin.jobs.patch.test.js` |
+| Invite flow shipped (ADR-024) | `server/src/routes/admin.js:176` `POST /admin/users/invite` (`inviteUserByEmail` at `:219`, audit at `:247`); UI `src/features/super-admin/UserManagement.jsx` | Tests: `server/src/routes/admin.users.invite.test.js`, `src/features/super-admin/__tests__/UserManagement.invite.test.jsx` |
+| Real URLs vs frozen address bar resolved | ADR-036 "Frozen address bar with working Back/Forward" (Accepted 2026-11-04, supersedes ADR-035); implemented in `src/shared/lib/StaticUrlRouter.jsx`, wired at `src/App.jsx:77` | Product-owner decision. Do NOT re-propose `BrowserRouter`/real URLs without a new ADR |
+| `AiMatchModal` fake-reply component | File removed from `src/` (grep `AiMatchModal` -> 0 hits) | Replaced by the real `/api/ai/job-match` ranking wired into Browse Jobs (2026-11-05 work) |
+| SEO basics (meta description, OG tags) | `index.html:9` description; `:12,14,17` OG tags | — |
+| Two-part backup path (db dump + uploads) | `db/README.md` section 5 (dump/restore procedure); `scripts/backup-uploads.mjs` via `npm run backup:uploads` | Scripted, not yet scheduled; a recorded restore drill is still absent |
+
+### Carried to plan 03 (verify task, not re-stamped here)
+
+- ADR-001 one-liners: recheck per `plan/2026-11-04-03-code-health-plan.md`'s verify task.
+
+### Still open at 2026-11-09
+
+- Register rows G2 (legal copy), G3 (server-side permission enforcement), G7 (employer resume
+  view), G8 (admin seeker depth), G10 (dark mode), G15 (monitoring/alerting) remain open;
+  G14 stays blocked on the official statutory-report template. Statuses and severities live in
+  `plan/2026-11-04-01-system-gap-analysis.md`, not here.

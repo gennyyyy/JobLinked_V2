@@ -60,10 +60,33 @@ signed-off ADRs for every avoided feature. The real gaps are structural
 
 ## Maintenance tasks (do here, no code)
 
-- [ ] Add a stale-premise banner to `to_do.md` pointing at this register and the
+- [x] Add a stale-premise banner to `to_do.md` pointing at this register and the
       gap-matrix (statuses live there, not in to_do.md).
-- [ ] Re-stamp `docs/arch/gap-matrix.md` with a "re-verified 2026-11-04" note on
+- [x] Re-stamp `docs/arch/gap-matrix.md` with a "re-verified 2026-11-04" note on
       the already-closed rows: publish fan-out (`notifyMatchingSeekers` exists in
       `server/src/routes/jobs.js`), Shortlisted removed entirely (migration 004),
       admin job edit/publish shipped, invite flow shipped, ADR-001 one-liners
       rechecked (03 has the verify task).
+      *(both boxes done 2026-11-09; the gap-matrix re-stamp landed as a new
+      "Re-verification (2026-11-09)" section, and ADR-001 one-liners stay with
+      plan 03)*
+
+## Row status re-verified 2026-11-09 (read before executing plans 02-06)
+
+Each row below was re-checked against the working tree on 2026-11-09. Rows not
+listed are unchanged from the register above.
+
+| ID | Status 2026-11-09 | Evidence / consequence |
+|---|---|---|
+| G1 | **SUPERSEDED — do not implement plan 02 as written.** The address bar is frozen **by product-owner decision**: ADR-036 "Frozen address bar with working Back/Forward" (Accepted 2026-11-04) **supersedes ADR-035** (real URLs). Implemented in `src/shared/lib/StaticUrlRouter.jsx`, wired at `src/App.jsx:77`; Back/Forward work without URL changes, bookmarkability was knowingly traded away. Bookmarkable URLs need a new ADR first | `docs/arch/adr-036-frozen-url-with-history.md` |
+| G5 | **CLOSED** | Two-part backup path documented: `db/README.md` §5 (dump + restore) and `scripts/backup-uploads.mjs` (`npm run backup:uploads`, ADR-040). Remaining nuance: scripted, not scheduled; no recorded restore drill |
+| G6 | **PARTIAL** (still open, narrowed) | Evidence harnesses exist: `server/scripts/verify-live.mjs`, `verify-browser.mjs`, `verify-files.mjs`, `docs/arch/testing/` campaign records. Still no real-Postgres test suite (the pool-resilience test exercises the real `pg.Pool` object but connects to nothing) |
+| G9 | **CLOSED** | `AiMatchModal` deleted from `src/` (0 grep hits); replaced by the real `/api/ai/job-match` ranking in Browse Jobs |
+| G11 | **PARTIAL** | Seekers: `src/features/job-seeker/Profile.jsx` 730 → ~412 lines (split). Not yet: `src/features/employer/JobPosts.jsx` still ~1090 lines; `server/src/routes/admin.js` still ~681 lines with notifications inside (ADR-026 unimplemented) |
+| G12 | **PARTIAL** (corrected) | `ApplicantsShell` chain is gone; `SiteHeader`/`SiteFooter`/`AccountMenu` remain with **zero importers outside their own files/tests**; sonner dep still mounted with **zero `toast()` calls**. Correction: `NotificationBell` is **live** (`src/shared/components/TopNavLayout.jsx` imports it) — it is not dead |
+| G13 | **PARTIAL** | Admin dashboard now shows an "Active vacancies" tile and placement count (`src/features/super-admin/Dashboard.jsx:54,71,78`). "Request additional documents" and the ADR-000 approval rows remain as described |
+| G16 | **CLOSED** | `index.html:9` meta description + `:12,14,17` OG tags present. SEO value beyond that is bounded by the G1 decision |
+
+Open and unchanged: G2 (legal copy), G3 (no server-side permission enforcement; bundles are
+validated in `server/src/routes/admin.js` but never checked at request time), G4 (decided by
+ADR-037/ADR-038 — single persistent node), G7, G8, G10, G14 (blocked on template), G15, G17.
