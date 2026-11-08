@@ -5,7 +5,6 @@ import ProtectedRoute from './shared/components/ProtectedRoute'
 import LoadingScreen from './shared/components/LoadingScreen'
 import ErrorBoundary from './shared/components/ErrorBoundary'
 import useAuth from './shared/hooks/useAuth'
-import { Toaster } from './components/ui/sonner'
 
 import { lazyRoute, routeLoaders } from './shared/lib/routeLoaders'
 import usePageTitle from './shared/lib/usePageTitle'
@@ -77,7 +76,6 @@ function App() {
       <StaticUrlRouter entry={entryPath}>
         <PageTitle />
         <Suspense fallback={<LoadingScreen />}>
-          <Toaster position="top-center" />
           <Routes>
             <Route path="/" element={<PublicRoute><Landing /></PublicRoute>} />
             <Route path="/jobs" element={<PublicRoute><PublicJobs /></PublicRoute>} />
