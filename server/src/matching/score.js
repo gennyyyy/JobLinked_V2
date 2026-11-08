@@ -9,9 +9,16 @@ const WEIGHTS = { skills: 0.55, barangay: 0.2, position: 0.1, recency: 0.15 };
 const REASON_POOL = 30;
 const MAX_REASON_CHARS = 200;
 
-// Reasons are plain text: normalized, capped, and safe to render verbatim.
-// Exported so the 200-char contract is testable without a contrived job row.
-export const capReason = (text) => normalize(text).slice(0, MAX_REASON_CHARS).trim();
+// Reasons are untrusted text (model output included): control characters are
+// dropped before the whitespace normalize. Char-code filter instead of a
+// control-char regex keeps eslint's no-control-regex rule honest.
+const printable = (text) =>
+  Array.from(String(text), (ch) => (ch.charCodeAt(0) < 32 || ch.charCodeAt(0) === 127 ? ' ' : ch)).join('');
+
+// The one reason sanitizer: normalize, strip control characters, cap. Exported
+// (and reused by the aiMatch route) so the contract is testable without a
+// contrived job row.
+export const capReason = (text) => normalize(printable(text)).slice(0, MAX_REASON_CHARS).trim();
 
 const words = (text) => normalize(text).toLowerCase().split(/[^a-z0-9]+/).filter(Boolean);
 

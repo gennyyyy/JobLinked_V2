@@ -28,6 +28,9 @@ vi.mock('../auth.js', () => ({
 }));
 
 const { default: aiRoutes } = await import('./ai.js');
+// Same shared provider module the route calls through: its 20-calls/60s budget
+// is process-wide, so every suite that can reach the provider resets it.
+const { providerCallBudget } = await import('../aiProvider.js');
 
 const KEY = 'sk-test-secret-key-abc123';
 const LEAK = 'provider-raw-error-body';
@@ -54,6 +57,7 @@ beforeAll(async () => {
 afterAll(() => new Promise((resolve) => server.close(resolve)));
 beforeEach(() => {
   mocks.role = 'job-seeker';
+  providerCallBudget.reset();
   // A fresh id per request keeps the real aiLimiter bucket (20/15min) out of
   // the way, so tests never fail because a sibling test spent the budget.
   mocks.id = `user-${++seq}`;
@@ -105,6 +109,34 @@ describe('POST /api/ai/help', () => {
     expect(sent.messages[0].role).toBe('system');
     expect(sent.messages[0].content).toContain(SEEKER_BRIEF);
     expect(sent.messages.slice(1)).toEqual(messages);
+  });
+
+  // The provider budget (20 calls / 60s) is process-wide and shared with every
+  // other suite that reaches the provider. Spending it here proves the
+  // beforeEach reset above works: without it, the specs below would silently
+  // start answering 502 UPSTREAM_ERROR instead of 200.
+  it('recovers from an exhausted provider budget once the reset runs', async () => {
+    mocks.fetch.mockResolvedValue(okReply('Fine.'));
+
+    for (let i = 0; i < 20; i += 1) {
+      // A fresh key per call keeps the real aiLimiter (20/15min) out of the
+      // way; only the provider budget is meant to be exhausted here.
+      mocks.id = `budget-${i}`;
+      const { status } = await post({ messages: [{ role: 'user', content: `question ${i}` }] });
+      expect(status).toBe(200);
+    }
+    expect(mocks.fetch).toHaveBeenCalledTimes(20);
+
+    const starved = await post({ messages: [{ role: 'user', content: 'one more' }] });
+    expect(starved.status).toBe(502);
+    expect(starved.body.error.code).toBe('UPSTREAM_ERROR');
+    expect(mocks.fetch).toHaveBeenCalledTimes(20);
+
+    providerCallBudget.reset();
+    const recovered = await post({ messages: [{ role: 'user', content: 'and again' }] });
+    expect(recovered.status).toBe(200);
+    expect(recovered.body).toEqual({ reply: 'Fine.' });
+    expect(mocks.fetch).toHaveBeenCalledTimes(21);
   });
 
   it('serves an employer with the employer brief', async () => {

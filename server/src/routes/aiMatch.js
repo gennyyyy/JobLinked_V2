@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { auth, requireRole } from '../auth.js';
 import { jobMatchLimiter } from '../middleware/rateLimit.js';
 import { callChat, isConfigured, normalize, resolveConfig } from '../aiProvider.js';
-import { rankPool } from '../matching/score.js';
+import { rankPool, capReason } from '../matching/score.js';
 import * as matchCache from '../matching/matchCache.js';
 import { pool } from '../db.js';
 import { ah, err, isUuid } from '../util.js';
@@ -10,7 +10,6 @@ import { ah, err, isUuid } from '../util.js';
 const MAX_PROMPT_CHARS = 500;
 const MAX_CANDIDATES = 200;
 const MAX_MODEL_RANK = 30;
-const MAX_REASON_CHARS = 200;
 const DESCRIPTION_EXCERPT_CHARS = 300;
 const TIMEOUT_MS = 8_000;
 
@@ -43,13 +42,6 @@ const publicJob = (job) => ({
   description: normalize(job.description).slice(0, DESCRIPTION_EXCERPT_CHARS),
 });
 
-// Model reasons are untrusted text: normalize, strip control characters, and
-// cap before they can reach a card (or the cache). Char-code filter instead of
-// a control-char regex keeps eslint's no-control-regex rule honest.
-const printable = (text) =>
-  Array.from(String(text), (ch) => (ch.charCodeAt(0) < 32 || ch.charCodeAt(0) === 127 ? ' ' : ch)).join('');
-const cleanReason = (text) => normalize(printable(text)).slice(0, MAX_REASON_CHARS).trim();
-
 const unfence = (reply) => {
   const text = String(reply ?? '').trim();
   const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/i);
@@ -77,7 +69,7 @@ function parseModelRanking(reply, jobs, deterministicOrder) {
     if (!entry || typeof entry !== 'object' || typeof entry.reason !== 'string') continue;
     const jobId = String(entry.jobId ?? '');
     if (!live.has(jobId) || seen.has(jobId)) continue;
-    const reason = cleanReason(entry.reason);
+    const reason = capReason(entry.reason);
     if (!reason) continue;
     seen.add(jobId);
     reasons.push({ jobId, reason });

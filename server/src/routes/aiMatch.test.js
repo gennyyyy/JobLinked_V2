@@ -26,6 +26,9 @@ const { default: aiMatchRoutes } = await import('./aiMatch.js');
 const { pool } = await import('../db.js');
 const { _reset } = await import('../matching/matchCache.js');
 const { rankPool } = await import('../matching/score.js');
+// Same shared provider module the route calls through: its 20-calls/60s budget
+// is process-wide, so every suite that can reach the provider resets it.
+const { providerCallBudget } = await import('../aiProvider.js');
 
 const KEY = 'sk-test-secret-key-abc123';
 let base;
@@ -89,6 +92,7 @@ afterAll(() => new Promise((resolve) => server.close(resolve)));
 beforeEach(() => {
   mocks.role = 'job-seeker';
   mocks.userId = `seeker-${++seq}`;
+  providerCallBudget.reset();
   mocks.fetch.mockReset();
   vi.stubGlobal('fetch', mocks.fetch);
   delete process.env.OPENROUTER_API_KEY;
@@ -175,6 +179,36 @@ describe('POST /api/ai/job-match', () => {
       expect(response.body.reasons).toEqual(expected.reasons);
     }
     expect(mocks.fetch).toHaveBeenCalledTimes(3);
+  });
+
+  // The provider budget (20 calls / 60s) is process-wide and shared with every
+  // other suite that reaches the provider. Spending it here proves the
+  // beforeEach reset above works: without it, the specs below would silently
+  // flip to a budget failure and answer deterministic instead of ai.
+  it('recovers from an exhausted provider budget once the reset runs', async () => {
+    configureProvider();
+    mocks.fetch.mockResolvedValue(fenced([{ jobId: uuid(1), reason: 'Best fit' }]));
+
+    for (let i = 0; i < 20; i += 1) {
+      const { status, body } = await post(requestBody(`welder run ${i}`));
+      expect(status).toBe(200);
+      expect(body.mode).toBe('ai');
+    }
+    expect(mocks.fetch).toHaveBeenCalledTimes(20);
+
+    // A spent budget is never an error: the deterministic answer still covers
+    // every live candidate.
+    const starved = await post(requestBody('welder run starved'));
+    expect(starved.status).toBe(200);
+    expect(starved.body.mode).toBe('deterministic');
+    expect(starved.body.ranking).toEqual(rankPool(jobRows, profileRows[0]).order);
+    expect(mocks.fetch).toHaveBeenCalledTimes(20);
+
+    providerCallBudget.reset();
+    const recovered = await post(requestBody('welder run recovered'));
+    expect(recovered.status).toBe(200);
+    expect(recovered.body.mode).toBe('ai');
+    expect(mocks.fetch).toHaveBeenCalledTimes(21);
   });
 
   it('falls back to deterministic on unparseable provider output', async () => {
