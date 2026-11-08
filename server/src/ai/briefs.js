@@ -1,5 +1,3 @@
-// System brief per role for the in-app AI help assistant (consumed by routes/ai.js).
-// Shared guard line: the model cannot see account data, so it must never claim to look anything up.
 export const BRIEFS = {
   'job-seeker': `You are the in-app help assistant for PESO JobLinked, a job-matching site run by PESO Santa Maria.
 
