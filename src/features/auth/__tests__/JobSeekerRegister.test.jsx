@@ -13,6 +13,34 @@ vi.mock('../../../shared/lib/resumeText', () => ({
   extractResumeText: vi.fn(),
 }))
 
+// Mutable site key: '' (the default) keeps every non-captcha test on today's
+// behavior; 'site-key' makes useCaptcha().required true. The widget itself is
+// replaced by a button that hands the form a token.
+const captcha = vi.hoisted(() => ({ siteKey: '' }))
+
+vi.mock('../../../shared/lib/turnstile', () => ({
+  get TURNSTILE_SITE_KEY() { return captcha.siteKey },
+  loadTurnstile: vi.fn(),
+  renderTurnstile: vi.fn(),
+  resetTurnstile: vi.fn(),
+  removeTurnstile: vi.fn(),
+}))
+
+vi.mock('../../../shared/components/Turnstile', async () => {
+  const { createElement } = await import('react')
+  return {
+    default: ({ onToken }) => createElement(
+      'button',
+      { type: 'button', onClick: () => onToken('captcha-token') },
+      'solve captcha',
+    ),
+  }
+})
+
+beforeEach(() => {
+  captcha.siteKey = ''
+})
+
 const TEXT = `Juan Dela Cruz
 Email: juan.delacruz@example.com
 Mobile: 09171234567
@@ -319,5 +347,51 @@ describe('JobSeekerRegister autofill', () => {
 
     await waitFor(() => expect(screen.getByText(/postal code must be 4 digits/i)).toBeInTheDocument())
     expect(signUp).not.toHaveBeenCalled()
+  })
+})
+
+describe('JobSeekerRegister captcha', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    captcha.siteKey = 'site-key'
+  })
+
+  it('blocks registration until the challenge is solved', async () => {
+    renderPage()
+    fillRequired()
+    fireEvent.click(screen.getByRole('button', { name: /create account/i }))
+
+    expect(await screen.findByText('Please complete the verification challenge.')).toBeInTheDocument()
+    expect(signUp).not.toHaveBeenCalled()
+  })
+
+  it('sends the solved token and keeps the email-confirmation screen', async () => {
+    signUp.mockResolvedValue({ id: 'seeker-1', email: 'juan@example.com', emailConfirmationRequired: true })
+    renderPage()
+    fillRequired()
+    fireEvent.click(screen.getByRole('button', { name: /solve captcha/i }))
+    fireEvent.click(screen.getByRole('button', { name: /create account/i }))
+
+    await waitFor(() => expect(signUp).toHaveBeenCalled())
+    expect(signUp.mock.calls[0][0].captchaToken).toBe('captcha-token')
+    expect(await screen.findByText(/check your email/i)).toBeInTheDocument()
+    expect(screen.getByText(/verification link to juan@example.com/i)).toBeInTheDocument()
+  })
+
+  it('requires a fresh challenge after a failed registration', async () => {
+    signUp.mockRejectedValueOnce(new Error('Registration failed — please try again'))
+    renderPage()
+    fillRequired()
+    fireEvent.click(screen.getByRole('button', { name: /solve captcha/i }))
+    fireEvent.click(screen.getByRole('button', { name: /create account/i }))
+
+    expect(await screen.findByText(/registration failed/i)).toBeInTheDocument()
+    expect(signUp).toHaveBeenCalledTimes(1)
+    expect(signUp.mock.calls[0][0].captchaToken).toBe('captcha-token')
+
+    // The token is single-use: a retry without a fresh challenge is blocked.
+    fireEvent.click(screen.getByRole('button', { name: /create account/i }))
+    expect(await screen.findByText('Please complete the verification challenge.')).toBeInTheDocument()
+    expect(signUp).toHaveBeenCalledTimes(1)
   })
 })

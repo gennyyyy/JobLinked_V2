@@ -2,8 +2,10 @@ import { Button } from "@/components/ui/button";
 import { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { signUp } from "@/shared/services/auth";
+import useCaptcha from "@/shared/hooks/useCaptcha";
 import TermsModal from "@/shared/components/TermsModal";
 import SkipLink from "@/shared/components/SkipLink";
+import Turnstile from "@/shared/components/Turnstile";
 import PublicShell from "@/shared/components/PublicShell";
 import JobSeekerRegisterSuccess from "./JobSeekerRegisterSuccess";
 import JobSeekerPersonalStep from "./JobSeekerPersonalStep";
@@ -32,6 +34,7 @@ function JobSeekerRegister() {
   const [busy, setBusy] = useState(false);
   const [termsOpen, setTermsOpen] = useState(false);
   const [termsRead, setTermsRead] = useState(false);
+  const captcha = useCaptcha();
   const formRef = useRef(null);
   const navigate = useNavigate();
   useEffect(() => {
@@ -59,14 +62,19 @@ function JobSeekerRegister() {
     }
     setErrors({});
     setEduError("");
+    if (captcha.required && !captcha.token) {
+      setError("Please complete the verification challenge.");
+      return;
+    }
     setBusy(true);
     setError("");
     try {
-      const account = await signUp(buildJobSeekerSignUpPayload(form, education));
+      const account = await signUp({ ...buildJobSeekerSignUpPayload(form, education), captchaToken: captcha.token });
       setNeedsConfirmation(!!account.emailConfirmationRequired);
       setSubmittedEmail(account.email);
       setSubmitted(true);
     } catch (err) {
+      captcha.reset(); // single-use token: the next attempt needs a fresh one
       setError(err.message || "Registration failed. Please try again.");
     } finally {
       setBusy(false);
@@ -162,6 +170,8 @@ function JobSeekerRegister() {
             {error && (
               <div role="alert" className="p-3.5 rounded-xl bg-danger/10 border border-danger/20 text-danger text-xs font-medium">{error}</div>
             )}
+
+            {captcha.required && <Turnstile onToken={captcha.setToken} resetKey={captcha.round} />}
 
             <Button
               type="submit"

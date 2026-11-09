@@ -4,8 +4,10 @@ import { Label } from "@/components/ui/label";
 import { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { signUp } from "@/shared/services/auth";
+import useCaptcha from "@/shared/hooks/useCaptcha";
 import TermsModal from "@/shared/components/TermsModal";
 import SkipLink from "@/shared/components/SkipLink";
+import Turnstile from "@/shared/components/Turnstile";
 import PublicShell from "@/shared/components/PublicShell";
 import EmployerRegisterSuccess from "./EmployerRegisterSuccess";
 import EmployerCompanyStep from "./EmployerCompanyStep";
@@ -21,6 +23,7 @@ function EmployerRegister() {
   const [termsOpen, setTermsOpen] = useState(false);
   const [termsRead, setTermsRead] = useState(false);
   const [agree, setAgree] = useState(false);
+  const captcha = useCaptcha();
   const formRef = useRef(null);
   const navigate = useNavigate();
   useEffect(() => {
@@ -42,10 +45,14 @@ function EmployerRegister() {
       return;
     }
     setErrors({});
+    if (captcha.required && !captcha.token) {
+      setError("Please complete the verification challenge.");
+      return;
+    }
     setBusy(true);
     setError("");
     try {
-      const account = await signUp(buildEmployerSignUpPayload(values));
+      const account = await signUp({ ...buildEmployerSignUpPayload(values), captchaToken: captcha.token });
 
       if (account.emailConfirmationRequired) {
         setNeedsConfirmation(true);
@@ -55,6 +62,7 @@ function EmployerRegister() {
 
       setSubmitted(true);
     } catch (err) {
+      captcha.reset(); // single-use token: the next attempt needs a fresh one
       setError(err.message || "Registration failed. Please try again.");
     } finally {
       setBusy(false);
@@ -143,6 +151,8 @@ function EmployerRegister() {
                 {errors.agree && <p className="text-danger text-xs mt-1">{errors.agree}</p>}
               </div>
             </div>
+
+            {captcha.required && <Turnstile onToken={captcha.setToken} resetKey={captcha.round} />}
 
             <Button
               type="submit"
