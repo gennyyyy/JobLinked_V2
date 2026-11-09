@@ -7,6 +7,7 @@ import jobsRoutes from './routes/jobs.js';
 import applicationsRoutes from './routes/applications.js';
 import profilesRoutes from './routes/profiles.js';
 import adminRoutes from './routes/admin.js';
+import notificationsRoutes from './routes/notifications.js';
 import reportsRoutes from './routes/reports.js';
 import aiRoutes from './routes/ai.js';
 import aiMatchRoutes from './routes/aiMatch.js';
@@ -101,7 +102,7 @@ export function createApp() {
   // under a 900 KB-body flood from one client. Limiters key on headers/path
   // only (attachPrincipal reads Authorization), so nothing above needs a body.
   app.use(express.json({ limit: '1mb' }));
-  app.use('/api', authRoutes, jobsRoutes, applicationsRoutes, profilesRoutes, adminRoutes, reportsRoutes, aiRoutes, aiMatchRoutes);
+  app.use('/api', authRoutes, jobsRoutes, applicationsRoutes, profilesRoutes, adminRoutes, notificationsRoutes, reportsRoutes, aiRoutes, aiMatchRoutes);
 
   app.use('/api', (_req, res) => err(res, 404, 'NOT_FOUND', 'Route not found'));
   // eslint-disable-next-line no-unused-vars

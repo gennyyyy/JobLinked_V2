@@ -7,11 +7,11 @@ import { describe, it, expect, vi, beforeAll, afterAll, beforeEach } from 'vites
 // row (user_id from token, never params). Reads source text so no DB/auth
 // env is needed.
 const srv = (p) => readFileSync(path.join(process.cwd(), 'server', p), 'utf8');
-const adminSrc = srv('src/routes/admin.js');
+const notifSrc = srv('src/routes/notifications.js');
 
-const delStart = adminSrc.indexOf("router.delete('/notifications/:id'");
-const delNext = adminSrc.indexOf('router.', delStart + 1);
-const del = adminSrc.slice(delStart, delNext === -1 ? undefined : delNext);
+const delStart = notifSrc.indexOf("router.delete('/notifications/:id'");
+const delNext = notifSrc.indexOf('router.', delStart + 1);
+const del = notifSrc.slice(delStart, delNext === -1 ? undefined : delNext);
 
 describe('notifications delete', () => {
   it('deletes the own notification and returns { deleted: true }', () => {
@@ -47,13 +47,13 @@ vi.mock('../auth.js', () => ({
 }));
 
 process.env.RETENTION_DISABLE = '1';
-const { default: adminRoutes } = await import('./admin.js');
+const { default: notificationRoutes } = await import('./notifications.js');
 
 let base;
 let server;
 beforeAll(async () => {
   const app = express();
-  app.use('/api', adminRoutes);
+  app.use('/api', notificationRoutes);
   await new Promise((resolve) => { server = app.listen(0, '127.0.0.1', resolve); });
   base = `http://127.0.0.1:${server.address().port}/api`;
 });
