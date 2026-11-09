@@ -23,6 +23,8 @@ Via psql:
 ```sh
 psql -U postgres -h localhost -d joblinked -f db/schema.sql
 psql -U postgres -h localhost -d joblinked -f db/seed.sql
+# dev-only fixture accounts/vacancy for the browser smoke (npm run smoke):
+psql -U postgres -h localhost -d joblinked -f db/seed-dev.sql
 ```
 
 Or in pgAdmin4: open the Query Tool on `joblinked`, paste each file, Execute (F5).

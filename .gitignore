@@ -15,6 +15,7 @@ backups/
 dist
 dist-ssr
 .bench-dist
+coverage
 *.local
 *.local.json
 
