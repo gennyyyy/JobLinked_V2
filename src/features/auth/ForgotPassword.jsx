@@ -5,6 +5,8 @@ import { Button } from '@/components/ui/button'
 import { FieldGroup, Field, FieldLabel } from '@/components/ui/field'
 import { InputGroup, InputGroupInput } from '@/components/ui/input-group'
 import { resetPassword } from '@/shared/services/auth'
+import useCaptcha from '@/shared/hooks/useCaptcha'
+import Turnstile from '@/shared/components/Turnstile'
 import PublicShell from '@/shared/components/PublicShell'
 import AuthFrame from './AuthFrame'
 
@@ -13,6 +15,7 @@ export default function ForgotPassword() {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
   const [busy, setBusy] = useState(false)
+  const captcha = useCaptcha()
 
   async function handleSubmit(event) {
     event.preventDefault()
@@ -22,11 +25,16 @@ export default function ForgotPassword() {
       setError('Please enter your email address')
       return
     }
+    if (captcha.required && !captcha.token) {
+      setError('Please complete the verification challenge.')
+      return
+    }
     setBusy(true)
     try {
-      await resetPassword(email.trim())
+      await resetPassword(email.trim(), captcha.token)
       setSuccess(true)
     } catch (err) {
+      captcha.reset() // single-use token: the next attempt needs a fresh one
       setError(err.message || 'Could not send reset link. Please try again.')
     } finally {
       setBusy(false)
@@ -59,6 +67,7 @@ export default function ForgotPassword() {
               Check your email for reset instructions
             </p>
           )}
+          {captcha.required && <Turnstile onToken={captcha.setToken} resetKey={captcha.round} />}
           <Button type="submit" disabled={busy}>
             {busy ? <Loader2 data-icon="inline-start" className="animate-spin" /> : null}
             {busy ? 'Sending…' : 'Send Reset Link'}
