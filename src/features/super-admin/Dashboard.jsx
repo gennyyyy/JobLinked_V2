@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ArrowRight, BriefcaseBusiness, Building2, ChartNoAxesCombined, ClipboardCheck, Handshake, ShieldCheck, Users } from 'lucide-react'
+import { ArrowRight, BriefcaseBusiness, Building2, ChartNoAxesCombined, CheckCircle2, ClipboardCheck, Handshake, ShieldCheck, Users } from 'lucide-react'
 import { getStats, listAllAccreditations, listAllApplications, listAuditLogs } from '@/shared/services/admin'
 import { PageSkeleton } from '@/shared/components/Skeletons'
 import { InlineError } from '@/shared/components/dashboard'
@@ -68,14 +68,17 @@ export default function Dashboard() {
           { label: 'Registered job seekers', value: stats.seekers ?? 0, icon: Users },
           { label: 'Local employers', value: stats.employers ?? 0, icon: Building2 },
           { label: 'Pending accreditations', value: stats.pendingAccreditations ?? 0, icon: ShieldCheck, note: 'submissions awaiting review', tone: 'teal' },
-          { label: 'Active vacancies', value: stats.approvedJobs ?? stats.jobs ?? 0, icon: BriefcaseBusiness, tone: 'teal' },
+          { label: 'Active vacancies', value: stats.ACTIVE_VACANCIES ?? stats.approvedJobs ?? stats.jobs ?? 0, icon: BriefcaseBusiness, tone: 'teal' },
         ]}
       />
-      <div className="mb-6 grid gap-4 sm:grid-cols-3">
+      <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {[
           { label: 'applications', value: stats.applications ?? 0, icon: ClipboardCheck },
+          { label: 'accepted', value: stats.ACCEPTED_TOTAL ?? stats.acceptedApplicants ?? 0, icon: CheckCircle2 },
           { label: 'Recorded referrals', value: applications.filter((application) => application.referred_by).length, icon: Handshake },
-          ...(stats.placedApplicants !== undefined ? [{ label: 'placements', value: stats.placedApplicants, icon: Users }] : []),
+          ...(stats.PLACED_TOTAL !== undefined || stats.placedApplicants !== undefined
+            ? [{ label: 'placements', value: stats.PLACED_TOTAL ?? stats.placedApplicants, icon: Users }]
+            : []),
         ].map(({ label, value, icon: Icon }) => (
           <div key={label} className="flex items-center gap-4 rounded-xl border bg-card px-5 py-4">
             <span className="teal-icon"><Icon className="size-5" /></span>

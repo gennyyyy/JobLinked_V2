@@ -1,3 +1,4 @@
+// Split-on-touch: when a feature next edits this file beyond one screen, split along that feature's boundary instead of extending the monolith.
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";

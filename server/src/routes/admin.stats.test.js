@@ -42,7 +42,7 @@ const STATS_ROWS = [
   { c: 3 },                                              // pendingAccreditations
   { c: 7 },                                              // unreadNotifications
   { employers: 18, accredited: 9 },                      // employers / accreditedEmployers
-  { jobs: 52, pending: 5, approved: 8, closed: 4, expired: 11 }, // jobs / pendingJobs / approvedJobs / closedJobs / expiredJobs
+  { jobs: 52, pending: 5, approved: 8, published: 4, closed: 4, expired: 11 }, // jobs / pendingJobs / approvedJobs / ACTIVE_VACANCIES / closedJobs / expiredJobs
   { applications: 133, accepted: 21, placed: 6 },        // applications / acceptedApplicants / placedApplicants
 ];
 
@@ -74,6 +74,7 @@ describe('GET /admin/stats — response contract', () => {
       'seekers', 'employers', 'companies', 'jobs', 'applications', 'pendingAccreditations',
       'unreadNotifications', 'pendingJobs', 'approvedJobs', 'closedJobs', 'expiredJobs',
       'acceptedApplicants', 'placedApplicants', 'accreditedEmployers',
+      'ACTIVE_VACANCIES', 'ACCEPTED_TOTAL', 'PLACED_TOTAL',
     ]);
     expect(body).toEqual({
       seekers: 41,
@@ -90,6 +91,9 @@ describe('GET /admin/stats — response contract', () => {
       acceptedApplicants: 21,
       placedApplicants: 6,
       accreditedEmployers: 9,
+      ACTIVE_VACANCIES: 4,
+      ACCEPTED_TOTAL: 21,
+      PLACED_TOTAL: 6,
     });
   });
 
@@ -104,6 +108,7 @@ describe('GET /admin/stats — response contract', () => {
     expect(calls[4]).toContain('from job_vacancies');
     expect(calls[4]).toContain("count(*) filter (where status = 'pending')");
     expect(calls[4]).toContain("count(*) filter (where status = 'approved')");
+    expect(calls[4]).toContain("count(*) filter (where status = 'published')");
     expect(calls[4]).toContain("count(*) filter (where status = 'closed')");
     expect(calls[4]).toContain("count(*) filter (where deadline < current_date and status not in ('closed','archived'))");
     // job_applications: total + Accepted + Placed in one pass.
@@ -143,6 +148,7 @@ describe('GET /admin/stats — response contract', () => {
     expect(body.jobs).toBe(11);
     expect(body.pendingJobs).toBe(2);
     expect(body.approvedJobs).toBe(3);
+    expect(body.ACTIVE_VACANCIES).toBe(4); // published rows, not the legacy approved ones
     expect(body.closedJobs).toBe(1);
     expect(body.expiredJobs).toBe(2);
   });

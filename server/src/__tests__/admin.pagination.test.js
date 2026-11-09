@@ -89,14 +89,16 @@ describe('C2 — admin list endpoints are paginated', () => {
 
   it('GET /admin/accreditations returns the envelope with embeds', async () => {
     on(/select count\(\*\)::int c from employer_accreditations a left join employers/, () => ({ rows: [{ c: 6 }] }));
-    on(/e as employers/, () => ({ rows: [{ id: 'acc-1', status: 'pending', employers: { company_name: 'Acme' }, decided_by: { full_name: 'Boss' } }] }));
+    on(/to_jsonb\(e\) as employers/, () => ({ rows: [{ id: 'acc-1', status: 'pending', employers: { company_name: 'Acme' }, decided_by: { full_name: 'Boss' } }] }));
     const res = await adminGet('/admin/accreditations');
     expect(res.status).toBe(200);
     expect(res.body).toEqual({
       data: [{ id: 'acc-1', status: 'pending', employers: { company_name: 'Acme' }, decided_by: { full_name: 'Boss' } }],
       total: 6, page: 1, pageSize: 25,
     });
-    expect(callsOf(/e as employers/)[0].sql).toMatch(/order by a\.submitted_at desc limit \$\d+ offset \$\d+/);
+    // to_jsonb(e): a whole-row composite comes back from pg as raw record text,
+    // so the embed must be built in SQL (see the route comment).
+    expect(callsOf(/to_jsonb\(e\) as employers/)[0].sql).toMatch(/order by a\.submitted_at desc limit \$\d+ offset \$\d+/);
   });
 
   it('page past the end → empty data, true total, OFFSET past the rows', async () => {

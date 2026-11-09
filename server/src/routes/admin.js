@@ -26,6 +26,7 @@ router.get('/admin/stats', ...admin, ah(async (req, res) => {
     pool.query(`select count(*)::int jobs,
         count(*) filter (where status = 'pending')::int pending,
         count(*) filter (where status = 'approved')::int approved,
+        count(*) filter (where status = 'published')::int published,
         count(*) filter (where status = 'closed')::int closed,
         count(*) filter (where deadline < current_date and status not in ('closed','archived'))::int expired
       from job_vacancies`),
@@ -38,11 +39,17 @@ router.get('/admin/stats', ...admin, ah(async (req, res) => {
   const pendingAccreditations = p.rows[0].c;
   const unreadNotifications = u.rows[0].c;
   const { employers, accredited: accreditedEmployers } = e.rows[0];
-  const { jobs, pending: pendingJobs, approved: approvedJobs, closed: closedJobs, expired: expiredJobs } = j.rows[0];
+  const { jobs, pending: pendingJobs, approved: approvedJobs, published: activeVacancies, closed: closedJobs, expired: expiredJobs } = j.rows[0];
   const { applications, accepted: acceptedApplicants, placed: placedApplicants } = a.rows[0];
+  // ACTIVE_VACANCIES / ACCEPTED_TOTAL / PLACED_TOTAL are the dashboard's
+  // report-only counters (plan Phase C Step 5). ACTIVE_VACANCIES counts
+  // `published` — employers publish directly (ADR-000); `approvedJobs` is the
+  // legacy PESO-review counter and stays for older clients. The two totals
+  // alias the camelCase keys above.
   res.json({ seekers, employers, companies: employers, jobs, applications, pendingAccreditations, unreadNotifications,
     pendingJobs, approvedJobs, closedJobs, expiredJobs,
-    acceptedApplicants, placedApplicants, accreditedEmployers });
+    acceptedApplicants, placedApplicants, accreditedEmployers,
+    ACTIVE_VACANCIES: activeVacancies, ACCEPTED_TOTAL: acceptedApplicants, PLACED_TOTAL: placedApplicants });
 }));
 
 router.get('/admin/companies', ...admin, ah(async (req, res) => {
@@ -117,8 +124,12 @@ router.get('/admin/accreditations', ...admin, ah(async (req, res) => {
   const base = `from employer_accreditations a left join employers e on e.id = a.company_id
       left join super_admins s on s.id = a.decided_by`;
   const total = (await pool.query(`select count(*)::int c ${base}`)).rows[0].c;
+  // to_jsonb, not `e as employers`: pg returns a whole-row composite column as
+  // the raw record TEXT ('(...)'), so the admin UI got a string instead of the
+  // employer object and every row rendered nameless (company_name undefined).
+  // Same shape resolveRole already relies on for its profile embeds.
   const { rows } = await pool.query(
-    `select a.*, e as employers, json_build_object('full_name', s.full_name) as decided_by ${base}
+    `select a.*, to_jsonb(e) as employers, json_build_object('full_name', s.full_name) as decided_by ${base}
      order by a.submitted_at desc limit $1 offset $2`, [pg.pageSize, (pg.page - 1) * pg.pageSize]);
   res.json({ data: rows, total, page: pg.page, pageSize: pg.pageSize });
 }));

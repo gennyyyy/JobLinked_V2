@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent, within, waitFor } from '@testing-library/react'
 import Applicants from '../Applicants'
 import { listByCompany, updateApplicationStatus } from '../../../shared/services/applications'
+import { signedUrl } from '../../../shared/services/documents'
 
 vi.mock('../../../shared/hooks/useAuth', () => ({
   default: () => ({ user: { id: 'employer-1' } }),
@@ -25,6 +26,7 @@ const APPLICANT = {
   applied_at: '2026-01-05T00:00:00.000Z',
   seeker: { id: 's1', full_name: 'juan dela cruz', barangay_district: 'Bulac' },
   job: { id: 'j1', title: 'Warehouse Associate' },
+  resume: { id: 'r1', file_name: 'juan-cv.pdf', file_path: 'resumes/s1/juan-cv.pdf' },
 }
 
 describe('Applicants — error handling', () => {
@@ -52,5 +54,15 @@ describe('Applicants — error handling', () => {
 
     expect(await screen.findByText('list boom')).toBeInTheDocument()
     await waitFor(() => expect(screen.queryByRole('table')).toBeNull())
+  })
+
+  it('surfaces a 403 resume read through InlineError and keeps the list', async () => {
+    signedUrl.mockRejectedValue(Object.assign(new Error('Not your file'), { status: 403 }))
+    render(<Applicants />)
+    fireEvent.click(await screen.findByRole('button', { name: /view resume for juan dela cruz/i }))
+
+    const alert = await screen.findByRole('alert')
+    expect(alert.textContent).toMatch(/no longer have access to this resume/i)
+    expect(screen.getByRole('button', { name: /review candidate juan dela cruz/i })).toBeInTheDocument()
   })
 })

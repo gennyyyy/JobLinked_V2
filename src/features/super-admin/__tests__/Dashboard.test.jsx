@@ -22,6 +22,9 @@ const STATS = {
   pendingJobs: 8,
   acceptedApplicants: 9,
   placedApplicants: 11,
+  ACTIVE_VACANCIES: 12,
+  ACCEPTED_TOTAL: 13,
+  PLACED_TOTAL: 14,
 }
 
 const ACCS = {
@@ -58,10 +61,11 @@ describe('Super-admin Dashboard', () => {
     expect(statValue('Registered job seekers')).toBe('10')
     expect(statValue('Local employers')).toBe('3')
     expect(statValue('Pending accreditations')).toBe('2')
-    expect(statValue('Active vacancies')).toBe('4')
+    expect(statValue('Active vacancies')).toBe('12')
     expect(statValue('applications')).toBe('5')
+    expect(statValue('accepted')).toBe('13')
     expect(statValue('Recorded referrals')).toBe('0')
-    expect(statValue('placements')).toBe('11')
+    expect(statValue('placements')).toBe('14')
   })
 
   it('renders recent applications with company name and status pill', async () => {
@@ -83,6 +87,7 @@ describe('Super-admin Dashboard', () => {
   it('omits the Placements card when placedApplicants is missing', async () => {
     const rest = { ...STATS }
     delete rest.placedApplicants
+    delete rest.PLACED_TOTAL
     await renderDashboard(rest)
     expect(screen.queryByText('placements', { selector: 'p' })).not.toBeInTheDocument()
   })

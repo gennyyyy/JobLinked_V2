@@ -23,18 +23,23 @@ shared `writeStatus`), so no new ADR was needed — this entry is the decision.
 
 ### ADR-001 — Dead/broken one-liners bundle
 Fix, don't redesign:
-1. `JobSeekerRegister.jsx:16` navigates to `/job-seeker/dashboard` — route does not
-   exist (`App.jsx` nests index at `/job-seeker`). Change to `/job-seeker`.
-   Verify-then-fix: grep for any other `navigate('...dashboard')` strings.
-2. `constants.js` `ACCREDITATION_STATUSES` lacks `'revoked'` while DB enum
-   (`migration.sql:34`) and both accreditation UIs write it. Add it.
-3. `admin.js:9-10` `getStats()` runs identical queries for employers/companies —
-   collapse to one query, two aliases out.
-4. `Logs.jsx:149` reads `log.user` join that `listAuditLogs` never selects
-   (always falls back to "System / legacy"). Either add the join in
-   `admin.js:listAuditLogs` or render `actor_id` short. Cheaper of the two wins.
+1. ~~`JobSeekerRegister.jsx:16` navigates to `/job-seeker/dashboard`~~ — **CLOSED**:
+   navigates to `/job-seeker` (`src/features/auth/JobSeekerRegister.jsx:39`); grep for
+   any other `navigate('...dashboard')` returns zero hits.
+2. ~~`constants.js` `ACCREDITATION_STATUSES` lacks `'revoked'`~~ — **CLOSED**: the
+   client constant no longer exists; the server allow-list already carries it
+   (`server/src/routes/profiles.js:130`).
+3. ~~`admin.js:9-10` `getStats()` runs identical queries for employers/companies~~ —
+   **CLOSED**: one employers aggregate feeds both keys (`server/src/routes/admin.js:25`,
+   response `companies: employers` at `:49`).
+4. ~~`Logs.jsx:149` reads `log.user` join that `listAuditLogs` never selects~~ —
+   **CLOSED**: `listAuditLogs` left-joins the three actor tables and aliases
+   `actor_name`/`actor_email` (`server/src/routes/admin.js:184`); `Logs.jsx:101`
+   renders those aliases.
 Contract: existing signatures unchanged. No new files except none.
 Test: `npm run lint` + manual click-through of the four spots.
+Book-closed 2026-11-09 (plan Phase C Step 4): all four verified in the working tree;
+no code changes remained, this entry is the record.
 
 ### ADR-002 — Reset-password completion
 Spec §1/§2 require Reset Password; only the request half exists

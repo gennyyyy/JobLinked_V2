@@ -5,6 +5,7 @@ import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import useAuth from '@/shared/hooks/useAuth'
 import { listByCompany, updateApplicationStatus } from '@/shared/services/applications'
+import { signedUrl } from '@/shared/services/documents'
 import { PageSkeleton } from '@/shared/components/Skeletons'
 import { InlineError, Pager } from '@/shared/components/dashboard'
 import ApplicationTimeline from '@/shared/components/ApplicationTimeline'
@@ -151,6 +152,7 @@ export default function Applicants() {
   const [statusFilter, setStatusFilter] = useState('')
   const [page, setPage] = useState(1)
   const [selected, setSelected] = useState(null)
+  const [resumeError, setResumeError] = useState('')
 
   useEffect(() => {
     if (!user) return
@@ -183,6 +185,20 @@ export default function Applicants() {
 
   function handleUpdated(id, patch) {
     setApplicants((prev) => prev.map((application) => (application.id === id ? { ...application, ...patch } : application)))
+  }
+
+  // Reads the file through GET /files/resumes/* (ownership + application-link
+  // checked server-side), so a 403 here means the applicant link is gone.
+  async function openResume(application) {
+    if (!application.resume?.file_path) return
+    setResumeError('')
+    try {
+      window.open(await signedUrl('resumes', application.resume.file_path), '_blank', 'noopener')
+    } catch (err) {
+      setResumeError(err.status === 403
+        ? 'You no longer have access to this resume. Ask the candidate to reapply.'
+        : err.message || 'Could not open the resume.')
+    }
   }
 
   if (loading) return <PageSkeleton stats={0} tables={1} label="Loading page." />
@@ -223,42 +239,56 @@ export default function Applicants() {
           </div>
         </div>
         {records.length ? (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Candidate</TableHead>
-                <TableHead>Applied for</TableHead>
-                <TableHead>Submitted</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Review</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {visible.map((application) => (
-                <TableRow key={application.id}>
-                  <TableCell>
-                    <div className="flex items-center gap-3">
-                      <span aria-hidden="true" className="flex size-9 shrink-0 items-center justify-center rounded-full bg-blue-soft text-xs font-semibold text-primary">
-                        {initialsOf(application.seeker?.full_name)}
-                      </span>
-                      <div>
-                        <p className="font-medium text-navy">{titleCase(application.seeker?.full_name)}</p>
-                        <p className="mt-1 text-[10px] text-muted-foreground">{application.seeker?.barangay_district || 'Santa Maria'}</p>
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell>{application.job?.title}</TableCell>
-                  <TableCell className="whitespace-nowrap">{formatDate(application.applied_at)}</TableCell>
-                  <TableCell><StatusBadge status={application.status} /></TableCell>
-                  <TableCell>
-                    <Button variant="outline" onClick={() => setSelected(application)} aria-label={`Review candidate ${titleCase(application.seeker?.full_name)}`}>
-                      Review candidate
-                    </Button>
-                  </TableCell>
+          <>
+            {resumeError && <div className="mb-4"><InlineError message={resumeError} /></div>}
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Candidate</TableHead>
+                  <TableHead>Applied for</TableHead>
+                  <TableHead>Submitted</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Review</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {visible.map((application) => (
+                  <TableRow key={application.id}>
+                    <TableCell>
+                      <div className="flex items-center gap-3">
+                        <span aria-hidden="true" className="flex size-9 shrink-0 items-center justify-center rounded-full bg-blue-soft text-xs font-semibold text-primary">
+                          {initialsOf(application.seeker?.full_name)}
+                        </span>
+                        <div>
+                          <p className="font-medium text-navy">{titleCase(application.seeker?.full_name)}</p>
+                          <p className="mt-1 text-[10px] text-muted-foreground">{application.seeker?.barangay_district || 'Santa Maria'}</p>
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell>{application.job?.title}</TableCell>
+                    <TableCell className="whitespace-nowrap">{formatDate(application.applied_at)}</TableCell>
+                    <TableCell><StatusBadge status={application.status} /></TableCell>
+                    <TableCell>
+                      <div className="flex flex-wrap items-center gap-2">
+                        {application.resume?.file_path && (
+                          <Button
+                            variant="ghost"
+                            onClick={() => openResume(application)}
+                            aria-label={`View resume for ${titleCase(application.seeker?.full_name)}`}
+                          >
+                            View resume
+                          </Button>
+                        )}
+                        <Button variant="outline" onClick={() => setSelected(application)} aria-label={`Review candidate ${titleCase(application.seeker?.full_name)}`}>
+                          Review candidate
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </>
         ) : (
           <EmptyState
             title="No candidates in this view yet."
