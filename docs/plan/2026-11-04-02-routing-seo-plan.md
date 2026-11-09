@@ -8,7 +8,7 @@
 > `MemoryRouter` → `BrowserRouter` (Task 1, step 3) must not run. Bookmarkable/shareable
 > URLs and URL-dependent SEO need a new ADR first. The SEO-basics items are already
 > shipped (`index.html` meta description + OG tags); re-verified in
-> `plan/2026-11-04-01-system-gap-analysis.md` rows G1 and G16. If you are asked to
+> `docs/plan/2026-11-04-01-system-gap-analysis.md` rows G1 and G16. If you are asked to
 > execute this plan, stop and take it to the Lead Architect for re-scope.
 
 **For agentic workers:** REQUIRED SUB-SKILL: superpowers:subagent-driven-development

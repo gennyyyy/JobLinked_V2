@@ -1,6 +1,6 @@
 # ADR-036 — Custom roles are descriptive, not an authorization boundary
 
-**Status:** Accepted 2026-11-04 (Lead Architect; option A of `plan/2026-11-04-04-security-compliance-plan.md`)
+**Status:** Accepted 2026-11-04 (Lead Architect; option A of `docs/plan/2026-11-04-04-security-compliance-plan.md`)
 
 ## Context
 

@@ -145,5 +145,5 @@ Spec: `docs/arch/specs/2026-10-14-super-admin-user-invite-design.md`.
 Each is also under 40 lines with Context / Decision / Consequences. ADR-020–023
 live in `docs/arch/rework/`. **Numbering:** 000–013, 020–028 and 030–033 are taken
 (ADR-030–033 are the ponytail-cleanup decisions in
-`docs/superpowers/plans/2026-10-09-ponytail-cleanup.md`); 029 was the next free
+`docs/plan/done/2026-10-09-ponytail-cleanup.md`); 029 was the next free
 number. Check both locations before minting a new one.

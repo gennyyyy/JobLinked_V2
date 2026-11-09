@@ -1,7 +1,7 @@
 # ADR-041 — AI provider layer and hybrid job matching
 
 - **Status:** Accepted 2026-11-05
-- **Plan:** `docs/superpowers/plans/2026-11-05-ai-job-matching-plan.md` (Plan A)
+- **Plan:** `docs/plan/done/2026-11-05-ai-job-matching-plan.md` (Plan A)
 - **Spec:** `docs/superpowers/specs/2026-11-05-ai-job-matching-and-help-design.md` v1.1 §4
 - **API contract:** Addendum E in `docs/arch/rework/02-api-contract.md`
 - **Provider layer:** `server/src/aiProvider.js`
@@ -167,7 +167,7 @@ warning per process, and `callChat` refuses to call; the match route also gates
 on `resolveConfig().model`. ~~`/api/ai/help` still has its own inline fetch in
 `server/src/routes/ai.js`; moving it onto the shared layer (and answering 503
 for an unresolvable model) is the separate role-aware help plan
-(`docs/superpowers/plans/2026-11-05-role-aware-help-plan.md`), not this ADR.~~
+(`docs/plan/done/2026-11-05-role-aware-help-plan.md`), not this ADR.~~
 **[shipped 2026-11-09 (Plan B, commits `5a8d915`..`e08928a`): `/api/ai/help` now
 calls `callChat` from `server/src/aiProvider.js` and answers 503 `AI_NOT_CONFIGURED`
 for an unresolvable/model-less config; see the amended ADR-023 (`07-ai-help-chat.md`)

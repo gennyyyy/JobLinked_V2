@@ -67,7 +67,7 @@ browser-level critical flows — using tools already in the repo.
       (seeker) browse+jobs detail→apply → (employer) open Applicants→status change →
       (admin) approve accreditation→CSV download → public /jobs deep link.
       Extend the smoke script started by
-      `plan/2026-11-04-full-system-test-fixes-plan.md` Task 5 — do not start a
+      `docs/plan/2026-11-04-full-system-test-fixes-plan.md` Task 5 — do not start a
       second harness script.
 - [ ] Requires dev seed accounts: extend `db/seed.sql` or add `db/seed-dev.sql`
       with one test account per role + one company/job (schema-legal, psql-applied).

@@ -16,7 +16,25 @@ Execution method selection is still pending with the user.
 | 05 | `2026-11-04-05-testing-plan.md` | Testing strategy: coverage baseline, real-Postgres integration slice, browser smoke E2E, untested server areas | test-engineer |
 | 06 | `2026-11-04-06-ops-deployment-plan.md` | Production API topology decision (ADR), migration ledger + apply order, backups + restore drill, minimal monitoring | devops-engineer |
 
-Companion already present (completed): `2026-11-04-frontend-performance-and-loading-plan.md`.
+Companion already present (completed): `docs/plan/done/2026-11-04-frontend-performance-and-loading-plan.md`.
+
+## Status check (2026-11-09)
+
+Implemented and archived in `docs/plan/done/`: the design migration, frontend
+performance, ponytail cleanup, super-admin invite, AI job matching, role-aware help,
+and dark mode (implemented, then retired by the design migration).
+
+| Plan | Status |
+|---|---|
+| 01 system gap analysis | reference register — keep |
+| 02 routing/SEO | **superseded by ADR-036** — do not execute |
+| 03 code health | **partial** — deletions, sonner/dark-mode removal, admin split, admin seeker dialog done; employer resume action, ADR-001 book-close, optional counters, split-on-touch notes open |
+| 04 security/compliance | **partial** — ADR-036 and legal copy done; CSP review, CI dependency audit, secrets-hygiene record open |
+| 05 testing | **not started** — no real-Postgres slice, no browser E2E |
+| 06 ops | **partial** — ADR-037 done; deploy runbook, migration ledger, backups, restore drill, monitoring open |
+| full-system test fixes | code fixes done; 3 owner-gated hygiene items open |
+| captcha integration | **not started** — ADR-040 number conflicts with `adr-040-profile-images-and-file-backups.md` |
+
 
 Also present and IN SCOPE today: `2026-11-04-full-system-test-fixes-plan.md` —
 a live full-system pass (2026-11-04) with four measured findings: CORS

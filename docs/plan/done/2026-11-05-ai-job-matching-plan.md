@@ -10,7 +10,7 @@
 
 **Spec:** `docs/superpowers/specs/2026-11-05-ai-job-matching-and-help-design.md` (v1.1 — ranking-only contract §4; the plan argues from it).
 
-**Executes together with:** Plan B (`docs/superpowers/plans/2026-11-05-role-aware-help-plan.md`) consumes Task 1's `resolveConfig/resolveModel/callChat`.
+**Executes together with:** Plan B (`docs/plan/done/2026-11-05-role-aware-help-plan.md`) consumes Task 1's `resolveConfig/resolveModel/callChat`.
 
 ## Global Constraints
 

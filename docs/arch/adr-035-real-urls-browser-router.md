@@ -5,7 +5,7 @@ Back/Forward work through same-URL `pushState` entries. This ADR's rationale sti
 stands for a public, shareable job board: reopen it deliberately if shareable
 `/jobs/:jobId` links become a requirement — do not flip the router back and forth
 per session.
-**Original status:** Accepted 2026-11-04 (Lead Architect; plan `plan/2026-11-04-02-routing-seo-plan.md` signed off)
+**Original status:** Accepted 2026-11-04 (Lead Architect; plan `docs/plan/2026-11-04-02-routing-seo-plan.md` signed off)
 
 ## Context
 

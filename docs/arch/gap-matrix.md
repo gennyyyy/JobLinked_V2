@@ -11,7 +11,7 @@ Counts = DONE / PARTIAL / STUB / MISSING per module.
 > **"Session close-out status (2026-10-16)"** and the newer
 > **"Re-verification (2026-11-09)"** at the bottom for the re-verified lists.
 >
-> **Current register:** `plan/2026-11-04-01-system-gap-analysis.md` supersedes this matrix as the
+> **Current register:** `docs/plan/2026-11-04-01-system-gap-analysis.md` supersedes this matrix as the
 > ordered, severity-ranked gap list. This file stays as the per-feature evidence ledger.
 
 ---
@@ -262,7 +262,7 @@ Re-verified against the working tree on 2026-10-16. Each row cites the file:line
 
 ## Re-verification (2026-11-09)
 
-Maintenance pass owned by `plan/2026-11-04-01-system-gap-analysis.md` ("Maintenance tasks:
+Maintenance pass owned by `docs/plan/2026-11-04-01-system-gap-analysis.md` ("Maintenance tasks:
 do here, no code"). Every row below was re-checked against the working tree on 2026-11-09.
 Existing row text above is not rewritten; this section is the authoritative correction.
 
@@ -281,11 +281,11 @@ Existing row text above is not rewritten; this section is the authoritative corr
 
 ### Carried to plan 03 (verify task, not re-stamped here)
 
-- ADR-001 one-liners: recheck per `plan/2026-11-04-03-code-health-plan.md`'s verify task.
+- ADR-001 one-liners: recheck per `docs/plan/2026-11-04-03-code-health-plan.md`'s verify task.
 
 ### Still open at 2026-11-09
 
 - Register rows G2 (legal copy), G3 (server-side permission enforcement), G7 (employer resume
   view), G8 (admin seeker depth), G10 (dark mode), G15 (monitoring/alerting) remain open;
   G14 stays blocked on the official statutory-report template. Statuses and severities live in
-  `plan/2026-11-04-01-system-gap-analysis.md`, not here.
+  `docs/plan/2026-11-04-01-system-gap-analysis.md`, not here.
