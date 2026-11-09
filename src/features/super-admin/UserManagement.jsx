@@ -6,9 +6,11 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Checkbox } from '@/components/ui/checkbox'
 import { Field, FieldLabel } from '@/components/ui/field'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { X } from 'lucide-react'
-import { listUsers, updateUser, listRoles, assignRole, assignCustomRole, inviteUser, listAuditLogs } from '@/shared/services/admin'
+import { listUsers, updateUser, listRoles, assignRole, assignCustomRole, inviteUser, listAuditLogs, listSeekerEducation, listSeekerExperience, listSeekerEmployment, listSeekerResumes } from '@/shared/services/admin'
+import { signedUrl } from '@/shared/services/documents'
 import useAuth from '@/shared/hooks/useAuth'
 import { PageSkeleton } from '@/shared/components/Skeletons'
 import { InlineError, Pager } from '@/shared/components/dashboard'
@@ -21,6 +23,29 @@ const SYSTEM_ROLE_LABELS = { 'super-admin': 'Super Admin', employer: 'Employer',
 const EMPTY_INVITE = {
   email: '', role: '', first_name: '', middle_name: '', last_name: '',
   suffix: '', phone: '', company_name: '',
+}
+
+const formatDetailDate = (value) => (value
+  ? new Date(value).toLocaleDateString('en-PH', { year: 'numeric', month: 'short', day: 'numeric' })
+  : '—')
+
+const detailPeriod = (start, end) => (start || end
+  ? `${formatDetailDate(start)} – ${end ? formatDetailDate(end) : 'Present'}`
+  : '—')
+
+function DetailRecord({ items }) {
+  return (
+    <li className="rounded-xl border p-3">
+      <dl className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        {items.map(([label, value]) => (
+          <div key={label}>
+            <dt className="text-[10px] uppercase tracking-[.14em] text-muted-foreground">{label}</dt>
+            <dd className="mt-0.5 text-xs text-navy">{value || '—'}</dd>
+          </div>
+        ))}
+      </dl>
+    </li>
+  )
 }
 
 function UserManagement() {
@@ -50,6 +75,10 @@ function UserManagement() {
   const [accessError, setAccessError] = useState('')
   const [accessBusy, setAccessBusy] = useState(false)
   const [accessConfirmed, setAccessConfirmed] = useState(false)
+  const [detailUser, setDetailUser] = useState(null)
+  const [detail, setDetail] = useState(null)
+  const [detailError, setDetailError] = useState('')
+  const [viewingResumeId, setViewingResumeId] = useState(null)
 
   const inviteRef = useDialog(() => setShowInvite(false), showInvite)
 
@@ -94,6 +123,22 @@ function UserManagement() {
       .finally(() => setLoading(false))
   }, [])
 
+  // Admin seeker depth (Addendum A): the four child reads fire together when
+  // the dialog opens, so tab switches are instant and there is one error line.
+  useEffect(() => {
+    if (!detailUser) return undefined
+    let cancelled = false
+    const id = detailUser.id
+    Promise.all([
+      listSeekerEducation(id), listSeekerExperience(id), listSeekerEmployment(id), listSeekerResumes(id),
+    ])
+      .then(([education, experience, employment, resumes]) => {
+        if (!cancelled) setDetail({ education: education || [], experience: experience || [], employment: employment || [], resumes: resumes || [] })
+      })
+      .catch((err) => { if (!cancelled) setDetailError(err.message || 'Failed to load seeker details') })
+    return () => { cancelled = true }
+  }, [detailUser])
+
   if (loading) return <PageSkeleton stats={0} table />
   if (error) return <InlineError message={error} />
 
@@ -135,6 +180,30 @@ function UserManagement() {
       setAccessError(err.message || 'Failed to update access')
     } finally {
       setAccessBusy(false)
+    }
+  }
+
+  function openDetail(user) {
+    setDetailUser(user)
+    setDetail(null)
+    setDetailError('')
+  }
+
+  // Same gesture rule as the seeker's own Profile: the tab opens inside the
+  // click so popup blockers allow it, then receives the fetched blob URL.
+  async function openResume(resume) {
+    setViewingResumeId(resume.id)
+    const tab = window.open('', '_blank')
+    if (tab) tab.opener = null
+    try {
+      const url = await signedUrl('resumes', resume.file_path)
+      if (tab) tab.location.href = url
+      setTimeout(() => URL.revokeObjectURL(url), 60_000)
+    } catch (err) {
+      tab?.close()
+      setDetailError(err.message || 'Could not open the resume')
+    } finally {
+      setViewingResumeId(null)
     }
   }
 
@@ -312,14 +381,26 @@ function UserManagement() {
                       {new Date(user.updated_at || user.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
                     </TableCell>
                     <TableCell className="text-right">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() => openAccess(user)}
-                        disabled={currentUser && user.id === currentUser.id}
-                      >
-                        Manage access
-                      </Button>
+                      <div className="flex justify-end gap-2">
+                        {user.role === 'job-seeker' && (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => openDetail(user)}
+                            aria-label={`View profile details for ${titleCase(user.full_name)}`}
+                          >
+                            View
+                          </Button>
+                        )}
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => openAccess(user)}
+                          disabled={currentUser && user.id === currentUser.id}
+                        >
+                          Manage access
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -492,6 +573,112 @@ function UserManagement() {
               <Button type="submit" disabled={accessBusy || !accessConfirmed}>{accessBusy ? 'Saving…' : 'Confirm access change'}</Button>
             </div>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={!!detailUser}
+        onOpenChange={(open) => {
+          if (!open) { setDetailUser(null); setDetail(null); setDetailError('') }
+        }}
+      >
+        <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Seeker profile — {detailUser?.full_name || detailUser?.email}</DialogTitle>
+            <DialogDescription>Education, work experience, employment history, and resumes on file.</DialogDescription>
+          </DialogHeader>
+          {detailError && <InlineError message={detailError} />}
+          {!detail && !detailError && (
+            <p className="py-6 text-center text-xs text-muted-foreground">Loading seeker records…</p>
+          )}
+          {detail && (
+            <>
+              <Tabs defaultValue="background">
+                <TabsList>
+                  <TabsTrigger value="background">Background</TabsTrigger>
+                  <TabsTrigger value="experience">Experience</TabsTrigger>
+                  <TabsTrigger value="employment">Employment</TabsTrigger>
+                </TabsList>
+                <TabsContent value="background" className="mt-2">
+                  {detail.education.length ? (
+                    <ul className="flex flex-col gap-3">
+                      {detail.education.map((row) => (
+                        <DetailRecord key={row.id} items={[
+                          ['Level', row.level],
+                          ['School', row.school],
+                          ['Field', row.field],
+                          ['Years', [row.start_year, row.end_year].filter(Boolean).join(' – ') || '—'],
+                        ]} />
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="py-6 text-center text-xs text-muted-foreground">No education records.</p>
+                  )}
+                </TabsContent>
+                <TabsContent value="experience" className="mt-2">
+                  {detail.experience.length ? (
+                    <ul className="flex flex-col gap-3">
+                      {detail.experience.map((row) => (
+                        <DetailRecord key={row.id} items={[
+                          ['Company', row.company],
+                          ['Position', row.position],
+                          ['Period', detailPeriod(row.start_date, row.end_date)],
+                          ['Description', row.description],
+                        ]} />
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="py-6 text-center text-xs text-muted-foreground">No work experience records.</p>
+                  )}
+                </TabsContent>
+                <TabsContent value="employment" className="mt-2">
+                  {detail.employment.length ? (
+                    <ul className="flex flex-col gap-3">
+                      {detail.employment.map((row) => (
+                        <DetailRecord key={row.id} items={[
+                          ['Employer', row.employer_name],
+                          ['Position', row.position],
+                          ['Period', detailPeriod(row.start_date, row.end_date)],
+                          ['Currently employed', row.is_current ? 'Yes' : 'No'],
+                        ]} />
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="py-6 text-center text-xs text-muted-foreground">No employment history records.</p>
+                  )}
+                </TabsContent>
+              </Tabs>
+              <section className="border-t pt-4">
+                <h3 className="text-xs font-semibold text-navy">Resumes</h3>
+                {detail.resumes.length ? (
+                  <ul className="mt-3 flex flex-col gap-3">
+                    {detail.resumes.map((resume) => (
+                      <li key={resume.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border p-3">
+                        <div className="min-w-0">
+                          <p className="truncate text-xs font-medium text-navy">{resume.file_name}</p>
+                          <p className="mt-1 text-[10px] text-muted-foreground">Uploaded {formatDetailDate(resume.uploaded_at)}</p>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          {resume.is_active && <StatusBadge status="Active" />}
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => openResume(resume)}
+                            disabled={viewingResumeId === resume.id}
+                          >
+                            {viewingResumeId === resume.id ? 'Opening…' : 'View'}
+                            <span className="sr-only"> {resume.file_name} (opens in new tab)</span>
+                          </Button>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="py-6 text-center text-xs text-muted-foreground">No resume on file.</p>
+                )}
+              </section>
+            </>
+          )}
         </DialogContent>
       </Dialog>
     </div>

@@ -112,3 +112,20 @@ export async function inviteUser(payload) {
 export async function sendSystemNotification({ title, message, link = null, expires_at = null }) {
   return api.post('admin/system-notifications', { title, message, link, expires_at });
 }
+
+// Seeker profile children for the admin detail dialog (Addendum A admin reads).
+export async function listSeekerEducation(id) {
+  return api.get(`admin/seekers/${id}/education`);
+}
+
+export async function listSeekerExperience(id) {
+  return api.get(`admin/seekers/${id}/experience`);
+}
+
+export async function listSeekerEmployment(id) {
+  return api.get(`admin/seekers/${id}/employment`);
+}
+
+export async function listSeekerResumes(id) {
+  return api.get(`admin/seekers/${id}/resumes`);
+}

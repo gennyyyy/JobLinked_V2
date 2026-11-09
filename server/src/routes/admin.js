@@ -187,6 +187,10 @@ const seekerChildRead = (sql, order) => ah(async (req, res) => {
 router.get('/admin/seekers/:id/education', ...admin, seekerChildRead('education', 'id desc'));
 router.get('/admin/seekers/:id/experience', ...admin, seekerChildRead('work_experience', 'id desc'));
 router.get('/admin/seekers/:id/employment', ...admin, seekerChildRead('employment_history', 'created_at desc'));
+// Resume metadata for the admin detail dialog: the seeker's own list endpoint
+// is ownership-scoped, and /files/:bucket/* streams a file but never a
+// file_path, so a super-admin has no other way to open a resume.
+router.get('/admin/seekers/:id/resumes', ...admin, seekerChildRead('resumes', 'is_active desc, uploaded_at desc'));
 
 // System broadcast: one 'system' row per ACTIVE user (fan-out, never a NULL
 // user_id — the column is NOT NULL). expires_at lives only in the audit
