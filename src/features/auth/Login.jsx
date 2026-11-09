@@ -7,7 +7,9 @@ import { InputGroup, InputGroupInput, InputGroupAddon, InputGroupButton } from '
 import { signIn } from '@/shared/services/auth'
 import { PORTALS } from '@/shared/constants'
 import useAuth from '@/shared/hooks/useAuth'
+import useCaptcha from '@/shared/hooks/useCaptcha'
 import LoadingScreen from '@/shared/components/LoadingScreen'
+import Turnstile from '@/shared/components/Turnstile'
 import PublicShell from '@/shared/components/PublicShell'
 import AuthFrame from './AuthFrame'
 
@@ -22,6 +24,7 @@ function Login() {
   const [password, setPassword] = useState('')
   const [show, setShow] = useState(false)
   const [busy, setBusy] = useState(false)
+  const captcha = useCaptcha()
 
   const signedInRole = role || user?.role
   const homePath = PORTALS.find((p) => p.key === signedInRole)?.homePath
@@ -32,9 +35,13 @@ function Login() {
   async function handleSubmit(event) {
     event.preventDefault()
     setError('')
+    if (captcha.required && !captcha.token) {
+      setError('Please complete the verification challenge.')
+      return
+    }
     setBusy(true)
     try {
-      const loggedIn = await signIn(email.trim(), password)
+      const loggedIn = await signIn(email.trim(), password, captcha.token)
       // First login after provisioning: the AuthProvider's SIGNED_IN listener
       // may have fetched /auth/me before the profile row existed, leaving its
       // `user` null. Seed the provider with the profile signIn already resolved
@@ -42,6 +49,7 @@ function Login() {
       authenticate?.(loggedIn)
       navigate(PORTALS.find((p) => p.key === loggedIn.role)?.homePath || '/')
     } catch (err) {
+      captcha.reset() // single-use token: the next attempt needs a fresh one
       // An unprovisioned account (valid Supabase session but no local profile)
       // used to show the raw "needs provision" error and leave the visitor
       // stuck. Route them to the recovery page instead — the session is kept
@@ -97,6 +105,7 @@ function Login() {
               </InputGroup>
             </Field>
           </FieldGroup>
+          {captcha.required && <Turnstile onToken={captcha.setToken} resetKey={captcha.round} />}
           {error && <p role="alert" className="text-xs leading-6 text-destructive">{error}</p>}
           <Button type="submit" disabled={busy}>
             {busy ? <Loader2 data-icon="inline-start" className="animate-spin" /> : null}
