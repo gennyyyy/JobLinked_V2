@@ -1,7 +1,7 @@
 # CAPTCHA Integration Plan (Supabase Auth + Cloudflare Turnstile)
 
 > **For agentic workers:** REQUIRED SUB-SKILL: `superpowers:subagent-driven-development`
-> (or `superpowers:executing-plans`) after Lead Architect sign-off on ADR-040.
+> (or `superpowers:executing-plans`) after Lead Architect sign-off on ADR-041.
 > Track steps with `- [ ]`.
 
 **Goal:** Put a real bot check in front of every credential-creating or
@@ -20,7 +20,7 @@ Cloudflare Turnstile script (loaded at runtime, no package) · Vitest.
 
 **Spec:** this file is the spec. Measured against the code on 2026-11-05.
 
-## Decision (recorded in ADR-040)
+## Decision (recorded in ADR-041)
 
 Use **Cloudflare Turnstile** through **Supabase Auth CAPTCHA protection**.
 
@@ -89,21 +89,21 @@ browsing stays anonymous and rate-limited.
 
 ---
 
-## Task 1: Record ADR-040 (gate — no code before this)
+## Task 1: Record ADR-041 (gate — no code before this)
 
 **Files:**
-- Create: `docs/arch/adr-040-auth-captcha-turnstile.md`
+- Create: `docs/arch/adr-041-auth-captcha-turnstile.md`
 
 **Interfaces:**
 - Produces: the approved decision that Tasks 2–9 implement.
 
-- [ ] **Step 1:** Write the ADR: context (public credential endpoints, bot
+- [x] **Step 1:** Write the ADR: context (public credential endpoints, bot
       signups, current protections), decision (Supabase + Turnstile), the exact
       five call sites above, consequences (site key env, dashboard-enforced
       globally, single-use tokens, change-password re-auth), alternatives
       considered, and rollback (dashboard toggle off; widget becomes inert
       because the site key can stay).
-- [ ] **Step 2:** Get the repo owner's explicit approval. Implementation stops
+- [x] **Step 2:** Get the repo owner's explicit approval. Implementation stops
       here until it lands.
 
 ## Task 2: Turnstile script loader
@@ -124,20 +124,20 @@ browsing stays anonymous and rate-limited.
   - Callback names map to Turnstile's `callback`, `expired-callback`,
     `error-callback`; options also include `theme: 'light'`.
 
-- [ ] **Step 1: Write the failing test** — assert two `loadTurnstile()` calls
+- [x] **Step 1: Write the failing test** — assert two `loadTurnstile()` calls
       inject exactly one `script[src*="turnstile"]`, resolve after its `onload`,
       and reject when `onerror` fires; `renderTurnstile` forwards the site key and
       callbacks to `window.turnstile.render` and returns its widget id;
       `resetTurnstile`/`removeTurnstile` call `window.turnstile.reset/remove`
       with that id. Reset the module cache between tests
       (`vi.resetModules()`), stub `window.turnstile`.
-- [ ] **Step 2:** `npx vitest run src/shared/lib/__tests__/turnstile.test.js` →
+- [x] **Step 2:** `npx vitest run src/shared/lib/__tests__/turnstile.test.js` →
       FAIL (`turnstile.js` missing).
-- [ ] **Step 3:** Implement `src/shared/lib/turnstile.js` (~50 lines). Guard
+- [x] **Step 3:** Implement `src/shared/lib/turnstile.js` (~50 lines). Guard
       `typeof window === 'undefined'`; no-op when `window.turnstile` is absent
       after load.
-- [ ] **Step 4:** Same command → PASS.
-- [ ] **Step 5:** `npx eslint src/shared/lib/turnstile.js src/shared/lib/__tests__/turnstile.test.js`,
+- [x] **Step 4:** Same command → PASS.
+- [x] **Step 5:** `npx eslint src/shared/lib/turnstile.js src/shared/lib/__tests__/turnstile.test.js`,
       then commit `feat(auth): load Cloudflare Turnstile without a dependency`.
 
 ## Task 3: `useCaptcha` hook and `<Turnstile>` component
@@ -156,20 +156,20 @@ browsing stays anonymous and rate-limited.
     when `!required`; otherwise `<div className="min-h-[65px]" ref>` + error text.
     Calls `onToken('')` on expiry/error.
 
-- [ ] **Step 1: Write the failing component test** — with the loader mocked and
+- [x] **Step 1: Write the failing component test** — with the loader mocked and
       no site key: renders nothing and never calls `renderTurnstile`. With a site
       key: calls `loadTurnstile` + `renderTurnstile` once, forwards a token from
       the widget callback, calls `onToken('')` on expiry, calls
       `resetTurnstile(widgetId)` when `resetKey` changes, and removes it on
       unmount. Add one test for the script rejection error text
       (`Verification could not load…`) and that no widget is mounted.
-- [ ] **Step 2:** Run the file → FAIL.
-- [ ] **Step 3:** Implement the hook (5 lines of state) and component. Mock
+- [x] **Step 2:** Run the file → FAIL.
+- [x] **Step 3:** Implement the hook (5 lines of state) and component. Mock
       `'../../../shared/lib/turnstile'` in the test with
       `TURNSTILE_SITE_KEY`, `loadTurnstile`, `renderTurnstile`,
       `resetTurnstile`, `removeTurnstile` as `vi.fn()`s.
-- [ ] **Step 4:** Run → PASS.
-- [ ] **Step 5:** Lint + commit `feat(auth): add the captcha widget and token state`.
+- [x] **Step 4:** Run → PASS.
+- [x] **Step 5:** Lint + commit `feat(auth): add the captcha widget and token state`.
 
 ## Task 4: Send the token to Supabase (service layer)
 
@@ -186,18 +186,18 @@ browsing stays anonymous and rate-limited.
 - `friendlyAuthError` maps `/captcha/i` failures to
   `Error('Verification failed. Please complete the challenge again.')`.
 
-- [ ] **Step 1: Write the failing service tests** — for each of the four
+- [x] **Step 1: Write the failing service tests** — for each of the four
       functions: token provided → `options.captchaToken` / second argument
       `captchaToken` present; token absent → key absent; and sign-in rejecting
       with `{ message: 'captcha protection: request disallowed' }` surfaces the
       mapped message.
-- [ ] **Step 2:** Run `npx vitest run src/shared/services/__tests__/auth.test.js`
+- [x] **Step 2:** Run `npx vitest run src/shared/services/__tests__/auth.test.js`
       → the new assertions FAIL.
-- [ ] **Step 3:** Implement the pass-through. `signUp` keeps its existing
+- [x] **Step 3:** Implement the pass-through. `signUp` keeps its existing
       `options.data`/`emailRedirectTo` and adds `captchaToken` only when present;
       `changePassword` adds `options` to its `signInWithPassword` re-auth.
-- [ ] **Step 4:** Run → PASS. Existing service tests must still pass.
-- [ ] **Step 5:** Lint + commit `feat(auth): forward captcha tokens to Supabase`.
+- [x] **Step 4:** Run → PASS. Existing service tests must still pass.
+- [x] **Step 5:** Lint + commit `feat(auth): forward captcha tokens to Supabase`.
 
 ## Task 5: Sign-in form
 
@@ -208,21 +208,21 @@ browsing stays anonymous and rate-limited.
 **Interfaces:**
 - Consumes: `useCaptcha`, `<Turnstile>`, `signIn(email, password, captchaToken)`.
 
-- [ ] **Step 1:** In the test, mock `'../../../shared/lib/turnstile'` with
+- [x] **Step 1:** In the test, mock `'../../../shared/lib/turnstile'` with
       `TURNSTILE_SITE_KEY: 'site-key'` (so `useCaptcha().required` is true) and
       mock `<Turnstile>` as a button that calls `onToken('captcha-token')`. Add:
       (a) submit before solving → error copy
       `Please complete the verification challenge.`, `signIn` not called;
       (b) solve then submit → `signIn` called with the token; (c) rejected
       `signIn` clears the token, so a second immediate submit is blocked again.
-- [ ] **Step 2:** Run → FAIL.
-- [ ] **Step 3:** Add `const captcha = useCaptcha()`; render
+- [x] **Step 2:** Run → FAIL.
+- [x] **Step 3:** Add `const captcha = useCaptcha()`; render
       `{captcha.required && <Turnstile onToken={captcha.setToken} resetKey={captcha.round} />}`
       between the password field and the error paragraph; guard in
       `handleSubmit`; pass `captcha.token`; call `captcha.reset()` in the catch.
-- [ ] **Step 4:** Run → PASS (update the existing call assertions to include the
+- [x] **Step 4:** Run → PASS (update the existing call assertions to include the
       third argument).
-- [ ] **Step 5:** Lint + commit `feat(auth): require the captcha on sign-in`.
+- [x] **Step 5:** Lint + commit `feat(auth): require the captcha on sign-in`.
 
 ## Task 6: Forgot-password form
 
@@ -232,14 +232,14 @@ browsing stays anonymous and rate-limited.
 
 **Interfaces:** same pattern as Task 5; `resetPassword(email, captchaToken)`.
 
-- [ ] **Step 1:** Test: blocked without a token; token forwarded; reset after a
+- [x] **Step 1:** Test: blocked without a token; token forwarded; reset after a
       failure; success notice still renders.
-- [ ] **Step 2:** Run → FAIL.
-- [ ] **Step 3:** Wire the hook + widget above the submit button; guard; reset on
+- [x] **Step 2:** Run → FAIL.
+- [x] **Step 3:** Wire the hook + widget above the submit button; guard; reset on
       catch.
-- [ ] **Step 4:** Run → PASS (update the existing
+- [x] **Step 4:** Run → PASS (update the existing
       `toHaveBeenCalledWith('jane@example.com')` assertion).
-- [ ] **Step 5:** Lint + commit `feat(auth): require the captcha on reset requests`.
+- [x] **Step 5:** Lint + commit `feat(auth): require the captcha on reset requests`.
 
 ## Task 7: Both registration forms
 
@@ -251,17 +251,17 @@ browsing stays anonymous and rate-limited.
 
 **Interfaces:** `signUp(payload & { captchaToken })`.
 
-- [ ] **Step 1:** Tests (both files, same lib/site-key + `Turnstile` mock as
+- [x] **Step 1:** Tests (both files, same lib/site-key + `Turnstile` mock as
       Task 5): blocked without a token; with a token the payload passed to
       `signUp` contains it; on rejection the widget resets. Keep one existing
       test asserting the email-confirmation success screen still renders
       (Review Focus 4).
-- [ ] **Step 2:** Run both files → FAIL.
-- [ ] **Step 3:** Render the widget immediately above the submit button in each
+- [x] **Step 2:** Run both files → FAIL.
+- [x] **Step 3:** Render the widget immediately above the submit button in each
       form; pass `captchaToken` into the existing payload object before
       `signUp`; reset on catch.
-- [ ] **Step 4:** Run both → PASS.
-- [ ] **Step 5:** Lint + commit `feat(auth): require the captcha on registration`.
+- [x] **Step 4:** Run both → PASS.
+- [x] **Step 5:** Lint + commit `feat(auth): require the captcha on registration`.
 
 ## Task 8: Password change (all roles)
 
@@ -272,33 +272,33 @@ browsing stays anonymous and rate-limited.
 **Interfaces:** `changePassword(current, next, captchaToken)`; component is shared
 by job-seeker Settings, employer profile, and super-admin profile.
 
-- [ ] **Step 1:** Tests (same lib/site-key + `Turnstile` mock as Task 5): with
+- [x] **Step 1:** Tests (same lib/site-key + `Turnstile` mock as Task 5): with
       the widget required, submit without a token is blocked; with a token
       `changePassword` receives it; a failed change resets the token. Existing
       success/validation tests stay.
-- [ ] **Step 2:** Run → FAIL.
-- [ ] **Step 3:** Add the hook + widget above the submit button and pass the
+- [x] **Step 2:** Run → FAIL.
+- [x] **Step 3:** Add the hook + widget above the submit button and pass the
       token. **Do not remove the re-auth** — Supabase does not verify the current
       password on `updateUser`, so it is the only check there.
-- [ ] **Step 4:** Run → PASS (update the existing
+- [x] **Step 4:** Run → PASS (update the existing
       `toHaveBeenCalledWith('oldpass', 'password123')` assertion for the third
       argument).
-- [ ] **Step 5:** Lint + commit `feat(auth): require the captcha when changing a password`.
+- [x] **Step 5:** Lint + commit `feat(auth): require the captcha when changing a password`.
 
 ## Task 9: Config, docs, and rollout
 
 **Files:**
 - Modify: `.env.example` (add `VITE_TURNSTILE_SITE_KEY=` under the Supabase block
   with a one-line comment: public site key; blank disables the widget)
-- Modify: `docs/arch/adr-040-auth-captcha-turnstile.md` (add the operator
+- Modify: `docs/arch/adr-041-auth-captcha-turnstile.md` (add the operator
   checklist)
 - No source logic changes in this task.
 
-- [ ] **Step 1:** Add the env entry. Leave `.env.test` untouched.
-- [ ] **Step 2:** Run the full gate: `npm test`, `npm run build`,
+- [x] **Step 1:** Add the env entry. Leave `.env.test` untouched.
+- [x] **Step 2:** Run the full gate: `npm test`, `npm run build`,
       `npx eslint src server db`. Confirm the build works with the variable
       unset and set to a dummy `1x00000000000000000000AA` (Cloudflare's test key).
-- [ ] **Step 3:** Operator checklist in the ADR:
+- [x] **Step 3:** Operator checklist in the ADR:
       1. Create the Turnstile widget (hostnames: localhost + production).
       2. Put the **site key** in `.env.local` / deployment env; confirm the widget
          renders and a real token reaches Supabase (with enforcement still off).
@@ -308,7 +308,7 @@ by job-seeker Settings, employer profile, and super-admin profile.
       5. Verify sign-up, sign-in, forgot-password, and change-password.
       6. Rollback: disable protection in the dashboard (instant, no deploy);
          re-enabling is the same toggle.
-- [ ] **Step 4:** Commit `docs(auth): document the Turnstile setup and rollout`.
+- [x] **Step 4:** Commit `docs(auth): document the Turnstile setup and rollout`.
 
 ## Out of scope
 
@@ -326,3 +326,38 @@ by job-seeker Settings, employer profile, and super-admin profile.
 3. Never reuse a token after a rejection; reset before the retry.
 4. Never log or persist tokens; they are per-attempt strings passed straight to
    Supabase.
+
+## Results (2026-11-09)
+
+Tasks 2–9 complete. Commits:
+
+- `feat(auth): add the captcha widget and token state`
+- `feat(auth): forward captcha tokens to Supabase`
+- `feat(auth): require the captcha on sign-in`
+- `feat(auth): require the captcha on reset requests`
+- `feat(auth): require the captcha on registration`
+- `feat(auth): require the captcha when changing a password`
+- `docs(auth): document the Turnstile setup and rollout`
+
+Verification (all green):
+
+- `npm test` → 172 files / 1050 tests passed, including the 7 new
+  captcha-wiring tests per form file and the 7 service tests.
+- `npm run lint` and `npx eslint src server db` → clean.
+- `npm run build` → clean with `VITE_TURNSTILE_SITE_KEY` unset, and again set to
+  Cloudflare's test key `1x00000000000000000000AA`.
+- Form tests keep every non-captcha test with the site key unset (`''`), so the
+  no-key behavior is byte-identical to before the integration.
+
+Notes for the repo owner:
+
+- The client guard blocks submit while the widget is configured but unsolved.
+  If `challenges.cloudflare.com` is blocked, the widget explains the load
+  failure, but submit still reports "Please complete the verification
+  challenge." (the plan pins this behavior in Task 5's test). Supabase is the
+  only party that can waive the token, so removing the guard would require
+  lifting the widget's load-failure state into the form — out of the pinned
+  interface.
+- Remaining manual steps are the ADR-041 operator checklist: create the
+  Turnstile widget, set the site key, deploy the frontend, then enable CAPTCHA
+  protection in the Supabase dashboard (nothing in Supabase was touched here).
