@@ -23,11 +23,15 @@ BEGIN;
 DO $$
 DECLARE existing_cascade text;
 BEGIN
+  -- Target exactly the application_id -> job_applications FK: the table also
+  -- has a seeker_id -> job_seekers cascade FK, and matching on relname alone
+  -- could pick that one (dropping the wrong constraint).
   SELECT con.conname INTO existing_cascade
   FROM pg_constraint con
   JOIN pg_class rel ON rel.oid = con.conrelid
   WHERE rel.relname = 'employment_history'
     AND con.contype = 'f'
+    AND con.confrelid = 'public.job_applications'::regclass
     AND con.confdeltype = 'c';   -- ON DELETE CASCADE
 
   IF existing_cascade IS NULL THEN

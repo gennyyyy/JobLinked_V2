@@ -22,6 +22,12 @@ BEGIN;
 UPDATE public.job_applications SET status = 'Under Review' WHERE status = 'Shortlisted';
 UPDATE public.application_status_history SET status = 'Under Review' WHERE status = 'Shortlisted';
 
+-- The status column carries the record_accepted_employment trigger
+-- (AFTER INSERT OR UPDATE OF status, defined in db/schema.sql); Postgres
+-- refuses a column type swap while it depends on the column, so drop it here
+-- and recreate it (identical) after the swap.
+DROP TRIGGER IF EXISTS record_accepted_employment ON public.job_applications;
+
 -- New enum without 'Shortlisted' (order of the rest unchanged).
 DO $$ BEGIN CREATE TYPE application_status_new AS ENUM
   ('Applied','Under Review','Interview','Accepted','Rejected','Placed','Terminated');
@@ -42,6 +48,19 @@ ALTER TYPE public.application_status RENAME TO application_status_old;
 ALTER TYPE public.application_status_new RENAME TO application_status;
 ALTER TABLE public.job_applications ALTER COLUMN status SET DEFAULT 'Applied'::public.application_status;
 DROP TYPE IF EXISTS public.application_status_old;
+
+-- Recreate the trigger identically to db/schema.sql. The guard keeps databases
+-- that predate the trigger (no function either) untouched.
+DO $$ BEGIN
+  IF EXISTS (
+    SELECT 1 FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+    WHERE n.nspname = 'public' AND p.proname = 'record_accepted_employment'
+  ) THEN
+    CREATE TRIGGER record_accepted_employment
+    AFTER INSERT OR UPDATE OF status ON public.job_applications
+    FOR EACH ROW EXECUTE FUNCTION public.record_accepted_employment();
+  END IF;
+END $$;
 
 COMMIT;
 

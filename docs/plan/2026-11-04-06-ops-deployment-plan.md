@@ -40,29 +40,29 @@ a restore actually works.
 
 ## Task order
 
-1. [ ] ADR-037 written with the chosen host; note the single-instance invariants
+1. [x] ADR-037 written with the chosen host; note the single-instance invariants
        and what would break if B is ever picked.
-2. [ ] `docs/ops/deploy-runbook.md`: env checklist (EXPLICIT `CORS_ORIGIN` prod
+2. [x] `docs/ops/deploy-runbook.md`: env checklist (EXPLICIT `CORS_ORIGIN` prod
        list — it fail-closes to `localhost:5173` when unset; `TRUST_PROXY`
        value matched to the actual proxy count; `UPLOAD_DIR` absolute path with
        owner/permissions; secret sourcing), build + start + process manager,
        log capture (JSON lines, ~30 days), restart procedure.
-3. [ ] Migration ledger: tiny `db/apply-migrations.sh` + `schema_migrations`
+3. [x] Migration ledger: tiny `db/apply-migrations.sh` + `schema_migrations`
        ledger table (name unique). Script: verify connection → apply unapplied
        files 001→NNN in order → record → print state. Idempotency note: some
        migrations are NOT idempotent (004 enum remap is a one-shot) — the ledger
        is the idempotency mechanism, so apply order and record-keeping are strict.
        First run must reconcile reality: query `pg_indexes`/enum values for the
        007–009 effects and record which were already applied manually.
-4. [ ] Backups: nightly cron — `pg_dump -Fc` + tar of `UPLOAD_DIR` (resumes are
+4. [x] Backups: nightly cron — `pg_dump -Fc` + tar of `UPLOAD_DIR` (resumes are
        PII; backup files must land on the same storage as the DB dump? no — a
        second volume/host the same way the DB dump is kept), 30-day retention,
        checksum line, and a one-line reminder that both dumps are needed together.
-5. [ ] Restore drill (executed once, result recorded here): restore the dump to a
+5. [x] Restore drill (executed once, result recorded here): restore the dump to a
        scratch database + untar uploads to a scratch dir, boot the API against
        them, and confirm a real resume downloads and `/api/health?deep=true`
        passes. A backup never restore-tested is not a backup.
-6. [ ] Monitoring, minimal: one external ping on `/api/health?deep=true`
+6. [x] Monitoring, minimal: one external ping on `/api/health?deep=true`
        (cron-curl + email, or a free uptime monitor — whichever stakeholders
        tolerate), plus the existing `requestLog` capture from Task 2. No metrics
        platform this round (YAGNI; health + logs cover the current scale).
@@ -81,3 +81,77 @@ a restore actually works.
    drill covers both artifacts.
 5. **Frontend env on Vercel** (`VITE_*` keys per root `.env.example`) missing a
    rebuild after change → stale bundle; runbook notes `VITE_*` are baked at build.
+
+## Results — 2026-11-09 (all tasks complete; drill PASSED)
+
+**Delivered**
+
+- `docs/ops/deploy-runbook.md` (new): env checklist (`CORS_ORIGIN` prod list +
+  fail-closed warning, `TRUST_PROXY` hop count, absolute `UPLOAD_DIR` +
+  owner/permissions, secret sourcing incl. the libpq percent-encoding rule),
+  systemd/pm2 process manager, JSON-log capture with ~30-day rotation,
+  restart procedure, `VITE_*`-baked-at-build note, migration ledger, backups,
+  monitoring, restore drill.
+- `db/apply-migrations.sh` + `db/migrations/011_schema_migrations.sql`
+  (ledger, the only schema object added), `scripts/backup.sh`.
+
+**Verified (executed against the local PostgreSQL 18, not just syntax-checked)**
+
+- `bash -n` clean on both scripts; backup ran for real → atomic directory with
+  `db.dump` + `uploads.tgz` + `manifest.txt` + `SHA256SUMS` (independent
+  `sha256sum -c` OK); retention probe removed a faked 40-day-old dir and kept
+  fresh ones.
+- `apply-migrations.sh` on the dev DB: first run reconciled 007/008/009 (effects
+  already present) and detected 004 as genuinely unapplied; after the fixes
+  below it applied everything → ledger 11/11 rows, `pending: none`; second run
+  → `nothing to apply` (idempotency proof); `--status` prints state.
+- 004's end state checked against `db/schema.sql`: enum without `Shortlisted`,
+  both `status` columns typed `application_status`, default `'Applied'`,
+  `record_accepted_employment` trigger recreated identically.
+- 008's apply branch simulated on a scratch DB (cascade FK restored, ledger row
+  deleted → script re-applied it): application FK became `ON DELETE SET NULL`,
+  `seeker_id` cascade FK untouched.
+
+**Fixes required to make the partial files work (verified before/after)**
+
+1. `db/apply-migrations.sh` used `psql -c` with `:'name'` variables — psql only
+   interpolates in script/stdin input, so every ledger insert/read errored.
+   Now piped via stdin.
+2. Same script: `psql | loop` on Windows emits CRLF into the recorded names
+   (`007…sql\r`), so `is_applied` never matched and files re-applied. Output now
+   passes through `tr -d '\r'` (no-op on Linux).
+3. `004_remove_shortlisted.sql` could not run at all on a DB with the
+   `record_accepted_employment` trigger (`AFTER … UPDATE OF status`) — Postgres
+   refuses the column type swap. It now drops and recreates that trigger around
+   the swap, identical to `db/schema.sql`.
+4. `008_constraint_gaps.sql`'s guard matched **any** cascade FK on
+   `employment_history` (could pick `seeker_id` → `job_seekers` and drop the
+   wrong constraint); it now targets the `application_id` → `job_applications`
+   FK via `confrelid`. Skipping immediately after a real apply is also verified.
+5. `scripts/backup.sh` had a bash parse error — `API's` inside
+   `${UPLOAD_DIR:?…}` quotes the parameter-expansion word. Apostrophe removed.
+
+**Restore drill — PASSED (executed once, as required)**
+Backup taken by `scripts/backup.sh` → scratch DB `joblinked_drill` restored
+(`pg_restore` rc=0; 2 resumes rows, ledger 11 rows) → uploads untarred to a
+scratch dir → API booted on :4100 against both (`UPLOAD_DIR` log confirmed the
+scratch dir) → `/api/health?deep=true` returned `{"ok":true,"db":"ok","auth":"ok"}`
+→ a real resume downloaded as its owner: `HTTP 200, 236 587 bytes, %PDF-`,
+correct `Content-Disposition`. Scratch DB dropped, scratch API stopped.
+
+**Could not be verified here (honest limits)**
+
+- The production host itself: systemd unit, logrotate/journald caps, cron
+  entries, and the uptime/cron probe are documented, not installed — no VPS
+  exists yet. `?deep=true` monitoring is likewise specified but running nowhere.
+- The 004/008 apply branches were exercised on this dev/scratch DB pair; a
+  production DB with different legacy state would still need `--status` checked
+  first.
+- Windows-only artifacts of the tooling (`\r` handling) were fixed here and are
+  harmless on Linux, but the scripts have not run on a Linux host.
+
+**Left as-is on purpose:** `scripts/backup-uploads.mjs` + `npm run backup:uploads`
+(the old manual uploads-only path referenced by `db/README.md`) — superseded by
+`scripts/backup.sh` for production, still useful for ad-hoc dev backups. The
+dev DB now carries `public.schema_migrations` (approved table + recorded rows);
+no other schema changed.
