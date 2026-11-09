@@ -166,7 +166,7 @@ and records them, then applies the rest.
 | 001, 002, 003, 005, 006, 010 | yes | no — just applied (no-op on an upgraded DB) | — |
 
 Two migration fixes were required to make this work on real databases (verified
-2026-11-09, details in `docs/plan/2026-11-04-06-ops-deployment-plan.md`):
+2026-11-09, details in `docs/plan/done/2026-11-04-06-ops-deployment-plan.md`):
 
 - **004** now drops/recreates the `record_accepted_employment` trigger
   (`AFTER INSERT OR UPDATE OF status`) around the enum swap — Postgres refuses

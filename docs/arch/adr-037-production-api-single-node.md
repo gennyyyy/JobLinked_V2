@@ -1,6 +1,6 @@
 # ADR-037 — Production API runs as a single persistent Node process
 
-**Status:** Accepted 2026-11-04 (Lead Architect; `docs/plan/2026-11-04-06-ops-deployment-plan.md`)
+**Status:** Accepted 2026-11-04 (Lead Architect; `docs/plan/done/2026-11-04-06-ops-deployment-plan.md`)
 
 ## Context
 

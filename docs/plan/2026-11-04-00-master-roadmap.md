@@ -11,29 +11,30 @@ Execution method selection is still pending with the user.
 |---|---|---|---|
 | 01 | `2026-11-04-01-system-gap-analysis.md` | Evidence-based "what's lacking / what to improve" register; feeds every other plan; lists decided-CUT items that must not be re-proposed | Lead Architect |
 | 02 | `2026-11-04-02-routing-seo-plan.md` | MemoryRouter → real URLs (deep links, back button, page titles/meta). Structural, touches every route | frontend |
-| 03 | `2026-11-04-03-code-health-plan.md` | Dead component deletion, sonner/duplicate-toast removal, JobPosts.jsx/Profile.jsx/admin.js decomposition, dark mode decision | frontend + backend |
-| 04 | `2026-11-04-04-security-compliance-plan.md` | Custom-role permission enforcement decision (ADR), real Privacy Policy / Terms (RA 10173), CSP/dependency-audit housekeeping | backend + security |
-| 05 | `2026-11-04-05-testing-plan.md` | Testing strategy: coverage baseline, real-Postgres integration slice, browser smoke E2E, untested server areas | test-engineer |
-| 06 | `2026-11-04-06-ops-deployment-plan.md` | Production API topology decision (ADR), migration ledger + apply order, backups + restore drill, minimal monitoring | devops-engineer |
+| 03 | `done/2026-11-04-03-code-health-plan.md` | Dead component deletion, sonner/duplicate-toast removal, JobPosts.jsx/Profile.jsx/admin.js decomposition, dark mode decision | frontend + backend |
+| 04 | `done/2026-11-04-04-security-compliance-plan.md` | Custom-role permission enforcement decision (ADR), real Privacy Policy / Terms (RA 10173), CSP/dependency-audit housekeeping | backend + security |
+| 05 | `done/2026-11-04-05-testing-plan.md` | Testing strategy: coverage baseline, real-Postgres integration slice, browser smoke E2E, untested server areas | test-engineer |
+| 06 | `done/2026-11-04-06-ops-deployment-plan.md` | Production API topology decision (ADR), migration ledger + apply order, backups + restore drill, minimal monitoring | devops-engineer |
 
 Companion already present (completed): `docs/plan/done/2026-11-04-frontend-performance-and-loading-plan.md`.
 
-## Status check (2026-11-09)
+## Status check (2026-11-10)
 
 Implemented and archived in `docs/plan/done/`: the design migration, frontend
 performance, ponytail cleanup, super-admin invite, AI job matching, role-aware help,
-and dark mode (implemented, then retired by the design migration).
+dark mode (implemented, then retired), code health, security/compliance, testing,
+ops/deployment, and captcha (renumbered ADR-041).
 
 | Plan | Status |
 |---|---|
 | 01 system gap analysis | reference register — keep |
 | 02 routing/SEO | **superseded by ADR-036** — do not execute |
-| 03 code health | **partial** — deletions, sonner/dark-mode removal, admin split, admin seeker dialog done; employer resume action, ADR-001 book-close, optional counters, split-on-touch notes open |
-| 04 security/compliance | **partial** — ADR-036 and legal copy done; CSP review, CI dependency audit, secrets-hygiene record open |
-| 05 testing | **not started** — no real-Postgres slice, no browser E2E |
-| 06 ops | **partial** — ADR-037 done; deploy runbook, migration ledger, backups, restore drill, monitoring open |
-| full-system test fixes | code fixes done; 3 owner-gated hygiene items open |
-| captcha integration | **not started** — ADR-040 number conflicts with `adr-040-profile-images-and-file-backups.md` |
+| 03 code health | **done** — archived |
+| 04 security/compliance | **done** — archived; dependency advisories remain open by design (CI is advisory) |
+| 05 testing | **done** — archived; real-Postgres suite, browser smoke, CI service |
+| 06 ops | **done** — archived; runbook, migration ledger, backups, restore drill passed |
+| full-system test fixes | code fixes done; 3 owner-gated hygiene items open (push, draft-PNG decision, final commit) |
+| captcha integration | **done** — archived as ADR-041; Supabase dashboard enablement remains a manual ops step |
 
 
 Also present and IN SCOPE today: `2026-11-04-full-system-test-fixes-plan.md` —

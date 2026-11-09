@@ -281,7 +281,7 @@ Existing row text above is not rewritten; this section is the authoritative corr
 
 ### Carried to plan 03 (verify task, not re-stamped here)
 
-- ADR-001 one-liners: recheck per `docs/plan/2026-11-04-03-code-health-plan.md`'s verify task.
+- ADR-001 one-liners: recheck per `docs/plan/done/2026-11-04-03-code-health-plan.md`'s verify task.
 
 ### Still open at 2026-11-09
 

@@ -2,7 +2,7 @@
 
 - **Status:** Accepted
 - **Date:** 2026-11-05
-- **Context:** `docs/plan/2026-11-05-captcha-integration-plan.md`
+- **Context:** `docs/plan/done/2026-11-05-captcha-integration-plan.md`
 - **Renumbered:** the plan called this ADR-040; that number is already taken by
   `adr-040-profile-images-and-file-backups.md`.
 
