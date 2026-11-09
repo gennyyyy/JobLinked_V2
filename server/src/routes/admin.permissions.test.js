@@ -13,7 +13,7 @@ vi.mock('../auth.js', () => ({
   supa: { auth: { admin: { inviteUserByEmail: vi.fn() } } },
 }));
 process.env.RETENTION_DISABLE = '1';
-const { default: adminRoutes } = await import('./admin.js');
+const { default: adminRoutes } = await import('./admin-reference.js');
 
 let base, server;
 beforeAll(async () => {

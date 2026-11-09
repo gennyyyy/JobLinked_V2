@@ -4,6 +4,9 @@ import jobsRoutes from '../../routes/jobs.js';
 import applicationsRoutes from '../../routes/applications.js';
 import profilesRoutes from '../../routes/profiles.js';
 import adminRoutes from '../../routes/admin.js';
+import adminUsersRoutes from '../../routes/admin-users.js';
+import adminJobsRoutes from '../../routes/admin-jobs.js';
+import adminReferenceRoutes from '../../routes/admin-reference.js';
 import notificationsRoutes from '../../routes/notifications.js';
 import reportsRoutes from '../../routes/reports.js';
 import aiRoutes from '../../routes/ai.js';
@@ -19,7 +22,7 @@ export function makeApp() {
 
   app.get('/api/health', health);
 
-  app.use('/api', authRoutes, jobsRoutes, applicationsRoutes, profilesRoutes, adminRoutes, notificationsRoutes, reportsRoutes, aiRoutes);
+  app.use('/api', authRoutes, jobsRoutes, applicationsRoutes, profilesRoutes, adminRoutes, adminUsersRoutes, adminJobsRoutes, adminReferenceRoutes, notificationsRoutes, reportsRoutes, aiRoutes);
   app.use('/api', (_req, res) => err(res, 404, 'NOT_FOUND', 'Route not found'));
   // eslint-disable-next-line no-unused-vars
   app.use((e, _req, res, _next) => {

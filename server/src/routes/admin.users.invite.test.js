@@ -4,7 +4,7 @@ import express from 'express';
 import { describe, it, expect, vi, beforeAll, afterAll, beforeEach } from 'vitest';
 
 const srv = (p) => readFileSync(path.join(process.cwd(), 'server', p), 'utf8');
-const adminSrc = srv('src/routes/admin.js');
+const adminSrc = srv('src/routes/admin-users.js');
 const inviteStart = adminSrc.indexOf("router.post('/admin/users/invite'");
 const invite = adminSrc.slice(inviteStart, adminSrc.indexOf('router.', inviteStart + 1));
 
@@ -33,7 +33,7 @@ vi.mock('../auth.js', () => ({
 }));
 process.env.RETENTION_DISABLE = '1';
 process.env.CORS_ORIGIN = 'https://app.test';
-const { default: adminRoutes } = await import('./admin.js');
+const { default: adminRoutes } = await import('./admin-users.js');
 
 let base, server;
 beforeAll(async () => {

@@ -1,4 +1,4 @@
-# ADR-026 — Admin router decomposition [RATIFIED 2026-10-15, NOT YET DONE]
+# ADR-026 — Admin router decomposition [RATIFIED 2026-10-15, DONE 2026-11-09]
 
 ## Context
 
@@ -6,11 +6,11 @@
 
 ## Decision
 
-Split into `server/src/routes/admin/` sub-routers — `users.js`, `moderation.js` (jobs + applications + accreditations), `reference.js` (reference data + custom roles + permissions) — and move `/notifications/*` to `server/src/routes/notifications.js`. Enforce a **300-line-per-file budget**.
+Split into sibling routers `server/src/routes/admin-users.js` (users), `admin-jobs.js` (job moderation), `admin-reference.js` (reference data + custom roles + permissions) beside a slimmed `admin.js` (stats + read endpoints + system notifications + retention purge), with the constants shared by two or more modules in `admin-shared.js` — and move `/notifications/*` to `server/src/routes/notifications.js`. Enforce a **300-line-per-file budget** (every resulting admin module is under ~350 lines).
 
 The split is mechanical: **no behaviour change**. Every route keeps its path, method, guard and response; `app.js` mounts the parent router or the new siblings unchanged. `runRetentionPurge()` and its `setInterval` arming move with the domain that owns them.
 
-Not done at time of writing: `admin.js` is still one 697-line file and `/notifications/*` still lives in it (`admin.js:536-567`). Blocker is cost, not disagreement — the split touches every `admin.*` test import and ~15 `vi.mock` paths, so it must land as one reviewed batch, never mid-session.
+Done 2026-11-09 (code-health plan Phase B Steps 2-4): the split landed as sibling modules, not the `admin/` subdirectory named above. `findUserTable` and the users surface (list / patch / invite / custom-role / role-move) live in `admin-users.js`; job list + patch + publish/unpublish in `admin-jobs.js`; reference data, custom roles, and permissions in `admin-reference.js`; stats, the read endpoints, `runRetentionPurge()` + its interval, and system notifications stay in `admin.js`; constants shared by two or more modules are in `admin-shared.js`; `/notifications/*` moved to `notifications.js` in B1. Route-path parity verified (the same 28 routes, list identical), `npx vitest run --root server` 495 green and `npm test` 1009 green in the landing commit.
 
 ## Consequences
 

@@ -236,8 +236,12 @@ so a future reader can tell what is new here versus what was always true:
 
 Not changed here (recorded as gaps, not decisions): the unbounded
 `/admin/employees`, `/admin/referrals` and `GET /applications/{job,company}/…`
-reads, and the `/notifications/*` routes still being mounted from
-`routes/admin.js` instead of `routes/notifications.js` (ADR-026 is still open).
+reads. (2026-11-09: the `/notifications/*` routes now live in
+`routes/notifications.js`, and the admin router is split — the users surface in
+`routes/admin-users.js`, job moderation in `routes/admin-jobs.js`, reference
+data + custom roles + permissions in `routes/admin-reference.js`, and stats /
+reads / system notifications / retention purge in a slimmed `routes/admin.js`;
+shared admin constants live in `routes/admin-shared.js`. ADR-026 is done.)
 
 ## Addendum E (2026-11-05, arch-approved AI job matching — ADR-041)
 - `POST /api/ai/job-match` (role `job-seeker` only; anonymous → 401, every other role → 403) → 200

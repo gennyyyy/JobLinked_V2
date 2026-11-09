@@ -6,7 +6,7 @@ import { describe, it, expect } from 'vitest';
 // of the resolved role table. The super-admin edit-profile flow posts `phone`,
 // which super_admins has no column for (db/schema.sql), so writing the body
 // verbatim used to raise Postgres 42703 and turn into a 500.
-const adminSrc = readFileSync(path.join(process.cwd(), 'server', 'src/routes/admin.js'), 'utf8');
+const adminSrc = readFileSync(path.join(process.cwd(), 'server', 'src/routes/admin-users.js'), 'utf8');
 
 describe('admin users PATCH column filtering', () => {
   it('derives the valid columns from the resolved table', () => {

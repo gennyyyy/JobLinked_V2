@@ -21,7 +21,7 @@ process.env.RETENTION_DISABLE ||= '1';
 
 const { seedRoleTable, reset, callsOf, query } = await import('./__tests__/helpers/db.js');
 const { resolveRole } = await import('./auth.js');
-const { findUserTable } = await import('./routes/admin.js');
+const { findUserTable } = await import('./routes/admin-users.js');
 
 // A provisioned account sits in a role table; a role move leaves the OLD table's
 // row deactivated (status 'inactive') rather than deleting it, so one id can hold

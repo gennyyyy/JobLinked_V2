@@ -24,12 +24,13 @@ vi.mock('../auth.js', () => ({
 process.env.RETENTION_DISABLE = '1';
 process.env.CORS_ORIGIN = 'https://app.test';
 const { default: adminRoutes } = await import('./admin.js');
+const { default: adminUsersRoutes } = await import('./admin-users.js');
 
 let base, server;
 beforeAll(async () => {
   const app = express();
   app.use(express.json());
-  app.use('/api', adminRoutes);
+  app.use('/api', adminRoutes, adminUsersRoutes);
   await new Promise((r) => { server = app.listen(0, '127.0.0.1', r); });
   base = `http://127.0.0.1:${server.address().port}/api`;
 });
