@@ -7,13 +7,51 @@ on:
 jobs:
   ci:
     runs-on: ubuntu-latest
+    services:
+      # Phase 4 (docs/plan/2026-11-04-05-testing-plan.md): real-Postgres
+      # integration slice. The bootstrap drops/recreates `public` in this
+      # scratch database only — it refuses any name not ending in _test.
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: joblinked_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            server/package-lock.json
       - run: npm ci
+      # The root vitest project also collects server/** tests, and the
+      # integration slice runs from server/ — both need server deps present.
+      - run: npm --prefix server ci
       - run: npm run lint
       - run: npm test
       - run: npm run build
+      # Phase 1's suite against the service container, so the SQL laws (role
+      # precedence, deadline INSERT guard, partial uniques, retention purge)
+      # are proven against Postgres, not a mocked pool.
+      - name: Integration tests (real Postgres)
+        run: npm --prefix server run test:integration
+        env:
+          INTEGRATION_TEST: '1'
+          INTEGRATION_DATABASE_URL: postgres://postgres:postgres@localhost:5432/joblinked_test
+      # Advisory supply-chain check (plan item 5): report high+ vulns without
+      # failing the pipeline. Tighten to blocking once the tree is clean.
+      - name: Audit root dependencies (advisory)
+        run: npm audit --audit-level=high --dry-run
+        continue-on-error: true
+      - name: Audit server dependencies (advisory)
+        run: npm --prefix server audit --audit-level=high --dry-run
+        continue-on-error: true
