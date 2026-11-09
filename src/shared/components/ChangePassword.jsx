@@ -2,12 +2,15 @@ import { Button } from "../../components/ui/button";
 import { useState } from "react";
 import { Panel, TextField } from "./design";
 import { changePassword } from "../services/auth";
+import useCaptcha from "../hooks/useCaptcha";
+import Turnstile from "./Turnstile";
 
 function ChangePassword() {
   const [form, setForm] = useState({ current: "", next: "", confirm: "" });
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const captcha = useCaptcha();
 
   async function handleSubmit(event) {
     event.preventDefault();
@@ -21,12 +24,17 @@ function ChangePassword() {
       setError("New passwords do not match.");
       return;
     }
+    if (captcha.required && !captcha.token) {
+      setError("Please complete the verification challenge.");
+      return;
+    }
     setSaving(true);
     try {
-      await changePassword(form.current, form.next);
+      await changePassword(form.current, form.next, captcha.token);
       setForm({ current: "", next: "", confirm: "" });
       setMessage("Password updated successfully.");
     } catch (err) {
+      captcha.reset(); // single-use token: the next attempt needs a fresh one
       setError(err.message || "Failed to update password.");
     } finally {
       setSaving(false);
@@ -62,6 +70,7 @@ function ChangePassword() {
           value={form.confirm}
           onChange={(e) => setForm({ ...form, confirm: e.target.value })}
         />
+        {captcha.required && <Turnstile onToken={captcha.setToken} resetKey={captcha.round} />}
         <Button type="submit" disabled={saving}>
           {saving ? "Updating…" : "Update password"}
         </Button>
