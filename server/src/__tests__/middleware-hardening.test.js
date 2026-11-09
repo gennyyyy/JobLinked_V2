@@ -1,13 +1,16 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import request from 'supertest';
+import fs from 'node:fs';
+import path from 'node:path';
 
 vi.mock('../db.js', async () => { const h = await import('./helpers/db.js'); return { pool: h.pool, query: h.query, clientQuery: h.clientQuery, connect: h.connect }; });
 vi.mock('@supabase/supabase-js', async () => { const h = await import('./helpers/auth.js'); return { createClient: () => ({ auth: h.supabaseAuth }) }; });
 
 import { on, reset } from './helpers/db.js';
-import { resetAuth, supabaseAuth } from './helpers/auth.js';
+import { loginAs, resetAuth, supabaseAuth } from './helpers/auth.js';
 import { makeHardenedApp } from './helpers/app.js';
 import { createApp } from '../app.js';
+import { uploadDir } from '../upload.js';
 
 const app = makeHardenedApp();
 beforeEach(() => { reset(); resetAuth(); });
@@ -24,6 +27,61 @@ describe('C3 — security headers (helmet)', () => {
     expect(res.headers['cross-origin-resource-policy']).toBe('cross-origin');
     // helmet removes the Express fingerprint.
     expect(res.headers['x-powered-by']).toBeUndefined();
+  });
+
+  // CSP review (docs/plan/2026-11-04-04-security-compliance-plan.md item 4):
+  // helmet's default CSP is already conservative and is the policy this API
+  // ships. Pin it so a helmet major bump cannot drop it silently.
+  it('emits the conservative default CSP', async () => {
+    const res = await request(app).get('/api/health');
+    const csp = res.headers['content-security-policy'];
+    expect(csp).toContain("default-src 'self'");
+    expect(csp).toContain("script-src 'self'");
+    expect(csp).toContain("object-src 'none'");
+    expect(csp).toContain("frame-ancestors 'self'");
+  });
+
+  // The CSP must not disturb the flows the plan called out. The SPA fetches the
+  // resume as a blob (api.blob -> object URL), so the response only has to
+  // stream the bytes intact.
+  it('streams a resume byte-for-byte with the CSP header applied', async () => {
+    const id = '33333333-3333-4333-8333-333333333333';
+    const token = loginAs({ id, role: 'job-seeker' });
+    on(/select seeker_id, file_name from resumes/, () => ({ rows: [{ seeker_id: id, file_name: 'cv.pdf' }] }));
+    const dir = path.join(uploadDir, 'resumes', id);
+    fs.mkdirSync(dir, { recursive: true });
+    const bytes = Buffer.from('%PDF-1.4\ncsp stream test\n');
+    fs.writeFileSync(path.join(dir, 'csp-stream-test.pdf'), bytes);
+    try {
+      const res = await request(app)
+        .get(`/api/files/resumes/${id}/csp-stream-test.pdf`)
+        .set('Authorization', `Bearer ${token}`);
+      expect(res.status).toBe(200);
+      expect(res.headers['content-type']).toContain('application/pdf');
+      expect(res.headers['content-length']).toBe(String(bytes.length));
+      expect(res.headers['content-security-policy']).toContain("default-src 'self'");
+      expect(Buffer.isBuffer(res.body) ? res.body.equals(bytes) : res.text).toBeTruthy();
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  // CSV export is either a direct attachment (server) or built client-side into
+  // a Blob (super-admin screens). Neither is a subresource fetch, so the CSP
+  // must leave the attachment response alone.
+  it('sends the CSV report attachment with the CSP header applied', async () => {
+    const token = loginAs({ id: '44444444-4444-4444-4444-444444444444', role: 'super-admin' });
+    on(/select id, full_name, email, status, created_at from job_seekers/, () => ({
+      rows: [{ id: 's1', full_name: 'Ana Cruz', email: 'ana@test.local', status: 'active', created_at: '2026-01-01' }],
+    }));
+    const res = await request(app)
+      .get('/api/admin/reports/seekers/export?format=csv')
+      .set('Authorization', `Bearer ${token}`);
+    expect(res.status).toBe(200);
+    expect(res.headers['content-type']).toContain('text/csv');
+    expect(res.headers['content-disposition']).toContain('attachment');
+    expect(res.headers['content-security-policy']).toContain("default-src 'self'");
+    expect(res.text).toContain('Ana Cruz');
   });
 });
 

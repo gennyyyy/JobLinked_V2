@@ -45,6 +45,12 @@ export function createApp() {
   // C3: security headers, default set. crossOriginResourcePolicy must be
   // cross-origin — the SPA on another origin fetches /api/files/*, and
   // same-origin would block those cross-origin reads.
+  // CSP review (docs/plan/2026-11-04-04-security-compliance-plan.md item 4):
+  // helmet's default CSP is the shipped policy, deliberately not overridden —
+  // a hand-copied duplicate would drift from helmet's defaults. The
+  // resume-streaming and CSV-attachment flows are pinned in
+  // server/src/__tests__/middleware-hardening.test.js. Revisit only if this
+  // API ever serves HTML documents.
   app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
   // H1: gzip/deflate the JSON payloads (compression's own 1kb threshold keeps
   // tiny responses like /api/health untouched).

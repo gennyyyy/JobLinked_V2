@@ -48,23 +48,23 @@ Options (pick one, record in `docs/arch/adr-036-{slug}.md`):
 
 ## Task order
 
-1. [ ] ADR-036 written with user's choice (blocks everything else here).
-2. [ ] (If A) one comment + one contract paragraph; permission bundles remain
+1. [x] ADR-036 written with user's choice (blocks everything else here).
+2. [x] (If A) one comment + one contract paragraph; permission bundles remain
        UI-shaping only. Add a test asserting `requireRole('super-admin')` still
        gates a sampled admin route so the guarantee is pinned.
-- [ ] 3. **Legal text — BLOCKED on stakeholder copy.** Replace `TERMS_PLACEHOLDER`
+- [x] 3. **Legal text — BLOCKED on stakeholder copy.** Replace `TERMS_PLACEHOLDER`
        in `Legal.jsx` with real Privacy Policy (data collected: identity, contact,
        education, employment history, resumes; purposes: job matching, stat
        reporting to LGU/PESO; RA 10173 rights; retention = the actual
        `runRetentionPurge` behavior) + real platform Terms. Same copy feeds
        TermsModal. Owner: backend/doc agent; needs user-supplied text.
-- [ ] 4. CSP check: review helmet defaults; add a conservative CSP only if the app
+- [x] 4. CSP check: review helmet defaults; add a conservative CSP only if the app
        renders fine with it (inline styles/Tailwind AST check first). One task,
        revert if it breaks anything.
-- [ ] 5. Dependency audit in CI: add `npm audit --audit-level=high --dry-run`
+- [x] 5. Dependency audit in CI: add `npm audit --audit-level=high --dry-run`
        step for root and `server/` to `.github/workflows/ci.yml` (advisory only,
        non-blocking initially).
-- [ ] 6. Secrets hygiene confirmation: repo grep for any hardcoded
+- [x] 6. Secrets hygiene confirmation: repo grep for any hardcoded
        `SUPABASE_SERVICE_ROLE_KEY`/DATABASE_URL literal (expect only dummy values
        in tests). Record result in this file's Results section.
 
@@ -76,3 +76,56 @@ Options (pick one, record in `docs/arch/adr-036-{slug}.md`):
    stays until real text arrives (it must not regress to *remove* the page).
 3. CSP without testing the file-streaming + blob-download flows breaks resume
    view/download — test both before landing.
+
+## Results (2026-11-09)
+
+- **Tasks 1–3 — prior work, verified only (not redone).**
+  `docs/arch/adr-036-custom-roles-descriptive.md` records option A;
+  `server/src/__tests__/admin.guards.test.js` pins the super-admin gate (401
+  anonymous, 403 employer/seeker, 200 super-admin). The real RA 10173 / Terms
+  copy lives in `src/shared/components/TermsModal.jsx` and renders through
+  `src/features/public-site/Legal.jsx`.
+- **4. CSP — helmet default kept; no explicit override added.** helmet 8.3.0
+  already emits a conservative `content-security-policy` on every response:
+  `default-src 'self'; base-uri 'self'; font-src 'self' https: data;
+  form-action 'self'; frame-ancestors 'self'; img-src 'self' data:;
+  object-src 'none'; script-src 'self'; script-src-attr 'none';
+  style-src 'self' https: 'unsafe-inline'; upgrade-insecure-requests`.
+  Duplicating it by hand would add no protection and would drift from helmet's
+  defaults. The API serves JSON/CSV/image/PDF bytes and never an HTML document,
+  so the header cannot affect SPA rendering (inline Tailwind styles live in the
+  Vite/static-host document); `frame-ancestors`/`X-Frame-Options` cannot break
+  resume viewing because the SPA opens a same-origin `blob:` URL. Tested:
+  `server/src/__tests__/middleware-hardening.test.js` asserts the CSP on
+  `/api/health`, streams a resume byte-for-byte through
+  `/api/files/resumes/...`, and returns the CSV report attachment; the
+  client-side Blob CSV download stays covered by
+  `src/features/super-admin/__tests__/ReportsCsv.test.jsx`. Revisit only if the
+  API ever serves HTML.
+- **5. Dependency audit in CI.** `.github/workflows/ci.yml` has two advisory
+  (`continue-on-error: true`) steps running
+  `npm audit --audit-level=high --dry-run` at the root and via
+  `npm --prefix server`. No Postgres service or other CI change. Both commands
+  were executed locally and exit 1 today — root: 11 vulns (6 moderate, 3 high,
+  2 critical), server: 6 (4 moderate, 2 high) — so the advisory posture is
+  load-bearing until the trees are triaged; tighten to blocking once clean.
+- **6. Secrets hygiene — clean.** No hardcoded `SUPABASE_SERVICE_ROLE_KEY` /
+  `DATABASE_URL` literal exists. Server code/scripts read `process.env.*`;
+  examples/docs use placeholders (`<password>`, `<service-role-key>`). Dummy
+  test value `SUPABASE_SERVICE_ROLE_KEY=test-service-role-key` appears in:
+  `server/src/auth.resolveRole.test.js`, `auth.middleware.status.test.js`,
+  `auth.tokenCache.test.js`, `tokenCache.negative.test.js`,
+  `routes/jobs.visibility.test.js`, `routes/profile-images.test.js`,
+  `__tests__/f01-f02-rate-limit-keying.test.js`,
+  `__tests__/resilience.regressions.test.js` (a ninth grep hit,
+  `server/src/__tests__/s3-s6-s7-error-handling.test.js`, only *deletes* the
+  var — no literal). No `DATABASE_URL` dummy value is needed; the tracked
+  `.env.test` holds only client public placeholders (`VITE_*`). `server/.env`
+  is present locally with a service-role key but is
+  gitignored, untracked and absent from all history
+  (`git log --all -- server/.env` empty) — not a repo leak; rotate the key if
+  that file ever leaves the host.
+- **Verification (run 2026-11-09):** `npm test` — 172 files / 1,050 tests pass;
+  `npm --prefix server test` — 66 files / 503 tests pass (includes the CSP,
+  resume-streaming and CSV-attachment assertions); `npm run lint` clean;
+  `npm run build` succeeds.
