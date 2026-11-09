@@ -21,6 +21,12 @@ function friendlyAuthError(error) {
     err.detail = `Cannot reach the authentication service at ${url}. Check VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY in .env.local and confirm the Supabase project is active.`;
     return err;
   }
+  // Supabase rejects a missing, replayed, or expired captcha token with a
+  // message containing "captcha". Tokens are single-use, so the honest advice
+  // is to solve the challenge again — the caller resets the widget for that.
+  if (/captcha/i.test(message)) {
+    return new Error('Verification failed. Please complete the challenge again.');
+  }
   return error;
 }
 
@@ -91,8 +97,14 @@ export async function updateProfile(userId, patch) {
   }
 }
 
-export async function signIn(email, password) {
-  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+export async function signIn(email, password, captchaToken) {
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email,
+    password,
+    // Omit the option entirely when the widget is unconfigured, so behavior
+    // and payloads are byte-identical to before the captcha existed.
+    ...(captchaToken ? { options: { captchaToken } } : {}),
+  });
   if (error) throw friendlyAuthError(error);
   let profile = data.user ? await getProfile(data.user.id) : null;
   if (!profile) {
@@ -109,7 +121,7 @@ export async function signIn(email, password) {
 
 const ALLOWED_SIGNUP_ROLES = ['job-seeker', 'employer'];
 
-export async function signUp({ email, password, role, firstName, middleName = '', lastName, suffix = '', extra = {} }) {
+export async function signUp({ email, password, role, firstName, middleName = '', lastName, suffix = '', captchaToken, extra = {} }) {
   if (!ALLOWED_SIGNUP_ROLES.includes(role)) throw new Error('Invalid role');
   const fullName = [firstName, middleName, lastName, suffix].filter(Boolean).join(' ');
   const lower = (value) => typeof value === 'string' ? value.trim().toLowerCase() : value;
@@ -152,6 +164,7 @@ export async function signUp({ email, password, role, firstName, middleName = ''
     options: {
       data: meta,
       emailRedirectTo: `${window.location.origin}/auth/callback`,
+      ...(captchaToken ? { captchaToken } : {}),
     },
   });
   if (error) throw friendlyAuthError(error);
@@ -177,11 +190,17 @@ export async function signOut() {
   } catch { /* revoke failed; local session still clears via SIGNED_OUT */ }
 }
 
-export async function changePassword(currentPassword, newPassword) {
+export async function changePassword(currentPassword, newPassword, captchaToken) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user?.email) throw new Error('No active account found.');
 
-  const { error: verifyError } = await supabase.auth.signInWithPassword({ email: user.email, password: currentPassword });
+  // The re-auth also carries a token: once CAPTCHA protection is enabled,
+  // Supabase rejects this signInWithPassword without one for every role.
+  const { error: verifyError } = await supabase.auth.signInWithPassword({
+    email: user.email,
+    password: currentPassword,
+    ...(captchaToken ? { options: { captchaToken } } : {}),
+  });
   if (verifyError) {
     const friendly = friendlyAuthError(verifyError);
     throw friendly === verifyError ? new Error('Current password is incorrect.') : friendly;
@@ -192,9 +211,10 @@ export async function changePassword(currentPassword, newPassword) {
   logAudit('auth.password.change');
 }
 
-export async function resetPassword(email) {
+export async function resetPassword(email, captchaToken) {
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
     redirectTo: `${window.location.origin}/reset-password`,
+    ...(captchaToken ? { captchaToken } : {}),
   });
   if (error) throw friendlyAuthError(error);
   logAudit('auth.password.reset.request');

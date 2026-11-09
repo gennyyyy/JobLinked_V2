@@ -184,3 +184,90 @@ describe('resetPassword', () => {
     await expect(resetPassword('a@b.com')).rejects.toThrow('nope')
   })
 })
+
+describe('captcha tokens', () => {
+  const profile = { id: 'u1', role: 'job-seeker' }
+
+  it('forwards the token to signInWithPassword', async () => {
+    supabase.auth.signInWithPassword.mockResolvedValue({
+      data: { user: { id: 'u1', email: 'test@test.com' } },
+      error: null,
+    })
+    api.get.mockResolvedValue(profile)
+
+    await signIn('test@test.com', 'password', 'captcha-token')
+
+    expect(supabase.auth.signInWithPassword).toHaveBeenCalledWith({
+      email: 'test@test.com',
+      password: 'password',
+      options: { captchaToken: 'captcha-token' },
+    })
+  })
+
+  it('omits the captcha option on sign-in when no token is given', async () => {
+    supabase.auth.signInWithPassword.mockResolvedValue({
+      data: { user: { id: 'u1', email: 'test@test.com' } },
+      error: null,
+    })
+    api.get.mockResolvedValue(profile)
+
+    await signIn('test@test.com', 'password')
+
+    expect(supabase.auth.signInWithPassword).toHaveBeenCalledWith({ email: 'test@test.com', password: 'password' })
+  })
+
+  it('maps a captcha rejection to a retry message', async () => {
+    supabase.auth.signInWithPassword.mockResolvedValue({
+      data: { user: null },
+      error: { message: 'captcha protection: request disallowed' },
+    })
+
+    await expect(signIn('test@test.com', 'password', 'stale-token')).rejects.toThrow(
+      'Verification failed. Please complete the challenge again.',
+    )
+  })
+
+  it('forwards the token through signUp options', async () => {
+    supabase.auth.signUp.mockResolvedValue({ data: { user: { id: 'u1' } }, error: null })
+
+    await signUp({ email: 's@test.com', password: 'pw123456', role: 'job-seeker', firstName: 'A', lastName: 'B', captchaToken: 'captcha-token' })
+
+    expect(supabase.auth.signUp).toHaveBeenCalledWith(expect.objectContaining({
+      options: expect.objectContaining({ captchaToken: 'captcha-token' }),
+    }))
+  })
+
+  it('omits the captcha option in signUp when no token is given', async () => {
+    supabase.auth.signUp.mockResolvedValue({ data: { user: { id: 'u1' } }, error: null })
+
+    await signUp({ email: 's@test.com', password: 'pw123456', role: 'job-seeker', firstName: 'A', lastName: 'B' })
+
+    expect('captchaToken' in supabase.auth.signUp.mock.calls[0][0].options).toBe(false)
+  })
+
+  it('forwards the token with the reset request', async () => {
+    supabase.auth.resetPasswordForEmail.mockResolvedValue({ data: {}, error: null })
+
+    await resetPassword('a@b.com', 'captcha-token')
+
+    expect(supabase.auth.resetPasswordForEmail).toHaveBeenCalledWith('a@b.com', {
+      redirectTo: expect.stringContaining('/reset-password'),
+      captchaToken: 'captcha-token',
+    })
+  })
+
+  it('forwards the token through the change-password re-auth and update', async () => {
+    supabase.auth.getUser.mockResolvedValue({ data: { user: { id: 'u1', email: 'a@b.com' } } })
+    supabase.auth.signInWithPassword.mockResolvedValue({ data: {}, error: null })
+    supabase.auth.updateUser.mockResolvedValue({ data: {}, error: null })
+
+    await changePassword('old12345', 'new12345', 'captcha-token')
+
+    expect(supabase.auth.signInWithPassword).toHaveBeenCalledWith({
+      email: 'a@b.com',
+      password: 'old12345',
+      options: { captchaToken: 'captcha-token' },
+    })
+    expect(supabase.auth.updateUser).toHaveBeenCalledWith({ password: 'new12345' })
+  })
+})
