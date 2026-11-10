@@ -2,51 +2,11 @@ import { Button } from "../../components/ui/button";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import useDialog from "../hooks/useDialog";
+import { PRIVACY_NOTICE } from "../content/legal";
 
-export const TERMS_PLACEHOLDER = `JOBLINKED EMPLOYEE / JOB SEEKER SIGN-UP
-Municipal Data Collection Terms and PESO Privacy Policy
-JobLinked collects and processes information you provide to create your account and support job matching, employment applications, and application tracking through the Public Employment Service Office (PESO).
-
-1. Information Collected
-We collect your name, residential address or barangay, contact details, educational background, skills, qualifications, certifications, employment history, employment status, and job preferences. We also process résumés, supporting documents, application records, referrals, and recruitment status updates you submit or generate through the platform.
-Only information necessary for the requested service will be collected. Required and optional fields will be identified. Additional sensitive information will be requested only when necessary, with its purpose and legal basis explained before collection.
-
-2. Use of Information
-Your information will be used to:
-• Create and manage your JobLinked account and applicant profile;
-• Match your qualifications and preferences with job vacancies;
-• Process applications and facilitate PESO employment assistance;
-• Display and update your application status;
-• Send relevant account, application, and service notifications; and
-• Prepare authorized municipal employment reports, using aggregated or anonymized information for public reporting.
-
-3. Access and Sharing
-Authorized PESO personnel may access information necessary to provide employment services and prepare authorized reports. Technical personnel and service providers may process information only as necessary to operate and secure JobLinked, subject to confidentiality and security obligations.
-When you apply for a job, the application screen will identify the receiving employer and the information and documents to be shared before you confirm submission.
-Sharing your profile with other prospective employers for additional PESO referrals requires a separate legal basis, including your optional consent where applicable. Your profile will not be sold or published as a public applicant directory.
-
-4. Protection and Retention
-Appropriate safeguards will be applied to protect your information and restrict access to authorized users.
-Records will be retained only while necessary for the stated services or applicable legal and government records requirements. When retention is no longer necessary or legally required, information will be securely deleted, disposed of, or anonymized.
-Closing your account does not automatically erase records that must lawfully be retained.
-
-5. Privacy Rights and Withdrawal
-Subject to applicable legal requirements, you may request access to or correction of your records, object to processing, withdraw consent, or request deletion or blocking of information.
-You may submit requests to the PESO office handling your registration for referral to the Municipality's designated Data Protection Officer. You may also raise a complaint with the National Privacy Commission.
-Withdrawal applies to future processing based on consent and does not invalidate earlier lawful processing or override legal retention requirements.
-
-6. User Responsibilities and Service Limitations
-You agree to provide accurate information, submit documents you are authorized to provide, update relevant profile details, and keep your login credentials confidential.
-Registration, job matching, and referrals do not guarantee employment. Employers remain responsible for their hiring decisions. JobLinked does not process payroll, salary payouts, or monetary transactions between employers and employees.
-Participation in research or system evaluation requires a separate explanation and consent where applicable.
-
-7. Legal Basis and Policy Updates
-Information will be processed in accordance with Republic Act No. 10173, or the Data Privacy Act of 2012, its implementing rules, applicable PESO legislation, and relevant municipal requirements.
-Processing required for government functions or legal obligations will be identified accordingly. Specific consent will be requested where consent is the applicable legal basis.
-Material policy changes will be communicated through JobLinked. New purposes requiring consent will be presented separately.
-
-8. AI Features
-Some in-app assistance (help answers and vacancy ranking) may be processed by an external AI provider on our behalf. JobLinked transmits only the content you type or public job information. We do not transmit your name, contact details, resume, or application records to that provider. Processor arrangements and safeguards apply; to exercise your privacy rights, contact the PESO Santa Maria office listed in section 5.`;
+// The registration consent is the privacy notice verbatim (G2): one source of
+// truth with /privacy and /terms, which live in shared/content/legal.js.
+export const TERMS_PLACEHOLDER = PRIVACY_NOTICE;
 
 function TermsModal({ open, onClose, onRead, title = "Data Collection Terms & Privacy Policy", body = TERMS_PLACEHOLDER }) {
   const bodyRef = useRef(null);

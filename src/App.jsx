@@ -110,8 +110,8 @@ function App() {
             <Route path="/admin/*" element={<Navigate to="/super-admin" replace />} />
             {/* Legal pages are not PublicRoute: portals link here, and a signed-in
                 user must not be logged out just for reading the notice. */}
-            <Route path="/privacy" element={<Legal title="Privacy notice" />} />
-            <Route path="/terms" element={<Legal title="Terms of Use" />} />
+            <Route path="/privacy" element={<Legal title="Privacy notice" document="privacy" />} />
+            <Route path="/terms" element={<Legal title="Terms of Use" document="terms" />} />
             <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
             <Route path="/forgot-password" element={<PublicRoute><ForgotPassword /></PublicRoute>} />
             <Route path="/reset-password" element={<PublicRoute><ResetPassword /></PublicRoute>} />
