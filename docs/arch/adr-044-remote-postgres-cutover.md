@@ -2,7 +2,7 @@
 
 - Status: Implemented — local cutover 2026-11-10; production cutover verified 2026-11-11 (Vercel app + server serve the VPS store)
 - Date: 2026-11-10
-- Related: docs/plan/plan.md (migration contract), docs/ops/deploy-runbook.md
+- Related: docs/plan/done/2026-11-10-db-remote-cutover.md (migration contract), docs/ops/deploy-runbook.md
 
 ## Context
 
