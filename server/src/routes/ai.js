@@ -2,7 +2,8 @@ import { Router } from 'express';
 import { auth } from '../auth.js';
 import { BRIEFS } from '../ai/briefs.js';
 import { callChat, resolveConfig } from '../aiProvider.js';
-import { aiLimiter } from '../middleware/rateLimit.js';
+import { extractResume } from '../ai/resumeExtract.js';
+import { aiLimiter, resumeExtractLimiter } from '../middleware/rateLimit.js';
 import { ah, err } from '../util.js';
 
 // Returns the validated messages array, or null when the payload breaks the contract.
@@ -47,6 +48,28 @@ router.post('/ai/help', auth, aiLimiter, ah(async (req, res) => {
     return err(res, 502, 'UPSTREAM_ERROR', 'AI help is unavailable right now.');
   }
   res.json({ reply: result.reply });
+}));
+
+// Pre-auth (registration-time) AI extraction. Gated by a dedicated per-IP
+// limiter + size cap instead of Turnstile: Turnstile tokens are single-use and
+// the register submit already consumes one.
+router.post('/ai/resume-extract', resumeExtractLimiter, ah(async (req, res) => {
+  const text = req?.body?.text;
+  if (typeof text !== 'string') return err(res, 400, 'INVALID_INPUT', 'text must be a string');
+  const trimmed = text.trim();
+  if (trimmed.length < 120) return err(res, 400, 'INVALID_INPUT', 'text is too short to extract from');
+  if (text.length > 20000) return err(res, 400, 'INVALID_INPUT', 'text exceeds the 20000 character limit');
+
+  const cfg = resolveConfig();
+  if (!cfg.key || !cfg.model) return err(res, 503, 'AI_NOT_CONFIGURED', 'AI help is not configured.');
+
+  try {
+    const result = await extractResume(trimmed);
+    res.json(result);
+  } catch (e) {
+    if (e?.code === 'AI_NOT_CONFIGURED') return err(res, 503, 'AI_NOT_CONFIGURED', 'AI help is not configured.');
+    return err(res, 502, 'AI_UPSTREAM', 'AI help is unavailable right now.');
+  }
 }));
 
 export default router;
