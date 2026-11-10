@@ -12,6 +12,21 @@ import { Router } from 'react-router-dom'
 // still lands on the right screen.
 const ENTRY_INDEX = 'joblinkedEntry'
 
+// One-time auth flows keep their real URL: it carries the credential and must
+// survive a mid-flow refresh. Every other entry (e.g. /login) is normalized to
+// the app root, so the frozen bar never shows a page the visitor has left.
+const TRANSIENT_ROOTS = ['/auth/callback', '/reset-password', '/accept-invite', '/complete-registration']
+
+function isTransient(pathname) {
+  return TRANSIENT_ROOTS.some((root) => pathname === root || pathname.startsWith(`${root}/`))
+}
+
+function frozenHref() {
+  return isTransient(window.location.pathname)
+    ? window.location.href
+    : new URL('/', window.location.origin).href
+}
+
 let seq = 0
 
 function hrefOf(to) {
@@ -36,6 +51,12 @@ export default function StaticUrlRouter({ entry = '/', children }) {
   const stack = useRef([initial])
   const index = useRef(0)
   const [current, setCurrent] = useState({ location: initial, action: 'POP' })
+
+  useLayoutEffect(() => {
+    // Runs before any in-app navigation: point the seeded entry at the frozen
+    // URL, without changing the route the router already read from `entry`.
+    window.history.replaceState({ [ENTRY_INDEX]: 0 }, '', frozenHref())
+  }, [])
 
   useLayoutEffect(() => {
     function onPopState(event) {

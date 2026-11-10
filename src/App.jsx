@@ -62,12 +62,14 @@ const Dashboard = lazyRoute(() => import('./features/super-admin/Dashboard'))
 const EmployerDashboard = lazyRoute(() => import('./features/employer/Dashboard'))
 const JobSeekerDashboard = lazyRoute(() => import('./features/job-seeker/Dashboard'))
 
-// The address bar is intentionally frozen: in-app navigation never rewrites the
+// The address bar is intentionally static: in-app navigation never rewrites the
 // URL, but each navigation still pushes a history entry, so the browser's
 // Back/Forward buttons walk through the pages you visited (StaticUrlRouter). The
 // router is seeded from the URL the tab was loaded with, so an emailed
 // /auth/callback, /reset-password or /complete-registration?role=… link lands on
-// the right screen. Trade-off: page URLs are not bookmarkable/shareable.
+// the right screen — and StaticUrlRouter then normalizes the bar to the app root
+// so it never shows a page the visitor has left (ADR-041). Trade-off: page URLs
+// are not bookmarkable/shareable.
 const entryPath = `${window.location.pathname}${window.location.search}${window.location.hash}`
 
 function App() {

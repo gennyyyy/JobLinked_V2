@@ -1,6 +1,7 @@
 # ADR-036 — Frozen address bar with working Back/Forward
 
-**Status:** Accepted 2026-11-04 (product owner; supersedes ADR-035)
+**Status:** Accepted 2026-11-04 (product owner; supersedes ADR-035). Amended
+2026-11-10 by ADR-041 (the frozen URL shows the app root, not the entry page).
 
 ## Context
 
