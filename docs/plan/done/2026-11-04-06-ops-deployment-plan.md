@@ -71,7 +71,7 @@ a restore actually works.
 
 1. **CORS_ORIGIN unset in prod** → API serves only localhost — deploy is "up" but
    every browser request 403s (same live failure already measured as F-1 in
-   `docs/plan/2026-11-04-full-system-test-fixes-plan.md`, in preview mode). Runbook
+   `docs/plan/done/2026-11-04-full-system-test-fixes-plan.md`, in preview mode). Runbook
    makes it an explicit, checked line; that plan's boot-warning pairs with this.
 2. **TRUST_PROXY value wrong** → spoofable client IP breaks limiter keying (F-01/
    F-02 decisions already addressed keying; the proxy count must still be right).

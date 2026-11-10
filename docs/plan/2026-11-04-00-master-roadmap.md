@@ -33,17 +33,14 @@ ops/deployment, and captcha (renumbered ADR-041).
 | 04 security/compliance | **done** — archived; dependency advisories remain open by design (CI is advisory) |
 | 05 testing | **done** — archived; real-Postgres suite, browser smoke, CI service |
 | 06 ops | **done** — archived; runbook, migration ledger, backups, restore drill passed |
-| full-system test fixes | code fixes done; 3 owner-gated hygiene items open (push, draft-PNG decision, final commit) |
+| full-system test fixes | **done** — archived; push performed, draft PNGs kept by owner decision |
 | captcha integration | **done** — archived as ADR-041; Supabase dashboard enablement remains a manual ops step |
 
 
-Also present and IN SCOPE today: `2026-11-04-full-system-test-fixes-plan.md` —
-a live full-system pass (2026-11-04) with four measured findings: CORS
-preview/prod lock-out, unprovisioned-account dead end, missing provisioned test
-fixture, repo hygiene (unpushed commits, scratch files). It is the most
-evidence-backed plan in the folder — **execute it first** (it also lands the
-smoke script that Plan 05's Phase 3 extends, and unblocks the load fixture the
-Plan 06 topology decision should assume exists).
+Completed companion (archived): `done/2026-11-04-full-system-test-fixes-plan.md` —
+the live full-system pass (2026-11-04) closed the CORS lock-out, the
+unprovisioned-account dead end, the provisioned fixture, and the repo-hygiene
+items (push done 2026-11-10; draft PNGs kept by owner decision 2026-11-10).
 
 ## Recommended order and dependencies
 

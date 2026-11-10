@@ -109,7 +109,7 @@ Expected: 200s dominate; zero 404s; p95 < 500ms at this scale. (429s allowed onl
 
 - [x] **Step 1:** `git push origin main` — **done 2026-11-10**: all local commits pushed to `origin/main` (`0e22073..d7d4424`, 30 commits).
 - [x] **Step 2:** Delete the two pure artifacts (`admin-page-diff.json`, `preview.html`). Keep the two `scripts/*.mjs` reference-compare tools only if `plan/` or docs reference them; otherwise delete (they are one-off diff runs). **Deviation:** `admin-page-diff.json` deleted; `preview.html` KEPT — tracked `scripts/compare-employer-pages.mjs:51` loads it, so it is the dev harness, not scratch. Both admin compare scripts kept (referenced by this plan; same class as their tracked siblings).
-- [ ] **Step 3:** Ask the owner (user) per PNG: referenced nowhere in `src/` today (verified by grep) — delete or promote to use. Default: move to `.gitignore`d `assets_draft/`? No — simplest: delete if unreferenced; they are re-creatable from the design source. **Left alone:** owner decision.
+- [x] **Step 3:** Draft PNGs — **owner decision 2026-11-10: keep them** (planned future use); no deletion, no archive move.
 - [x] **Step 4:** Commit `chore: retire admin-page diff scratch and unused draft assets` (whatever survived), push. **Closed:** no tracked change survived, and the branch push happened in Step 1.
 
 ### Task 5 (optional capstone): make the system smoke repeatable
