@@ -104,7 +104,7 @@ describe('JobSeekerRegister autofill', () => {
     renderPage()
     pickFile()
 
-    await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent(/filled 8 fields/i))
+    await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent(/Autofill done — please check:/i))
     expect(screen.getByLabelText(/^first name/i)).toHaveValue('Juan')
     expect(screen.getByLabelText(/email address/i)).toHaveValue('juan.delacruz@example.com')
 
@@ -127,7 +127,7 @@ describe('JobSeekerRegister autofill', () => {
     renderPage()
     pickFile()
 
-    await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent(/filled 10 fields.*2 skills found/i))
+    await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent(/Autofill done — please check:/i))
     expect(screen.getByText('Data Entry')).toBeInTheDocument()
     expect(screen.getByText('Communication')).toBeInTheDocument()
   })
@@ -141,7 +141,7 @@ describe('JobSeekerRegister autofill', () => {
     fireEvent.change(tagInput, { target: { value: 'Typed Skill,' } })
 
     pickFile()
-    await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent(/skills found/i))
+    await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent(/Autofill done — please check:/i))
 
     expect(screen.getByLabelText(/email address/i)).toHaveValue('me@typed.com')
     expect(screen.getByText('Typed Skill')).toBeInTheDocument()

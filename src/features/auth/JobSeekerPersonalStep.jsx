@@ -3,7 +3,7 @@ import { Label } from "@/components/ui/label";
 import { EMPLOYMENT_STATUSES } from "@/shared/constants";
 import { normalizePhone, withPrefix } from "@/shared/utils/phone";
 
-function JobSeekerPersonalStep({ form, errors, set, autofillStatus, handleResumeChange, inputClass, labelClass, reqMark }) {
+function JobSeekerPersonalStep({ form, errors, set, autofillStatus, autofillTouched = [], handleResumeChange, inputClass, labelClass, reqMark }) {
   return (
             <section className="surface p-5">
               <p className="font-mono text-[11px] tracking-[0.2em] text-primary uppercase mb-4 font-semibold">Step 1 — Personal Details</p>
@@ -19,7 +19,7 @@ function JobSeekerPersonalStep({ form, errors, set, autofillStatus, handleResume
               />
               <p className="mt-2 text-xs text-muted-foreground">PDF up to 2 MB or DOCX up to 5 MB. We'll fill in details below; review and edit them before continuing.</p>
               {autofillStatus && (
-                <p role="status" aria-live="polite" className="mt-2 text-xs font-medium text-primary">{autofillStatus}</p>
+                <p role="status" aria-live="polite" data-autofill-touched={autofillTouched.join(",")} className="mt-2 text-xs font-medium text-primary">{autofillStatus}</p>
               )}
             </section>
 
