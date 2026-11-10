@@ -1,11 +1,12 @@
 import { Router } from 'express';
 import { pool } from '../db.js';
 import { auth, requireRole } from '../auth.js';
+import { requirePermission } from '../middleware/permissions.js';
 import { ah, err, audit, notifyUser, isUuid, pageParams, withTransaction } from '../util.js';
 import { notifyMatchingSeekers } from './jobs.js';
 
 const router = Router();
-const admin = [auth, requireRole('super-admin')];
+const admin = [auth, requireRole('super-admin'), requirePermission('jobs.manage')];
 
 router.get('/admin/jobs', ...admin, ah(async (req, res) => {
   const pg = pageParams(res, req.query, 25, 500);

@@ -1,12 +1,13 @@
 import { Router } from 'express';
 import { pool } from '../db.js';
 import { auth, requireRole, supa } from '../auth.js';
+import { requirePermission } from '../middleware/permissions.js';
 import { ah, err, audit, buildFullName, isUuid, pageParams, withTransaction } from '../util.js';
 import { USER_TABLES, ACCOUNT_STATUSES, likeFilter } from './admin-shared.js';
 import logger from '../logger.js';
 
 const router = Router();
-const admin = [auth, requireRole('super-admin')];
+const admin = [auth, requireRole('super-admin'), requirePermission('users.manage')];
 
 // Derived so the role↔table mapping can never drift from USER_TABLES.
 const ROLE_BY_TABLE = Object.fromEntries(Object.entries(USER_TABLES).map(([role, table]) => [table, role]));

@@ -1,19 +1,25 @@
 import { Router } from 'express';
 import { pool } from '../db.js';
 import { auth, requireRole } from '../auth.js';
+import { requirePermission } from '../middleware/permissions.js';
 import { ah, err, audit, isNumericId } from '../util.js';
 import { USER_TABLES } from './admin-shared.js';
 
 const router = Router();
 const admin = [auth, requireRole('super-admin')];
+// ADR-042: the role catalogue is read by Role Management AND by User Management
+// (to assign a role), so reads accept either key; mutations stay roles-only.
+const rolesRead = [...admin, requirePermission('roles.manage', 'users.manage')];
+const rolesWrite = [...admin, requirePermission('roles.manage')];
+const settingsAdmin = [...admin, requirePermission('settings.manage')];
 
-router.get('/admin/reference/:category', ...admin, ah(async (req, res) => {
+router.get('/admin/reference/:category', ...settingsAdmin, ah(async (req, res) => {
   const { rows } = await pool.query(
     'select * from reference_data where category = $1 order by sort_order', [req.params.category]);
   res.json(rows);
 }));
 
-router.post('/admin/reference/:category', ...admin, ah(async (req, res) => {
+router.post('/admin/reference/:category', ...settingsAdmin, ah(async (req, res) => {
   const { value, sort_order = 0 } = req.body || {};
   if (!value) return err(res, 400, 'BAD_REQUEST', 'value is required');
   try {
@@ -79,17 +85,17 @@ async function roleNameTaken(name, excludeId = null) {
   return rows.length > 0;
 }
 
-router.get('/admin/permissions', ...admin, ah(async (_req, res) => {
+router.get('/admin/permissions', ...rolesRead, ah(async (_req, res) => {
   res.json(ROLE_PERMISSIONS);
 }));
 
-router.get('/admin/roles', ...admin, ah(async (req, res) => {
+router.get('/admin/roles', ...rolesRead, ah(async (req, res) => {
   const { rows } = await pool.query(
     `select * from reference_data where category = 'custom_role' order by sort_order, value`);
   res.json(rows.map(parseCustomRole));
 }));
 
-router.post('/admin/roles', ...admin, ah(async (req, res) => {
+router.post('/admin/roles', ...rolesWrite, ah(async (req, res) => {
   const checked = validateRolePayload(req.body);
   if (checked.error) return err(res, 400, 'BAD_REQUEST', checked.error);
   if (await roleNameTaken(checked.value.name)) return err(res, 409, 'CONFLICT', 'A role with this name already exists');
@@ -102,7 +108,7 @@ router.post('/admin/roles', ...admin, ah(async (req, res) => {
   res.status(201).json(parseCustomRole(rows[0]));
 }));
 
-router.patch('/admin/roles/:id', ...admin, ah(async (req, res) => {
+router.patch('/admin/roles/:id', ...rolesWrite, ah(async (req, res) => {
   if (!isNumericId(req.params.id)) return err(res, 400, 'BAD_REQUEST', 'Invalid id');
   const { rows: existing } = await pool.query(
     `select * from reference_data where id = $1 and category = 'custom_role'`, [req.params.id]);
@@ -118,7 +124,7 @@ router.patch('/admin/roles/:id', ...admin, ah(async (req, res) => {
   res.json(parseCustomRole(rows[0]));
 }));
 
-router.delete('/admin/roles/:id', ...admin, ah(async (req, res) => {
+router.delete('/admin/roles/:id', ...rolesWrite, ah(async (req, res) => {
   if (!isNumericId(req.params.id)) return err(res, 400, 'BAD_REQUEST', 'Invalid id');
   const { rows: existing } = await pool.query(
     `select * from reference_data where id = $1 and category = 'custom_role'`, [req.params.id]);
@@ -131,7 +137,7 @@ router.delete('/admin/roles/:id', ...admin, ah(async (req, res) => {
   res.json({ deleted: true });
 }));
 
-router.delete('/admin/reference/:id', ...admin, ah(async (req, res) => {
+router.delete('/admin/reference/:id', ...settingsAdmin, ah(async (req, res) => {
   if (!isNumericId(req.params.id)) return err(res, 400, 'BAD_REQUEST', 'Invalid id');
   const { rowCount } = await pool.query('delete from reference_data where id = $1', [req.params.id]);
   if (!rowCount) return err(res, 404, 'NOT_FOUND', 'Reference not found');

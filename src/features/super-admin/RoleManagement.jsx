@@ -365,7 +365,7 @@ function RoleManagement() {
                     )
                   })}
                 </div>
-                <p className="mt-2 text-[10px] text-muted-foreground">Permissions gate super-admin pages — they do not replace API role checks.</p>
+                <p className="mt-2 text-[10px] text-muted-foreground">Permissions gate the super-admin API as well as its pages (ADR-042): an account holding this role may only call what the bundle allows. An empty bundle reaches nothing; an account with no custom role keeps full access.</p>
               </fieldset>
 
               <div className="flex gap-2">

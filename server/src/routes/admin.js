@@ -1,18 +1,24 @@
 import { Router } from 'express';
 import { pool } from '../db.js';
 import { auth, requireRole } from '../auth.js';
+import { requirePermission } from '../middleware/permissions.js';
 import { ah, err, audit, isUuid, pageParams } from '../util.js';
 import { ACCOUNT_STATUSES, likeFilter } from './admin-shared.js';
 import logger from '../logger.js';
 
 const router = Router();
 const admin = [auth, requireRole('super-admin')];
+// ADR-042: one viewer chain per permission key; every route below picks its own.
+const viewer = [...admin, requirePermission('dashboard.view')];
+const accreditationAdmin = [...admin, requirePermission('accreditation.manage')];
+const logsAdmin = [...admin, requirePermission('logs.view')];
+const notifyAdmin = [...admin, requirePermission('notifications.send')];
 const SEEKER_COLS = 'id, full_name, email, phone, barangay_district, skills, employment_status, preferred_position, preferred_location';
 // B6: enum-valued filters are validated before they reach Postgres — an
 // unknown value raises 22P02 (500) instead of the 400 the contract wants.
 const APPLICATION_STATUSES = ['Applied', 'Under Review', 'Interview', 'Accepted', 'Rejected', 'Placed', 'Terminated'];
 
-router.get('/admin/stats', ...admin, ah(async (req, res) => {
+router.get('/admin/stats', ...viewer, ah(async (req, res) => {
   // One aggregate pass per table (FILTER) instead of 13 separate count(*)
   // queries — job_vacancies 5→1, job_applications 3→1, employers 2→1. Each
   // response key still counts exactly what its old standalone query counted
@@ -52,7 +58,7 @@ router.get('/admin/stats', ...admin, ah(async (req, res) => {
     ACTIVE_VACANCIES: activeVacancies, ACCEPTED_TOTAL: acceptedApplicants, PLACED_TOTAL: placedApplicants });
 }));
 
-router.get('/admin/companies', ...admin, ah(async (req, res) => {
+router.get('/admin/companies', ...viewer, ah(async (req, res) => {
   const pg = pageParams(res, req.query, 25, 500);
   if (!pg) return;
   const vals = [];
@@ -67,7 +73,7 @@ router.get('/admin/companies', ...admin, ah(async (req, res) => {
   res.json({ data: rows, total, page: pg.page, pageSize: pg.pageSize });
 }));
 
-router.get('/admin/applications', ...admin, ah(async (req, res) => {
+router.get('/admin/applications', ...viewer, ah(async (req, res) => {
   const { status = null, search = '' } = req.query;
   const pg = pageParams(res, req.query, 25, 500);
   if (!pg) return;
@@ -93,7 +99,7 @@ router.get('/admin/applications', ...admin, ah(async (req, res) => {
   res.json({ data: rows, total, page: pg.page, pageSize: pg.pageSize });
 }));
 
-router.get('/admin/employees', ...admin, ah(async (req, res) => {
+router.get('/admin/employees', ...viewer, ah(async (req, res) => {
   const { rows } = await pool.query(
     `select a.*, json_build_object('id', j.id, 'title', j.title, 'company_id', j.company_id,
        'employment_type', j.employment_type, 'location', j.location, 'office', j.office,
@@ -107,7 +113,7 @@ router.get('/admin/employees', ...admin, ah(async (req, res) => {
   res.json(rows);
 }));
 
-router.get('/admin/referrals', ...admin, ah(async (req, res) => {
+router.get('/admin/referrals', ...viewer, ah(async (req, res) => {
   const { rows } = await pool.query(
     `select a.*, json_build_object('id', j.id, 'title', j.title,
        'employers', json_build_object('company_name', e.company_name)) as job,
@@ -118,7 +124,7 @@ router.get('/admin/referrals', ...admin, ah(async (req, res) => {
   res.json(rows);
 }));
 
-router.get('/admin/accreditations', ...admin, ah(async (req, res) => {
+router.get('/admin/accreditations', ...accreditationAdmin, ah(async (req, res) => {
   const pg = pageParams(res, req.query, 25, 500);
   if (!pg) return;
   const base = `from employer_accreditations a left join employers e on e.id = a.company_id
@@ -161,7 +167,7 @@ if (process.env.RETENTION_DISABLE !== '1') {
   }, RETENTION_INTERVAL_MS).unref?.();
 }
 
-router.get('/admin/audit-logs', ...admin, ah(async (req, res) => {
+router.get('/admin/audit-logs', ...logsAdmin, ah(async (req, res) => {
   const { limit = 500, userId = '', action = '', from = '', to = '' } = req.query;
   const vals = [];
   const conds = [];
@@ -195,20 +201,20 @@ const seekerChildRead = (sql, order) => ah(async (req, res) => {
   const { rows } = await pool.query(`select * from ${sql} where seeker_id = $1 order by ${order}`, [req.params.id]);
   res.json(rows);
 });
-router.get('/admin/seekers/:id/education', ...admin, seekerChildRead('education', 'id desc'));
-router.get('/admin/seekers/:id/experience', ...admin, seekerChildRead('work_experience', 'id desc'));
-router.get('/admin/seekers/:id/employment', ...admin, seekerChildRead('employment_history', 'created_at desc'));
+router.get('/admin/seekers/:id/education', ...viewer, seekerChildRead('education', 'id desc'));
+router.get('/admin/seekers/:id/experience', ...viewer, seekerChildRead('work_experience', 'id desc'));
+router.get('/admin/seekers/:id/employment', ...viewer, seekerChildRead('employment_history', 'created_at desc'));
 // Resume metadata for the admin detail dialog: the seeker's own list endpoint
 // is ownership-scoped, and /files/:bucket/* streams a file but never a
 // file_path, so a super-admin has no other way to open a resume.
-router.get('/admin/seekers/:id/resumes', ...admin, seekerChildRead('resumes', 'is_active desc, uploaded_at desc'));
+router.get('/admin/seekers/:id/resumes', ...viewer, seekerChildRead('resumes', 'is_active desc, uploaded_at desc'));
 
 // System broadcast: one 'system' row per ACTIVE user (fan-out, never a NULL
 // user_id — the column is NOT NULL). expires_at lives only in the audit
 // details jsonb (notifications has no details column — adding one is DDL,
 // needs arch approval).
 // ponytail: single multi-row INSERT; per-user queue table if user count explodes
-router.post('/admin/system-notifications', ...admin, ah(async (req, res) => {
+router.post('/admin/system-notifications', ...notifyAdmin, ah(async (req, res) => {
   const { title, message, link = null, expires_at = null } = req.body || {};
   if (!title || !message) return err(res, 400, 'BAD_REQUEST', 'title and message are required');
   const { rowCount } = await pool.query(

@@ -59,7 +59,11 @@ describe('auth status gate', () => {
     found('active');
     const out = await run(auth);
     expect(out.ok).toBe(true);
-    expect(out.req.user).toEqual({ id: 'u1', email: 'u@x.com', role: 'super-admin', app_metadata: { role: 'job-seeker' } });
+    // ADR-042 adds the custom-role fields to every principal.
+    expect(out.req.user).toEqual({
+      id: 'u1', email: 'u@x.com', role: 'super-admin', app_metadata: { role: 'job-seeker' },
+      customRoleId: null, permissions: [],
+    });
   });
 });
 
@@ -76,7 +80,11 @@ describe('optionalAuth status gate', () => {
   it('attaches req.user (with app_metadata) for an active account', async () => {
     found('active');
     const out = await run(optionalAuth);
-    expect(out.req.user).toEqual({ id: 'u1', email: 'u@x.com', role: 'super-admin', app_metadata: { role: 'job-seeker' } });
+    // ADR-042 adds the custom-role fields to every principal.
+    expect(out.req.user).toEqual({
+      id: 'u1', email: 'u@x.com', role: 'super-admin', app_metadata: { role: 'job-seeker' },
+      customRoleId: null, permissions: [],
+    });
   });
 
   it('stays anonymous with no token', async () => {

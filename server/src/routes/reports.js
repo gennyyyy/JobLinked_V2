@@ -1,10 +1,11 @@
 import { Router } from 'express';
 import { pool } from '../db.js';
 import { auth, requireRole } from '../auth.js';
+import { requirePermission } from '../middleware/permissions.js';
 import { ah, err, pageParams } from '../util.js';
 
 const router = Router();
-const admin = [auth, requireRole('super-admin')];
+const admin = [auth, requireRole('super-admin'), requirePermission('reports.view')];
 
 // Report SELECTs copied from admin.js (read-only reuse; admin.js untouched).
 const SEEKER_COLS = 'id, full_name, email, phone, barangay_district, skills, employment_status, preferred_position, preferred_location';

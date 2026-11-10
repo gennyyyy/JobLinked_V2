@@ -29,7 +29,36 @@ export async function resolveRole(id) {
        union all
        select 'job-seeker' as role, to_jsonb(j) as profile, 3 as ord from job_seekers j where id = $1
      ) t order by (profile->>'status' <> 'inactive') desc, (profile->>'status' = 'active') desc, ord limit 1`, [id]);
-  return rows[0] || null;
+  const row = rows[0];
+  if (!row) return null;
+  // ADR-042: the permission bundle is a SECOND query, and only for accounts that
+  // actually carry a custom role — the seeded system admin (the common case, and
+  // every existing fixture) pays nothing. `custom_role_id` already rides inside
+  // the profile row, so the first statement stays untouched. roleFrom() memoizes
+  // this whole function per request, so the extra statement runs at most once.
+  // The FK is `on delete set null`, so a deleted role reads as "no custom role".
+  const customRoleId = row.profile?.custom_role_id ?? null;
+  let permissions = [];
+  if (customRoleId !== null) {
+    const bundle = await pool.query(
+      `select coalesce(details->'permissions', '[]'::jsonb) as permissions
+         from reference_data where id = $1 and category = 'custom_role'`, [customRoleId]);
+    if (Array.isArray(bundle.rows[0]?.permissions)) permissions = bundle.rows[0].permissions;
+  }
+  return { ...row, custom_role_id: customRoleId, permissions };
+}
+
+// One shape for the principal, so every attach site carries the same fields
+// (ADR-042 needs customRoleId + permissions on the request).
+function principalOf(user, found) {
+  return {
+    id: user.id,
+    email: user.email,
+    role: found.role,
+    app_metadata: user.app_metadata,
+    customRoleId: found.custom_role_id ?? null,
+    permissions: Array.isArray(found.permissions) ? found.permissions : [],
+  };
 }
 
 // F2 (docs/arch/audit/phase4-loadtest.md): the cross-request memo of the
@@ -64,7 +93,7 @@ export async function attachPrincipal(req, _res, next) {
     if (user) {
       const found = await roleFrom(req, user.id).catch(() => null);
       if (found?.profile.status === 'active') {
-        req.user = { id: user.id, email: user.email, role: found.role, app_metadata: user.app_metadata };
+        req.user = principalOf(user, found);
       }
     }
   } catch { /* never let the limiter's helper fail a request */ }
@@ -87,7 +116,7 @@ export async function auth(req, res, next) {
   if (found.profile.status !== 'active') {
     return err(res, 403, 'FORBIDDEN', 'This account has been suspended or deactivated. Contact PESO.');
   }
-  req.user = { id: user.id, email: user.email, role: found.role, app_metadata: user.app_metadata };
+  req.user = principalOf(user, found);
   next();
 }
 
@@ -97,7 +126,7 @@ export async function optionalAuth(req, _res, next) {
   if (!user) return next();
   const found = await roleFrom(req, user.id).catch(() => null);
   if (found && found.profile.status === 'active') {
-    req.user = { id: user.id, email: user.email, role: found.role, app_metadata: user.app_metadata };
+    req.user = principalOf(user, found);
   }
   next();
 }
