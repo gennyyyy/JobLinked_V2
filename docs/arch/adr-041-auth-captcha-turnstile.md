@@ -87,7 +87,11 @@ configured during the rollback window (it renders harmlessly).
    `localhost` + production).
 2. Put the **site key** in `.env.local` / the deployment environment. Confirm the
    widget renders and a real token reaches Supabase while enforcement is still
-   off.
+   off. A console `400020` (invalid sitekey) means the wrong field was copied —
+   usually the 35-character **secret** key, which Cloudflare's `/siteverify`
+   accepts as a secret but the challenge endpoint rejects. Site keys are the
+   short `0x4AAAAAAA…` value on the same widget page; Vite only re-reads
+   `.env.local` on a dev-server restart.
 3. Deploy the frontend.
 4. Supabase dashboard → Authentication → CAPTCHA / Bot protection → provider
    **Turnstile** → paste the **secret key** → enable.

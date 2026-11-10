@@ -12,6 +12,16 @@ vi.mock('../../../shared/services/auth', () => ({
   signIn: vi.fn(),
 }));
 
+// No captcha here: a local .env.local carries a real site key, which would gate
+// the submit before signIn is ever called. Same empty-key mock Login.test.jsx uses.
+vi.mock('../../../shared/lib/turnstile', () => ({
+  TURNSTILE_SITE_KEY: '',
+  loadTurnstile: vi.fn(),
+  renderTurnstile: vi.fn(),
+  resetTurnstile: vi.fn(),
+  removeTurnstile: vi.fn(),
+}));
+
 import useAuth from '../../../shared/hooks/useAuth';
 import { signIn } from '../../../shared/services/auth';
 
