@@ -15,9 +15,11 @@ import reportsRoutes from './routes/reports.js';
 import aiRoutes from './routes/ai.js';
 import aiMatchRoutes from './routes/aiMatch.js';
 import health from './routes/health.js';
+import metricsRoutes from './routes/metrics.js';
 import { authLimiter, uploadLimiter, apiLimiter } from './middleware/rateLimit.js';
 import requestId from './middleware/requestId.js';
 import requestLog from './middleware/requestLog.js';
+import { metricsMiddleware } from './middleware/metrics.js';
 import logger from './logger.js';
 import { err } from './util.js';
 import { attachPrincipal } from './auth.js';
@@ -85,6 +87,8 @@ export function createApp() {
   app.use(requestId);
   // H5: one JSON access line per request, wrapped around everything below.
   app.use(requestLog);
+  // ADR-043: counts every finished response; read by GET /api/metrics.
+  app.use(metricsMiddleware);
   // F-01 (launch fix): attach the principal app-wide BEFORE every limiter so
   // authLimiter's keyGenerator can bucket by user id — one noisy authenticated
   // caller on /api/auth/* no longer exhausts the shared IP bucket and locks
@@ -99,6 +103,7 @@ export function createApp() {
   app.post('/api/files/*', uploadLimiter);
 
   app.get('/api/health', health);
+  app.use('/api', metricsRoutes);
   // C1: general throttle for everything else under /api. Mounted after the
   // auth/upload limiters (which keep their stricter buckets via apiLimiter's
   // skip) and after /api/health so load balancer probes stay unlimited.
