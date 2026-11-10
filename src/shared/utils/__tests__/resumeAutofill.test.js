@@ -246,3 +246,33 @@ describe('mapResumeText', () => {
     expect(out.skills).toEqual(expect.arrayContaining(['Python', 'JavaScript', 'Tailwind']))
   })
 })
+
+describe('resumeAutofill regressions from the golden corpus', () => {
+  it('splits a letter-spaced name', () => {
+    const out = mapResumeText('J U A N   D E L A   C R U Z\nEmail: juan.delacruz@example.com')
+    expect(out.firstName).toBe('Juan')
+    expect(out.lastName).toBe('Dela Cruz')
+  })
+
+  it('does not garble two-column skills', () => {
+    const out = mapResumeText('Skills:\nPython   Communication\nReact   Teamwork\nJavaScript   Leadership')
+    expect(out.skills).toEqual(expect.arrayContaining(['Python', 'Communication', 'React', 'Teamwork', 'JavaScript', 'Leadership']))
+    expect(out.skills).not.toContain('Python   Communication')
+  })
+
+  it('peels a labeled full address into parts', () => {
+    const out = mapResumeText('Address: 128 Mabini Street, Barangay Poblacion, Davao City, Davao del Sur 8000')
+    expect(out.streetAddress).toBe('128 Mabini Street')
+    expect(out.barangayDistrict).toBe('Poblacion')
+    expect(out.cityMunicipality).toBe('Davao City')
+    expect(out.provinceState).toBe('Davao del Sur')
+    expect(out.postalCode).toBe('8000')
+  })
+
+  it('does not misfile a city name as a subdivision', () => {
+    const out = mapResumeText('123 Colon Street, Barangay Kamagayan, Cebu City, Cebu 6000')
+    expect(out.subdivisionBuilding).toBe('')
+    expect(out.cityMunicipality).toBe('Cebu City')
+    expect(out.provinceState).toBe('Cebu')
+  })
+})

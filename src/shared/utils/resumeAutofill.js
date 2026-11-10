@@ -74,6 +74,9 @@ function splitName(raw) {
     ? [...comma[2].split(/\s+/), ...comma[1].split(/\s+/)]
     : raw.trim().split(/\s+/);
   parts = parts.map((p) => p.replace(/,+$/, "")).filter(Boolean);
+  // Letter-spaced headings ("J U A N") despace into all-caps tokens; title-case
+  // them so splitName's casing expectations still hold.
+  parts = parts.map((p) => (/^[A-Z]{2,}$/.test(p) ? p.charAt(0) + p.slice(1).toLowerCase() : p));
   parts = parts.filter((p) => !NAME_SUFFIX.test(p));
   if (parts.length < 2 || parts.length > 6) return null;
   if (!parts.every((p) => NAME_WORD.test(p) && p[0] === p[0].toUpperCase())) return null;
@@ -94,13 +97,14 @@ function splitName(raw) {
 }
 
 function mapName(text, lines) {
-  const fromLabel = splitName(labeled(text, "name") || labeled(text, "full\\s*name"));
+  const fromLabel = splitName(labeled(text, "name") || labeled(text, "full\\s*name")) ||
+    splitName(despace(labeled(text, "name") || labeled(text, "full\\s*name")));
   if (fromLabel) return fromLabel;
   for (const line of lines.slice(0, 5)) {
     if (/[@\d]/.test(line)) continue;
     if (/https?:|www\.|\.com\b/i.test(line)) continue;
     if (NAME_HEADERS.test(line)) continue;
-    const parsed = splitName(line);
+    const parsed = splitName(line) || splitName(despace(line));
     if (parsed) return parsed;
   }
   return null;
@@ -155,7 +159,17 @@ const ZIP_TAIL = /\b\d{4}\s*$/;
 
 function mapAddress(text, lines, out) {
   const street = labeled(text, "((?:home|present|permanent|current|provincial|mailing|residential|residence)?\\s*(?:street\\s*)?address|lot\\s*/\\s*block\\s*address)");
-  if (street) out.streetAddress = street;
+  if (street) {
+    // A labeled "Address:" often carries the whole block ("123 X St, Brgy Y,
+    // City, Province 1234"). Peel it into parts instead of storing the blob.
+    out.streetAddress = street;
+    if (!(out.houseNumberUnit && out.subdivisionBuilding && out.barangayDistrict && out.cityMunicipality && out.provinceState && out.postalCode)) {
+      const saved = out.streetAddress;
+      out.streetAddress = "";
+      parseAddressBlock([saved], out);
+      if (!out.streetAddress) out.streetAddress = saved;
+    }
+  }
   const house =
     labeled(text, "(house\\s*/\\s*building\\s*/\\s*unit(\\s*(number|no\\.?))?|house(\\s*(number|no\\.?))?|unit(\\s*(number|no\\.?))?|building(\\s*(number|no\\.?))?|apartment|apt\\.?)");
   if (house) out.houseNumberUnit = house;
@@ -174,7 +188,7 @@ function mapAddress(text, lines, out) {
   const postal = labeled(text, "(postal(\\s*/\\s*zip)?(\\s*code)?|zip(\\s*code)?)");
   if (/^\d{4}$/.test(postal.trim())) out.postalCode = postal.trim();
   if (out.streetAddress && out.houseNumberUnit && out.subdivisionBuilding && out.barangayDistrict && out.cityMunicipality && out.provinceState && out.postalCode) return;
-  parseAddressBlock(lines, out);
+  if (!street) parseAddressBlock(lines, out);
 }
 
 // Addresses wrap across lines ("... abarca" / "street, Pulong" / "Buhangin,
@@ -197,6 +211,16 @@ function startsAddress(l) {
 function continuesAddress(l) {
   if (/@/.test(l) || /https?:|www\./i.test(l) || PHONE_RE.test(l)) return false;
   if (SECTION_STOP.test(despace(l))) return false;
+  // Stop the address block before skills/education lines, which often carry
+  // commas and would otherwise be stitched into the street field.
+  if (/\b(university|college|school|institute|academy|bs[a-z]{0,4}\b|ms[a-z]{0,4}\b|bachelor|master|diploma|\(\d{4})\b/i.test(l)) return false;
+  const des = despace(l);
+  let skillHits = 0;
+  for (const term of SKILL_TERMS) {
+    const tail = /[A-Za-z0-9]$/.test(term) ? "\\b" : "(?![A-Za-z0-9])";
+    if (new RegExp(`\\b${esc(term)}${tail}`, "i").test(des)) skillHits++;
+  }
+  if (skillHits >= 2) return false;
   return l.includes(",") || STREET_KEY.test(l) || BARANGAY_RE.test(l) || HOUSE_SEG.test(l) || SUBDIV_SEG.test(l) || ZIP_TAIL.test(l);
 }
 
@@ -255,7 +279,10 @@ function parseAddressBlock(lines, out) {
     if (!out.streetAddress) { out.streetAddress = seg; continue; }
     // A plain name sitting after the street (and left of the barangay) is the
     // subdivision/village/building even without the keyword — "…street, cityland".
-    if (!out.subdivisionBuilding && !/\d/.test(seg) && !STREET_WORD.test(seg) && seg.split(/\s+/).length <= 3) {
+    if (!out.subdivisionBuilding && !/\d/.test(seg) && !STREET_WORD.test(seg) && seg.split(/\s+/).length <= 3 &&
+        seg.toLowerCase() !== String(out.cityMunicipality || "").toLowerCase() &&
+        seg.toLowerCase() !== String(out.provinceState || "").toLowerCase() &&
+        seg.toLowerCase() !== String(out.barangayDistrict || "").toLowerCase()) {
       out.subdivisionBuilding = seg;
       continue;
     }
@@ -316,7 +343,17 @@ function mapSkills(text, lines) {
     for (let i = idx + 1; i < lines.length && i < idx + 30; i++) {
       const l = lines[i];
       if (SECTION_END.test(despace(l))) break;
-      splitSection(l).forEach((f) => push(f, 8));
+      const des = despace(l);
+      // Two-column blocks interleave skills ("Python   Communication"); peel
+      // out the known terms instead of pushing the garbled token.
+      const known = [];
+      for (const term of SKILL_TERMS) {
+        const tail = /[A-Za-z0-9]$/.test(term) ? "\\b" : "(?![A-Za-z0-9])";
+        const m = des.match(new RegExp(`\\b${esc(term)}${tail}`, "i"));
+        if (m) known.push(m[0]);
+      }
+      if (known.length) known.forEach((f) => push(f));
+      else splitSection(l).forEach((f) => push(f, 8));
     }
   }
   // URLs/emails mention stack words (github, api) that aren't skills — scrub them.
