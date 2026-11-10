@@ -13,6 +13,7 @@
     "syscheck": "node scripts/system-check.mjs",
     "smoke": "node scripts/smoke.mjs",
     "backup:uploads": "node scripts/backup-uploads.mjs",
+    "eval:autofill": "node scripts/eval-autofill.mjs",
     "test": "vitest run",
     "test:watch": "vitest"
   },
