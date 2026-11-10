@@ -7,9 +7,7 @@ import { supabase } from './supabase';
 function apiUrl() {
   if (import.meta.env.VITE_API_URL) return import.meta.env.VITE_API_URL;
   if (import.meta.env.DEV) return 'http://localhost:4000';
-  const err = new Error('We couldn\u2019t load this right now. Please check your connection and try again.');
-  err.detail = 'Missing VITE_API_URL configuration';
-  throw err;
+  return '';
 }
 
 // Absolute URL for a public API asset (company logo) that <img src> can load
