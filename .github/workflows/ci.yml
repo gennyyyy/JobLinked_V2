@@ -47,6 +47,12 @@ jobs:
         env:
           INTEGRATION_TEST: '1'
           INTEGRATION_DATABASE_URL: postgres://postgres:postgres@localhost:5432/joblinked_test
+      # Resume auto-fill eval (plan Task 6): advisory, heuristic mode only (no LLM
+      # secrets needed in CI). Tighten to blocking once the golden corpus is large
+      # enough and numbers are stable.
+      - name: Resume autofill eval (advisory)
+        run: npm run eval:autofill
+        continue-on-error: true
       # Advisory supply-chain check (plan item 5): report high+ vulns without
       # failing the pipeline. Tighten to blocking once the tree is clean.
       - name: Audit root dependencies (advisory)
