@@ -14,5 +14,11 @@
     "provinceState": "Bulacan",
     "postalCode": "3017"
   },
-  "skills": ["Python", "JavaScript", "Tailwind", "MySQL", "C#"]
+  "skills": ["Python", "JavaScript", "Tailwind", "MySQL", "C#"],
+  "education": {
+    "level": "College",
+    "school": "PUP SANTA MARIA",
+    "field": "BSIT",
+    "year": "2023"
+  }
 }

@@ -46,7 +46,23 @@ const FIELDS = [
   "provinceState",
   "postalCode",
   "skills",
+  "education.level",
+  "education.school",
+  "education.field",
+  "education.year",
 ];
+
+function expectedValue(expected, key) {
+  if (key === "skills") return expected.skills || [];
+  if (key.startsWith("education.")) return (expected.education || {})[key.slice("education.".length)] ?? "";
+  return (expected.fields || {})[key] ?? "";
+}
+
+function gotValue(got, key) {
+  if (key === "skills") return got.skills || [];
+  if (key.startsWith("education.")) return (got.education || {})[key.slice("education.".length)] ?? "";
+  return got[key] ?? "";
+}
 
 // Normalized exact-match: trim + collapse whitespace runs + case-fold.
 function normalize(value) {
@@ -169,13 +185,12 @@ async function main() {
     }
 
     const got = mapResumeText(text);
-    const expectedFields = expected.fields || {};
     const fields = {};
     for (const field of FIELDS) {
       report.perFieldAccuracy[field].total++;
+      const exp = expectedValue(expected, field);
+      const g = gotValue(got, field);
       if (field === "skills") {
-        const exp = expected.skills || [];
-        const g = got.skills || [];
         const pass = skillsF1(exp, g);
         fields[field] = { expected: exp, got: g, pass };
         if (exp.length > 0) {
@@ -183,8 +198,6 @@ async function main() {
           if (pass === 1) report.perFieldAccuracy[field].correct++;
         }
       } else {
-        const exp = expectedFields[field] ?? "";
-        const g = got[field] ?? "";
         const pass = scalarPass(exp, g);
         fields[field] = { expected: exp, got: g, pass };
         if (typeof exp === "string" && exp.trim() !== "") {
