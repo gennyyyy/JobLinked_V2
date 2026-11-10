@@ -1,0 +1,28 @@
+{
+  "fields": {
+    "firstName": "Maria",
+    "middleName": "Santos",
+    "lastName": "Reyes",
+    "email": "maria.reyes91@gmail.com",
+    "mobileNumber": "+639184447788",
+    "birthdate": "1991-01-20",
+    "houseNumberUnit": "",
+    "streetAddress": "143 Sampaguita Street",
+    "subdivisionBuilding": "Greenview Subdivision",
+    "barangayDistrict": "San Vicente",
+    "cityMunicipality": "San Jose del Monte",
+    "provinceState": "Bulacan",
+    "postalCode": "3023"
+  },
+  "skills": [
+    "Cashiering",
+    "Microsoft Word",
+    "Communication"
+  ],
+  "education": {
+    "level": "College",
+    "school": "Bulacan State University",
+    "field": "BSBA",
+    "year": "2009"
+  }
+}

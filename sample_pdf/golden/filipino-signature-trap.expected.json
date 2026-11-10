@@ -1,0 +1,28 @@
+{
+  "fields": {
+    "firstName": "Ana Marie",
+    "middleName": "",
+    "lastName": "Villanueva",
+    "email": "ana.villanueva92@gmail.com",
+    "mobileNumber": "+639173336677",
+    "birthdate": "1992-08-25",
+    "houseNumberUnit": "",
+    "streetAddress": "88 Lakandula Street",
+    "subdivisionBuilding": "",
+    "barangayDistrict": "San Isidro",
+    "cityMunicipality": "Makati City",
+    "provinceState": "Metro Manila",
+    "postalCode": "1234"
+  },
+  "skills": [
+    "Bookkeeping",
+    "Microsoft Excel",
+    "Data Entry"
+  ],
+  "education": {
+    "level": "College",
+    "school": "Polytechnic University of the Philippines",
+    "field": "BSA",
+    "year": "2010"
+  }
+}

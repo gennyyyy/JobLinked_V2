@@ -1,0 +1,29 @@
+{
+  "fields": {
+    "firstName": "Juan",
+    "middleName": "",
+    "lastName": "Dela Cruz",
+    "email": "juan.delacruz1987@gmail.com",
+    "mobileNumber": "+639171234567",
+    "birthdate": "1990-05-04",
+    "houseNumberUnit": "",
+    "streetAddress": "128 Mabini Street",
+    "subdivisionBuilding": "",
+    "barangayDistrict": "Poblacion",
+    "cityMunicipality": "Davao City",
+    "provinceState": "Davao del Sur",
+    "postalCode": "8000"
+  },
+  "skills": [
+    "Data Entry",
+    "Microsoft Excel",
+    "Customer Service",
+    "Typing"
+  ],
+  "education": {
+    "level": "College",
+    "school": "University of Southeastern Philippines",
+    "field": "BSIT",
+    "year": "2012"
+  }
+}

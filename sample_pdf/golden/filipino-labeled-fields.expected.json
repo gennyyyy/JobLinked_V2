@@ -1,0 +1,28 @@
+{
+  "fields": {
+    "firstName": "Miguel",
+    "middleName": "",
+    "lastName": "Ocampo",
+    "email": "miguel.ocampo88@gmail.com",
+    "mobileNumber": "+639179981234",
+    "birthdate": "1988-10-12",
+    "houseNumberUnit": "",
+    "streetAddress": "22 Rizal Avenue",
+    "subdivisionBuilding": "",
+    "barangayDistrict": "",
+    "cityMunicipality": "Calamba",
+    "provinceState": "Laguna",
+    "postalCode": "4027"
+  },
+  "skills": [
+    "Driving",
+    "Inventory",
+    "Customer Service"
+  ],
+  "education": {
+    "level": "College",
+    "school": "Laguna State Polytechnic University",
+    "field": "BSIE",
+    "year": "2006"
+  }
+}

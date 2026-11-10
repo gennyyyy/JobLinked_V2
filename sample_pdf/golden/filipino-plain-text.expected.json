@@ -1,0 +1,29 @@
+{
+  "fields": {
+    "firstName": "Liza",
+    "middleName": "",
+    "lastName": "Ramos",
+    "email": "liza.ramos89@gmail.com",
+    "mobileNumber": "+639187654321",
+    "birthdate": "1992-06-15",
+    "houseNumberUnit": "",
+    "streetAddress": "123 Colon Street",
+    "subdivisionBuilding": "",
+    "barangayDistrict": "Kamagayan",
+    "cityMunicipality": "Cebu City",
+    "provinceState": "Cebu",
+    "postalCode": "6000"
+  },
+  "skills": [
+    "Customer service",
+    "cashiering",
+    "Microsoft Word",
+    "communication"
+  ],
+  "education": {
+    "level": "College",
+    "school": "University of San Carlos",
+    "field": "BSHRM",
+    "year": "2010"
+  }
+}

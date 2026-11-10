@@ -1,0 +1,31 @@
+{
+  "fields": {
+    "firstName": "Rafael",
+    "middleName": "",
+    "lastName": "Bautista",
+    "email": "rafael.bautista95@gmail.com",
+    "mobileNumber": "+639195552211",
+    "birthdate": "1995-03-18",
+    "houseNumberUnit": "",
+    "streetAddress": "45 Aurora Boulevard",
+    "subdivisionBuilding": "",
+    "barangayDistrict": "Mariana",
+    "cityMunicipality": "Quezon City",
+    "provinceState": "Metro Manila",
+    "postalCode": "1100"
+  },
+  "skills": [
+    "Python",
+    "React",
+    "JavaScript",
+    "Communication",
+    "Teamwork",
+    "Leadership"
+  ],
+  "education": {
+    "level": "College",
+    "school": "Technological Institute of the Philippines",
+    "field": "BSIT",
+    "year": "2013"
+  }
+}
