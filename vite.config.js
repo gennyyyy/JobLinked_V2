@@ -13,6 +13,7 @@ export default defineConfig({
   // scripts are dot-prefixed (".probe-*.mjs", ".sys-probe.mjs") anywhere in the
   // repo, so match them by name rather than one directory.
   server: {
+    host: true,
     watch: {
       ignored: [
         "**/.*probe*",
