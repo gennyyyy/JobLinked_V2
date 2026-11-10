@@ -1,9 +1,18 @@
+# Prohibited-Fee Filter for Job Posts — Implementation Plan
+
+> **For agentic workers:** REQUIRED SUB-SKILL: superpowers:subagent-driven-development (recommended) or superpowers:executing-plans. Steps use `- [ ]` checkboxes.
+
+**Goal:** No job post containing fee/payment-collection language ("registration fee", "processing payment", …) reaches job seekers without a PESO super-admin decision.
+
+**Architecture:** deterministic lexical filter, enforced server-side only (client hint is cosmetic). Dual severity: hard block terms → `422 FEE_POLICY_BLOCKED`, nothing written; softer fee language → held in the existing review lane: status `pending` + `job_status_history` row + admin/employer notifications (reuse `notifyAdmins`/`notifyUser`), recorded in a new `job_prohibited_flags` table. Admin approve/edit attempts ride the existing `PATCH /admin/jobs/:id` + `POST /admin/jobs/:id/publish` flow.
+
+**Tech Stack:** Express + pg (server, ESM), Vitest + supertest, React client, Postgres 18 (via `server/node_modules/pg`).
 
 **Spec:** this plan plus the ADR; seed terms mirror the user's examples ("registration fee", "processing payment").
 
 ## Global Constraints
 
-- Server-side scan at the trust boundary on every write that can end result in a `published` post; the client hint is cosmetic, never authority.
+- Server-side scan at the trust boundary on every write that can result in a `published` post; the client hint is cosmetic, never authority.
 - Employers are held, never auto-rejected: false positives exist, and fee language may be benign ("no fees are collected" is still held; the admin clears it).
 - Reuse the existing review lane: `pending` in the `job_status` enum, the admin-jobs routes, and the admin JobPosts "Pending Review" badge. No enum change, no status rename.
 - Employers keep their four statuses (draft | published | closed | archived, jobs.js:13); the server may set `pending` for them (an admin-lane value).
@@ -31,6 +40,12 @@
 - Table public.job_prohibited_flags: id uuid pk default gen_random_uuid(); job_id uuid not null references job_vacancies(id) on delete cascade; matched_terms text[] not null; source_fields text[] not null; severity text not null check (severity in ('blocked','held')); resolved text check (resolved in ('cleared','approved','rejected')); resolved_by uuid; resolved_at timestamptz; created_at timestamptz not null default now()
 - Index: (job_id, resolved_at desc) plus partial index (job_id) where resolved is null — supports "is there an open flag for this job?" in O(1)
 - Applied with: bash db/apply-migrations.sh (or the Windows equivalent documented in db/README.md); verify with a status check against the remote store + a rollback note in the ADR
+
+**Steps:**
+- [ ] Step 1: write the migration file exactly as specified above (additive only; no schema.sql touch).
+- [ ] Step 2: write the ADR (decision, threshold table, term list, rollback).
+- [ ] Step 3: apply against the local scratch DB for the CI path, then the remote store per runbook; verify with a select against both.
+- [ ] Step 4: commit — "feat(db): job_prohibited_flags table".
 
 ### Task 1: Lexical detector — server/src/services/jobFeeFilter.js (test-first)
 
@@ -70,7 +85,7 @@
 **Steps:**
 - [ ] Step 1: write failing supertest tests: (a) POST /jobs as employer with "registration fee" in description + canPublish stub true -> 422 + zero writes; (b) equivalent PATCH keeps the post draft/unchanged; (c) POST /jobs/:id/status to published with hold-term -> response .status='pending', one flag row, notifyAdmins called, notifyMatchingSeekers NOT called; (d) clean publish path still publishes and fans out (regression guard).
 - [ ] Step 2: run the new test file — FAIL.
-- [ ] Step 3: implement one shared helper inside Task-2 (per-route, ~15 lines): build the candidate job text from the caller's request (insert: the built record; PATCH: existing job merged with patch; POST /:id/status: the loaded job), run scanJob BEFORE any DB write. blocked -> 422, nothing written. held + result would be published -> write with status='pending' in the existing transaction, insert the flag row inside it. none / held-but-draft -> proceed as today. (Typo fixed in proofread: "tabla insert" -> "row insert" below.)
+- [ ] Step 3: implement one shared helper inside Task-2 (per-route, ~15 lines): build the candidate job text from the caller's request (insert: the built record; PATCH: existing job merged with patch; POST /:id/status: the loaded job), run scanJob BEFORE any DB write. blocked -> 422, nothing written. held + result would be published -> write with status='pending' in the existing transaction, insert the flag row inside it. none / held-but-draft -> proceed as today.
 - [ ] Step 4: run the new tests — PASS.
 - [ ] Step 5: npm test (full server+client suites green) and npm run lint.
 - [ ] Step 6: commit — "feat(api): hold or reject fee posts at the employer publish boundary".
