@@ -1,13 +1,14 @@
-# Production Login Fix — Deployment Configuration Plan (rev. 2)
+# Production Login Fix — Deployment Configuration Plan (rev. 3)
 
 > **For agentic workers:** Runbook for the human operator (dashboard/VPS access required). Verification probes can be run by the architect on request. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Production login works end-to-end AND the API runs where the code says it must — one persistent Node process (ADR-037).
 
-**Architecture:** Login chain = Turnstile → Supabase → Express `/api/auth/me`. Captcha pairing is fixed (sitekey `0x4AAAAAAF7XYodVEYDcBaUx` pairs with the Supabase secret — proven by working local login). Two blockers remain, both discovered while executing rev. 1:
+**Architecture:** Login chain = Turnstile → Supabase → Express `/api/auth/me`. **Root cause of the login 400 (found 2026-11-11):** the Turnstile secret configured in Supabase is invalid. A fresh, real token from the live widget (709 chars, issued by Chrome on `/login`) posted to Supabase with a dummy account returns `400 captcha_failed — captcha protection: request disallowed (invalid-input-secret)`. Cloudflare's siteverify rejects the **secret**; the widget, sitekey, browser, app payload, and password path are all correct. Firefox and Chrome fail identically. One other blocker remains from rev. 1:
 
-1. **Architecture conflict.** `vercel.json` deploys the API as a Vercel service, which is serverless. ADR-037 (Accepted 2026-11-04) explicitly forbids this: uploads write to local disk via `multer.diskStorage` (read-only filesystem in a serverless function), rate limiters are in-memory, and the retention purge is an in-process `setInterval`. Rev. 1's Task 2 (just set env vars) would produce working logins and broken uploads. **Decision required before Tasks 2–3.**
-2. **Database URL defect.** The only candidate prod URL (`.env.local`) fails two ways: password `say my name` is unencoded (must be `say%20my%20name`), and TLS fails with `DEPTH_ZERO_SELF_SIGNED_CERT` — the remote Postgres at `85.211.176.236` presents a self-signed cert while installed `pg-connection-string` treats `sslmode=require` as verify-full. Also ADR-044 names user `myapp_user` while the URL says `postgres`. Credentials are unverified.
+1. **Turnstile secret invalid (blocks every login).** Fix is dashboard-only: replace the secret in Supabase with the one from the Cloudflare widget that owns sitekey `0x4AAAAAAF7XYodVEYDcBaUx`. No rebuild, no redeploy.
+2. **Architecture conflict.** `vercel.json` deploys the API as a Vercel service, which is serverless. ADR-037 (Accepted 2026-11-04) explicitly forbids this: uploads write to local disk via `multer.diskStorage` (read-only filesystem in a serverless function), rate limiters are in-memory, and the retention purge is an in-process `setInterval`. Rev. 1's Task 2 (just set env vars) would produce working logins and broken uploads. **Decision required before Tasks 2–3.**
+3. **Database URL defect — resolved 2026-11-10/11.** The remote store at `85.211.176.236/myapp_db` is live and serving (`sslmode=no-verify`, because node-postgres treats `require` as verify-full while libpq does not). Local API, Vercel app, and Vercel server all serve it. See `docs/plan/2026-11-10-db-remote-cutover.md`.
 
 **Tech Stack:** Vercel (static SPA), Supabase (auth), Cloudflare Turnstile, Express + PostgreSQL (API runtime TBD: persistent host per ADR-037).
 
@@ -19,7 +20,7 @@
 - ADR-037 single-instance invariant is binding: one persistent Node process for the API. No replicas, no serverless (unless ADR-037 is formally superseded — that is a Lead Architect decision, not an implementation shortcut).
 - `VITE_*` values are baked at build time — every env change needs a rebuild (runbook §5).
 - Vercel env vars apply only to new deployments.
-- One Supabase project → one captcha secret → all environments use sitekey `0x4AAAAAAF7XYodVEYDcBaUx`.
+- One Supabase project → one captcha secret → all environments use sitekey `0x4AAAAAAF7XYodVEYDcBaUx`; the Supabase secret must be copied from that same Cloudflare widget (`invalid-input-secret` = wrong or stale secret, not a browser problem).
 
 ## Review Focus
 
@@ -38,11 +39,17 @@
   - **B (stopgap, requires superseding ADR-037):** keep the Vercel serverless API, accept: resume/document uploads fail (read-only fs), limiter state per-instance, no retention purge. Acceptable only for a demo, never for real job-seeker data.
 - [ ] **Step 2:** Record the choice (new ADR if B; rev. 1 plan otherwise). Implementation proceeds per choice below.
 
-### Task 1: Repair the remote database connection (both paths need this)
+### Task 0.5: Repair the Turnstile secret pairing (unblocks every login)
 
-- [ ] **Step 1:** Confirm the real credentials: DB user (`myapp_user` per ADR-044 or `postgres`), password (percent-encode spaces/`@`/`:`/`/`), database `myapp_db`, host `85.211.176.236`.
-- [ ] **Step 2:** Fix TLS semantics — append `&uselibpqcompat=true` to the URL (keeps `sslmode=require` as encrypt-without-verify, per installed pg-connection-string) **or** install a CA-signed cert on the server. Verify from the dev machine (architect runs the read-only probe): expect `CONNECTED` + expected `public tables` count + `schema_migrations` present.
-- [ ] **Step 3:** If the remote DB is empty/fresh: apply migrations with `db/apply-migrations.sh --status` then a normal run (per runbook migration ledger). No schema edits.
+- [ ] **Step 1:** Cloudflare dashboard → Turnstile → the widget with sitekey `0x4AAAAAAF7XYodVEYDcBaUx` → Settings → copy its **Secret Key**.
+- [ ] **Step 2:** Supabase dashboard → project `omvnwyawamotmzvehdgo` → Authentication → Attack Protection (CAPTCHA) → provider **Turnstile** → replace the secret → Save. The secret is server-side; no app rebuild or API restart.
+- [ ] **Step 3:** Verify by logging in with a real account. A wrong password must now produce `Invalid login credentials`; `Verification failed` or a `captcha_failed` 400 means the secret is still wrong or belongs to another widget.
+- [ ] **Step 4:** If the Cloudflare widget no longer exists, create a new widget (hostnames `localhost` + `joblinked.site`), set its sitekey in `.env.local` and Vercel `VITE_TURNSTILE_SITE_KEY`, rebuild the app deployment, and paste the new secret into Supabase. Update the sitekey in Global Constraints then.
+- [ ] **Step 5 (fallback only):** If the secret cannot be recovered now, disable CAPTCHA protection in Supabase to restore logins, record the accepted bot risk, and re-enable once the pairing is fixed.
+
+### Task 1: Remote database connection — DONE (2026-11-10/11)
+
+`myapp_db` was restored on `85.211.176.236` and `server/.env` now points at it with `sslmode=no-verify` (node-postgres treats `require` as verify-full and rejects the VPS self-signed cert; libpq does not). `health?deep=true` → `{ok, db:'ok', auth:'ok'}`, `/api/jobs` → 102. Production (Vercel server) serves the same store. Details: `docs/plan/2026-11-10-db-remote-cutover.md`. No further action.
 
 ### Task 2A: Deploy the persistent API (if Task 0 = A)
 
