@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { mapResumeText } from "@/shared/utils/resumeAutofill";
+import { mapResumeText, mergeResumeFields } from "@/shared/utils/resumeAutofill";
 import { MAX_PDF_SIZE, MAX_RESUME_SIZE } from "./jobSeekerRegistration";
+import { api } from "@/shared/lib/api";
 
 const FIELD_LABELS = {
   firstName: "First name",
@@ -23,10 +24,8 @@ const FIELD_LABELS = {
 export function useResumeAutofill({ form, setForm, setEducation }) {
   const [autofillStatus, setAutofillStatus] = useState("");
   const [touched, setTouched] = useState([]);
+  const [consent, setConsent] = useState(false);
 
-  // Resume -> form autofill. PDF/DOCX only; anything else stays blank and the
-  // user fills it in. Non-empty mapped values merge in, so hand-typed fields
-  // the resume didn't cover are preserved.
   async function handleResumeChange(event) {
     const file = event.target.files?.[0];
     event.target.value = "";
@@ -49,13 +48,33 @@ export function useResumeAutofill({ form, setForm, setEducation }) {
     }
     setAutofillStatus("Reading your resume…");
     try {
-      // pdfjs + mammoth are ~850 kB: load them only when a resume is picked.
       const { extractResumeText } = await import("@/shared/lib/resumeText");
-      const mapped = mapResumeText(await extractResumeText(file));
+      const text = await extractResumeText(file);
+      const heuristic = mapResumeText(text);
+
+      // Consent-gated LLM pass for the long-string fields; regex keeps
+      // email/phone/birthdate. Any failure (config, network, validation)
+      // falls back to the heuristic result — never blocks registration.
+      let mapped = heuristic;
+      let usedAi = false;
+      let aiFailed = false;
+      if (consent) {
+        try {
+          const res = await api.post("ai/resume-extract", { text });
+          const body = await res.json();
+          if (body?.fields) {
+            mapped = mergeResumeFields(heuristic, body.fields);
+            usedAi = true;
+          } else {
+            aiFailed = true;
+          }
+        } catch {
+          aiFailed = true;
+        }
+      }
+
       const skills = Array.isArray(mapped.skills) ? mapped.skills : [];
 
-      // Which fields actually change from blank -> value. Computed against the
-      // current form so a re-run that finds nothing new touches nothing.
       const filled = {};
       const touchedKeys = [];
       for (const [key, value] of Object.entries(mapped)) {
@@ -123,14 +142,15 @@ export function useResumeAutofill({ form, setForm, setEducation }) {
         });
       }
 
-      // Push "skills"/"education" only when something was actually added.
       if (skills.length && skillsAdded) touchedKeys.push("skills");
       if (eduAdded) touchedKeys.push("education");
 
       setTouched(touchedKeys);
       if (touchedKeys.length) {
         const labels = touchedKeys.map((k) => FIELD_LABELS[k]).join(", ");
-        setAutofillStatus(`Autofill done — please check: ${labels}`);
+        const prefix = usedAi ? "Autofill done with AI" : "Autofill done";
+        const suffix = aiFailed ? " — AI read unavailable, used built-in detection" : "";
+        setAutofillStatus(`${prefix} — please check: ${labels}${suffix}.`);
       } else {
         setAutofillStatus("Couldn't find any details to fill in — enter them manually.");
       }
@@ -140,5 +160,5 @@ export function useResumeAutofill({ form, setForm, setEducation }) {
     }
   }
 
-  return { autofillStatus, touched, handleResumeChange };
+  return { autofillStatus, touched, consent, setConsent, handleResumeChange };
 }

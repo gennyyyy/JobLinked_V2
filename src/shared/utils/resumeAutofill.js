@@ -382,6 +382,44 @@ function mapEducation(lines) {
   return { level: EDU_ORDER[bestRank], school: rest.replace(/^[-–,\s]+|[-–,\s]+$/g, "").trim(), field, year };
 }
 
+export function mergeResumeFields(heuristic, llm) {
+  const out = {
+    ...heuristic,
+    skills: Array.isArray(heuristic?.skills) ? [...heuristic.skills] : [],
+    education: { ...(heuristic?.education || {}) },
+  };
+  if (!llm || typeof llm !== "object") return out;
+  const LLM_KEYS = [
+    "firstName", "middleName", "lastName",
+    "houseNumberUnit", "streetAddress", "subdivisionBuilding",
+    "barangayDistrict", "cityMunicipality", "provinceState", "postalCode",
+  ];
+  for (const k of LLM_KEYS) {
+    const v = llm[k];
+    if (typeof v === "string" && v.trim()) out[k] = v.trim();
+  }
+  if (Array.isArray(llm.skills) && llm.skills.length) {
+    const seen = new Set();
+    const merged = [];
+    for (const s of llm.skills) {
+      if (typeof s !== "string") continue;
+      const t = s.trim();
+      if (!t) continue;
+      const key = t.toLowerCase();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      merged.push(t);
+    }
+    if (merged.length) out.skills = merged.slice(0, 20);
+  }
+  if (llm.education && typeof llm.education === "object") {
+    for (const k of ["level", "school", "field", "year"]) {
+      const v = llm.education[k];
+      if (typeof v === "string" && v.trim()) out.education[k] = v.trim();
+    }
+  }
+  return out;
+}
 export function mapResumeText(input) {
   const out = blank();
   const text = String(input || "");
