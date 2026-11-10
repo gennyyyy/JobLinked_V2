@@ -87,6 +87,38 @@ listed are unchanged from the register above.
 | G13 | **PARTIAL** | Admin dashboard now shows an "Active vacancies" tile and placement count (`src/features/super-admin/Dashboard.jsx:54,71,78`). "Request additional documents" and the ADR-000 approval rows remain as described |
 | G16 | **CLOSED** | `index.html:9` meta description + `:12,14,17` OG tags present. SEO value beyond that is bounded by the G1 decision |
 
-Open and unchanged: G2 (legal copy), G3 (no server-side permission enforcement; bundles are
-validated in `server/src/routes/admin.js` but never checked at request time), G4 (decided by
-ADR-037/ADR-038 — single persistent node), G7, G8, G10, G14 (blocked on template), G15, G17.
+Open and unchanged after the 2026-11-09 pass: G2 (legal copy), G3 (no server-side permission
+enforcement), G4 (decided by ADR-037/ADR-038 — single persistent node), G7, G8, G10,
+G14 (blocked on template), G15, G17. **All of these except G10/G14 were closed on 2026-11-10 —
+see the table below; G10 was decided (dark mode retired), G14 stays blocked on the official form.**
+
+## Register closed out — 2026-11-10 (end of the plan set)
+
+Every row of this register is now either closed or explicitly blocked on an input the
+code cannot supply:
+
+| State | Rows |
+|---|---|
+| Closed with code + tests | G1 (ADR-036), G3 (ADR-042), G5 (ADR-040), G6, G7, G8, G9, G11, G12, G13, G15 (ADR-043), G16, G17 |
+| Closed as a drafted artifact, pending human review | **G2** — the legal copy is written; counsel/PESO approval is the remaining step |
+| Decided, no work needed | G4 (ADR-037/038 single node), G10 (dark mode retired by owner) |
+| Blocked on an external input | **G14** — the statutory Monthly PESO Report cannot be built until the official template is supplied |
+
+## Row status re-verified 2026-11-10
+
+Checked against the working tree again (5 days after the 2026-11-09 pass). Rows not
+listed are unchanged.
+
+| ID | Status 2026-11-10 | Evidence |
+|---|---|---|
+| G6 | **CLOSED** | Real-Postgres integration suite exists: `server/src/__tests__/integration/db.integration.test.js` + `server/vitest.integration.config.js`, wired into CI with a Postgres service (plan 05 archive). |
+| G7 | **CLOSED** | Employer applicant resume view is back: `src/features/employer/Applicants.jsx` `openResume()` reads through `GET /files/resumes/*` (ownership + application-link checked server-side) with a 403 message. |
+| G8 | **CLOSED** | Admin seeker depth UI shipped: `src/features/super-admin/UserManagement.jsx` renders a "Seeker profile" dialog (Education / work experience / employment history / resumes) fed by `listSeekerEducation/Experience/Employment/Resumes` in `src/shared/services/admin.js:117-131`. |
+| G11 | **PARTIAL → closing** | `job-seeker/Profile.jsx` 412 lines (was 730) and `server/src/routes/admin.js` 211 lines (notifications extracted; ADR-026 executed). Remaining: `employer/JobPosts.jsx` (1172 lines) — decomposition in progress 2026-11-10. |
+| G12 | **CLOSED** | `SiteHeader.jsx`, `SiteFooter.jsx`, `AccountMenu.jsx`, `src/components/ui/sonner.jsx` are all deleted; `sonner` is no longer in `package.json`; the only `toast(` definition left is the local `Toast.jsx` component. |
+| G13 | **CLOSED** | Resubmission flow with a required reason exists in `super-admin/Accreditation.jsx` (`resubmission` status + `requestDocs`), and the dashboard gained the Active-vacancies/placement tiles. ADR-000 job-approval rows stay out of scope by decision. |
+| G17 | **CLOSED** | `to_do.md` carries the stale-premise banner, `docs/arch/gap-matrix.md` carries its re-verification section, and `plan.md` is filed as a historical artifact in the decided list below. |
+| G2 | **CLOSED (draft copy)** | `/privacy` and `/terms` now render two different documents from `src/shared/content/legal.js` (`PRIVACY_NOTICE`, `TERMS_OF_USE`), and the registration consent modal reuses the privacy notice instead of a second copy. Drafted for RA 10173 practice — **counsel/PESO must approve the final wording before production**, which is a review step, not missing code. |
+| G3 | **CLOSED** | ADR-042 implemented: `server/src/middleware/permissions.js` (`requirePermission`) + `customRoleId`/`permissions` on every principal (`auth.js resolveRole`) + per-route keys across `admin.js`, `admin-jobs.js`, `admin-users.js`, `admin-reference.js`, `reports.js`. Coverage: `server/src/__tests__/permission-enforcement.test.js` (7 cases: no bundle = full access, key present/absent, empty bundle, non-super-admin, users-only vs roles write, jobs vs users separation). |
+| G11 | **CLOSED** | `employer/JobPosts.jsx` 1172 → 585 lines with `jobPostFields.js` (78), `JobPostFormDialog.jsx` (389) and `JobPostDetailDialog.jsx` (119); all 62 employer tests, lint and build green. Together with `job-seeker/Profile.jsx` 412 and `server/src/routes/admin.js` 211, the monolith row is closed. |
+| G15 | **CLOSED** | ADR-043 implemented: counters + latency histogram + last-5xx in `server/src/middleware/metrics.js`, token-gated scrape at `GET /api/metrics` (`x-metrics-token`, unset = 404), optional per-minute 5xx webhook via `ALERT_WEBHOOK_URL`. Coverage: `server/src/__tests__/metrics.test.js`. Both env vars documented in `server/.env.example`. |

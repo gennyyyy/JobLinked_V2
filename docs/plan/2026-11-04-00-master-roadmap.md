@@ -27,8 +27,8 @@ ops/deployment, and captcha (renumbered ADR-041).
 
 | Plan | Status |
 |---|---|
-| 01 system gap analysis | reference register — keep |
-| 02 routing/SEO | **superseded by ADR-036** — do not execute |
+| 01 system gap analysis | reference register — **closed out 2026-11-10** (see its close-out table) |
+| 02 routing/SEO | **superseded by ADR-036** — do not execute; SEO basics shipped |
 | 03 code health | **done** — archived |
 | 04 security/compliance | **done** — archived; dependency advisories remain open by design (CI is advisory) |
 | 05 testing | **done** — archived; real-Postgres suite, browser smoke, CI service |
@@ -77,12 +77,33 @@ items (push done 2026-11-10; draft PNGs kept by owner decision 2026-11-10).
 
 ## Explicit decisions requested from the user (blockers)
 
-1. Router swap approval (02) — changes URL behavior everywhere.
-2. Custom-role permissions: enforce vs. document (04) — ADR-036.
-3. Dark mode: implement per the 2026-10-18 spec or delete the dormant tokens (03).
-4. AI-match modal: wire to the existing `/api/ai/help` or cut the button (03).
-5. Production API host: persistent Node (recommended) vs. serverless rework (06) — ADR-037.
-6. Real legal copy for /privacy + /terms (04) — text must be supplied.
+Resolved: 1 → frozen URL (ADR-036); 3 → dark mode implemented then retired (plan 03/10-18
+archive); 4 → AiMatchModal deleted, real `/api/ai/job-match` shipped; 5 → single persistent
+node (ADR-037/038).
+
+All six decision items are now settled:
+
+1. ~~Custom-role permissions enforce vs. document~~ → **enforced** (ADR-042): a custom role is
+   an allow-list for the super-admin API, keyed per route group; an account without a custom
+   role keeps full access as the break-glass path. **Needs one human follow-up:** keep at least
+   one bundle-less super-admin, and note the lockout path in the ops runbook.
+2. ~~Real legal copy for /privacy + /terms~~ → **drafted** (`src/shared/content/legal.js`:
+   `PRIVACY_NOTICE`, `TERMS_OF_USE`, consent modal reuses the notice). **Needs counsel/PESO
+   approval of the wording before production** — a review step, not missing code.
+3. ~~Monitoring/alerting target~~ → **built** (ADR-043): in-process counters, token-gated
+   `GET /api/metrics`, optional per-minute 5xx webhook. **Ops follow-up:** set `METRICS_TOKEN`
+   and `ALERT_WEBHOOK_URL` on the host and point a scraper at it.
+
+The one genuinely blocked item is **G14** (statutory Monthly PESO Report), which cannot be
+built until someone supplies the official LGU form/template.
+
+## Latest status pass (2026-11-10, end of plan set)
+
+Plan 01 carries the full re-verification table and a close-out summary. Everything in the
+2026-11-04 plan set is implemented and archived; the register's remaining "open" rows were
+closed today — G3 (ADR-042 permission enforcement), G11 (last monolith: `employer/JobPosts.jsx`
+1172 → 585 lines + three modules), G15 (ADR-043 monitoring), G2 (legal copy drafted, pending
+review). G14 stays blocked on the external template.
 
 Nothing here proposes moving off JavaScript/JSX, off Supabase Auth, or off the
 Express–Postgres topology that ADR-020 signed off.
