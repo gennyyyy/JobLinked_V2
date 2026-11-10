@@ -395,3 +395,52 @@ describe('JobSeekerRegister captcha', () => {
     expect(signUp).toHaveBeenCalledTimes(1)
   })
 })
+
+describe('JobSeekerRegister autofill (consent)', () => {
+  beforeEach(() => vi.clearAllMocks())
+
+  it('uses the heuristic path when consent is off', async () => {
+    extractResumeText.mockResolvedValue(TEXT)
+    const fetchMock = vi.fn()
+    vi.stubGlobal('fetch', fetchMock)
+    renderPage()
+    pickFile()
+    await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent(/Autofill done — please check:/i))
+    expect(fetchMock).not.toHaveBeenCalled()
+    vi.unstubAllGlobals()
+  })
+
+  it('calls the AI endpoint and merges fields when consent is on', async () => {
+    extractResumeText.mockResolvedValue(TEXT)
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      text: async () => JSON.stringify({ fields: { firstName: 'AI Juan', skills: ['AI Skill'] }, meta: { model: 'm', tookMs: 1 } }),
+      json: async () => ({ fields: { firstName: 'AI Juan', skills: ['AI Skill'] }, meta: { model: 'm', tookMs: 1 } }),
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    renderPage()
+    fireEvent.click(screen.getByLabelText(/use ai to read my resume/i))
+    pickFile()
+    await new Promise(r => setTimeout(r, 50))
+    expect(fetchMock).toHaveBeenCalled()
+    await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent(/Autofill done with AI — please check:/i))
+    expect(fetchMock).toHaveBeenCalledWith(expect.stringContaining('/api/ai/resume-extract'), expect.anything())
+    expect(screen.getByLabelText(/^first name/i)).toHaveValue('AI Juan')
+    expect(screen.getByLabelText(/email address/i)).toHaveValue('juan.delacruz@example.com')
+    expect(screen.getByText('AI Skill')).toBeInTheDocument()
+    vi.unstubAllGlobals()
+  })
+
+  it('falls back to built-in detection when the AI endpoint fails', async () => {
+    extractResumeText.mockResolvedValue(TEXT)
+    const fetchMock = vi.fn().mockResolvedValue({ ok: false, status: 503, text: async () => JSON.stringify({ error: { code: 'AI_NOT_CONFIGURED' } }), json: async () => ({ error: { code: 'AI_NOT_CONFIGURED' } }) })
+    vi.stubGlobal('fetch', fetchMock)
+    renderPage()
+    fireEvent.click(screen.getByLabelText(/use ai to read my resume/i))
+    pickFile()
+    await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent(/AI read unavailable/i))
+    expect(screen.getByLabelText(/^first name/i)).toHaveValue('Juan')
+    vi.unstubAllGlobals()
+  })
+})

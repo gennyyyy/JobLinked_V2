@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { mapResumeText, mergeResumeFields } from "@/shared/utils/resumeAutofill";
 import { MAX_PDF_SIZE, MAX_RESUME_SIZE } from "./jobSeekerRegistration";
 import { api } from "@/shared/lib/api";
@@ -24,7 +24,13 @@ const FIELD_LABELS = {
 export function useResumeAutofill({ form, setForm, setEducation }) {
   const [autofillStatus, setAutofillStatus] = useState("");
   const [touched, setTouched] = useState([]);
-  const [consent, setConsent] = useState(false);
+  const [consentState, setConsentState] = useState(false);
+  const consentRef = useRef(false);
+  const consent = consentState;
+  const setConsent = (v) => {
+    consentRef.current = !!v;
+    setConsentState(!!v);
+  };
 
   async function handleResumeChange(event) {
     const file = event.target.files?.[0];
@@ -52,16 +58,12 @@ export function useResumeAutofill({ form, setForm, setEducation }) {
       const text = await extractResumeText(file);
       const heuristic = mapResumeText(text);
 
-      // Consent-gated LLM pass for the long-string fields; regex keeps
-      // email/phone/birthdate. Any failure (config, network, validation)
-      // falls back to the heuristic result — never blocks registration.
       let mapped = heuristic;
       let usedAi = false;
       let aiFailed = false;
-      if (consent) {
+      if (consentRef.current) {
         try {
-          const res = await api.post("ai/resume-extract", { text });
-          const body = await res.json();
+          const body = await api.post("ai/resume-extract", { text });
           if (body?.fields) {
             mapped = mergeResumeFields(heuristic, body.fields);
             usedAi = true;
@@ -160,5 +162,5 @@ export function useResumeAutofill({ form, setForm, setEducation }) {
     }
   }
 
-  return { autofillStatus, touched, consent, setConsent, handleResumeChange };
+  return { autofillStatus, touched, consent, consentRef, setConsent, handleResumeChange };
 }

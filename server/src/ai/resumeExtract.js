@@ -1,11 +1,8 @@
 import { resolveConfig, callChat } from '../aiProvider.js';
-import { err } from '../util.js';
 
 // EDU_ORDER (src/shared/utils/resumeAutofill.js) — kept in sync by a test.
 export const EDU_LEVELS = ['Elementary', 'High School', 'Senior High School', 'Vocational', 'College', 'Post-Graduate'];
 
-const MAX_TEXT = 20000;
-const MIN_TEXT = 120;
 const MAX_STR = 80;
 const MAX_SKILLS = 20;
 const MAX_SKILL_LEN = 40;
