@@ -11,10 +11,8 @@ import {
   Menu,
   Search,
   Settings,
-  ShieldCheck,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet'
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuLabel } from '@/components/ui/dropdown-menu'
@@ -138,20 +136,8 @@ export default function TopNavLayout({ role, navItems, profileTo, roleLabel, hom
 
   const sidebar = (small = false) => (
     <div className="flex h-full flex-col">
-      <div className="flex h-[85px] items-center px-6">
+      <div className={cn('flex h-[85px] items-center px-6', collapsed && !small && 'justify-center px-0')}>
         <Logo compact={collapsed && !small} />
-      </div>
-      <div className={cn('px-6 pb-4', collapsed && !small && 'flex justify-center px-0 pb-4')}>
-        <Badge variant="secondary" className="gap-1.5 whitespace-nowrap">
-          {collapsed && !small ? (
-            <ShieldCheck />
-          ) : (
-            <>
-              <span className="size-1.5 rounded-full bg-teal" />
-              {label} workspace
-            </>
-          )}
-        </Badge>
       </div>
       <nav className="flex flex-1 flex-col gap-1 overflow-y-auto px-3" aria-label={`${label} navigation`}>
         {navigation.map(({ label: title, path, icon: Icon, end }) => {

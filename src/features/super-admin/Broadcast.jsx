@@ -99,7 +99,6 @@ export default function Broadcast() {
                   <li key={notice.id} className="rounded-xl border p-5">
                     <div className="mb-3 flex flex-wrap gap-2">
                       <Badge variant="secondary">{notice.expires_at && new Date(notice.expires_at) < new Date() ? 'Expired' : 'Published'}</Badge>
-                      <Badge variant="outline">In-app notice</Badge>
                     </div>
                     <h2 className="text-base font-semibold">{notice.title}</h2>
                     <p className="mt-3 whitespace-pre-wrap break-words text-xs leading-7 text-muted-foreground">{notice.message}</p>

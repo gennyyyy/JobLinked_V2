@@ -68,17 +68,12 @@ describe('Portal shell navigation', () => {
     expect(screen.getByRole('button', { name: /open workspace navigation/i })).toBeInTheDocument()
   })
 
-  it('shows the role workspace badge', () => {
-    renderLayout('/super-admin')
-    expect(screen.getByText(/PESO Admin workspace/i)).toBeInTheDocument()
-  })
-
-  it('centers the shield logo when collapsed', () => {
+  it('centers the compact logo when collapsed', () => {
     renderLayout('/super-admin')
     const collapseBtn = screen.getByRole('button', { name: /collapse sidebar/i })
     fireEvent.click(collapseBtn)
-    const shieldContainer = screen.getByRole('navigation', { name: /PESO Admin navigation/i }).previousElementSibling
-    expect(shieldContainer).toHaveClass('justify-center')
+    const logoRow = screen.getByRole('navigation', { name: /PESO Admin navigation/i }).previousElementSibling
+    expect(logoRow).toHaveClass('justify-center')
   })
 
   it('fetches notifications and admin stats once, even after navigating', async () => {

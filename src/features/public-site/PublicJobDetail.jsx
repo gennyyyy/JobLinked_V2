@@ -72,7 +72,6 @@ export default function PublicJobDetail() {
                 <div>
                   <div className="flex flex-wrap items-center gap-2">
                     <VerifiedBadge />
-                    <Badge variant="secondary" className="bg-blue-soft text-primary">Local opportunity</Badge>
                   </div>
                   <h1 className="mt-3 text-2xl font-semibold tracking-tight sm:text-3xl">{job.title}</h1>
                   <p className="mt-2 text-sm text-muted-foreground">{company}</p>
