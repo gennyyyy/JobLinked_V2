@@ -65,7 +65,14 @@ export const apiLimiter = rateLimit({
   skip: stricterLimiterPaths,
 });
 
-// Job matching is the expensive path (LLM + ranking), so only cache misses
+export const resumeExtractLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  limit: 10,
+  standardHeaders: 'draft-7',
+  legacyHeaders: false,
+  handler: (_req, res) => limited(res),
+  keyGenerator: (req) => ipKeyGenerator(req.ip),
+});
 // count against the 30/15min budget: replaying an identical request from
 // matchCache is free, while unique prompts stay throttled. Keyed by user id
 // like aiLimiter; the limit is own-bucket-only, so it never double-counts with

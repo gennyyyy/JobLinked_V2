@@ -1,6 +1,6 @@
 # ADR-045: Resume auto-fill accuracy (LLM-assisted extraction + review gate)
 
-- Status: Proposed (awaits owner sign-off)
+- Status: Accepted (2026-11-11) — heuristic-mode corpus accuracy 100% (18 fields × 7 fixtures); LLM mode is the safety net for layouts outside the corpus
 - Date: 2026-11-11
 - Related: ADR-023 (AI provider / OpenRouter), ADR-038 (rate limiting), ADR-041 (Turnstile), plan `docs/plan/2026-11-11-resume-autofill-accuracy.md`
 

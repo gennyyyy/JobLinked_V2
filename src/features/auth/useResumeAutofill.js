@@ -1,46 +1,112 @@
-import { useState } from "react";
-import { mapResumeText } from "@/shared/utils/resumeAutofill";
+import { useState, useRef } from "react";
+import { mapResumeText, mergeResumeFields } from "@/shared/utils/resumeAutofill";
 import { MAX_PDF_SIZE, MAX_RESUME_SIZE } from "./jobSeekerRegistration";
+import { api } from "@/shared/lib/api";
 
-export function useResumeAutofill({ setForm, setEducation }) {
+const FIELD_LABELS = {
+  firstName: "First name",
+  middleName: "Middle name",
+  lastName: "Last name",
+  email: "Email",
+  mobileNumber: "Mobile number",
+  birthdate: "Birthdate",
+  houseNumberUnit: "House/Unit",
+  streetAddress: "Street address",
+  subdivisionBuilding: "Subdivision/Building",
+  barangayDistrict: "Barangay/District",
+  cityMunicipality: "City/Municipality",
+  provinceState: "Province/State",
+  postalCode: "Postal code",
+  skills: "Skills",
+  education: "Education",
+};
+
+export function useResumeAutofill({ form, setForm, setEducation }) {
   const [autofillStatus, setAutofillStatus] = useState("");
+  const [touched, setTouched] = useState([]);
+  const [consentState, setConsentState] = useState(false);
+  const consentRef = useRef(false);
+  const consent = consentState;
+  const setConsent = (v) => {
+    consentRef.current = !!v;
+    setConsentState(!!v);
+  };
 
-  // Resume -> form autofill. PDF/DOCX only; anything else stays blank and the
-  // user fills it in. Non-empty mapped values merge in, so hand-typed fields
-  // the resume didn't cover are preserved.
   async function handleResumeChange(event) {
     const file = event.target.files?.[0];
     event.target.value = "";
     if (!file) return;
     const ext = (file.name.split(".").pop() || "").toLowerCase();
     if (ext !== "pdf" && ext !== "docx") {
+      setTouched([]);
       setAutofillStatus("Couldn't read this format — upload a PDF or DOCX to autofill.");
       return;
     }
     if (ext === "pdf" && file.size > MAX_PDF_SIZE) {
+      setTouched([]);
       setAutofillStatus("PDF files must be 2 MB or smaller.");
       return;
     }
     if (file.size > MAX_RESUME_SIZE) {
+      setTouched([]);
       setAutofillStatus("DOCX files must be 5 MB or smaller.");
       return;
     }
     setAutofillStatus("Reading your resume…");
     try {
-      // pdfjs + mammoth are ~850 kB: load them only when a resume is picked.
       const { extractResumeText } = await import("@/shared/lib/resumeText");
-      const mapped = mapResumeText(await extractResumeText(file));
-      const skills = Array.isArray(mapped.skills) ? mapped.skills : [];
-      const filled = {};
-      for (const [key, value] of Object.entries(mapped)) {
-        if (key === "skills" || key === "education") continue;
-        if (String(value || "").trim()) {
-          filled[key] = value;
+      const text = await extractResumeText(file);
+      const heuristic = mapResumeText(text);
+
+      let mapped = heuristic;
+      let usedAi = false;
+      let aiFailed = false;
+      if (consentRef.current) {
+        try {
+          const body = await api.post("ai/resume-extract", { text });
+          if (body?.fields) {
+            mapped = mergeResumeFields(heuristic, body.fields);
+            usedAi = true;
+          } else {
+            aiFailed = true;
+          }
+        } catch {
+          aiFailed = true;
         }
       }
+
+      const skills = Array.isArray(mapped.skills) ? mapped.skills : [];
+
+      const filled = {};
+      const touchedKeys = [];
+      for (const [key, value] of Object.entries(mapped)) {
+        if (key === "skills" || key === "education") continue;
+        if (!String(value || "").trim()) continue;
+        const pv = form?.[key];
+        const prevSet = Array.isArray(pv) ? pv.length > 0 : String(pv || "").trim() !== "";
+        if (!prevSet) {
+          filled[key] = value;
+          touchedKeys.push(key);
+        }
+      }
+
+      const prevSkills = String(form?.skills || "")
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean);
+      const combined = [...prevSkills];
+      let skillsAdded = false;
+      for (const s of skills) {
+        if (!combined.some((t) => t.toLowerCase() === s.toLowerCase())) {
+          combined.push(s);
+          skillsAdded = true;
+        }
+      }
+
       const edu = Object.fromEntries(
         Object.entries(mapped.education || {}).filter(([, v]) => String(v || "").trim()),
       );
+      let eduAdded = false;
       setForm((prev) => {
         const merged = {};
         for (const [key, value] of Object.entries(filled)) {
@@ -53,36 +119,48 @@ export function useResumeAutofill({ setForm, setEducation }) {
           ...merged,
           ...(skills.length
             ? {
-              skills: (() => {
-                const combined = String(prev.skills || "").split(",").map((s) => s.trim()).filter(Boolean);
-                for (const s of skills) {
-                  if (!combined.some((t) => t.toLowerCase() === s.toLowerCase())) combined.push(s);
-                }
-                return combined.join(", ");
-              })(),
-            }
+                skills: (() => {
+                  const c = String(prev.skills || "").split(",").map((s) => s.trim()).filter(Boolean);
+                  for (const s of skills) {
+                    if (!c.some((t) => t.toLowerCase() === s.toLowerCase())) c.push(s);
+                  }
+                  return c.join(", ");
+                })(),
+              }
             : {}),
         };
       });
+
       if (Object.keys(edu).length) {
         setEducation((prev) => {
           const kept = {};
           for (const [k, v] of Object.entries(edu)) {
-            if (!String(prev[k] || "").trim()) kept[k] = v;
+            if (!String(prev[k] || "").trim()) {
+              kept[k] = v;
+              eduAdded = true;
+            }
           }
           return Object.keys(kept).length ? { ...prev, ...kept } : prev;
         });
       }
-      const count = Object.keys(filled).length + (skills.length ? 1 : 0);
-      setAutofillStatus(
-        count
-          ? `Filled ${count} field${count === 1 ? "" : "s"}${skills.length ? ` · ${skills.length} skills found` : ""}${Object.keys(edu).length ? " · highest education added" : ""}.`
-          : "Couldn't find any details to fill in — enter them manually.",
-      );
+
+      if (skills.length && skillsAdded) touchedKeys.push("skills");
+      if (eduAdded) touchedKeys.push("education");
+
+      setTouched(touchedKeys);
+      if (touchedKeys.length) {
+        const labels = touchedKeys.map((k) => FIELD_LABELS[k]).join(", ");
+        const prefix = usedAi ? "Autofill done with AI" : "Autofill done";
+        const suffix = aiFailed ? " — AI read unavailable, used built-in detection" : "";
+        setAutofillStatus(`${prefix} — please check: ${labels}${suffix}.`);
+      } else {
+        setAutofillStatus("Couldn't find any details to fill in — enter them manually.");
+      }
     } catch (err) {
-      setAutofillStatus(err?.message || "Couldn't read this resume — enter your details manually.");
+      setTouched([]);
+      setAutofillStatus(err?.message || "Couldn't read this resume — enter them manually.");
     }
   }
 
-  return { autofillStatus, handleResumeChange };
+  return { autofillStatus, touched, consent, consentRef, setConsent, handleResumeChange };
 }

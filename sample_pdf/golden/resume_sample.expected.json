@@ -1,0 +1,24 @@
+{
+  "fields": {
+    "firstName": "Hans",
+    "middleName": "Genesis Gumasing",
+    "lastName": "Palad",
+    "email": "hansgenesispalad0602@gmail.com",
+    "mobileNumber": "+639084651249",
+    "birthdate": "2005-06-02",
+    "houseNumberUnit": "Blk. 17 Lot 21",
+    "streetAddress": "Abarca Street",
+    "subdivisionBuilding": "Cityland",
+    "barangayDistrict": "Pulong Buhangin",
+    "cityMunicipality": "Sta Maria",
+    "provinceState": "Bulacan",
+    "postalCode": "3017"
+  },
+  "skills": ["Python", "JavaScript", "Tailwind", "MySQL", "C#"],
+  "education": {
+    "level": "College",
+    "school": "PUP SANTA MARIA",
+    "field": "BSIT",
+    "year": "2023"
+  }
+}

@@ -46,7 +46,7 @@ export const providerCallBudget = { reset: () => { stamps.length = 0; } };
 
 const failure = (status = null) => ({ kind: 'UPSTREAM_FAILURE', status });
 
-export async function callChat({ messages, maxTokens = 1200, timeoutMs = 10_000 } = {}) {
+export async function callChat({ messages, maxTokens = 1200, timeoutMs = 10_000, responseFormat = null } = {}) {
   const started = Date.now();
   // Trust-boundary discipline: log only the status class and latency, never
   // the prompt, messages, reply, or provider body.
@@ -64,11 +64,13 @@ export async function callChat({ messages, maxTokens = 1200, timeoutMs = 10_000 
   if (!takeBudget()) return finish('budget', failure());
 
   let upstream;
+  const body = { model: config.model, messages, max_tokens: maxTokens };
+  if (responseFormat) body.response_format = responseFormat;
   try {
     upstream = await fetch(`${config.base}/chat/completions`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${config.key}` },
-      body: JSON.stringify({ model: config.model, messages, max_tokens: maxTokens }),
+      body: JSON.stringify(body),
       signal: AbortSignal.timeout(timeoutMs),
     });
   } catch (e) {
