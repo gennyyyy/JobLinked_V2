@@ -11,4 +11,7 @@ const ACCOUNT_STATUSES = ['active', 'inactive', 'suspended'];
 // B15: LIKE metacharacters in a search must match literally.
 const likeFilter = (value) => `%${likeEscape(value)}%`;
 
-export { USER_TABLES, ACCOUNT_STATUSES, likeFilter };
+const SEEKER_COLS = 'id, full_name, email, phone, barangay_district, skills, employment_status, preferred_position, preferred_location';
+const SEEKER_JSON = `json_build_object(${SEEKER_COLS.split(', ').map((c) => `'${c.trim()}', s.${c.trim()}`).join(', ')})`;
+
+export { USER_TABLES, ACCOUNT_STATUSES, likeFilter, SEEKER_COLS, SEEKER_JSON };

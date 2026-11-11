@@ -2,16 +2,15 @@ import { Router } from 'express';
 import { pool } from '../db.js';
 import { auth, requireRole } from '../auth.js';
 import { ah, err, audit, notifyUser, isUuid, withTransaction } from '../util.js';
+import { SEEKER_JSON } from './admin-shared.js';
 
 const router = Router();
-const SEEKER_COLS = 'id, full_name, email, phone, barangay_district, skills, employment_status, preferred_position, preferred_location';
-
 // Single-query embeds (no PostgREST ambiguous-FK problem server-side).
 const appSelect = (seekerJoin, withHistory = false) => `select a.*,
   json_build_object('id', j.id, 'title', j.title, 'location', j.location,
     'employment_type', j.employment_type, 'company_id', j.company_id,
     'employers', json_build_object('id', e.id, 'company_name', e.company_name)) as job,
-  ${seekerJoin ? `json_build_object(${SEEKER_COLS.split(', ').map((c) => `'${c.trim()}', s.${c.trim()}`).join(', ')}) as seeker,` : ''}
+  ${seekerJoin ? `${SEEKER_JSON} as seeker,` : ''}
   (select json_build_object('id', r.id, 'file_name', r.file_name, 'file_path', r.file_path)
    from resumes r where r.id = a.resume_id) as resume${withHistory ? `,
   (select coalesce(json_agg(json_build_object('status', h.status, 'changed_at', h.changed_at) order by h.changed_at), '[]'::json)
