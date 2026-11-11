@@ -8,6 +8,8 @@ import { JOB_TAGS, JOB_BENEFITS, JOB_EDUCATION_LEVELS, JOB_EXPERIENCE_PRESETS, S
 import useDialog from "../../shared/hooks/useDialog";
 import { TextField, SelectField } from "../../shared/components/design";
 import { EXPERIENCE_OPTIONS, applyEducation, applyExperience, parseEducation, parseExperience } from "./jobPostFields";
+import { getFeeTerms } from "../../shared/services/feeFilter";
+import { findFeeMatches } from "../../shared/utils/feeTerms";
 
 export default function JobPostFormDialog({ form, setForm, setErrors, errors, saving, editingId, confirmDiscard, onRequestClose, onSave }) {
   // Barangay listbox (drops down only; native select flips up when scrolled)
@@ -20,6 +22,14 @@ export default function JobPostFormDialog({ form, setForm, setErrors, errors, sa
 
   // "Custom…" selected in the work-experience dropdown (stored line stays the source of truth)
   const [experienceCustom, setExperienceCustom] = useState(false);
+  const [feeTerms, setFeeTerms] = useState(null);
+  useEffect(() => {
+    let active = true;
+    getFeeTerms().then((t) => { if (active) setFeeTerms(t); }).catch(() => {});
+    return () => { active = false; };
+  }, []);
+  const feeTermsList = feeTerms ? [...(feeTerms.block || []), ...(feeTerms.hold || [])] : [];
+  const feeMatches = findFeeMatches(form.description || '', feeTermsList);
   const experienceYears = parseExperience(form.requirements);
   const experienceIsCustom = experienceCustom || (experienceYears !== "" && !JOB_EXPERIENCE_PRESETS.includes(Number(experienceYears)));
 
@@ -251,6 +261,9 @@ export default function JobPostFormDialog({ form, setForm, setErrors, errors, sa
             placeholder="Outline key duties, scope of work, day-to-day responsibilities, and team role..."
             error={errors.description}
           />
+          {feeMatches.length > 0 && (
+            <p className="text-xs text-amber-700 mt-1">PESO review: {feeMatches.join(', ')}</p>
+          )}
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <SelectField
