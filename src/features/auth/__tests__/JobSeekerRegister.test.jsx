@@ -94,8 +94,8 @@ describe('JobSeekerRegister autofill', () => {
     expect(screen.queryByRole('group', { name: /registration method/i })).not.toBeInTheDocument()
     expect(screen.getByLabelText(/^first name/i)).toBeInTheDocument()
     expect(screen.getByText('Step 1 — Personal Details')).toBeInTheDocument()
-    expect(screen.getByText('Step 2 — Address Information')).toBeInTheDocument()
-    expect(screen.getByText('Step 3 — Background & Consent')).toBeInTheDocument()
+    expect(screen.getByText('Address')).toBeInTheDocument()
+    expect(screen.getByText('Background & consent')).toBeInTheDocument()
     expect(screen.getByLabelText(/barangay/i).tagName).toBe('SELECT')
   })
 
@@ -178,9 +178,9 @@ describe('JobSeekerRegister autofill', () => {
     pickFile()
 
     await waitFor(() => expect(screen.getByLabelText(/education level/i)).toHaveValue('College'))
-    fireEvent.change(screen.getByPlaceholderText('School name'), { target: { value: 'PUP Santa Maria' } })
-    expect(screen.getByPlaceholderText('School name')).toHaveValue('PUP Santa Maria')
-    expect(screen.getByPlaceholderText('Course / field')).toHaveValue('BSIT')
+    fireEvent.change(screen.getByPlaceholderText('e.g. PUP Santa Maria'), { target: { value: 'PUP Santa Maria' } })
+    expect(screen.getByPlaceholderText('e.g. PUP Santa Maria')).toHaveValue('PUP Santa Maria')
+    expect(screen.getByPlaceholderText('e.g. BSIT')).toHaveValue('BSIT')
 
     fireEvent.change(screen.getByLabelText(/^password/i), { target: { value: 'password123' } })
     fireEvent.change(screen.getByLabelText(/confirm password/i), { target: { value: 'password123' } })
@@ -210,10 +210,10 @@ describe('JobSeekerRegister autofill', () => {
     for (const opt of ['Elementary', 'High School', 'Senior High School', 'Vocational', 'College', 'Post-Graduate']) {
       expect(screen.getByRole('option', { name: opt })).toBeInTheDocument()
     }
-    expect(screen.getByPlaceholderText('School name')).toBeInTheDocument()
-    expect(screen.getByPlaceholderText('Course / field')).toBeInTheDocument()
-    expect(screen.getByPlaceholderText('Year')).toBeInTheDocument()
-    for (const el of [screen.getByPlaceholderText('School name'), screen.getByPlaceholderText('Course / field'), screen.getByPlaceholderText('Year')]) {
+    expect(screen.getByPlaceholderText('e.g. PUP Santa Maria')).toBeInTheDocument()
+    expect(screen.getByPlaceholderText('e.g. BSIT')).toBeInTheDocument()
+    expect(screen.getByPlaceholderText('e.g. 2024')).toBeInTheDocument()
+    for (const el of [screen.getByPlaceholderText('e.g. PUP Santa Maria'), screen.getByPlaceholderText('e.g. BSIT'), screen.getByPlaceholderText('e.g. 2024')]) {
       expect(el).not.toHaveAttribute('name')
     }
   })
@@ -226,9 +226,9 @@ describe('JobSeekerRegister autofill', () => {
     await waitFor(() => expect(screen.getByText('Data Entry')).toBeInTheDocument())
 
     fireEvent.change(screen.getByLabelText(/education level/i), { target: { value: 'College' } })
-    fireEvent.change(screen.getByPlaceholderText('School name'), { target: { value: 'Bulacan State' } })
-    fireEvent.change(screen.getByPlaceholderText('Course / field'), { target: { value: 'IT' } })
-    fireEvent.change(screen.getByPlaceholderText('Year'), { target: { value: '2020' } })
+    fireEvent.change(screen.getByPlaceholderText('e.g. PUP Santa Maria'), { target: { value: 'Bulacan State' } })
+    fireEvent.change(screen.getByPlaceholderText('e.g. BSIT'), { target: { value: 'IT' } })
+    fireEvent.change(screen.getByPlaceholderText('e.g. 2024'), { target: { value: '2020' } })
     fireEvent.change(screen.getByLabelText(/^password/i), { target: { value: 'password123' } })
     fireEvent.change(screen.getByLabelText(/confirm password/i), { target: { value: 'password123' } })
     fireEvent.change(screen.getByLabelText(/barangay/i), { target: { value: 'Pulong Buhangin' } })
@@ -263,9 +263,9 @@ describe('JobSeekerRegister autofill', () => {
     renderPage()
     fillRequired()
     fireEvent.change(screen.getByLabelText(/education level/i), { target: { value: 'College' } })
-    fireEvent.change(screen.getByPlaceholderText('School name'), { target: { value: 'PUP Santa Maria' } })
+    fireEvent.change(screen.getByPlaceholderText('e.g. PUP Santa Maria'), { target: { value: 'PUP Santa Maria' } })
     fireEvent.click(screen.getByRole('checkbox', { name: /currently studying/i }))
-    expect(screen.getByPlaceholderText('Year')).toBeDisabled()
+    expect(screen.getByPlaceholderText('e.g. 2024')).toBeDisabled()
     fireEvent.click(screen.getByRole('button', { name: /create account/i }))
 
     await waitFor(() => expect(signUp).toHaveBeenCalled())
@@ -279,7 +279,7 @@ describe('JobSeekerRegister autofill', () => {
     renderPage()
     fillRequired()
     fireEvent.change(screen.getByLabelText(/education level/i), { target: { value: 'College' } })
-    fireEvent.change(screen.getByPlaceholderText('School name'), { target: { value: 'PUP Santa Maria' } })
+    fireEvent.change(screen.getByPlaceholderText('e.g. PUP Santa Maria'), { target: { value: 'PUP Santa Maria' } })
     fireEvent.click(screen.getByRole('button', { name: /create account/i }))
 
     await waitFor(() => expect(screen.getByText(/graduation year must be a 4-digit year/i)).toBeInTheDocument())

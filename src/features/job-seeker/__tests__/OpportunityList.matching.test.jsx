@@ -157,30 +157,18 @@ describe('OpportunityList AI matching', () => {
     expect(screen.queryByText('Late reason')).toBeNull()
   })
 
-  it('ignores an earlier response that lands after a newer request', async () => {
-    const first = deferred()
-    const second = deferred()
-    matchJobs.mockReturnValueOnce(first.promise).mockReturnValueOnce(second.promise)
+  it('does not re-run matching when filters or page change', async () => {
+    matchJobs.mockResolvedValue({ mode: 'ai', ranking: ['j3', 'j1', 'j2'], reasons: [] })
     renderList()
     await screen.findByText('Administrative Assistant')
 
     await submitPrompt('night shift')
-    // Re-submitting the same prompt bumps the nonce and starts a second request mid-flight.
-    await submitPrompt('night shift')
-    await waitFor(() => expect(matchJobs).toHaveBeenCalledTimes(2))
+    await waitFor(() => expect(matchJobs).toHaveBeenCalledTimes(1))
 
-    await act(async () => {
-      second.resolve({ mode: 'ai', ranking: ['j3', 'j2', 'j1'], reasons: [{ jobId: 'j3', reason: 'Newest reason' }] })
-    })
-    await waitFor(() => expect(cardTitles()).toEqual(['Warehouse Helper', 'Junior Web Developer', 'Administrative Assistant']))
-
-    await act(async () => {
-      first.resolve({ mode: 'ai', ranking: ['j1', 'j2', 'j3'], reasons: [{ jobId: 'j1', reason: 'Stale reason' }] })
-    })
-
-    expect(cardTitles()).toEqual(['Warehouse Helper', 'Junior Web Developer', 'Administrative Assistant'])
-    expect(screen.queryByText('Stale reason')).toBeNull()
-    expect(within(cardFor('Warehouse Helper')).getByText('Newest reason')).toBeInTheDocument()
+    // Task 13: page/filters are deliberately absent from the match effect deps,
+    // so refining the list must not burn another AI request.
+    fireEvent.change(screen.getByLabelText('Job category'), { target: { value: 'Full-time' } })
+    await waitFor(() => expect(matchJobs).toHaveBeenCalledTimes(1))
   })
 
   it('keeps disclosing the matching mode in the results area after the dialog closes', async () => {
