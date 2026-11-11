@@ -60,7 +60,7 @@ const routes = [
 
 if (SMOKE && process.env.INTEGRATION_TEST !== '1') {
   console.log('[smoke] SKIP — INTEGRATION_TEST is not 1. Set it (with a running API + preview and db/seed-dev.sql applied) to run the authed smoke.')
-  process.exit(0)
+  process.exit(process.env.CI === 'true' ? 1 : 0)
 }
 
 // Service-role credentials for the fixture auth users live in server/.env only.
@@ -76,7 +76,7 @@ if (SMOKE) {
   loadServerEnv()
   if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
     console.log('[smoke] SKIP — SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY are not set (server/.env); cannot create fixture accounts.')
-    process.exit(0)
+    process.exit(process.env.CI === 'true' ? 1 : 0)
   }
 }
 

@@ -35,7 +35,7 @@ async function main() {
   await ref.setViewport({ width: 1440, height: 900 })
   await ref.goto('http://localhost:3000/login', { waitUntil: 'networkidle2', timeout: 40000 })
   await (await ref.$('input[type=email]')).type('maria@demo.joblinked.ph')
-  await (await ref.$('input[type=password]')).type('Demo123!')
+  await (await ref.$('input[type=password]')).type(process.env.DEMO_PASSWORD || '')
   await (await ref.$('button[type=submit]')).click()
   await ref.waitForFunction(() => !location.pathname.startsWith('/login'), { timeout: 30000 })
 

@@ -296,3 +296,99 @@ Supersedes the role clause of Addendum D: `POST /api/ai/help` is no longer
   deterministic 200). The help call now also sends `max_tokens: 1200` (the
   `callChat` provider-layer default), where the pre-Plan-B inline fetch sent none.
   Contract detail: `server/src/routes/ai.js:40-48`, `server/src/aiProvider.js:8-9,49,64,71`.
+
+
+## Reconciled endpoint inventory (auto-generated)
+
+### admin-jobs.js
+- `GET /admin/jobs`
+- `PATCH /admin/jobs/:id`
+- `POST /admin/jobs/:id/publish`
+- `POST /admin/jobs/:id/unpublish`
+### admin-reference.js
+- `GET /admin/reference/:category`
+- `POST /admin/reference/:category`
+- `GET /admin/permissions`
+- `GET /admin/roles`
+- `POST /admin/roles`
+- `PATCH /admin/roles/:id`
+- `DELETE /admin/roles/:id`
+- `DELETE /admin/reference/:id`
+### admin-users.js
+- `GET /admin/users`
+- `PATCH /admin/users/:id`
+- `POST /admin/users/invite`
+- `POST /admin/users/:id/custom-role`
+- `POST /admin/users/:id/role`
+### admin.js
+- `GET /admin/stats`
+- `GET /admin/companies`
+- `GET /admin/applications`
+- `GET /admin/employees`
+- `GET /admin/referrals`
+- `GET /admin/accreditations`
+- `GET /admin/audit-logs`
+- `GET /admin/seekers/:id/education`
+- `GET /admin/seekers/:id/experience`
+- `GET /admin/seekers/:id/employment`
+- `GET /admin/seekers/:id/resumes`
+- `POST /admin/system-notifications`
+### ai.js
+- `POST /ai/help`
+- `POST /ai/resume-extract`
+### aiMatch.js
+- `POST /ai/job-match`
+### applications.js
+- `POST /applications`
+- `GET /applications/mine`
+- `GET /applications/job/:jobId`
+- `GET /applications/company/:companyId`
+- `GET /applications/employers/me/dashboard`
+- `POST /applications/:id/status`
+- `GET /applications/seekers/:seekerId/education`
+- `GET /applications/seekers/:seekerId/experience`
+- `GET /applications/seekers/:seekerId/employment`
+- `GET /applications/:id/history`
+### auth.js
+- `POST /auth/provision`
+- `POST /audit`
+- `GET /auth/me`
+### jobs.js
+- `GET /jobs`
+- `GET /jobs/fee-filter/terms`
+- `GET /jobs/:id`
+- `GET /employers/:employerId/jobs`
+- `POST /jobs`
+- `PATCH /jobs/:id`
+- `POST /jobs/:id/duplicate`
+- `POST /jobs/:id/status`
+- `DELETE /jobs/:id`
+- `GET /jobs/:id/history`
+### metrics.js
+- `GET /metrics`
+### notifications.js
+- `GET /notifications/mine`
+- `POST /notifications/:id/read`
+- `POST /notifications/read-all`
+- `DELETE /notifications/:id`
+### profiles.js
+- `POST /seekers/me/avatar`
+- `DELETE /seekers/me/avatar`
+- `GET /seekers/:id/avatar`
+- `POST /employers/me/logo`
+- `DELETE /employers/me/logo`
+- `GET /employers/:id/logo`
+- `POST /accreditations`
+- `GET /accreditations/company/:companyId`
+- `PATCH /accreditations/:id`
+- `POST /documents`
+- `GET /documents/company/:companyId`
+- `PATCH /documents/:id`
+- `POST /files/resumes`
+- `POST /files/documents`
+- `DELETE /files/resumes/:id`
+- `GET /files/resumes/mine`
+- `POST /files/resumes/:id/activate`
+- `GET /files/:bucket/*`
+### reports.js
+- `GET /admin/reports/:type/export`

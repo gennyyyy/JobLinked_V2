@@ -79,6 +79,12 @@ tar -tzf "$STAGE/uploads.tgz" >/dev/null
 mv "$STAGE" "$FINAL"
 trap - EXIT
 
+# Guard the destructive cleanup: only operate on a validated, non-root directory.
+if [[ "$BACKUP_ROOT" == "/" || "$BACKUP_ROOT" == "$HOME" || -z "$BACKUP_ROOT" ]]; then
+  echo "[backup] refusing to clean an unsafe BACKUP_ROOT: $BACKUP_ROOT" >&2
+  exit 1
+fi
+[[ -d "$BACKUP_ROOT" ]] || { echo "[backup] BACKUP_ROOT is not a directory: $BACKUP_ROOT" >&2; exit 1; }
 find "$BACKUP_ROOT" -mindepth 1 -maxdepth 1 -type d -name 'joblinked-*' \
   -mtime +"$RETENTION_DAYS" -exec rm -rf {} +
 

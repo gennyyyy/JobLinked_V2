@@ -8,9 +8,6 @@ jobs:
   ci:
     runs-on: ubuntu-latest
     services:
-      # Phase 4 (docs/plan/2026-11-04-05-testing-plan.md): real-Postgres
-      # integration slice. The bootstrap drops/recreates `public` in this
-      # scratch database only — it refuses any name not ending in _test.
       postgres:
         image: postgres:18
         env:
@@ -33,31 +30,27 @@ jobs:
             package-lock.json
             server/package-lock.json
       - run: npm ci
-      # The root vitest project also collects server/** tests, and the
-      # integration slice runs from server/ — both need server deps present.
       - run: npm --prefix server ci
       - run: npm run lint
       - run: npm test
-      - run: npm run build
-      # Phase 1's suite against the service container, so the SQL laws (role
-      # precedence, deadline INSERT guard, partial uniques, retention purge)
-      # are proven against Postgres, not a mocked pool.
       - name: Integration tests (real Postgres)
         run: npm --prefix server run test:integration
         env:
           INTEGRATION_TEST: '1'
           INTEGRATION_DATABASE_URL: postgres://postgres:postgres@localhost:5432/joblinked_test
-      # Resume auto-fill eval (plan Task 6): advisory, heuristic mode only (no LLM
-      # secrets needed in CI). Tighten to blocking once the golden corpus is large
-      # enough and numbers are stable.
+      - run: npm run build
       - name: Resume autofill eval (advisory)
         run: npm run eval:autofill
         continue-on-error: true
-      # Advisory supply-chain check (plan item 5): report high+ vulns without
-      # failing the pipeline. Tighten to blocking once the tree is clean.
       - name: Audit root dependencies (advisory)
         run: npm audit --audit-level=high --dry-run
         continue-on-error: true
       - name: Audit server dependencies (advisory)
         run: npm --prefix server audit --audit-level=high --dry-run
         continue-on-error: true
+      - name: Start preview
+        run: npm run preview > /tmp/preview.log 2>&1 &
+      - name: Public route sweep
+        run: |
+          for i in $(seq 1 30); do curl -sf http://localhost:4173/ >/dev/null && break; sleep 1; done
+          npm run syscheck

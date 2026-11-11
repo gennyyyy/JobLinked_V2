@@ -29,7 +29,7 @@ const ROLES = [
   {
     name: 'job-seeker',
     email: 'spike.seeker.001@joblinked-spike.test',
-    password: 'Spike!Seek100!',
+    password: process.env.SPIKE_SEEKER_PASSWORD || '',
     home: '/job-seeker',
     nav: [
       ['Overview', '/job-seeker'], ['My profile', '/job-seeker/profile'], ['Browse Jobs', '/job-seeker/jobs'],
@@ -41,7 +41,7 @@ const ROLES = [
   {
     name: 'employer',
     email: 'spike.employer.004@joblinked-spike.test',
-    password: 'Spike!Emp203!',
+    password: process.env.SPIKE_EMPLOYER_PASSWORD || '',
     home: '/employer',
     nav: [
       ['Overview', '/employer'], ['Accreditation', '/employer/accreditation'], ['Company profile', '/employer/company'],
@@ -52,7 +52,7 @@ const ROLES = [
   {
     name: 'super-admin',
     email: 'e2e.admin@joblinked-spike.test',
-    password: 'E2e!Admin2026!',
+    password: process.env.SPIKE_ADMIN_PASSWORD || '',
     home: '/super-admin',
     nav: [
       ['Overview', '/super-admin'], ['My profile', '/super-admin/profile'],

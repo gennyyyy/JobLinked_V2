@@ -44,8 +44,14 @@ describe('PublicJobDetail cleanup', () => {
     // This should not cause a state update error.
     resolveJob({ id: '123', title: 'Test Job' });
 
-    // Give React a chance to process any pending updates.
-    await waitFor(() => new Promise((resolve) => setTimeout(resolve, 50)));
+    // Poll until React has flushed any pending updates.
+    await waitFor(() => {
+      const stateUpdateErrors = consoleSpy.mock.calls.filter((call) =>
+        call[0]?.includes?.('Cannot update a component') ||
+        call[0]?.includes?.('unmounted component')
+      );
+      expect(stateUpdateErrors).toHaveLength(0);
+    });
 
     // No React state update errors should have been logged.
     const stateUpdateErrors = consoleSpy.mock.calls.filter((call) =>

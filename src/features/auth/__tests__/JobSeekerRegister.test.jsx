@@ -422,7 +422,7 @@ describe('JobSeekerRegister autofill (consent)', () => {
     renderPage()
     fireEvent.click(screen.getByLabelText(/use ai to read my resume/i))
     pickFile()
-    await new Promise(r => setTimeout(r, 50))
+    await waitFor(() => expect(fetchMock).toHaveBeenCalled())
     expect(fetchMock).toHaveBeenCalled()
     await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent(/Autofill done with AI — please check:/i))
     expect(fetchMock).toHaveBeenCalledWith(expect.stringContaining('/api/ai/resume-extract'), expect.anything())

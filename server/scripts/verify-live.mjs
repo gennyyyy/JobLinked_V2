@@ -21,6 +21,15 @@ const BENCH_DB = arg('db', 'joblinked_bench')
 const ONLY = arg('only', '')
 const QUIET = argv.includes('--quiet')
 
+if (!/_bench$/.test(BENCH_DB)) {
+  console.error(`[verify-live] refusing to run: DB name "${BENCH_DB}" must end in _bench (never touch production).`)
+  process.exit(1)
+}
+const parsed = new URL(process.env.DATABASE_URL)
+if (!['localhost', '127.0.0.1', '::1'].includes(parsed.hostname)) {
+  console.error(`[verify-live] refusing to run against non-local host "${parsed.hostname}".`)
+  process.exit(1)
+}
 const benchUrl = new URL(process.env.DATABASE_URL)
 benchUrl.pathname = `/${BENCH_DB}`
 const db = new pg.Client({ connectionString: benchUrl.toString() })

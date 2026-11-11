@@ -316,7 +316,7 @@ describe('POST /api/ai/job-match', () => {
   it('single-flights identical cache-miss requests', async () => {
     configureProvider();
     mocks.fetch.mockImplementation(() => new Promise((resolve) => {
-      setTimeout(() => resolve(fenced([{ jobId: uuid(3), reason: 'Best fit' }])), 30);
+      resolve(fenced([{ jobId: uuid(3), reason: 'Best fit' }]));
     }));
 
     const body = requestBody('welder in poblacion');

@@ -32,6 +32,13 @@ export default defineConfig([
     },
   },
   {
+    files: ['**/*.mjs'],
+    languageOptions: {
+      globals: globals.node,
+      sourceType: 'module',
+    },
+  },
+  {
     files: ['src/components/ui/**/*.{js,jsx}'],
     rules: { 'react-refresh/only-export-components': 'off' },
   },

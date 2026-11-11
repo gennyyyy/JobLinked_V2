@@ -99,6 +99,17 @@ fi
 # 011 is the ledger itself and must exist before anything is recorded.
 "${PSQL[@]}" -f "$LEDGER_FILE" >/dev/null
 
+# Validate the database name up front to avoid SQL injection via the URL path.
+DB_NAME="${PGDATABASE:-}"
+if [[ -z "$DB_NAME" && -n "${DATABASE_URL:-}" ]]; then
+  DB_NAME="${DATABASE_URL##*/}"
+  DB_NAME="${DB_NAME%%\?*}"
+fi
+if [[ -n "$DB_NAME" && ! "$DB_NAME" =~ ^[A-Za-z0-9_]+$ ]]; then
+  echo "[migrations] invalid database name: $DB_NAME" >&2
+  exit 1
+fi
+
 if [[ "$(run_sql 'select count(*) from public.schema_migrations')" == "0" ]]; then
   echo "[migrations] empty ledger — reconciling effects already present"
   while IFS= read -r name; do
@@ -107,6 +118,10 @@ if [[ "$(run_sql 'select count(*) from public.schema_migrations')" == "0" ]]; th
     echo "[migrations] reconciled $name (already applied by hand)"
   done < <("${PSQL[@]}" -tAc "
     select name from (
+      select '002_acid_gaps.sql' as name,
+             to_regclass('public.job_seekers_email_uidx') is not null
+             and to_regclass('public.employers_email_uidx') is not null as done
+      union all
       select '004_remove_shortlisted.sql' as name,
              to_regtype('public.application_status') is not null
              and not exists (
@@ -114,6 +129,16 @@ if [[ "$(run_sql 'select count(*) from public.schema_migrations')" == "0" ]]; th
                join pg_type t on t.oid = e.enumtypid
                where t.typname = 'application_status' and e.enumlabel = 'Shortlisted'
              ) as done
+      union all
+      select '005_custom_roles.sql' as name,
+             exists (select 1 from information_schema.columns
+                     where table_schema='public' and table_name='reference_data' and column_name='details')
+             and exists (select 1 from information_schema.columns
+                     where table_schema='public' and table_name='job_seekers' and column_name='custom_role_id') as done
+      union all
+      select '006_job_arrangement.sql' as name,
+             exists (select 1 from information_schema.columns
+                     where table_schema='public' and table_name='job_vacancies' and column_name='work_arrangement') as done
       union all
       select '007_query_indexes.sql',
              to_regclass('public.job_seekers_skills_gin') is not null

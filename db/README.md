@@ -71,3 +71,17 @@ exists — the dump restored, the backup did not.
   the guards now mirrored into `supabase/migration.sql`) so self-registration
   cannot create super-admin rows and `notify_admins` is not callable by
   authenticated users.
+
+## Vercel / serverless deployments
+
+The API's UPLOAD_DIR (resumes, documents) lives on the function's ephemeral
+disk: files vanish on cold start/recycle, so a restore that only replays the
+Postgres dump leaves every file request answering 404 File not found.
+
+- Host the API on a persistent VM/container, **or** move file storage to
+  external object storage (Vercel Blob / S3) and point UPLOAD_DIR at a
+  mounted volume.
+- Always pair pg_dump with \
+pm run backup:uploads\ (see section 5) and
+  restore both halves into the **same** UPLOAD_DIR the API uses.
+- Set \TRUST_PROXY=1\ in the deployment environment (see server/.env.example).
