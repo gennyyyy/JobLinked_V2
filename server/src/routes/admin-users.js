@@ -210,7 +210,7 @@ router.post('/admin/users/invite', ...admin, ah(async (req, res) => {
   // forge: POST /auth/provision honours a 'super-admin' body role only when it
   // matches. Set it before the invite is delivered (Task 60) so a failure here
   // does not leave an invitee with role in user_metadata but no app_metadata.
-  const { data: meta, error: metaErr } = await supa().auth.admin.updateUserById(data.user.id, { app_metadata: { role } });
+  const { error: metaErr } = await supa().auth.admin.updateUserById(data.user.id, { app_metadata: { role } });
   if (metaErr) return err(res, 500, 'INTERNAL', 'Invite sent, but the account role could not be secured. Please retry the invite.');
 
   void audit(req.user.id, 'user.invite', null, null, { email, role, custom_role_id: customRoleId });
