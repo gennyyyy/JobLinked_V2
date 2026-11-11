@@ -12,6 +12,8 @@ insert into public.reference_data (category, value, sort_order) values
   ('employment_type', 'Seasonal',     4),
   ('employment_type', 'Casual',       5),
   ('employment_type', 'Job Order',    6),
+  ('employment_type', 'Project-based', 7),
+  ('employment_type', 'Internship',   8),
   ('education_level', 'Elementary',   1),
   ('education_level', 'High School',  2),
   ('education_level', 'Senior High School', 3),
