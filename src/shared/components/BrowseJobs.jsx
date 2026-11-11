@@ -12,6 +12,7 @@ import { InlineError, Pager } from "./dashboard";
 import { CompanyMark } from "./design";
 import { JobListSkeleton } from "./Skeletons";
 import { prefetchRoute } from "../lib/routeLoaders";
+import { titleCase } from "../utils/titleCase";
 
 const PAGE_SIZE = 10;
 const EMPLOYMENT_TYPES = ["Full-time", "Part-time", "Contractual", "Seasonal", "Casual", "Job Order", "Project-based", "Internship"];
@@ -217,7 +218,7 @@ function BrowseJobs({ jobHref, initialKeyword = "", initialLocation = "", initia
             <ul className="space-y-3">
               {jobs.map((job) => {
                 const bullets = requirementLines(job.requirements);
-                const company = job.employers?.company_name || "Verified employer";
+                const company = titleCase(job.employers?.company_name) || "Verified employer";
                 const href = jobHref(job.id);
                 const warm = () => prefetchRoute(href);
                 const saved = savedIds.includes(job.id);
@@ -235,7 +236,7 @@ function BrowseJobs({ jobHref, initialKeyword = "", initialLocation = "", initia
                           {canSave && (
                             <button
                               type="button"
-                              aria-label={saved ? `Unsave ${job.title}` : `Save ${job.title}`}
+                              aria-label={saved ? `Unsave ${titleCase(job.title)}` : `Save ${titleCase(job.title)}`}
                               aria-pressed={saved}
                               onClick={() => setSavedIds(toggleSavedJob(job.id))}
                               className="relative z-10 inline-flex size-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-primary"
@@ -246,10 +247,10 @@ function BrowseJobs({ jobHref, initialKeyword = "", initialLocation = "", initia
                         </div>
                       </div>
                       <h3 className="mt-4 text-[17px] font-semibold leading-6 tracking-[-.025em]">
-                        <Link to={href} onMouseEnter={warm} onFocus={warm} className="transition-colors hover:text-primary after:absolute after:inset-0 after:content-['']">{job.title}</Link>
+                        <Link to={href} onMouseEnter={warm} onFocus={warm} className="transition-colors hover:text-primary after:absolute after:inset-0 after:content-['']">{titleCase(job.title)}</Link>
                       </h3>
                       <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
-                        <span className="flex items-center gap-1"><MapPin className="size-3" />{job.location}</span>
+                        <span className="flex items-center gap-1"><MapPin className="size-3" />{titleCase(job.location)}</span>
                         <span className="flex items-center gap-1"><BriefcaseBusiness className="size-3" />{job.employment_type}</span>
                       </div>
                       <p className="mt-4 text-[15px] font-semibold text-navy">{salaryLabel(job)}</p>

@@ -105,7 +105,7 @@ export default function Dashboard() {
 
   if (loading) return <PageSkeleton stats={4} panels={2} />
 
-  const firstName = user?.first_name || String(user?.full_name || user?.name || 'there').split(' ')[0]
+  const firstName = titleCase(user?.first_name || String(user?.full_name || user?.name || 'there').split(' ')[0])
 
   if (error) return (
     <>
@@ -206,7 +206,7 @@ export default function Dashboard() {
                         <Link to={`/job-seeker/jobs/${job.id}`} className="text-[17px] leading-6 tracking-[-.025em] transition-colors hover:text-primary">{job.title}</Link>
                       </CardTitle>
                       <CardDescription className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-2 text-[11px]">
-                        <span className="flex items-center gap-1"><MapPin className="size-3" />{job.location || 'Santa Maria'}</span>
+                        <span className="flex items-center gap-1"><MapPin className="size-3" />{titleCase(job.location) || 'Santa Maria'}</span>
                         <span className="flex items-center gap-1"><BriefcaseBusiness className="size-3" />{job.employment_type || 'Full-time'}</span>
                       </CardDescription>
                     </CardHeader>

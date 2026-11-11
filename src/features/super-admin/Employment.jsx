@@ -130,9 +130,9 @@ export default function Employment() {
                   <TableCell className="max-w-40 truncate text-[10px] text-muted-foreground" title={record.id}>{record.id}</TableCell>
                   <TableCell>
                     <p className="font-medium text-navy">{titleCase(record.seeker?.full_name)}</p>
-                    <p className="mt-1 text-[10px] text-muted-foreground">{record.seeker?.barangay_district || '—'}</p>
+                    <p className="mt-1 text-[10px] text-muted-foreground">{titleCase(record.seeker?.barangay_district) || '—'}</p>
                   </TableCell>
-                  <TableCell className="text-xs text-muted-foreground">{record.job?.title}</TableCell>
+                  <TableCell className="text-xs text-muted-foreground">{titleCase(record.job?.title)}</TableCell>
                   <TableCell className="text-[11px] text-muted-foreground">{titleCase(record.job?.employers?.company_name)}</TableCell>
                   <TableCell className="text-xs text-muted-foreground">{record.job?.office || '—'}</TableCell>
                   <TableCell className="whitespace-nowrap">{formatDate(record.employment?.created_at || record.updated_at)}</TableCell>
@@ -171,9 +171,9 @@ export default function Employment() {
               <dl className="grid grid-cols-1 gap-4 rounded-xl bg-muted p-4 sm:grid-cols-2">
                 <DetailRow label="Employee" value={titleCase(selected.seeker?.full_name)} />
                 <DetailRow label="Employer" value={titleCase(selected.job?.employers?.company_name)} />
-                <DetailRow label="Position" value={selected.job?.title} />
+                <DetailRow label="Position" value={titleCase(selected.job?.title)} />
                 <DetailRow label="Employment type" value={selected.job?.employment_type} />
-                <DetailRow label="Barangay" value={selected.seeker?.barangay_district} />
+                <DetailRow label="Barangay" value={titleCase(selected.seeker?.barangay_district)} />
                 <DetailRow label="Email" value={selected.seeker?.email} />
                 <DetailRow label="Start date" value={selected.employment?.start_date ? formatDate(selected.employment.start_date) : 'Not started'} />
                 <DetailRow label="End date" value={selected.employment?.end_date ? formatDate(selected.employment.end_date) : '—'} />

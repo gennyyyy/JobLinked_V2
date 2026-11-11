@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import { titleCase } from '../utils/titleCase'
 import { Bookmark, BookmarkCheck, BriefcaseBusiness, Check, Clock3, MapPin } from 'lucide-react'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -29,7 +30,7 @@ export default function JobCard({ job, href, showMatch = false, match, matchReas
           {canSave && (
             <button
               type="button"
-              aria-label={saved ? `Unsave ${job.title}` : `Save ${job.title}`}
+              aria-label={saved ? `Unsave ${titleCase(job.title)}` : `Save ${titleCase(job.title)}`}
               aria-pressed={saved}
               onClick={() => onToggleSave(job.id)}
               className="relative z-10 inline-flex size-8 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-primary"
@@ -39,7 +40,7 @@ export default function JobCard({ job, href, showMatch = false, match, matchReas
           )}
         </div>
         <CardTitle>
-          <Link to={href} className="text-[17px] leading-6 tracking-[-.025em] transition-colors hover:text-primary after:absolute after:inset-0 after:content-['']">{job.title}</Link>
+          <Link to={href} className="text-[17px] leading-6 tracking-[-.025em] transition-colors hover:text-primary after:absolute after:inset-0 after:content-['']">{titleCase(job.title)}</Link>
         </CardTitle>
         <CardDescription className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-2 text-[11px]">
           <span className="flex items-center gap-1"><MapPin className="size-3" />{jobLocation(job)}</span>

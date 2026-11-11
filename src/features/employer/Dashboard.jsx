@@ -41,7 +41,7 @@ export default function Dashboard() {
   const totalCandidates = summaryStats.total_candidates || 0
   const companyName = company?.company_name || 'My Company'
   const accreditation = company?.accreditation_status
-  const firstName = user?.first_name || String(user?.full_name || user?.name || 'there').split(' ')[0]
+  const firstName = titleCase(user?.first_name || String(user?.full_name || user?.name || 'there').split(' ')[0])
 
   return (
     <>
@@ -112,7 +112,7 @@ export default function Dashboard() {
                     <div>
                       <Link to="/employer/job-posts" className="text-xs font-semibold text-navy hover:text-primary">{job.title}</Link>
                       <p className="mt-1.5 text-[10px] text-muted-foreground">
-                        {job.location || 'Santa Maria'} · {job.vacancies || 1} openings · {job.applicants || 0} applicants
+                        {titleCase(job.location) || 'Santa Maria'} · {job.vacancies || 1} openings · {job.applicants || 0} applicants
                       </p>
                     </div>
                     <StatusBadge status={job.status} />
@@ -144,7 +144,7 @@ export default function Dashboard() {
             <ul className="flex flex-col gap-4">
               {recent.slice(0, 3).map((item) => (
                 <li key={item.id}>
-                  <p className="text-xs leading-6 text-navy">{titleCase(item.seeker_full_name)} · {item.job_title}</p>
+                  <p className="text-xs leading-6 text-navy">{titleCase(item.seeker_full_name)} · {titleCase(item.job_title)}</p>
                   <p className="text-[10px] text-muted-foreground">{new Date(item.applied_at).toLocaleDateString('en-PH', { month: 'short', day: 'numeric' })}</p>
                 </li>
               ))}

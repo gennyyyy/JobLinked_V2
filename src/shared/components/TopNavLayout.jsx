@@ -26,6 +26,7 @@ import useAuth from '../hooks/useAuth'
 import useAFKTimer from '../hooks/useAFKTimer'
 import useDialog from '../hooks/useDialog'
 import { initialsOf } from '../utils/accountName'
+import { titleCase } from '../utils/titleCase'
 import { fetchAvatarObjectUrl } from '../services/images'
 import { PORTAL_NAV, ROLE_LABELS } from '../constants'
 import { listNotifications } from '../services/notifications'
@@ -265,7 +266,7 @@ export default function TopNavLayout({ role, navItems, profileTo, roleLabel, hom
                   <AvatarFallback>{initials}</AvatarFallback>
                 </Avatar>
                 <span className="hidden text-left sm:block">
-                  <span className="block text-[11px] font-medium text-navy">{name}</span>
+                  <span className="block text-[11px] font-medium text-navy">{name.includes('@') ? name : titleCase(name)}</span>
                   <span className="mt-0.5 block text-[9px] text-muted-foreground">{label}</span>
                 </span>
                 <ChevronDown className="hidden sm:block" />

@@ -103,7 +103,7 @@ function ReviewModal({ accreditation, onClose, onDecided }) {
         <DialogHeader>
           <DialogTitle>{titleCase(company?.company_name)}</DialogTitle>
           <DialogDescription>
-            {company?.industry || 'Employer'} · {company?.barangay_district || 'Santa Maria'}
+            {company?.industry || 'Employer'} · {titleCase(company?.barangay_district) || 'Santa Maria'}
           </DialogDescription>
         </DialogHeader>
         <div className="flex flex-col gap-5">
@@ -270,7 +270,7 @@ export default function Accreditation() {
                       <div>
                         <p className="font-medium text-navy">{titleCase(item.employers?.company_name)}</p>
                         <p className="mt-1 text-[10px] text-muted-foreground">
-                          {item.employers?.barangay_district || 'Santa Maria'} · {item.employers?.industry || 'Employer'}
+                          {titleCase(item.employers?.barangay_district) || 'Santa Maria'} · {item.employers?.industry || 'Employer'}
                         </p>
                       </div>
                     </div>

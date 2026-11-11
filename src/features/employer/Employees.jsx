@@ -209,7 +209,7 @@ export default function Employees() {
               <DialogHeader>
                 <DialogTitle>Employee profile</DialogTitle>
                 <DialogDescription>
-                  {titleCase(selected.seeker?.full_name)} · {selected.job?.title} · {selected.status === 'Accepted' ? 'Active' : selected.status}
+                  {titleCase(selected.seeker?.full_name)} · {titleCase(selected.job?.title)} · {selected.status === 'Accepted' ? 'Active' : selected.status}
                 </DialogDescription>
               </DialogHeader>
               <SeekerProfileCard applicant={selected} />

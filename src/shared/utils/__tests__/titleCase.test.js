@@ -26,4 +26,19 @@ describe('titleCase', () => {
     expect(titleCase('pedro iv')).toBe('Pedro IV')
     expect(titleCase('ana viii')).toBe('Ana VIII')
   })
+
+  it('keeps particles lowercase unless first word', () => {
+    expect(titleCase('juan de la cruz')).toBe('Juan de la Cruz')
+    expect(titleCase('maria van der berg')).toBe('Maria van der Berg')
+    expect(titleCase('the duke')).toBe('The Duke')
+  })
+
+  it('keeps ordinal suffixes lowercase', () => {
+    expect(titleCase('john smith the third')).toBe('John Smith the third')
+    expect(titleCase('jane doe second')).toBe('Jane Doe second')
+  })
+
+  it('keeps roman numerals upper-case (existing)', () => {
+    expect(titleCase('jose iii')).toBe('Jose III')
+  })
 })

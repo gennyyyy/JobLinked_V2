@@ -34,7 +34,7 @@ export default function Dashboard() {
   if (error) return <InlineError message={error} />
   if (!stats) return null
 
-  const firstName = user?.first_name || String(user?.full_name || user?.name || 'reviewer').split(' ')[0]
+  const firstName = titleCase(user?.first_name || String(user?.full_name || user?.name || 'reviewer').split(' ')[0])
   const accreditationStatusLabel = (status) => ({
     pending: 'Pending Review',
     approved: 'Approved',
@@ -109,7 +109,7 @@ export default function Dashboard() {
                     <CompanyMark initials={String(item.employers?.company_name || 'E').slice(0, 2).toUpperCase()} />
                     <div className="min-w-0 flex-1">
                       <p className="text-xs font-semibold text-navy">{titleCase(item.employers?.company_name)}</p>
-                      <p className="mt-1 text-[10px] text-muted-foreground">{item.employers?.barangay_district} · Submitted {new Date(item.submitted_at).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' })}</p>
+                      <p className="mt-1 text-[10px] text-muted-foreground">{titleCase(item.employers?.barangay_district)} · Submitted {new Date(item.submitted_at).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' })}</p>
                     </div>
                     <StatusBadge status={accreditationStatusLabel(item.status)} />
                   </li>

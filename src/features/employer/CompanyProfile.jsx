@@ -41,6 +41,13 @@ const REPRESENTATIVE_FIELDS = [
   ["representative_email", "Representative Email", "maria@company.com"],
 ];
 
+// Stored lowercase by the API (LOWERCASE_FIELDS); show title case in edit view.
+const TITLE_FIELDS = new Set([
+  "name", "house_number_unit", "street_address", "subdivision_building",
+  "barangay_district", "city_municipality", "province_state", "postal_code",
+  "first_name", "middle_name", "last_name", "suffix",
+]);
+
 const COMPANY_PROFILE_TABS = [
   { value: "company", label: "Company", title: "Company details", description: "These details appear alongside your public vacancies." },
   { value: "contact", label: "Contact & location", title: "Contact & location", description: "Where candidates can reach and find your office." },
@@ -71,24 +78,24 @@ function CompanyProfile() {
         setCompany(data);
         if (data) {
           setForm({
-            name: data.company_name || "",
+            name: titleCase(data.company_name),
             industry: data.industry || "",
-            house_number_unit: data.house_number_unit || "",
-            street_address: data.street_address || "",
-            subdivision_building: data.subdivision_building || "",
-            barangay_district: data.barangay_district || "",
-            city_municipality: data.city_municipality || "",
-            province_state: data.province_state || "",
+            house_number_unit: titleCase(data.house_number_unit),
+            street_address: titleCase(data.street_address),
+            subdivision_building: titleCase(data.subdivision_building),
+            barangay_district: titleCase(data.barangay_district),
+            city_municipality: titleCase(data.city_municipality),
+            province_state: titleCase(data.province_state),
             postal_code: data.postal_code || "",
             phone: data.phone || "",
             email: data.email || "",
             company_email: data.company_email || data.email || "",
             website: data.website || "",
             description: data.description || "",
-            first_name: data.first_name || "",
-            middle_name: data.middle_name || "",
-            last_name: data.last_name || "",
-            suffix: data.suffix || "",
+            first_name: titleCase(data.first_name),
+            middle_name: titleCase(data.middle_name),
+            last_name: titleCase(data.last_name),
+            suffix: titleCase(data.suffix),
             representative_email: data.representative_email || "",
             representative_position: data.representative_position || "",
           });
@@ -199,7 +206,7 @@ function CompanyProfile() {
   ];
   const field = (name) => ({
     id: name,
-    value: form[name] || "",
+    value: TITLE_FIELDS.has(name) ? titleCase(form[name]) : (form[name] || ""),
     onChange: (e) => setForm({ ...form, [name]: e.target.value }),
   });
 
@@ -234,7 +241,7 @@ function CompanyProfile() {
             )}
             <h2 className="mt-4 text-base font-semibold text-navy">{titleCase(form.name) || "My Company"}</h2>
             <p className="my-3 text-xs leading-6 text-muted-foreground">
-              {[form.industry || "Company profile", form.barangay_district].filter(Boolean).join(" · ")}
+              {[form.industry || "Company profile", titleCase(form.barangay_district)].filter(Boolean).join(" · ")}
             </p>
             <StatusBadge status={accreditationStatus} />
             {company && (

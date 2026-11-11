@@ -144,10 +144,10 @@ export default function Applications() {
                 <TableRow key={application.id}>
                   <TableCell>
                     <p className="font-medium text-navy">{titleCase(application.seeker?.full_name)}</p>
-                    <p className="mt-1 text-[11px] text-muted-foreground">{application.job?.title}</p>
+                    <p className="mt-1 text-[11px] text-muted-foreground">{titleCase(application.job?.title)}</p>
                     <p className="mt-1 text-[10px] text-muted-foreground">{titleCase(application.job?.employers?.company_name)}</p>
                   </TableCell>
-                  <TableCell>{application.seeker?.barangay_district || '—'}</TableCell>
+                  <TableCell>{titleCase(application.seeker?.barangay_district) || '—'}</TableCell>
                   <TableCell>
                     <StatusBadge status={application.status} />
                     {application.status === 'Placed' && <p className="mt-2 text-[10px] text-teal">placement recorded</p>}
@@ -181,7 +181,7 @@ export default function Applications() {
               <DialogHeader>
                 <DialogTitle>Recruitment history</DialogTitle>
                 <DialogDescription>
-                  {titleCase(selected.seeker?.full_name)} · {selected.job?.title} · Submitted {formatDate(selected.applied_at)}
+                  {titleCase(selected.seeker?.full_name)} · {titleCase(selected.job?.title)} · Submitted {formatDate(selected.applied_at)}
                 </DialogDescription>
               </DialogHeader>
               <ApplicationTimeline application={selected} />

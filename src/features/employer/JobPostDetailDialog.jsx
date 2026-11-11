@@ -5,6 +5,7 @@ import { Users, X } from "lucide-react";
 import useDialog from "../../shared/hooks/useDialog";
 import { StatusBadge } from "../../shared/components/design";
 import { formatSalary } from "./jobPostFields";
+import { titleCase } from "../../shared/utils/titleCase";
 
 // Section label/value pair inside the read-only detail dialog.
 function Fact({ label, children }) {
@@ -37,7 +38,7 @@ export default function JobPostDetailDialog({ job, company, onClose, onEdit, onT
             </div>
             <h2 id="job-view-title" className="text-xl font-semibold tracking-[-.02em] text-navy">{job.title}</h2>
             <p className="mt-1 text-[10px] text-muted-foreground">
-              {company?.company_name || "My Company"} · Posted on {new Date(job.created_at).toLocaleDateString()}
+              {titleCase(company?.company_name) || "My Company"} · Posted on {new Date(job.created_at).toLocaleDateString()}
             </p>
           </div>
           <Button type="button" variant="ghost" size="icon" onClick={() => onClose()} aria-label="Close job details">
@@ -49,7 +50,7 @@ export default function JobPostDetailDialog({ job, company, onClose, onEdit, onT
         <div className="grid grid-cols-1 gap-4 rounded-xl border bg-muted p-4 sm:grid-cols-2">
           <Fact label="Employment">{job.employment_type}</Fact>
           <Fact label="Work arrangement">{job.work_arrangement || "On-site"}</Fact>
-          <Fact label="Location">Brgy. {job.location}</Fact>
+          <Fact label="Location">Brgy. {titleCase(job.location)}</Fact>
           <Fact label="Vacancies">{job.vacancies} open</Fact>
           <Fact label="Salary">{formatSalary(job.salary_min, job.salary_max)}</Fact>
         </div>

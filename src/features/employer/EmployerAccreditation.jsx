@@ -10,6 +10,7 @@ import { DOC_TYPES } from "../../shared/constants";
 import { PageSkeleton } from '../../shared/components/Skeletons'
 import { InlineError } from "../../shared/components/dashboard";
 import { EmptyState, Notice, PageHeading, Panel, StatusBadge } from "../../shared/components/design";
+import { titleCase } from "../../shared/utils/titleCase";
 
 // Accreditation rows store lowercase statuses; StatusBadge speaks the portal's
 // review vocabulary, so map once and use it for the heading and the history.
@@ -167,7 +168,7 @@ function EmployerAccreditation() {
           )}
           <Panel
             title="Submitted document metadata"
-            description={`${uploadedCount} of ${DOC_TYPES.length} uploaded · ${company?.company_name || "Your company"}`}
+            description={`${uploadedCount} of ${DOC_TYPES.length} uploaded · ${titleCase(company?.company_name) || "Your company"}`}
             action={updating ? (
               <Button variant="outline" onClick={() => setUpdating(false)}>Done</Button>
             ) : (

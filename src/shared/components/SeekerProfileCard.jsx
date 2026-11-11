@@ -68,7 +68,7 @@ function SeekerProfileCard({ applicant }) {
           {applicant.seeker?.skills?.length ? (
             <div className="flex flex-wrap gap-1.5">
               {applicant.seeker.skills.map((skill) => (
-                <span key={skill} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-medium bg-primary/10 border border-primary/20 text-primary">{titleCase(skill)}</span>
+                <span key={skill} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-medium bg-primary/10 border border-primary/20 text-primary">{skill}</span>
               ))}
             </div>
           ) : <p className="text-xs text-muted-foreground">No skills listed.</p>}

@@ -1,3 +1,5 @@
+import { titleCase } from './titleCase'
+
 // Display adapters for a vacancy row coming from the Express API (snake_case)
 // to the labels the reference design shows.
 
@@ -16,9 +18,9 @@ export function timeAgo(date) {
   return days === 0 ? 'Today' : days === 1 ? '1 day ago' : `${days} days ago`
 }
 
-export const companyName = (job) => job.employers?.company_name || 'Verified employer'
+export const companyName = (job) => titleCase(job.employers?.company_name) || 'Verified employer'
 export const companyInitial = (job) => String(companyName(job)).charAt(0).toUpperCase()
-export const jobLocation = (job) => job.location || 'Santa Maria'
+export const jobLocation = (job) => titleCase(job.location) || 'Santa Maria'
 export const jobType = (job) => job.employment_type || 'Full-time'
 
 // The employer form stores education/experience as prefixed lines inside the

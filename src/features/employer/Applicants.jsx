@@ -72,7 +72,7 @@ function CandidateDetail({ application, onClose, onUpdated }) {
       <DialogHeader>
         <DialogTitle>{titleCase(seeker?.full_name)}</DialogTitle>
         <DialogDescription>
-          Applied for {application.job?.title || 'a vacancy'} · {formatDate(application.applied_at)}
+          Applied for {titleCase(application.job?.title) || 'a vacancy'} · {formatDate(application.applied_at)}
         </DialogDescription>
       </DialogHeader>
       <div className="grid items-start gap-6 xl:grid-cols-[1.3fr_1fr]">
@@ -83,7 +83,7 @@ function CandidateDetail({ application, onClose, onUpdated }) {
           >
             <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
               <p className="flex items-center gap-2 break-all"><Mail className="size-4 shrink-0" />{seeker?.email || '—'}</p>
-              <p className="flex items-center gap-2"><MapPin className="size-4" />{seeker?.barangay_district || 'Santa Maria'}</p>
+              <p className="flex items-center gap-2"><MapPin className="size-4" />{titleCase(seeker?.barangay_district) || 'Santa Maria'}</p>
             </div>
             <div className="mt-5"><SeekerProfileCard applicant={application} /></div>
           </Panel>
@@ -262,11 +262,11 @@ export default function Applicants() {
                         </span>
                         <div>
                           <p className="font-medium text-navy">{titleCase(application.seeker?.full_name)}</p>
-                          <p className="mt-1 text-[10px] text-muted-foreground">{application.seeker?.barangay_district || 'Santa Maria'}</p>
+                          <p className="mt-1 text-[10px] text-muted-foreground">{titleCase(application.seeker?.barangay_district) || 'Santa Maria'}</p>
                         </div>
                       </div>
                     </TableCell>
-                    <TableCell>{application.job?.title}</TableCell>
+                    <TableCell>{titleCase(application.job?.title)}</TableCell>
                     <TableCell className="whitespace-nowrap">{formatDate(application.applied_at)}</TableCell>
                     <TableCell><StatusBadge status={application.status} /></TableCell>
                     <TableCell>

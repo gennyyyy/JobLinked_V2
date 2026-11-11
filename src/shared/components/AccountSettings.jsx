@@ -8,7 +8,7 @@ import { PageHeading, Panel } from './design'
 import { LinkButton } from './design'
 import useAuth from '../hooks/useAuth'
 import { ROLE_LABELS } from '../constants'
-
+import { titleCase } from '../utils/titleCase'
 export default function AccountSettings() {
   const { user } = useAuth() || {}
   const [updates, setUpdates] = useState(true)
@@ -29,7 +29,7 @@ export default function AccountSettings() {
           <Panel id="account-overview" title="Account overview" description="Your JobLinked account details.">
             <dl className="grid grid-cols-[100px_1fr] gap-4 text-xs">
               <dt className="text-muted-foreground">Name</dt>
-              <dd className="font-medium">{user?.full_name || user?.name || '—'}</dd>
+              <dd className="font-medium">{titleCase(user?.full_name || user?.name) || '—'}</dd>
               <dt className="text-muted-foreground">Email</dt>
               <dd className="break-all">{user?.email || '—'}</dd>
               <dt className="text-muted-foreground">Workspace</dt>

@@ -1,5 +1,9 @@
 # Display Capitalization Plan (denormalized view layer)
 
+> **Implemented 2026-11-12** — `titleCase` handles particles, ordinals, and Roman numerals; applied
+> across display surfaces and profile edit inputs (names, company names, addresses, education
+> history). Tests, lint, and build green.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Show names, company names, and address fields to users with proper capitalization (title case) instead of the lowercase stored in the database, while preserving lowercase for search/matching. Handle particles ("the", "de", "del", "van", "von", …) and ordinal suffixes ("the third", "second") correctly, and keep Roman numerals upper-case ("III", "II", "IV"). No schema changes.

@@ -115,10 +115,10 @@ function JobDetail() {
           <div className="flex min-w-0 gap-5">
             <CompanyMark initials={String(job.employers?.company_name || "J").slice(0, 2).toUpperCase()} large />
             <div className="min-w-0">
-              <h1 className="text-2xl font-semibold tracking-[-.035em] md:text-[30px]">{job.title}</h1>
+              <h1 className="text-2xl font-semibold tracking-[-.035em] md:text-[30px]">{titleCase(job.title)}</h1>
               <p className="mt-2 text-sm text-muted-foreground">{companyName}</p>
               <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-muted-foreground">
-                <span className="flex items-center gap-1.5"><MapPin className="size-3.5" />Brgy. {job.location}, Santa Maria</span>
+                <span className="flex items-center gap-1.5"><MapPin className="size-3.5" />Brgy. {titleCase(job.location)}, Santa Maria</span>
                 <span className="flex items-center gap-1.5"><BriefcaseBusiness className="size-3.5" />{job.employment_type}</span>
               </div>
             </div>
@@ -179,7 +179,7 @@ function JobDetail() {
             <dl className="flex flex-col gap-5">
               {[
                 { icon: Banknote, label: "Monthly salary", value: salary },
-                { icon: MapPin, label: "Work location", value: `Brgy. ${job.location}, Santa Maria` },
+                { icon: MapPin, label: "Work location", value: `Brgy. ${titleCase(job.location)}, Santa Maria` },
                 { icon: BriefcaseBusiness, label: "Work arrangement", value: job.work_arrangement || "On-site" },
                 { icon: Users, label: "Openings", value: job.vacancies ?? "—" },
                 { icon: CalendarDays, label: "Apply by", value: job.deadline ? new Date(job.deadline).toLocaleDateString() : "No deadline" },

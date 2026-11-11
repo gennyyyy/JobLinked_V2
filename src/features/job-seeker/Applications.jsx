@@ -36,7 +36,7 @@ function ApplicationDetail({ application }) {
   return (
     <>
       <DialogHeader>
-        <DialogTitle>{application.job?.title || 'Application'}</DialogTitle>
+        <DialogTitle>{titleCase(application.job?.title) || 'Application'}</DialogTitle>
         <DialogDescription>
           {titleCase(application.job?.employers?.company_name)} · Submitted {formatDate(application.applied_at)}
         </DialogDescription>
@@ -152,7 +152,7 @@ export default function Applications() {
                       <CompanyMark initials={initialsOf(application.job?.employers?.company_name)} />
                       <div>
                         <button type="button" onClick={() => setSelected(application)} className="text-left font-medium text-navy hover:text-primary">
-                          {application.job?.title || 'Unavailable vacancy'}
+                          {titleCase(application.job?.title) || 'Unavailable vacancy'}
                         </button>
                         <p className="mt-1 text-[11px] text-muted-foreground">{titleCase(application.job?.employers?.company_name)}</p>
                       </div>
@@ -161,7 +161,7 @@ export default function Applications() {
                   <TableCell className="whitespace-nowrap">{formatDate(application.applied_at)}</TableCell>
                   <TableCell><StatusBadge status={application.status} /></TableCell>
                   <TableCell>
-                    <Button variant="outline" onClick={() => setSelected(application)} aria-label={`Track application for ${application.job?.title || 'vacancy'}`}>
+                    <Button variant="outline" onClick={() => setSelected(application)} aria-label={`Track application for ${titleCase(application.job?.title) || 'vacancy'}`}>
                       Track
                     </Button>
                   </TableCell>

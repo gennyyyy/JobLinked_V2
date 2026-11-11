@@ -60,14 +60,14 @@ function VacancyReview({ job, onClose, onDecided }) {
   return (
     <>
       <DialogHeader>
-        <DialogTitle>{job.title}</DialogTitle>
+        <DialogTitle>{titleCase(job.title)}</DialogTitle>
         <DialogDescription>
-          {titleCase(company?.company_name)} · {job.location || 'Santa Maria'} · {job.employment_type || 'Employment type not set'}
+          {titleCase(company?.company_name)} · {titleCase(job.location) || 'Santa Maria'} · {job.employment_type || 'Employment type not set'}
         </DialogDescription>
       </DialogHeader>
       <div className="flex flex-wrap gap-2">
         <StatusBadge status={STATUS_LABELS[job.status] || job.status} />
-        <StatusBadge status={company?.accreditation_status ? titleCase(company.accreditation_status) : 'Pending Review'} />
+        <StatusBadge status={company?.accreditation_status || 'Pending Review'} />
       </div>
       <dl className="grid grid-cols-2 gap-4 rounded-xl border bg-muted p-4 text-xs">
         <div>
@@ -207,20 +207,20 @@ export default function JobPosts() {
               {visible.map((job) => (
                 <TableRow key={job.id}>
                   <TableCell>
-                    <p className="font-medium text-navy">{job.title}</p>
+                    <p className="font-medium text-navy">{titleCase(job.title)}</p>
                     <p className="mt-1 text-[11px] text-muted-foreground">
-                      {titleCase(job.employers?.company_name)} · {job.location || 'Santa Maria'}
+                      {titleCase(job.employers?.company_name)} · {titleCase(job.location) || 'Santa Maria'}
                     </p>
                   </TableCell>
                   <TableCell>
-                    <StatusBadge status={job.employers?.accreditation_status ? titleCase(job.employers.accreditation_status) : 'Pending Review'} />
+                    <StatusBadge status={job.employers?.accreditation_status || 'Pending Review'} />
                   </TableCell>
                   <TableCell className="whitespace-nowrap">{formatDate(job.deadline)}</TableCell>
                   <TableCell>
                     <StatusBadge status={STATUS_LABELS[job.status] || job.status} />
                   </TableCell>
                   <TableCell>
-                    <Button variant="outline" onClick={() => setReviewing(job)} aria-label={`Review vacancy ${job.title}`}>
+                    <Button variant="outline" onClick={() => setReviewing(job)} aria-label={`Review vacancy ${titleCase(job.title)}`}>
                       Review
                     </Button>
                   </TableCell>

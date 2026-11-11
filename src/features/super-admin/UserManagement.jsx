@@ -184,7 +184,7 @@ function UserManagement() {
       }
       if (accessStatus !== accessTarget.status) await updateUser(accessTarget.id, { status: accessStatus })
       await loadUsers(page)
-      setSuccess(`Access updated for ${accessTarget.full_name || accessTarget.email}.`)
+      setSuccess(`Access updated for ${titleCase(accessTarget.full_name) || accessTarget.email}.`)
       setAccessTarget(null)
       setTimeout(() => setSuccess(''), 4000)
     } catch (err) {
@@ -431,7 +431,7 @@ function UserManagement() {
             <TableBody>
               {history.map((log) => (
                 <TableRow key={log.id}>
-                  <TableCell className="text-xs">{users.find((row) => String(row.id) === String(log.entity_id))?.full_name || '—'}</TableCell>
+                  <TableCell className="text-xs">{titleCase(users.find((row) => String(row.id) === String(log.entity_id))?.full_name) || '—'}</TableCell>
                   <TableCell className="text-xs">{SYSTEM_ROLE_LABELS[log.details?.from] || log.details?.from || '—'}</TableCell>
                   <TableCell className="text-xs">{SYSTEM_ROLE_LABELS[log.details?.to] || log.details?.to || '—'}</TableCell>
                   <TableCell className="text-xs">—</TableCell>
@@ -533,7 +533,7 @@ function UserManagement() {
       <Dialog open={!!accessTarget} onOpenChange={(open) => { if (!open) setAccessTarget(null) }}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Manage {accessTarget?.full_name || accessTarget?.email}</DialogTitle>
+            <DialogTitle>Manage {titleCase(accessTarget?.full_name) || accessTarget?.email}</DialogTitle>
             <DialogDescription>
               Confirm the role and account state before applying. Every change requires a reason and is audited.
             </DialogDescription>
@@ -588,7 +588,7 @@ function UserManagement() {
       >
         <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Seeker profile — {detailUser?.full_name || detailUser?.email}</DialogTitle>
+            <DialogTitle>Seeker profile — {titleCase(detailUser?.full_name) || detailUser?.email}</DialogTitle>
             <DialogDescription>Education, work experience, employment history, and resumes on file.</DialogDescription>
           </DialogHeader>
           {detailError && <InlineError message={detailError} />}

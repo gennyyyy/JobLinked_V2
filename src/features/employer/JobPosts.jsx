@@ -23,6 +23,7 @@ import { EmptyState, Notice, PageHeading, Panel, SearchInput, StatusBadge, Selec
 import { POSTING_LABELS, POSTING_STATUSES, ACCREDITATION_LABELS, formatDate, initialForm } from "./jobPostFields";
 import JobPostFormDialog from "./JobPostFormDialog";
 import JobPostDetailDialog from "./JobPostDetailDialog";
+import { titleCase } from "../../shared/utils/titleCase";
 
 export default function JobPosts() {
   const { user } = useAuth();
@@ -468,10 +469,10 @@ export default function JobPosts() {
                 <TableRow key={post.id}>
                   <TableCell>
                     <button type="button" onClick={() => setViewingJob(post)} className="text-left font-medium text-navy hover:text-primary">
-                      {post.title}
+                      {titleCase(post.title)}
                     </button>
                     <p className="mt-1 text-[11px] text-muted-foreground">
-                      {post.location || 'Santa Maria'} · {post.employment_type || 'Full-time'} · {post.vacancies || 1} openings
+                      {titleCase(post.location) || 'Santa Maria'} · {post.employment_type || 'Full-time'} · {post.vacancies || 1} openings
                     </p>
                     {post.remarks && (
                       <p className="mt-2 max-w-xs text-[11px] leading-5 text-destructive">PESO feedback: {post.remarks}</p>
@@ -487,7 +488,7 @@ export default function JobPosts() {
                   <TableCell><StatusBadge status={POSTING_LABELS[post.status] || post.status} /></TableCell>
                   <TableCell>
                     <div className="flex flex-wrap gap-2">
-                      <Button variant="outline" onClick={() => handleOpenEdit(post)} aria-label={`Edit ${post.title}`}>
+                      <Button variant="outline" onClick={() => handleOpenEdit(post)} aria-label={`Edit ${titleCase(post.title)}`}>
                         <Edit3 data-icon="inline-start" />
                         Edit
                       </Button>
@@ -503,7 +504,7 @@ export default function JobPosts() {
                         </Button>
                       )}
                       {post.status === 'published' && (
-                        <Link to={`/jobs/${post.id}`} aria-label={`View ${post.title}`} className="inline-flex size-9 items-center justify-center rounded-lg text-muted-foreground hover:text-primary">
+                        <Link to={`/jobs/${post.id}`} aria-label={`View ${titleCase(post.title)}`} className="inline-flex size-9 items-center justify-center rounded-lg text-muted-foreground hover:text-primary">
                           <Eye />
                         </Link>
                       )}
