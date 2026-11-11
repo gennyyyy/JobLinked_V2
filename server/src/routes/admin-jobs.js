@@ -3,7 +3,8 @@ import { pool } from '../db.js';
 import { auth, requireRole } from '../auth.js';
 import { requirePermission } from '../middleware/permissions.js';
 import { ah, err, audit, notifyUser, isUuid, pageParams, withTransaction } from '../util.js';
-import { notifyMatchingSeekers } from './jobs.js';
+import { notifyMatchingSeekers, JOB_COLS, JOB_STATUSES, JOB_ARRANGEMENTS, writeStatus } from './jobs.js';
+const adminWriteStatus = writeStatus;
 
 const router = Router();
 const admin = [auth, requireRole('super-admin'), requirePermission('jobs.manage')];
@@ -25,23 +26,12 @@ router.get('/admin/jobs', ...admin, ah(async (req, res) => {
   res.json({ data: rows, total, page: pg.page, pageSize: pg.pageSize });
 }));
 
-// Same JOB_COLS allowlist as employer PATCH /jobs/:id in jobs.js
-// (replicated so all edits stay in this file); status goes through the same
-// single-transaction job + history write as jobs.js writeStatus.
-const ADMIN_JOB_COLS = ['title', 'office', 'location', 'employment_type', 'work_arrangement', 'salary_min', 'salary_max',
-  'description', 'requirements', 'benefits', 'vacancies', 'deadline', 'instructions', 'tags', 'status', 'remarks'];
-const ADMIN_JOB_STATUSES = ['draft', 'pending', 'approved', 'rejected', 'published', 'closed', 'archived'];
-const ADMIN_JOB_ARRANGEMENTS = ['On-site', 'Remote / Work from home', 'Hybrid'];
+// Same sets as jobs.js (single source).
+const ADMIN_JOB_COLS = JOB_COLS;
+const ADMIN_JOB_STATUSES = JOB_STATUSES;
+const ADMIN_JOB_ARRANGEMENTS = JOB_ARRANGEMENTS;
 
-async function adminWriteStatus(client, jobId, status, remarks, changedBy) {
-  const stamps = { published: 'published_at', closed: 'closed_at', archived: 'archived_at' };
-  await client.query(
-    `update job_vacancies set status = $2, remarks = $3, updated_at = now()${stamps[status] ? `, ${stamps[status]} = now()` : ''} where id = $1`,
-    [jobId, status, remarks]);
-  await client.query(
-    'insert into job_status_history (job_id, status, remarks, changed_by) values ($1,$2,$3,$4)',
-    [jobId, status, remarks, changedBy]);
-}
+// adminWriteStatus is writeStatus (single source in jobs.js).
 
 router.patch('/admin/jobs/:id', ...admin, ah(async (req, res) => {
   if (!isUuid(req.params.id)) return err(res, 404, 'NOT_FOUND', 'Job not found');
