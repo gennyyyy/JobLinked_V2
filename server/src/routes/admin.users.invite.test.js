@@ -29,7 +29,7 @@ vi.mock('../auth.js', () => ({
   requireRole: (...roles) => (req, res, next) =>
     roles.includes(req.user?.role) ? next() : res.status(403).json({ error: { code: 'FORBIDDEN', message: 'Insufficient role' } }),
   // S7: supa is a lazy getter, not a module-scope client.
-  supa: () => ({ auth: { admin: { inviteUserByEmail: mocks.invite } } }),
+  supa: () => ({ auth: { admin: { inviteUserByEmail: mocks.invite, updateUserById: vi.fn().mockResolvedValue({ data: { user: { id: 'u1' } }, error: null }) } } }),
 }));
 process.env.RETENTION_DISABLE = '1';
 process.env.CORS_ORIGIN = 'https://app.test';

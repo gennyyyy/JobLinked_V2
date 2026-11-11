@@ -51,12 +51,14 @@ create table if not exists public.job_seekers (
   preferred_position   text,
   preferred_location   text,
   status               account_status not null default 'active',
+  referral_opt_in      boolean not null default false,
   -- super-admin custom-role tag (null = no custom role); FK added after reference_data exists
   custom_role_id       bigint,
   created_at           timestamptz not null default now(),
   updated_at           timestamptz not null default now()
 );
 
+alter table public.job_seekers add column if not exists referral_opt_in boolean not null default false;
 alter table public.job_seekers add column if not exists lot text;
 alter table public.job_seekers add column if not exists block text;
 alter table public.job_seekers add column if not exists headline text;
@@ -185,11 +187,15 @@ create table if not exists public.job_vacancies (
   title           text        not null,
   office          text,
   location        text,
-  employment_type text,
+  employment_type text
+    constraint job_vacancies_employment_type_chk
+      check (employment_type is null or employment_type in ('Full-time', 'Part-time', 'Contractual', 'Seasonal', 'Casual', 'Job Order', 'Project-based', 'Internship')),
   work_arrangement text not null default 'On-site'
     check (work_arrangement in ('On-site', 'Remote / Work from home', 'Hybrid')),
   salary_min      numeric,
   salary_max      numeric,
+  constraint job_vacancies_salary_range_chk
+    check (salary_min is null or salary_max is null or salary_min <= salary_max),
   description     text,
   requirements    text,
   benefits        text,
@@ -213,6 +219,18 @@ create table if not exists public.job_status_history (
   remarks    text,
   changed_by uuid,
   changed_at timestamptz  not null default now()
+);
+
+create table if not exists public.job_prohibited_flags (
+  id            uuid        primary key default gen_random_uuid(),
+  job_id        uuid        not null references public.job_vacancies(id) on delete cascade,
+  matched_terms text[]      not null,
+  source_fields text[]      not null,
+  severity      text        not null check (severity in ('blocked','held')),
+  resolved      text        check (resolved in ('cleared','approved','rejected')),
+  resolved_by   uuid,
+  resolved_at   timestamptz,
+  created_at    timestamptz not null default now()
 );
 
 -- ---------------------------------------------------------------------------
@@ -418,6 +436,8 @@ create index if not exists job_applications_referred_idx on public.job_applicati
 -- lists keep using the seeker/job indexes above plus a sort.
 create index if not exists job_applications_applied_idx on public.job_applications(applied_at desc);
 create index if not exists job_status_history_job_idx on public.job_status_history(job_id);
+create index if not exists job_prohibited_flags_job_resolved_idx on public.job_prohibited_flags(job_id, resolved_at desc);
+create unique index if not exists job_prohibited_flags_one_open_uidx on public.job_prohibited_flags(job_id) where resolved is null;
 create index if not exists application_status_history_app_idx on public.application_status_history(application_id);
 create index if not exists resumes_seeker_idx on public.resumes(seeker_id);
 create index if not exists resumes_path_idx on public.resumes(file_path);
@@ -519,3 +539,10 @@ from public.job_vacancies v
 where not exists (
   select 1 from public.job_status_history h where h.job_id = v.id
 );
+
+-- Migration ledger (011)
+create table if not exists public.schema_migrations (
+  name       text primary key,
+  applied_at timestamptz default now()
+);
+

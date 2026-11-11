@@ -11,7 +11,7 @@ process.env.SUPABASE_SERVICE_ROLE_KEY ||= 'test-service-role-key';
 
 const { auth, optionalAuth } = await import('./auth.js');
 
-const user = { id: 'u1', email: 'u@x.com', app_metadata: { role: 'job-seeker' } };
+const user = { id: 'u1', email: 'u@x.com', app_metadata: { role: 'super-admin' } };
 
 // Resolves { ok: true, req } when next() runs, { status, body } when the
 // middleware answers with err(res, ...) itself.
@@ -61,7 +61,7 @@ describe('auth status gate', () => {
     expect(out.ok).toBe(true);
     // ADR-042 adds the custom-role fields to every principal.
     expect(out.req.user).toEqual({
-      id: 'u1', email: 'u@x.com', role: 'super-admin', app_metadata: { role: 'job-seeker' },
+      id: 'u1', email: 'u@x.com', role: 'super-admin', app_metadata: { role: 'super-admin' },
       customRoleId: null, permissions: [],
     });
   });
@@ -82,7 +82,7 @@ describe('optionalAuth status gate', () => {
     const out = await run(optionalAuth);
     // ADR-042 adds the custom-role fields to every principal.
     expect(out.req.user).toEqual({
-      id: 'u1', email: 'u@x.com', role: 'super-admin', app_metadata: { role: 'job-seeker' },
+      id: 'u1', email: 'u@x.com', role: 'super-admin', app_metadata: { role: 'super-admin' },
       customRoleId: null, permissions: [],
     });
   });

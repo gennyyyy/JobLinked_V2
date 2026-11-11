@@ -50,7 +50,7 @@ const register = () => {
     if (row) row.status = 'inactive';
     return { rowCount: row ? 1 : 0 };
   });
-  on(/^insert into (\w+) \(id, email, full_name, status\)/, (params, sql) => {
+  on(/^insert into (\w+) \(id, email/, (params, sql) => {
     const t = sql.match(/^insert into (\w+)/)[1];
     const existing = state.rows[t].find((r) => r.id === params[0]);
     // The per-table email unique index fires even with on conflict (id) —
@@ -62,8 +62,10 @@ const register = () => {
     if (existing && !/on conflict/i.test(sql)) {
       const e = new Error('duplicate key value violates unique constraint'); e.code = '23505'; throw e;
     }
-    if (existing) existing.status = 'active';
-    else state.rows[t].push({ id: params[0], email: params[1], full_name: params[2], status: 'active' });
+    if (existing) {
+      existing.status = 'active';
+      existing.custom_role_id = params[3];
+    } else state.rows[t].push({ id: params[0], email: params[1], full_name: params[2], status: 'active', custom_role_id: params[3] });
     return { rows: [{ id: params[0] }], rowCount: 1 };
   });
   on(/^delete from (\w+)/, (params, sql) => {
@@ -133,7 +135,7 @@ describe('F1 — admin role move never deletes (data-loss regression)', () => {
     expect(state.rows.job_seekers).toHaveLength(1);
     expect(state.rows.job_seekers[0].status).toBe('active');
     expect(state.rows.employers[0].status).toBe('inactive');
-    const upsert = callsOf(/insert into job_seekers \(id, email, full_name, status\)/).pop();
+    const upsert = callsOf(/insert into job_seekers \(id, email/).pop();
     expect(upsert.sql).toMatch(/on conflict \(id\) do update set email = excluded\.email/);
     expect(upsert.sql).toContain("status = 'active'");
   });

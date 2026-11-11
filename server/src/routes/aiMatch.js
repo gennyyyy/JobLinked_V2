@@ -97,15 +97,22 @@ function validate(body) {
 }
 
 async function buildMatch({ userId, prompt, candidateIds }) {
-  const [{ rows: seekers }, { rows: jobs }] = await Promise.all([
-    pool.query('select skills, barangay_district, preferred_position from job_seekers where id = $1', [userId]),
-    pool.query(
-      `select j.*, e.company_name, e.logo_path from job_vacancies j
-         left join employers e on e.id = j.company_id
-        where j.status = 'published' and j.id = any($1::uuid[])`,
-      [candidateIds]
-    ),
-  ]);
+  let seekers = [], jobs = [];
+  try {
+    const r = await Promise.all([
+      pool.query('select skills, barangay_district, preferred_position from job_seekers where id = $1', [userId]),
+      pool.query(
+        `select j.*, e.company_name, e.logo_path from job_vacancies j
+           left join employers e on e.id = j.company_id
+          where j.status = 'published' and j.id = any($1::uuid[])`,
+        [candidateIds]
+      ),
+    ]);
+    seekers = r[0].rows;
+    jobs = r[1].rows;
+  } catch {
+    // DB trouble must never 500: fall back to deterministic over an empty pool.
+  }
 
   const deterministic = rankPool(jobs, seekers[0] || {});
   let result = { mode: 'deterministic', ranking: deterministic.order, reasons: deterministic.reasons };

@@ -159,6 +159,8 @@ const CLIENT_AUDIT_ACTIONS = [
   'auth.password.reset.request',
 ];
 router.post('/audit', tokenAuth, ah(async (req, res) => {
+  const found = await resolveRole(req.user.id);
+  if (found && found.profile.status !== 'active') return err(res, 403, 'FORBIDDEN', 'This account has been suspended or deactivated. Contact PESO.');
   const { action, entity, entity_id, details } = req.body || {};
   if (!CLIENT_AUDIT_ACTIONS.includes(action)) {
     return err(res, 400, 'BAD_REQUEST', `action must be one of ${CLIENT_AUDIT_ACTIONS.join(', ')}`);

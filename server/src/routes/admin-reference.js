@@ -21,6 +21,7 @@ router.get('/admin/reference/:category', ...settingsAdmin, ah(async (req, res) =
 
 router.post('/admin/reference/:category', ...settingsAdmin, ah(async (req, res) => {
   const { value, sort_order = 0 } = req.body || {};
+  if (req.params.category === 'custom_role') return err(res, 400, 'BAD_REQUEST', 'custom_role is managed via /admin/roles');
   if (!value) return err(res, 400, 'BAD_REQUEST', 'value is required');
   try {
     const { rows } = await pool.query(
@@ -139,6 +140,13 @@ router.delete('/admin/roles/:id', ...rolesWrite, ah(async (req, res) => {
 
 router.delete('/admin/reference/:id', ...settingsAdmin, ah(async (req, res) => {
   if (!isNumericId(req.params.id)) return err(res, 400, 'BAD_REQUEST', 'Invalid id');
+  const { rows } = await pool.query('select category from reference_data where id = $1', [req.params.id]);
+  if (!rows[0]) return err(res, 404, 'NOT_FOUND', 'Reference not found');
+  // system admin (no custom role) retains full access; tagged admins need roles.manage
+  if (rows[0].category === 'custom_role' && req.user?.customRoleId &&
+      !(Array.isArray(req.user?.permissions) && req.user.permissions.includes('roles.manage'))) {
+    return err(res, 403, 'FORBIDDEN', 'roles.manage required to delete custom roles');
+  }
   const { rowCount } = await pool.query('delete from reference_data where id = $1', [req.params.id]);
   if (!rowCount) return err(res, 404, 'NOT_FOUND', 'Reference not found');
   void audit(req.user.id, 'settings.reference.remove', 'reference_data', req.params.id);

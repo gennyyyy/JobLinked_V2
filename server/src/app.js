@@ -64,9 +64,10 @@ export function createApp() {
   // reads as a CORS failure in the console).
   const corsOrigins = process.env.CORS_ORIGIN?.split(',').map((o) => o.trim()).filter(Boolean);
   const devOrigin = /^http:\/\/(localhost|127\.0\.0\.1):\d+$/;
-  const allowOrigin = process.env.NODE_ENV === 'production'
+  const devEnabled = process.env.DEV_CORS === '1' || process.env.NODE_ENV === 'development' || process.env.NODE_ENV !== 'production';
+  const allowOrigin = (process.env.NODE_ENV === 'production' && process.env.DEV_CORS !== '1')
     ? (corsOrigins?.length ? corsOrigins : ['http://localhost:5173'])
-    : [...(corsOrigins || []), devOrigin];
+    : [...(corsOrigins || []), ...(devEnabled ? [devOrigin] : [])];
   // Boot-time, not per request: a silent localhost-only lock-out makes every
   // app fetch fail with no ACAO while the pages still render chrome.
   if (!corsOrigins?.length && process.env.NODE_ENV === 'production') {

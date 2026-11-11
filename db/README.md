@@ -67,3 +67,7 @@ exists — the dump restored, the backup did not.
   psql/Query Tool, commit. Nothing alters schema without architect approval.
 - `supabase/migration.sql` is RETAINED untouched as the Supabase-target
   schema; moving back = restore dump, re-add auth FKs, RLS, storage.
+- Supabase deployments must also apply `supabase/security-fixes.sql` (or rely on
+  the guards now mirrored into `supabase/migration.sql`) so self-registration
+  cannot create super-admin rows and `notify_admins` is not callable by
+  authenticated users.

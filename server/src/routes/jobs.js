@@ -1,9 +1,8 @@
 import { Router } from 'express';
 import { pool } from '../db.js';
 import { auth, optionalAuth, requireRole } from '../auth.js';
-import { ah, err, audit, notifyAdmins, isUuid, likeEscape, pageParams, withTransaction } from '../util.js';
-
-const router = Router();
+import { ah, err, audit, notifyAdmins, notifyUser, isUuid, likeEscape, normalizeTags, pageParams, withTransaction } from '../util.js';
+import { scanJob, FEE_BLOCK_TERMS, FEE_HOLD_TERMS } from '../services/jobFeeFilter.js';const router = Router();
 const JOB_STATUSES = ['draft', 'pending', 'approved', 'rejected', 'published', 'closed', 'archived'];
 // Employer writes must not set the PESO review statuses — pending/approved/
 // rejected belong to the admin review flow (audit noise + a job that can jump
@@ -13,6 +12,11 @@ const JOB_STATUSES = ['draft', 'pending', 'approved', 'rejected', 'published', '
 const EMPLOYER_JOB_STATUSES = ['draft', 'published', 'closed', 'archived'];
 const jobStatusesFor = (user) => (user?.role === 'super-admin' ? JOB_STATUSES : EMPLOYER_JOB_STATUSES);
 const JOB_ARRANGEMENTS = ['On-site', 'Remote / Work from home', 'Hybrid'];
+// One canonical employment_type list (ADR-046): mirrors db/seed.sql and the
+// job_vacancies CHECK in db/migrations/012_normalize_fixes.sql + schema.sql.
+// admin-jobs.js and the employer form import this constant — change the list
+// only via a migration plus its schema.sql sync, never a lone app edit.
+export const EMPLOYMENT_TYPES = ['Full-time', 'Part-time', 'Contractual', 'Seasonal', 'Casual', 'Job Order', 'Project-based', 'Internship'];
 const ORDER_COLS = ['created_at', 'updated_at', 'salary_min', 'salary_max', 'title', 'deadline', 'published_at'];
 
 const embed = (j) => ({ ...j, employers: j.company_id ? { id: j.company_id, company_name: j.company_name, logo_path: j.logo_path } : null });
@@ -71,7 +75,10 @@ router.get('/jobs', optionalAuth, ah(async (req, res) => {
   const vals = [status];
   if (q.search) { vals.push(`%${likeEscape(q.search)}%`, `%${likeEscape(q.search)}%`); where.push(`(j.title ilike $${vals.length - 1} or j.description ilike $${vals.length})`); }
   if (q.location) { vals.push(`%${likeEscape(q.location)}%`); where.push(`j.location ilike $${vals.length}`); }
-  if (q.employmentType) { vals.push(q.employmentType); where.push(`j.employment_type = $${vals.length}`); }
+  if (q.employmentType) {
+    if (!EMPLOYMENT_TYPES.includes(q.employmentType)) return err(res, 400, 'BAD_REQUEST', `employmentType must be one of ${EMPLOYMENT_TYPES.join(', ')}`);
+    vals.push(q.employmentType); where.push(`j.employment_type = $${vals.length}`);
+  }
   if (q.workArrangement) {
     if (!JOB_ARRANGEMENTS.includes(q.workArrangement)) return err(res, 400, 'BAD_REQUEST', `workArrangement must be one of ${JOB_ARRANGEMENTS.join(', ')}`);
     vals.push(q.workArrangement);
@@ -85,7 +92,7 @@ router.get('/jobs', optionalAuth, ah(async (req, res) => {
     });
     where.push(`(${employerConditions.join(' or ')})`);
   }
-  if (q.salaryMin && !Number.isNaN(Number(q.salaryMin))) {
+  if (q.salaryMin != null && q.salaryMin !== '' && !Number.isNaN(Number(q.salaryMin))) {
     vals.push(Number(q.salaryMin), Number(q.salaryMin));
     where.push(`(j.salary_min >= $${vals.length - 1} or j.salary_max >= $${vals.length})`);
   }
@@ -112,6 +119,10 @@ router.get('/jobs', optionalAuth, ah(async (req, res) => {
     [...vals, safeSize, (safePage - 1) * safeSize]);
   const jobs = rows.map(embed);
   res.json({ jobs, total, page: safePage, pageSize: safeSize });
+}));
+
+router.get('/jobs/fee-filter/terms', auth, requireRole('employer', 'super-admin'), ah(async (_req, res) => {
+  res.json({ block: FEE_BLOCK_TERMS, hold: FEE_HOLD_TERMS });
 }));
 
 router.get('/jobs/:id', optionalAuth, ah(async (req, res) => {
@@ -243,29 +254,64 @@ router.post('/jobs', auth, requireRole('employer'), ah(async (req, res) => {
   if (b.work_arrangement !== undefined && !JOB_ARRANGEMENTS.includes(b.work_arrangement)) {
     return err(res, 400, 'BAD_REQUEST', `work_arrangement must be one of ${JOB_ARRANGEMENTS.join(', ')}`);
   }
+  // Nullable column: null/empty stay allowed, a non-canonical value is a 400.
+  if (b.employment_type != null && b.employment_type !== '' && !EMPLOYMENT_TYPES.includes(b.employment_type)) {
+    return err(res, 400, 'BAD_REQUEST', `employment_type must be one of ${EMPLOYMENT_TYPES.join(', ')}`);
+  }
+  if (b.vacancies !== undefined && b.vacancies !== null && b.vacancies !== '' &&
+      (!Number.isInteger(Number(b.vacancies)) || Number(b.vacancies) <= 0)) {
+    return err(res, 400, 'BAD_REQUEST', 'vacancies must be a positive integer');
+  }
+  if (b.salary_min != null && b.salary_min !== '' && b.salary_max != null && b.salary_max !== '' &&
+      Number(b.salary_min) > Number(b.salary_max)) {
+    return err(res, 400, 'BAD_REQUEST', 'salary_min must be <= salary_max');
+  }
+  if (b.deadline != null && b.deadline !== '' && isNaN(Date.parse(b.deadline))) {
+    return err(res, 400, 'BAD_REQUEST', 'deadline must be a valid date');
+  }
+  if (b.status !== undefined && b.status !== null && b.status !== '' && !['draft', 'published'].includes(b.status)) {
+    return err(res, 400, 'BAD_REQUEST', 'status must be draft or published');
+  }
   const cols = ['company_id'];
   const vals = [req.user.id];
   for (const c of JOB_COLS) {
     if (c === 'status') continue; // client status ignored except draft — see below
-    if (b[c] !== undefined) { cols.push(c); vals.push(c === 'tags' && !Array.isArray(b[c]) ? [] : (b[c] === '' ? null : b[c])); }
+    if (b[c] !== undefined) { cols.push(c); vals.push(c === 'tags' ? normalizeTags(b[c]) : (b[c] === '' ? null : b[c])); }
   }
-  // Employers publish directly (ADR-000): a non-draft create goes live now, no PESO review gate.
+  // Fee filter (ADR-047): scan before any write.
+  const scan = scanJob(b);
+  if (scan.severity === 'blocked') {
+    return err(res, 422, 'FEE_POLICY_BLOCKED',
+      `Job post blocked by PESO fee policy: ${scan.matchedTerms.join(', ')}`);
+  }
   const status = b.status === 'draft' ? 'draft' : 'published';
   if (status === 'published' && !(await canPublish(req, res, req.user.id))) return;
-  cols.push('status'); vals.push(status);
+  const held = scan.severity === 'held';
+  const finalStatus = held && status === 'published' ? 'pending' : status;
+  cols.push('status'); vals.push(finalStatus);
   let jobId;
   await withTransaction(async (client) => {
     const { rows } = await client.query(
       `insert into job_vacancies (${cols.join(',')}) values (${cols.map((_, i) => `$${i + 1}`).join(',')}) returning id`, vals);
     jobId = rows[0].id;
-    await writeStatus(client, jobId, status, b.remarks ?? null, req.user.id);
+    await writeStatus(client, jobId, finalStatus, b.remarks ?? null, req.user.id);
+    if (held) {
+      await client.query(
+        'insert into job_prohibited_flags (job_id, matched_terms, source_fields, severity) values ($1,$2,$3,$4)',
+        [jobId, scan.matchedTerms, scan.sourceFields, 'held']);
+    }
   });
   const job = await loadJob(jobId);
   void audit(req.user.id, 'job.create', 'job_vacancies', job.id);
-  if (status === 'published') {
+  if (finalStatus === 'published') {
     void notifyAdmins({ type: 'job', title: 'Job published',
       message: `"${job.title}" (${job.company_name}) is now live on the job board.`, link: '/super-admin/job-posts' });
     void notifyMatchingSeekers(job);
+  } else if (held) {
+    void notifyAdmins({ type: 'job', title: 'Job held for fee review',
+      message: `"${job.title}" (${job.company_name}) mentions fees/payments and needs PESO clearance.`, link: '/super-admin/job-posts' });
+    void notifyUser(req.user.id, { type: 'job', title: 'Submitted for PESO review',
+      message: `Your post "${job.title}" mentions fees/payments and needs PESO clearance before it goes live.`, link: '/employer/job-posts' });
   }
   res.status(201).json(embed(job));
 }));
@@ -274,38 +320,157 @@ router.patch('/jobs/:id', auth, ah(async (req, res) => {
   const job = await ownOrAdmin(req, res, await loadJob(req.params.id));
   if (!job) return;
   const patch = {};
-  for (const c of JOB_COLS) if (req.body?.[c] !== undefined) patch[c] = req.body[c] === '' && c !== 'title' ? null : req.body[c];
+  for (const c of JOB_COLS) if (req.body?.[c] !== undefined) patch[c] = c === 'tags' ? normalizeTags(req.body[c]) : (req.body[c] === '' && c !== 'title' ? null : req.body[c]);
   if (patch.work_arrangement !== undefined && !JOB_ARRANGEMENTS.includes(patch.work_arrangement)) {
     return err(res, 400, 'BAD_REQUEST', `work_arrangement must be one of ${JOB_ARRANGEMENTS.join(', ')}`);
   }
-  // '' is coerced to null above, and `vacancies int not null` (schema.sql:190)
-  // cannot store null — an emptied or non-integer value must answer 400 here
-  // instead of raising 23502 on the UPDATE.
-  if (patch.vacancies !== undefined && (patch.vacancies === null || !Number.isInteger(Number(patch.vacancies)))) {
-    return err(res, 400, 'BAD_REQUEST', 'vacancies must be a whole number');
+  if (patch.employment_type != null && !EMPLOYMENT_TYPES.includes(patch.employment_type)) {
+    return err(res, 400, 'BAD_REQUEST', `employment_type must be one of ${EMPLOYMENT_TYPES.join(', ')}`);
+  }
+  if (patch.vacancies !== undefined && (patch.vacancies === null || !Number.isInteger(Number(patch.vacancies)) || Number(patch.vacancies) <= 0)) {
+    return err(res, 400, 'BAD_REQUEST', 'vacancies must be a positive integer');
+  }
+  if ((patch.salary_min !== undefined || patch.salary_max !== undefined)) {
+    const mn = patch.salary_min !== undefined ? patch.salary_min : job.salary_min;
+    const mx = patch.salary_max !== undefined ? patch.salary_max : job.salary_max;
+    if (mn != null && mn !== '' && mx != null && mx !== '' && Number(mn) > Number(mx)) {
+      return err(res, 400, 'BAD_REQUEST', 'salary_min must be <= salary_max');
+    }
+  }
+  if (patch.deadline !== undefined && patch.deadline !== null && patch.deadline !== '' && isNaN(Date.parse(patch.deadline))) {
+    return err(res, 400, 'BAD_REQUEST', 'deadline must be a valid date');
   }
   if (!Object.keys(patch).length) return err(res, 400, 'BAD_REQUEST', 'Nothing to update');
+  const merged = { ...job, ...patch };
+  const scan = scanJob(merged);
+  if (scan.severity === 'blocked') {
+    return err(res, 422, 'FEE_POLICY_BLOCKED',
+      `Job post blocked by PESO fee policy: ${scan.matchedTerms.join(', ')}`);
+  }
+  const held = scan.severity === 'held';
+
   if (patch.status !== undefined) {
     const allowed = jobStatusesFor(req.user);
     if (!allowed.includes(patch.status)) return err(res, 400, 'BAD_REQUEST', `status must be one of ${allowed.join(', ')}`);
     if (patch.status === 'published' && !(await canPublish(req, res, req.user.id))) return;
-    const { status, ...rest } = patch;
+    const { status: requestedStatus, ...rest } = patch;
     const remarks = patch.remarks !== undefined ? patch.remarks : job.remarks;
     const restKeys = Object.keys(rest).filter((k) => k !== 'remarks');
+
+    // held + publish attempt -> force pending
+    if (held && requestedStatus === 'published') {
+      const finalStatus = 'pending';
+      await withTransaction(async (client) => {
+        if (restKeys.length) {
+          await client.query(
+            `update job_vacancies set ${restKeys.map((k, i) => `${k} = $${i + 2}`).join(', ')}, updated_at = now() where id = $1`,
+            [job.id, ...restKeys.map((k) => rest[k])]);
+        }
+        await writeStatus(client, job.id, finalStatus, remarks, req.user.id);
+        await client.query(
+          `insert into job_prohibited_flags (job_id, matched_terms, source_fields, severity)
+           values ($1,$2,$3,'held')
+           on conflict (job_id) where resolved is null do nothing`,
+          [job.id, scan.matchedTerms, scan.sourceFields]);
+      });
+      void audit(req.user.id, 'job.update', 'job_vacancies', job.id);
+      const patched = await loadJob(job.id);
+      void notifyAdmins({ type: 'job', title: 'Job held for fee review',
+        message: `"${patched.title}" (${patched.company_name}) mentions fees/payments and needs PESO clearance.`, link: '/super-admin/job-posts' });
+      void notifyUser(req.user.id, { type: 'job', title: 'Submitted for PESO review',
+        message: `Your post "${patched.title}" mentions fees/payments and needs PESO clearance before it goes live.`, link: '/employer/job-posts' });
+      return res.json(embed(patched));
+    }
+
     await withTransaction(async (client) => {
       if (restKeys.length) {
         await client.query(
           `update job_vacancies set ${restKeys.map((k, i) => `${k} = $${i + 2}`).join(', ')}, updated_at = now() where id = $1`,
           [job.id, ...restKeys.map((k) => rest[k])]);
       }
-      await writeStatus(client, job.id, status, remarks, req.user.id);
+      await writeStatus(client, job.id, requestedStatus, remarks, req.user.id);
+      if (held) {
+        await client.query(
+          `insert into job_prohibited_flags (job_id, matched_terms, source_fields, severity)
+           values ($1,$2,$3,'held')
+           on conflict (job_id) where resolved is null do nothing`,
+          [job.id, scan.matchedTerms, scan.sourceFields]);
+      }
     });
     void audit(req.user.id, 'job.update', 'job_vacancies', job.id);
     const patched = await loadJob(job.id);
-    if (status === 'published') void notifyMatchingSeekers(patched);
+    if (requestedStatus === 'published') void notifyMatchingSeekers(patched);
     return res.json(embed(patched));
   }
+
+  // content-only patch
   const keys = Object.keys(patch);
+  if (held && job.status === 'published') {
+    // force pending
+    await withTransaction(async (client) => {
+      await client.query(
+        `update job_vacancies set ${keys.map((k, i) => `${k} = $${i + 2}`).join(', ')}, updated_at = now() where id = $1`,
+        [job.id, ...keys.map((k) => patch[k])]);
+      await writeStatus(client, job.id, 'pending', job.remarks, req.user.id);
+      await client.query(
+        `insert into job_prohibited_flags (job_id, matched_terms, source_fields, severity)
+         values ($1,$2,$3,'held')
+         on conflict (job_id) where resolved is null do nothing`,
+        [job.id, scan.matchedTerms, scan.sourceFields]);
+    });
+    void audit(req.user.id, 'job.update', 'job_vacancies', job.id);
+    const patched = await loadJob(job.id);
+    void notifyAdmins({ type: 'job', title: 'Job held for fee review',
+      message: `"${patched.title}" (${patched.company_name}) mentions fees/payments and needs PESO clearance.`, link: '/super-admin/job-posts' });
+    void notifyUser(req.user.id, { type: 'job', title: 'Submitted for PESO review',
+      message: `Your post "${patched.title}" mentions fees/payments and needs PESO clearance before it goes live.`, link: '/employer/job-posts' });
+    return res.json(embed(patched));
+  }
+
+  if (job.status === 'pending') {
+    if (!held) {
+      // clean -> flip to draft + resolve open flags
+      await withTransaction(async (client) => {
+        await client.query(
+          `update job_vacancies set ${keys.map((k, i) => `${k} = $${i + 2}`).join(', ')}, updated_at = now() where id = $1`,
+          [job.id, ...keys.map((k) => patch[k])]);
+        await writeStatus(client, job.id, 'draft', job.remarks, req.user.id);
+        await client.query('update job_prohibited_flags set resolved = $2, resolved_by = $3, resolved_at = now() where job_id = $1 and resolved is null', [job.id, 'cleared', req.user.id]);
+      });
+      void audit(req.user.id, 'job.update', 'job_vacancies', job.id);
+      return res.json(embed(await loadJob(job.id)));
+    }
+    // still matching -> keep pending, update content, leave flag open, upsert
+    await withTransaction(async (client) => {
+      await client.query(
+        `update job_vacancies set ${keys.map((k, i) => `${k} = $${i + 2}`).join(', ')}, updated_at = now() where id = $1`,
+        [job.id, ...keys.map((k) => patch[k])]);
+      await client.query(
+        `insert into job_prohibited_flags (job_id, matched_terms, source_fields, severity)
+         values ($1,$2,$3,'held')
+         on conflict (job_id) where resolved is null do nothing`,
+        [job.id, scan.matchedTerms, scan.sourceFields]);
+    });
+    void audit(req.user.id, 'job.update', 'job_vacancies', job.id);
+    return res.json(embed(await loadJob(job.id)));
+  }
+
+  if (held && job.status === 'draft') {
+    await withTransaction(async (client) => {
+      await client.query(
+        `update job_vacancies set ${keys.map((k, i) => `${k} = $${i + 2}`).join(', ')}, updated_at = now() where id = $1`,
+        [job.id, ...keys.map((k) => patch[k])]);
+      await client.query(
+        `insert into job_prohibited_flags (job_id, matched_terms, source_fields, severity)
+         values ($1,$2,$3,'held')
+         on conflict (job_id) where resolved is null do nothing`,
+        [job.id, scan.matchedTerms, scan.sourceFields]);
+    });
+    void audit(req.user.id, 'job.update', 'job_vacancies', job.id);
+    return res.json(embed(await loadJob(job.id)));
+  }
+
+  // none otherwise -> normal path
   await pool.query(
     `update job_vacancies set ${keys.map((k, i) => `${k} = $${i + 2}`).join(', ')}, updated_at = now() where id = $1`,
     [job.id, ...keys.map((k) => patch[k])]);
@@ -316,13 +481,18 @@ router.patch('/jobs/:id', auth, ah(async (req, res) => {
 router.post('/jobs/:id/duplicate', auth, ah(async (req, res) => {
   const job = await ownOrAdmin(req, res, await loadJob(req.params.id));
   if (!job) return;
+  const { rows: openFlags } = await pool.query(
+    'select 1 from job_prohibited_flags where job_id = $1 and resolved is null limit 1', [job.id]);
+  if (openFlags.length) {
+    return err(res, 422, 'FEE_POLICY_BLOCKED', 'This job post is held for PESO review and cannot be duplicated.');
+  }
   const strip = new Set(['id', 'created_at', 'updated_at', 'published_at', 'closed_at', 'archived_at', 'status', 'remarks', 'company_name', 'logo_path']);
   const rest = Object.fromEntries(Object.entries(job).filter(([k, v]) => !strip.has(k) && v !== undefined));
   rest.title = `${job.title} (Copy)`;
   rest.status = 'draft';
   rest.deadline = null;
   const cols = Object.keys(rest);
-  const vals = cols.map((k) => (k === 'tags' && !Array.isArray(rest[k]) ? [] : rest[k]));
+  const vals = cols.map((k) => (k === 'tags' ? normalizeTags(rest[k]) : rest[k]));
   let copyId;
   await withTransaction(async (client) => {
     const { rows } = await client.query(
@@ -345,6 +515,30 @@ router.post('/jobs/:id/status', auth, ah(async (req, res) => {
   const { status, remarks } = req.body || {};
   const allowed = jobStatusesFor(req.user);
   if (!allowed.includes(status)) return err(res, 400, 'BAD_REQUEST', `status must be one of ${allowed.join(', ')}`);
+  const scan = scanJob(job);
+  if (scan.severity === 'blocked') {
+    return err(res, 422, 'FEE_POLICY_BLOCKED',
+      `Job post blocked by PESO fee policy: ${scan.matchedTerms.join(', ')}`);
+  }
+  const held = scan.severity === 'held';
+  if (status === 'published' && held) {
+    if (!(await canPublish(req, res, req.user.id))) return;
+    await withTransaction(async (client) => {
+      await writeStatus(client, job.id, 'pending', remarks ?? job.remarks, req.user.id);
+      await client.query(
+        `insert into job_prohibited_flags (job_id, matched_terms, source_fields, severity)
+         values ($1,$2,$3,'held')
+         on conflict (job_id) where resolved is null do nothing`,
+        [job.id, scan.matchedTerms, scan.sourceFields]);
+    });
+    void audit(req.user.id, `job.status.pending`, 'job_vacancies', job.id);
+    const fresh = await loadJob(job.id);
+    void notifyAdmins({ type: 'job', title: 'Job held for fee review',
+      message: `"${fresh.title}" (${fresh.company_name}) mentions fees/payments and needs PESO clearance.`, link: '/super-admin/job-posts' });
+    void notifyUser(req.user.id, { type: 'job', title: 'Submitted for PESO review',
+      message: `Your post "${fresh.title}" mentions fees/payments and needs PESO clearance before it goes live.`, link: '/employer/job-posts' });
+    return res.json(embed(fresh));
+  }
   if (status === 'published' && !(await canPublish(req, res, req.user.id))) return;
   await withTransaction(async (client) => {
     await writeStatus(client, job.id, status, remarks ?? job.remarks, req.user.id);

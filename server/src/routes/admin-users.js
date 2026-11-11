@@ -107,13 +107,23 @@ router.patch('/admin/users/:id', ...admin, ah(async (req, res) => {
   delete body.role;
   delete body.created_at;
   delete body.updated_at; // the route owns updated_at = now() — a body value lands in the same SET list (PG 42701)
-  // Allowlist from the live table: always in sync with db/schema.sql, and no
-  // client-supplied key can ever reach SQL as a column identifier.
-  const { rows: cols } = await pool.query(
-    `select column_name from information_schema.columns where table_schema = 'public' and table_name = $1`, [table]);
-  const valid = new Set(cols.map((c) => c.column_name));
+  // Explicit editable-field allowlist (Task 58): never trust information_schema,
+  // so accreditation_status/status/custom_role_id are validated, not mass-assigned.
+  const EDITABLE = new Set(['first_name','middle_name','last_name','suffix','full_name','phone',
+    'status','custom_role_id','accreditation_status','accreditation_remarks']);
   const patch = {};
-  for (const k of Object.keys(body)) if (valid.has(k)) patch[k] = body[k];
+  for (const k of Object.keys(body)) if (EDITABLE.has(k)) patch[k] = body[k];
+  if (patch.status !== undefined && !ACCOUNT_STATUSES.includes(patch.status)) {
+    return err(res, 400, 'BAD_REQUEST', `status must be one of ${ACCOUNT_STATUSES.join(', ')}`);
+  }
+  if (patch.accreditation_status !== undefined) {
+    const ACC = ['none','pending','approved','rejected','resubmission','revoked'];
+    if (!ACC.includes(patch.accreditation_status)) return err(res, 400, 'BAD_REQUEST', `accreditation_status must be one of ${ACC.join(', ')}`);
+  }
+  if (patch.custom_role_id !== undefined && patch.custom_role_id !== null) {
+    const { rows } = await pool.query(`select 1 from reference_data where id = $1 and category = 'custom_role'`, [patch.custom_role_id]);
+    if (!rows[0]) return err(res, 400, 'BAD_REQUEST', 'Custom role not found');
+  }
   const keys = Object.keys(patch);
   if (!keys.length) return err(res, 400, 'BAD_REQUEST', 'Nothing to update');
   try {
@@ -198,10 +208,10 @@ router.post('/admin/users/invite', ...admin, ah(async (req, res) => {
 
   // app_metadata is service-role-only, so it is the role signal a client cannot
   // forge: POST /auth/provision honours a 'super-admin' body role only when it
-  // matches. The `?.` tolerates clients without the admin surface — provision
-  // then fails closed (a body role alone can never create a super_admins row).
-  const meta = await supa().auth.admin.updateUserById?.(data.user.id, { app_metadata: { role } });
-  if (meta?.error) return err(res, 500, 'INTERNAL', 'Invite sent, but the account role could not be secured. Please retry the invite.');
+  // matches. Set it before the invite is delivered (Task 60) so a failure here
+  // does not leave an invitee with role in user_metadata but no app_metadata.
+  const { data: meta, error: metaErr } = await supa().auth.admin.updateUserById(data.user.id, { app_metadata: { role } });
+  if (metaErr) return err(res, 500, 'INTERNAL', 'Invite sent, but the account role could not be secured. Please retry the invite.');
 
   void audit(req.user.id, 'user.invite', null, null, { email, role, custom_role_id: customRoleId });
   res.status(201).json({ invited: true, email, role });
@@ -245,9 +255,9 @@ router.post('/admin/users/:id/role', ...admin, ah(async (req, res) => {
     await withTransaction(async (client) => {
       await client.query(`update ${table} set status = 'inactive', updated_at = now() where id = $1`, [req.params.id]);
       await client.query(
-        `insert into ${USER_TABLES[role]} (id, email, full_name, status) values ($1,$2,$3,'active')
-         on conflict (id) do update set email = excluded.email, full_name = excluded.full_name, status = 'active', updated_at = now()`,
-        [req.params.id, profile.email, profile.full_name]);
+        `insert into ${USER_TABLES[role]} (id, email, full_name, status, custom_role_id) values ($1,$2,$3,'active',$4)
+         on conflict (id) do update set email = excluded.email, full_name = excluded.full_name, status = 'active', custom_role_id = excluded.custom_role_id, updated_at = now()`,
+        [req.params.id, profile.email, profile.full_name, profile.custom_role_id ?? null]);
     });
   } catch (e) {
     // The target table's per-email unique index: moving onto an email that

@@ -102,11 +102,10 @@ describe('PATCH /admin/users/:id self-guard', () => {
   it('still lets an admin change another user status', async () => {
     mocks.poolQuery
       .mockResolvedValueOnce({ rows: [{ tbl: 'job_seekers', profile: { status: 'active', id: U2 } }] })
-      .mockResolvedValueOnce({ rows: [{ column_name: 'status' }, { column_name: 'full_name' }] })
       .mockResolvedValueOnce({ rows: [{ id: U2, status: 'suspended' }] });
     const r = await patchUser(U2, { status: 'suspended' });
     expect(r.status).toBe(200);
-    const update = mocks.poolQuery.mock.calls[2][0];
+    const update = mocks.poolQuery.mock.calls[1][0];
     expect(update).toContain('status = $2');
   });
 });
@@ -115,11 +114,10 @@ describe('PATCH /admin/users/:id timestamp handling', () => {
   it('drops a body updated_at instead of duplicating the column (PG 42701)', async () => {
     mocks.poolQuery
       .mockResolvedValueOnce({ rows: [{ tbl: 'job_seekers', profile: { status: 'active', id: U2 } }] })
-      .mockResolvedValueOnce({ rows: [{ column_name: 'full_name' }, { column_name: 'updated_at' }, { column_name: 'created_at' }] })
       .mockResolvedValueOnce({ rows: [{ id: U2, full_name: 'New Name' }] });
     const r = await patchUser(U2, { full_name: 'New Name', updated_at: '1999-01-01T00:00:00Z', id: 'x', created_at: 'y' });
     expect(r.status).toBe(200);
-    const [sql, params] = mocks.poolQuery.mock.calls[2];
+    const [sql, params] = mocks.poolQuery.mock.calls[1];
     expect(sql).toContain('updated_at = now()');
     expect(sql).not.toMatch(/updated_at = \$\d/);
     expect(params).toEqual([U2, 'New Name']);
@@ -128,24 +126,22 @@ describe('PATCH /admin/users/:id timestamp handling', () => {
   it('B13/F2: a body email never reaches the UPDATE (no local-vs-Supabase desync)', async () => {
     mocks.poolQuery
       .mockResolvedValueOnce({ rows: [{ tbl: 'job_seekers', profile: { status: 'active', id: U2 } }] })
-      .mockResolvedValueOnce({ rows: [{ column_name: 'email' }, { column_name: 'status' }] })
       .mockResolvedValueOnce({ rows: [{ id: U2, status: 'suspended' }] });
     const r = await patchUser(U2, { email: 'taken@x.com', status: 'suspended' });
     expect(r.status).toBe(200);
-    const [sql, params] = mocks.poolQuery.mock.calls[2];
+    const [sql, params] = mocks.poolQuery.mock.calls[1];
     expect(sql).not.toContain('email =');
     expect(params).toEqual([U2, 'suspended']);
   });
 
   it('B13/F2: an email-only body is "Nothing to update" — email changes are blocked, not written', async () => {
     mocks.poolQuery
-      .mockResolvedValueOnce({ rows: [{ tbl: 'job_seekers', profile: { status: 'active', id: U2 } }] })
-      .mockResolvedValueOnce({ rows: [{ column_name: 'email' }] });
+      .mockResolvedValueOnce({ rows: [{ tbl: 'job_seekers', profile: { status: 'active', id: U2 } }] });
     const r = await patchUser(U2, { email: 'taken@x.com' });
     expect(r.status).toBe(400);
     expect((await r.json()).error.code).toBe('BAD_REQUEST');
     // No UPDATE was ever built from an email key.
-    expect(mocks.poolQuery).toHaveBeenCalledTimes(2);
+    expect(mocks.poolQuery).toHaveBeenCalledTimes(1);
   });
 
   it('404 NOT_FOUND for a malformed user id (S1)', async () => {

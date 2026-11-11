@@ -14,10 +14,9 @@ describe('file-storage regressions (2026-11-05 audit)', () => {
     expect(route).toContain('pg_advisory_xact_lock(hashtext($1))');
     expect(route.indexOf('pg_advisory_xact_lock')).toBeLessThan(route.indexOf('update resumes set is_active = false'));
     expect(route).toContain("insert into resumes (seeker_id, file_path, file_name, is_active)");
-    // quota guard runs BEFORE multer writes the file (no orphan to clean up)
+    // quota guard runs inside the per-user lock (race-safe)
     expect(profiles).toContain('const MAX_RESUMES_PER_SEEKER');
-    expect(profiles).toContain('resumeQuota');
-    expect(profiles.indexOf('resumeQuota')).toBeLessThan(profiles.indexOf("router.post('/files/resumes'"));
+    expect(profiles).toContain("select count(*)::int n from resumes where seeker_id = $1");
     expect(route).toContain('fs.unlinkSync(req.file.path)');
   });
 
@@ -50,7 +49,7 @@ describe('file-storage regressions (2026-11-05 audit)', () => {
   });
 
   it('checks magic bytes on both disk and memory uploads', () => {
-    expect(upload).toContain('matchesSignature(readHead(req.file.path), ext)');
+    expect(upload).toContain('matchesSignature(readHead(req.file.path,');
     expect(upload).toContain('matchesSignature(req.file.buffer, ext)');
     expect(upload).toContain('File content does not match its extension.');
     expect(upload).toContain('Image content does not match its extension.');

@@ -285,7 +285,7 @@ create policy job_seekers_write on public.job_seekers for all
 
 drop policy if exists employers_select on public.employers;
 drop policy if exists employers_write  on public.employers;
-create policy employers_select on public.employers for select using (true);
+create policy employers_select on public.employers for select using (id = auth.uid() or public.is_admin());
 create policy employers_write  on public.employers for all
   using  (id = auth.uid() or public.is_admin())
   with check (id = auth.uid() or public.is_admin());
@@ -314,7 +314,7 @@ create table if not exists public.reference_data (
 alter table public.reference_data enable row level security;
 drop policy if exists reference_select on public.reference_data;
 drop policy if exists reference_write  on public.reference_data;
-create policy reference_select on public.reference_data for select using (true);
+create policy reference_select on public.reference_data for select using (category <> 'custom_role' or public.is_admin());
 create policy reference_write  on public.reference_data for all
   using (public.is_admin()) with check (public.is_admin());
 
@@ -739,8 +739,8 @@ as $$
   insert into public.notifications (user_id, type, title, message, link)
   select id, p_type, p_title, p_message, p_link from public.super_admins;
 $$;
-revoke execute on function public.notify_admins(text, text, text, text) from public, anon;
-grant  execute on function public.notify_admins(text, text, text, text) to authenticated;
+revoke execute on function public.notify_admins(text, text, text, text) from public, anon, authenticated;
+grant  execute on function public.notify_admins(text, text, text, text) to service_role;
 
 -- ---------------------------------------------------------------------------
 -- Audit log
@@ -771,8 +771,11 @@ drop type if exists fb_post_status;
 create or replace function public.handle_new_user()
 returns trigger language plpgsql security definer set search_path = public
 as $$
-declare r user_role := coalesce((new.raw_user_meta_data->>'role')::user_role, 'job-seeker');
+declare r text := coalesce(new.raw_user_meta_data->>'role', 'job-seeker');
 begin
+  if r = 'super-admin' then
+    raise exception 'Super admin accounts cannot be self-registered';
+  end if;
   if r = 'job-seeker' then
     insert into public.job_seekers (
       id, first_name, middle_name, last_name, suffix, full_name, email, phone,
@@ -833,9 +836,11 @@ begin
     insert into public.employer_accreditations (company_id)
     values (new.id) on conflict do nothing;
 
-  else -- super-admin
-    insert into public.super_admins (
-      id, first_name, middle_name, last_name, suffix, full_name, email
+  else -- unknown role: default to job-seeker (security-fixes.sql parity)
+    insert into public.job_seekers (
+      id, first_name, middle_name, last_name, suffix, full_name, email, phone,
+      house_number_unit, street_address, subdivision_building, barangay_district,
+      city_municipality, province_state, postal_code, country, birthdate
     ) values (
       new.id,
       coalesce(new.raw_user_meta_data->>'first_name', ''),
@@ -843,7 +848,17 @@ begin
       coalesce(new.raw_user_meta_data->>'last_name', ''),
       coalesce(new.raw_user_meta_data->>'suffix', ''),
       coalesce(new.raw_user_meta_data->>'full_name', ''),
-      new.email
+      new.email,
+      new.raw_user_meta_data->>'phone',
+      new.raw_user_meta_data->>'house_number_unit',
+      new.raw_user_meta_data->>'street_address',
+      new.raw_user_meta_data->>'subdivision_building',
+      new.raw_user_meta_data->>'barangay_district',
+      new.raw_user_meta_data->>'city_municipality',
+      new.raw_user_meta_data->>'province_state',
+      new.raw_user_meta_data->>'postal_code',
+      coalesce(nullif(new.raw_user_meta_data->>'country', ''), 'Philippines'),
+      nullif(new.raw_user_meta_data->>'birthdate', '')::date
     ) on conflict (id) do nothing;
   end if;
 

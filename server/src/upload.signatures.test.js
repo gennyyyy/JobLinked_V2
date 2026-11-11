@@ -22,7 +22,7 @@ describe('upload signatures (audit F6: extension is a client claim)', () => {
 
   it('accepts DOC (OLE) and DOCX (zip) headers', () => {
     expect(matchesSignature(b(0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1), 'doc')).toBe(true);
-    expect(matchesSignature(b(0x50, 0x4b, 0x03, 0x04), 'docx')).toBe(true);
+    expect(matchesSignature(Buffer.concat([b(0x50, 0x4b, 0x03, 0x04), Buffer.from('[Content_Types].xml')]), 'docx')).toBe(true);
     expect(matchesSignature(ascii('%PDF-'), 'docx')).toBe(false);
   });
 

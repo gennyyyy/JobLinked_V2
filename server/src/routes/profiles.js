@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { pool } from '../db.js';
 import { auth, requireRole } from '../auth.js';
-import { ah, err, audit, notifyUser, notifyAdmins, isUuid, isNumericId, withTransaction } from '../util.js';
+import { ah, err, audit, notifyUser, notifyAdmins, buildFullName, isUuid, isNumericId, withTransaction } from '../util.js';
 import { uploadSingle, uploadImage, uploadDir, relPath, mimeForExt } from '../upload.js';
 import { putImage, getImage, deleteImage } from '../profileImages.js';
 
@@ -25,6 +25,7 @@ const LOWERCASE_FIELDS = new Set(['first_name', 'middle_name', 'last_name', 'suf
 // Declared `not null default ''` in job_seekers/employers — emptying one of these
 // must persist '' (NULL violates the constraint and 500s the whole PATCH).
 const REQUIRED_TEXT = new Set(['first_name', 'middle_name', 'last_name', 'suffix', 'full_name', 'country', 'company_name']);
+const NAME_FIELDS = ['first_name', 'middle_name', 'last_name', 'suffix'];
 const meRoutes = (path, table, role, allow) => {
   // ADR-040: expose image presence + version without ever selecting the bytes.
   const isEmployer = table === 'employers';
@@ -41,13 +42,32 @@ const meRoutes = (path, table, role, allow) => {
     res.json(rows[0]);
   }));
   router.patch(path, auth, requireRole(role), ah(async (req, res) => {
+    if (req.body?.skills !== undefined && req.body.skills !== null && !Array.isArray(req.body.skills)) {
+      return err(res, 400, 'BAD_REQUEST', 'skills must be an array');
+    }
+    if (req.body?.birthdate !== undefined && req.body.birthdate !== null && req.body.birthdate !== '' &&
+        isNaN(Date.parse(req.body.birthdate))) {
+      return err(res, 400, 'BAD_REQUEST', 'birthdate must be a valid date');
+    }
     const patch = {};
     for (const c of allow) if (req.body?.[c] !== undefined) {
       const value = req.body[c];
       patch[c] = value === '' ? (REQUIRED_TEXT.has(c) ? '' : null)
-        : c === 'skills' && Array.isArray(value) ? value.map((skill) => String(skill).trim().toLowerCase()).filter(Boolean)
+        : c === 'skills' ? (value === null ? [] : value.map((skill) => String(skill).trim().toLowerCase()).filter(Boolean))
           : LOWERCASE_FIELDS.has(c) && typeof value === 'string' ? value.trim().toLowerCase()
             : value;
+    }
+    // full_name is derived, not independently writable (ADR-046): when a name
+    // component is patched, rebuild it from the patched (already normalized)
+    // values plus the stored components the patch did not send. A patch that
+    // sends ONLY full_name keeps the invite/legacy verbatim contract.
+    if (NAME_FIELDS.some((c) => patch[c] !== undefined)) {
+      const { rows } = await pool.query(
+        `select first_name, middle_name, last_name, suffix from ${table} where id = $1`, [req.user.id]);
+      const prior = rows[0] || {};
+      patch.full_name = buildFullName(
+        ...NAME_FIELDS.map((c) => (patch[c] !== undefined ? patch[c] : prior[c])),
+      );
     }
     if (!Object.keys(patch).length) return err(res, 400, 'BAD_REQUEST', 'Nothing to update');
     const keys = Object.keys(patch);
@@ -196,7 +216,7 @@ async function storeDocument(companyId, docType, accreditationId, file) {
     }
     const { rows } = await pool.query(
       `insert into employer_documents (company_id, accreditation_id, doc_type, file_path, file_name)
-       values ($1,$2,$3,$4,$5) returning *`, [companyId, accreditation, docType, rel, file.originalname]);
+       values ($1,$2,$3,$4,$5) returning *`, [companyId, accreditation, docType, rel, String(file.originalname || '').replace(/[\r\n\0]/g, '').slice(0, 255)]);
     return rows[0];
   } catch (e) {
     try { fs.unlinkSync(file.path); } catch { /* compensation best-effort */ }
@@ -259,21 +279,16 @@ router.patch('/documents/:id', auth, requireRole('super-admin'), ah(async (req, 
 // Concurrent uploads used to race the one-active partial index (three 500s out
 // of six live); the advisory lock serialises the deactivate+insert per user.
 const MAX_RESUMES_PER_SEEKER = 20;
-// Count BEFORE multer writes the file: an over-quota upload costs no bytes and
-// leaves the route's only unlink as the failed-insert compensation.
-const resumeQuota = ah(async (req, res, next) => {
-  const { rows } = await pool.query('select count(*)::int n from resumes where seeker_id = $1', [req.user.id]);
-  if (rows[0].n >= MAX_RESUMES_PER_SEEKER) {
-    return err(res, 400, 'BAD_REQUEST', `You can keep at most ${MAX_RESUMES_PER_SEEKER} resumes. Delete an old one first.`);
-  }
-  next();
-});
-router.post('/files/resumes', auth, requireRole('job-seeker'), resumeQuota, uploadSingle('resumes'), ah(async (req, res) => {
+router.post('/files/resumes', auth, requireRole('job-seeker'), uploadSingle('resumes'), ah(async (req, res) => {
   const rel = relPath('resumes', req.user.id, path.basename(req.file.path));
   let row;
   try {
     row = await withTransaction(async (client) => {
       await client.query('select pg_advisory_xact_lock(hashtext($1))', [req.user.id]);
+      const { rows: q } = await client.query('select count(*)::int n from resumes where seeker_id = $1', [req.user.id]);
+      if (q[0].n >= MAX_RESUMES_PER_SEEKER) {
+        throw new Error('QUOTA_EXCEEDED');
+      }
       await client.query('update resumes set is_active = false where seeker_id = $1', [req.user.id]);
       const { rows } = await client.query(
         'insert into resumes (seeker_id, file_path, file_name, is_active) values ($1,$2,$3,true) returning *',
@@ -281,6 +296,10 @@ router.post('/files/resumes', auth, requireRole('job-seeker'), resumeQuota, uplo
       return rows[0];
     });
   } catch (e) {
+    if (e?.message === 'QUOTA_EXCEEDED') {
+      try { fs.unlinkSync(req.file.path); } catch { /* compensation best-effort */ }
+      return err(res, 400, 'BAD_REQUEST', `You can keep at most ${MAX_RESUMES_PER_SEEKER} resumes. Delete an old one first.`);
+    }
     // B4: multer already wrote the file to disk — a failed insert (e.g. the
     // one-active-resume unique index on a concurrent upload) must not leak
     // the orphan. Same compensation as storeDocument.
@@ -371,6 +390,12 @@ const seekerChild = (path, table, order, allow = null, required = []) => {
     for (const k of required) {
       if (req.body?.[k] === undefined || req.body?.[k] === null || req.body?.[k] === '') {
         return err(res, 400, 'BAD_REQUEST', `${k} is required`);
+      }
+    }
+    for (const k of ['start_year', 'end_year']) {
+      if (req.body?.[k] !== undefined && req.body[k] !== null && req.body[k] !== '' &&
+          !Number.isInteger(Number(req.body[k]))) {
+        return err(res, 400, 'BAD_REQUEST', `${k} must be an integer`);
       }
     }
     const keys = allow.filter((c) => req.body?.[c] !== undefined);

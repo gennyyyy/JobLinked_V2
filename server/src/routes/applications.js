@@ -151,7 +151,12 @@ router.post('/applications/:id/status', auth, ah(async (req, res) => {
   const patch = { status };
   if (remarks !== null) patch.employer_notes = remarks;
   if (employerNotes !== null) patch.employer_notes = employerNotes;
-  if (interviewAt !== null) patch.interview_at = interviewAt;
+  if (interviewAt !== null) {
+    if (typeof interviewAt !== 'string' || isNaN(Date.parse(interviewAt))) {
+      return err(res, 400, 'BAD_REQUEST', 'interviewAt must be a valid ISO timestamp');
+    }
+    patch.interview_at = interviewAt;
+  }
   if (interviewInstructions !== null) patch.interview_instructions = interviewInstructions;
   const keys = Object.keys(patch);
   await withTransaction(async (client) => {

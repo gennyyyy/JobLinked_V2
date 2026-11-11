@@ -116,6 +116,11 @@ export async function auth(req, res, next) {
   if (found.profile.status !== 'active') {
     return err(res, 403, 'FORBIDDEN', 'This account has been suspended or deactivated. Contact PESO.');
   }
+  // Defense-in-depth (Task 2): a super-admins row only grants admin when the
+  // service-role-only app_metadata agrees. A forged/escalated row is rejected.
+  if (found.role === 'super-admin' && user.app_metadata?.role !== 'super-admin') {
+    return err(res, 403, 'FORBIDDEN', 'Insufficient privileges');
+  }
   req.user = principalOf(user, found);
   next();
 }

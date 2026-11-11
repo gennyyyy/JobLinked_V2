@@ -96,7 +96,8 @@ async function loadReport(type, pg) {
 // Excel (DDE). Excel's leading apostrophe convention marks the cell as text.
 export const toCSV = (headers, rows) => [headers, ...rows].map((r) => r.map((c) => {
   let v = String(c);
-  if (/^[=+\-@\t\r]/.test(v)) v = `'${v}`;
+  const _ls = v.match(/^ */)?.[0] || '';
+  if (/^[=+\-@\t\r]/.test(v.slice(_ls.length))) v = `'${v}`;
   return `"${v.replace(/"/g, '""')}"`;
 }).join(',')).join('\n');
 

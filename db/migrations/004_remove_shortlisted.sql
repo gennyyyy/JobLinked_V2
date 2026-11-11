@@ -28,6 +28,8 @@ UPDATE public.application_status_history SET status = 'Under Review' WHERE statu
 -- and recreate it (identical) after the swap.
 DROP TRIGGER IF EXISTS record_accepted_employment ON public.job_applications;
 
+-- Recoverability: drop a leftover _new type from a partial run before recreating.
+DROP TYPE IF EXISTS public.application_status_new;
 -- New enum without 'Shortlisted' (order of the rest unchanged).
 DO $$ BEGIN CREATE TYPE application_status_new AS ENUM
   ('Applied','Under Review','Interview','Accepted','Rejected','Placed','Terminated');

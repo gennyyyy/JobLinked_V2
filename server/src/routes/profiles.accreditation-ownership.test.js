@@ -28,7 +28,7 @@ describe('storeDocument accreditation ownership', () => {
   it('drops an unowned or foreign id instead of linking it into the insert', () => {
     expect(store).toContain('owned[0] ? accreditation : null');
     // the insert receives the verified value, never the raw client parameter
-    expect(store).toContain('[companyId, accreditation, docType, rel, file.originalname]');
+    expect(store).toContain('[companyId, accreditation, docType, rel,');
     expect(store).not.toContain('[companyId, accreditationId');
   });
 });

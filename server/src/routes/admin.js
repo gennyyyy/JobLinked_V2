@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { pool } from '../db.js';
 import { auth, requireRole } from '../auth.js';
 import { requirePermission } from '../middleware/permissions.js';
-import { ah, err, audit, isUuid, pageParams } from '../util.js';
+import { ah, err, audit, isUuid, pageParams, withTransaction } from '../util.js';
 import { ACCOUNT_STATUSES, likeFilter } from './admin-shared.js';
 import logger from '../logger.js';
 
@@ -67,8 +67,10 @@ router.get('/admin/companies', ...viewer, ah(async (req, res) => {
   }
   const cond = req.query.status ? (vals.push(req.query.status), `where status = $1`) : '';
   const total = (await pool.query(`select count(*)::int c from employers ${cond}`, vals)).rows[0].c;
+  const privileged = !req.user?.customRoleId || (Array.isArray(req.user?.permissions) && req.user.permissions.includes('users.manage'));
+  const cols = privileged ? '*' : 'id, company_name, accreditation_status, status, created_at, updated_at';
   const { rows } = await pool.query(
-    `select * from employers ${cond} order by created_at desc limit $${vals.length + 1} offset $${vals.length + 2}`,
+    `select ${cols} from employers ${cond} order by created_at desc limit $${vals.length + 1} offset $${vals.length + 2}`,
     [...vals, pg.pageSize, (pg.page - 1) * pg.pageSize]);
   res.json({ data: rows, total, page: pg.page, pageSize: pg.pageSize });
 }));
@@ -100,6 +102,8 @@ router.get('/admin/applications', ...viewer, ah(async (req, res) => {
 }));
 
 router.get('/admin/employees', ...viewer, ah(async (req, res) => {
+  const pg = pageParams(res, req.query, 25, 500);
+  if (!pg) return;
   const { rows } = await pool.query(
     `select a.*, json_build_object('id', j.id, 'title', j.title, 'company_id', j.company_id,
        'employment_type', j.employment_type, 'location', j.location, 'office', j.office,
@@ -109,18 +113,22 @@ router.get('/admin/employees', ...viewer, ah(async (req, res) => {
       from employment_history h where h.application_id = a.id limit 1) as employment
      from job_applications a join job_vacancies j on j.id = a.job_id
      join employers e on e.id = j.company_id join job_seekers s on s.id = a.seeker_id
-     where a.status in ('Accepted', 'Terminated') order by a.updated_at desc`);
+     where a.status in ('Accepted', 'Terminated') order by a.updated_at desc limit $1 offset $2`,
+    [pg.pageSize, (pg.page - 1) * pg.pageSize]);
   res.json(rows);
 }));
 
 router.get('/admin/referrals', ...viewer, ah(async (req, res) => {
+  const pg = pageParams(res, req.query, 25, 500);
+  if (!pg) return;
   const { rows } = await pool.query(
     `select a.*, json_build_object('id', j.id, 'title', j.title,
        'employers', json_build_object('company_name', e.company_name)) as job,
      json_build_object(${SEEKER_COLS.split(', ').map((c) => `'${c.trim()}', s.${c.trim()}`).join(', ')}) as seeker
      from job_applications a join job_vacancies j on j.id = a.job_id
      join employers e on e.id = j.company_id join job_seekers s on s.id = a.seeker_id
-     where a.referred_by is not null order by a.applied_at desc`);
+     where a.referred_by is not null order by a.applied_at desc limit $1 offset $2`,
+    [pg.pageSize, (pg.page - 1) * pg.pageSize]);
   res.json(rows);
 }));
 
@@ -155,10 +163,12 @@ export async function runRetentionPurge() {
   // B10: the cutoff is computed by Postgres (`now() - make_interval`), never by
   // JS setMonth — that overflows short months (Jan 31 - 12mo lands in early
   // March) and purged rows inside the Terms §4 window on those dates.
-  const { rowCount } = await pool.query(
-    `delete from job_applications where applied_at < now() - make_interval(months => $1) and status not in ('Accepted', 'Placed', 'Terminated')`, [RETENTION_MONTHS]);
-  void audit(null, 'data.purge', 'job_applications', null, { automated: true, monthsOld: RETENTION_MONTHS, retainedStatuses: RETAINED_STATUSES, deleted: rowCount });
-  return rowCount;
+  return withTransaction(async (client) => {
+    const { rowCount } = await client.query(
+      `delete from job_applications where applied_at < now() - make_interval(months => $1) and status not in ('Accepted', 'Placed', 'Terminated')`, [RETENTION_MONTHS]);
+    void audit(null, 'data.purge', 'job_applications', null, { automated: true, monthsOld: RETENTION_MONTHS, retainedStatuses: RETAINED_STATUSES, deleted: rowCount });
+    return rowCount;
+  });
 }
 
 if (process.env.RETENTION_DISABLE !== '1') {
@@ -217,6 +227,9 @@ router.get('/admin/seekers/:id/resumes', ...viewer, seekerChildRead('resumes', '
 router.post('/admin/system-notifications', ...notifyAdmin, ah(async (req, res) => {
   const { title, message, link = null, expires_at = null } = req.body || {};
   if (!title || !message) return err(res, 400, 'BAD_REQUEST', 'title and message are required');
+    if (String(title).length > 200) return err(res, 400, 'BAD_REQUEST', 'title must be 200 characters or fewer');
+    if (String(message).length > 2000) return err(res, 400, 'BAD_REQUEST', 'message must be 2000 characters or fewer');
+    if (link != null && String(link).length > 500) return err(res, 400, 'BAD_REQUEST', 'link must be 500 characters or fewer');
   const { rowCount } = await pool.query(
     `insert into notifications (user_id, type, title, message, link)
      select id, 'system', $1, $2, $3 from (

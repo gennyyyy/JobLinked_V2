@@ -47,7 +47,7 @@ export function matchesSignature(buffer, ext) {
     case 'png': return beginsWith(b, [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
     case 'jpg':
     case 'jpeg': return beginsWith(b, [0xff, 0xd8, 0xff]);
-    case 'docx': return beginsWith(b, [0x50, 0x4b, 0x03, 0x04]) || beginsWith(b, [0x50, 0x4b, 0x05, 0x06]);
+    case 'docx': return (beginsWith(b, [0x50, 0x4b, 0x03, 0x04]) || beginsWith(b, [0x50, 0x4b, 0x05, 0x06])) && b.toString('latin1').includes('[Content_Types].xml');
     case 'doc': return beginsWith(b, [0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1]);
     case 'webp': return ASCII(b, 0, 4) === 'RIFF' && ASCII(b, 8, 12) === 'WEBP';
     default: return false;
@@ -89,7 +89,8 @@ export const uploadSingle = (bucket) => (req, res, next) => {
     if (e) return err(res, 400, 'BAD_REQUEST', e.message);
     if (!req.file) return err(res, 400, 'BAD_REQUEST', 'No file uploaded');
     const ext = extOf(req.file.originalname);
-    if (!matchesSignature(readHead(req.file.path), ext)) {
+    const headBytes = ext === 'docx' ? req.file.size : 16;
+    if (!matchesSignature(readHead(req.file.path, headBytes), ext)) {
       unlinkQuiet(req.file.path);
       return err(res, 400, 'BAD_REQUEST', 'File content does not match its extension.');
     }
