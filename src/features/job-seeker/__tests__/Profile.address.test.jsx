@@ -4,6 +4,11 @@ import Profile from '../Profile'
 
 vi.mock('../../../shared/hooks/useAuth', () => ({ default: vi.fn() }))
 vi.mock('../../../shared/services/auth', () => ({ updateProfile: vi.fn() }))
+vi.mock('../../../shared/services/seekers', () => ({
+  listEducation: vi.fn(),
+  addEducation: vi.fn(),
+  removeEducation: vi.fn(),
+}))
 vi.mock('../../../shared/lib/resumeText', () => ({ extractResumeText: vi.fn() }))
 vi.mock('../../../shared/services/documents', () => ({
   listResumes: vi.fn(),
@@ -16,6 +21,7 @@ vi.mock('../../../shared/services/documents', () => ({
 
 import useAuth from '../../../shared/hooks/useAuth'
 import { updateProfile } from '../../../shared/services/auth'
+import { listEducation, addEducation, removeEducation } from '../../../shared/services/seekers'
 import { listResumes } from '../../../shared/services/documents'
 
 const STORED = {
@@ -40,6 +46,15 @@ describe('Profile fields and save', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     listResumes.mockResolvedValue([])
+    listEducation.mockResolvedValue([{
+      id: 'edu1',
+      level: 'College',
+      school: 'Central College',
+      field: 'Business',
+      end_year: 2022,
+    }])
+    addEducation.mockResolvedValue({})
+    removeEducation.mockResolvedValue({})
     updateProfile.mockResolvedValue({})
     useAuth.mockReturnValue({ user: STORED, refreshUser: vi.fn() })
   })
@@ -57,7 +72,8 @@ describe('Profile fields and save', () => {
     expect(screen.getByLabelText(/street or local address/i)).toHaveValue('12 Mabini Street')
 
     fireEvent.click(screen.getByRole('tab', { name: /education/i }))
-    await screen.findByRole('combobox', { name: /education/i })
+    expect(await screen.findByText('Completed — College')).toBeInTheDocument()
+    expect(screen.queryByRole('combobox', { name: /^education$/i })).not.toBeInTheDocument()
     expect(screen.getAllByText('College').length).toBeGreaterThan(0)
     expect(screen.getAllByText('Cashier').length).toBeGreaterThan(0)
     expect(screen.getByText('2 years')).toBeInTheDocument()
@@ -89,15 +105,66 @@ describe('Profile fields and save', () => {
       headline: 'Head cashier',
       barangay_district: 'Bagbaguin',
       street_address: '48 Rizal Street',
-      education_summary: 'College',
       experience_summary: 'Cashier, 2 years',
       skills: ['Data Entry', 'Customer Service'],
     }))
+    expect(updateProfile.mock.calls[0][1]).not.toHaveProperty('education_summary')
+  })
+
+  it('updates education status when education history is added and removed', async () => {
+    listEducation.mockResolvedValue([])
+    addEducation.mockResolvedValue({
+      id: 'edu2',
+      level: 'College',
+      school: 'Metro College',
+      field: null,
+      end_year: 2025,
+    })
+    await openProfile()
+
+    fireEvent.click(screen.getByRole('tab', { name: /education/i }))
+    expect(await screen.findByText('No education history added')).toBeInTheDocument()
+
+    fireEvent.change(screen.getByLabelText('Level'), { target: { value: 'College' } })
+    fireEvent.change(screen.getByLabelText('School'), { target: { value: 'Metro College' } })
+    fireEvent.change(screen.getByLabelText('Graduation year'), { target: { value: '2025' } })
+    fireEvent.click(screen.getByRole('button', { name: /add education/i }))
+    expect(await screen.findByText('Completed — College')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Remove' }))
+    expect(await screen.findByText('No education history added')).toBeInTheDocument()
+  })
+
+  it('shows current study status from an ongoing education record', async () => {
+    listEducation.mockResolvedValue([{
+      id: 'edu3',
+      level: 'Senior High School',
+      school: 'Santa Maria High School',
+      field: null,
+      end_year: null,
+    }])
+    await openProfile()
+
+    fireEvent.click(screen.getByRole('tab', { name: /education/i }))
+    expect(await screen.findByText('Currently studying — Senior High School')).toBeInTheDocument()
+  })
+
+  it('shows an error instead of treating failed education history as empty', async () => {
+    listEducation.mockRejectedValue(new Error('Education records could not be loaded'))
+    await openProfile()
+
+    fireEvent.click(screen.getByRole('tab', { name: /education/i }))
+    expect(await screen.findByText('Education history unavailable')).toBeInTheDocument()
+    expect(screen.getByRole('alert')).toHaveTextContent('Education records could not be loaded')
   })
 
   it('blocks the save and explains what is missing', async () => {
     useAuth.mockReturnValue({ user: { id: 'u1', email: 'a@b.ph' }, refreshUser: vi.fn() })
+    listEducation.mockResolvedValue([])
     await openProfile()
+    fireEvent.click(screen.getByRole('tab', { name: /education/i }))
+    await screen.findByText('No education history added')
+    fireEvent.click(screen.getByRole('tab', { name: /personal/i }))
 
     fireEvent.click(screen.getByRole('button', { name: /save my profile/i }))
 
@@ -109,7 +176,31 @@ describe('Profile fields and save', () => {
 
     fireEvent.click(screen.getByRole('tab', { name: /education/i }))
     await screen.findByText('Add at least one skill, separated by commas.')
+    expect(screen.getByText('Add your education history.')).toBeInTheDocument()
 
     expect(updateProfile).not.toHaveBeenCalled()
+  })
+
+  it('title-cases stored lowercase values in the edit inputs', async () => {
+    useAuth.mockReturnValue({
+      user: {
+        ...STORED,
+        full_name: 'juana santos',
+        first_name: 'juana',
+        last_name: 'santos',
+        barangay_district: 'poblacion',
+        street_address: '12 mabini street',
+      },
+      refreshUser: vi.fn(),
+    })
+    await openProfile()
+
+    expect(screen.getByLabelText(/full name/i)).toHaveValue('Juana Santos')
+    expect(screen.getByLabelText(/first name/i)).toHaveValue('Juana')
+
+    fireEvent.click(screen.getByRole('tab', { name: /address/i }))
+    await screen.findByLabelText('Barangay')
+    expect(screen.getByLabelText('Barangay')).toHaveValue('Poblacion')
+    expect(screen.getByLabelText(/street or local address/i)).toHaveValue('12 Mabini Street')
   })
 })

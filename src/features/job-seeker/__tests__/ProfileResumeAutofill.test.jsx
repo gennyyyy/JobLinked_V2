@@ -74,7 +74,8 @@ describe('Profile resume autofill', () => {
     fireEvent.click(reviewCheckbox)
     fireEvent.click(await screen.findByRole('button', { name: 'Apply detected details' }))
 
-    expect(screen.getByLabelText(/full name/i)).toHaveValue('Juan Dela Cruz')
+    fireEvent.click(screen.getByRole('tab', { name: /personal/i }))
+    expect(await screen.findByLabelText(/full name/i)).toHaveValue('Juan Dela Cruz')
     expect(screen.getByLabelText(/contact number/i)).toHaveValue('+639171234567')
 
     fireEvent.click(screen.getByRole('tab', { name: /address/i }))
@@ -83,8 +84,8 @@ describe('Profile resume autofill', () => {
     expect(screen.getByLabelText(/street or local address/i).value).toContain('Norzagaray-Santa Maria Road')
 
     fireEvent.click(screen.getByRole('tab', { name: /education/i }))
-    await screen.findByRole('combobox', { name: /education/i })
-    expect(screen.getByRole('combobox', { name: /education/i })).toHaveValue('College')
+    await screen.findByRole('combobox', { name: /level/i })
+    expect(screen.getByRole('combobox', { name: /level/i })).toHaveValue('College')
     expect(screen.getAllByText('Data Entry').length).toBeGreaterThan(0)
     expect(screen.getAllByText('Communication').length).toBeGreaterThan(0)
   })
