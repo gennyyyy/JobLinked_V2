@@ -14,6 +14,7 @@ function fillAllButBirthdate() {
   fireEvent.change(screen.getByLabelText(/confirm password/i), { target: { value: 'password123' } })
   fireEvent.click(screen.getByRole('checkbox', { name: /agree to the municipal/i }))
   fireEvent.click(screen.getByRole('checkbox', { name: /true and correct/i }))
+  fireEvent.click(screen.getByRole('checkbox', { name: /resume autofill can make mistakes/i }))
 }
 
 describe('scroll to first error', () => {
@@ -36,6 +37,7 @@ describe('scroll to first error', () => {
     render(<MemoryRouter><JobSeekerRegister /></MemoryRouter>)
     fireEvent.change(screen.getByLabelText(/^first name/i), { target: { value: 'Juan' } })
     fireEvent.change(screen.getByLabelText(/last name/i), { target: { value: 'Cruz' } })
+    fireEvent.click(screen.getByRole('checkbox', { name: /resume autofill can make mistakes/i }))
     fireEvent.click(screen.getByRole('button', { name: /create account/i }))
 
     await waitFor(() => expect(screen.getByText(/birthday is required/i)).toBeInTheDocument())
