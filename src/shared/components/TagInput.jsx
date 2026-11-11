@@ -72,7 +72,7 @@ export function TagInput({ value, onChange, placeholder, id, className = "", max
           }}
           onBlur={() => commit(draft)}
           placeholder={tags.length ? "" : placeholder}
-          className="flex-1 min-w-[140px] bg-transparent outline-none placeholder:text-muted-foreground py-1"
+          className="flex-1 min-w-[140px] rounded-none border-0 bg-transparent outline-none shadow-none placeholder:text-muted-foreground py-1 focus-visible:border-0 focus-visible:ring-0"
         />
       </div>
     </div>

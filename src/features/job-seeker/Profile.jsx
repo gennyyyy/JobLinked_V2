@@ -409,9 +409,6 @@ function Profile() {
               {skills.map((skill) => <Badge key={skill} variant="secondary">{skill}</Badge>)}
             </div>
           </Panel>
-          <Notice title="Share only what is needed">
-            Your profile is not a public directory entry. Applicant details are limited to the receiving employer and authorized PESO personnel.
-          </Notice>
         </div>
       </div>
 

@@ -20,7 +20,7 @@ export default function TagField({ label, value, onChange, placeholder, help, er
       <label className="text-sm font-medium text-foreground">
         {label}{required ? <span className="ml-1 text-destructive">*</span> : null}
       </label>
-      <div className="flex min-h-11 flex-wrap items-center gap-2 rounded-lg border border-input bg-background px-3 py-2 shadow-sm focus-within:border-ring focus-within:ring-2 focus-within:ring-ring/20">
+      <div className="flex min-h-11 flex-wrap items-center gap-2 rounded-lg border border-input bg-background px-3 py-2 focus-within:border-ring focus-within:ring-2 focus-within:ring-ring/20">
         {tags.map((tag) => (
           <span key={tag} className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary">
             {tag}

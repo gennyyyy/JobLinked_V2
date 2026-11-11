@@ -12,7 +12,7 @@ import {
   Settings,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet'
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuLabel } from '@/components/ui/dropdown-menu'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
@@ -26,6 +26,7 @@ import useAuth from '../hooks/useAuth'
 import useAFKTimer from '../hooks/useAFKTimer'
 import useDialog from '../hooks/useDialog'
 import { initialsOf } from '../utils/accountName'
+import { fetchAvatarObjectUrl } from '../services/images'
 import { PORTAL_NAV, ROLE_LABELS } from '../constants'
 import { listNotifications } from '../services/notifications'
 import { NOTIFICATIONS_CHANGED } from '../utils/notificationEvents'
@@ -137,6 +138,36 @@ export default function TopNavLayout({ role, navItems, profileTo, roleLabel, hom
   const name = user?.full_name || user?.name || user?.email || 'Workspace'
   const initials = initialsOf(user, name)
 
+  // Profile picture for the signed-in seeker (ADR-040). The endpoint needs the
+  // bearer token, so it is fetched as an object URL; initials are the fallback.
+  const [avatarUrl, setAvatarUrl] = useState(null)
+  const avatarUrlRef = useRef('')
+  useEffect(() => {
+    if (!user?.id || user?.has_avatar !== true) return undefined
+    let live = true
+    fetchAvatarObjectUrl(user.id)
+      .then((url) => {
+        if (!live) {
+          if (url) URL.revokeObjectURL(url)
+          return
+        }
+        if (avatarUrlRef.current) URL.revokeObjectURL(avatarUrlRef.current)
+        avatarUrlRef.current = url || ''
+        setAvatarUrl(url || null)
+      })
+      .catch(() => { /* unavailable */ })
+    return () => {
+      live = false
+      if (avatarUrlRef.current) {
+        URL.revokeObjectURL(avatarUrlRef.current)
+        avatarUrlRef.current = ''
+      }
+    }
+  }, [user?.id, user?.has_avatar])
+  useEffect(() => () => {
+    if (avatarUrlRef.current) URL.revokeObjectURL(avatarUrlRef.current)
+  }, [])
+
   const sidebar = (small = false) => (
     <div className="flex h-full flex-col">
       <div className={cn('flex h-[85px] items-center px-6', collapsed && !small && 'justify-center px-0')}>
@@ -230,6 +261,7 @@ export default function TopNavLayout({ role, navItems, profileTo, roleLabel, hom
             <DropdownMenu>
               <DropdownMenuTrigger render={<Button variant="ghost" className="gap-2 px-1.5" />}>
                 <Avatar>
+                  {user?.has_avatar === true && avatarUrl && <AvatarImage src={avatarUrl} alt="Profile picture" />}
                   <AvatarFallback>{initials}</AvatarFallback>
                 </Avatar>
                 <span className="hidden text-left sm:block">

@@ -1,7 +1,7 @@
 "use client";
 import { Link } from "react-router-dom";
 import { useId, useState } from "react";
-import { ArrowRight, CheckCircle2, Search, ShieldCheck, Loader2, } from "lucide-react";
+import { ArrowRight, CheckCircle2, ChevronDown, Search, ShieldCheck, Loader2, } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter, CardAction, } from "@/components/ui/card";
@@ -193,15 +193,18 @@ export function SelectField({ label, options, placeholder, error, ...props }) {
     const fieldId = props.id ?? props.name ?? label.toLowerCase().replaceAll(" ", "-");
     return (<Field data-invalid={!!error}>
       <FieldLabel htmlFor={fieldId}>{label}</FieldLabel>
-      <select {...props} id={fieldId} className={cn("form-select", props.className)} aria-invalid={!!error} aria-describedby={error ? `${fieldId}-error` : undefined}>
-        {placeholder && <option value="">{placeholder}</option>}
-        {options.map((item) => {
-            const option = typeof item === "string" ? { label: item, value: item } : item;
-            return (<option key={option.value} value={option.value}>
-              {option.label}
-            </option>);
-        })}
-      </select>
+      <div className="relative w-full">
+        <select {...props} id={fieldId} className={cn("form-select appearance-none pr-10", props.className)} aria-invalid={!!error} aria-describedby={error ? `${fieldId}-error` : undefined}>
+          {placeholder && <option value="">{placeholder}</option>}
+          {options.map((item) => {
+              const option = typeof item === "string" ? { label: item, value: item } : item;
+              return (<option key={option.value} value={option.value}>
+                {option.label}
+              </option>);
+          })}
+        </select>
+        <ChevronDown aria-hidden="true" className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+      </div>
       {error && <FieldError id={`${fieldId}-error`}>{error}</FieldError>}
     </Field>);
 }
