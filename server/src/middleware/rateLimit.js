@@ -44,6 +44,17 @@ export const aiLimiter = rateLimit({
   keyGenerator: (req) => req.user?.id || ipKeyGenerator(req.ip),
 });
 
+// Pre-auth resume extraction (ADR-045): registration has no session yet, so
+// bucket by IP. One provider call per request; 10/hour is the whole budget.
+export const resumeExtractLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  limit: 10,
+  standardHeaders: 'draft-7',
+  legacyHeaders: false,
+  handler: (_req, res) => limited(res),
+  keyGenerator: (req) => ipKeyGenerator(req.ip),
+});
+
 // C1: general throttle for every other /api route — 300 req/15min keyed by
 // user id when available, IP for anonymous calls. The principal is attached
 // app-level by attachPrincipal (auth.js) before this limiter runs, so the key
@@ -65,14 +76,6 @@ export const apiLimiter = rateLimit({
   skip: stricterLimiterPaths,
 });
 
-export const resumeExtractLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000,
-  limit: 10,
-  standardHeaders: 'draft-7',
-  legacyHeaders: false,
-  handler: (_req, res) => limited(res),
-  keyGenerator: (req) => ipKeyGenerator(req.ip),
-});
 // count against the 30/15min budget: replaying an identical request from
 // matchCache is free, while unique prompts stay throttled. Keyed by user id
 // like aiLimiter; the limit is own-bucket-only, so it never double-counts with
