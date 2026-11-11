@@ -3,16 +3,17 @@ import { pool } from '../db.js';
 import { auth, requireRole } from '../auth.js';
 import { requirePermission } from '../middleware/permissions.js';
 import { ah, err, pageParams } from '../util.js';
-import { SEEKER_JSON } from './admin-shared.js';
 
 const router = Router();
 const admin = [auth, requireRole('super-admin'), requirePermission('reports.view')];
 
 // Report SELECTs copied from admin.js (read-only reuse; admin.js untouched).
+const SEEKER_COLS = 'id, full_name, email, phone, barangay_district, skills, employment_status, preferred_position, preferred_location';
+const seekerJson = `json_build_object(${SEEKER_COLS.split(', ').map((c) => `'${c.trim()}', s.${c.trim()}`).join(', ')})`;
 const APP_JOIN = `from job_applications a join job_vacancies j on j.id = a.job_id
   join employers e on e.id = j.company_id join job_seekers s on s.id = a.seeker_id`;
 const APP_SELECT = `select a.*, json_build_object('id', j.id, 'title', j.title, 'location', j.location,
-  'employers', json_build_object('company_name', e.company_name)) as job, ${SEEKER_JSON} as seeker ${APP_JOIN}`;
+  'employers', json_build_object('company_name', e.company_name)) as job, ${seekerJson} as seeker ${APP_JOIN}`;
 
 const s = (v) => (v === null || v === undefined ? '' : String(v));
 
@@ -44,7 +45,7 @@ async function loadReport(type, pg) {
       const { rows } = await pool.query(
         `select a.*, json_build_object('id', j.id, 'title', j.title, 'company_id', j.company_id,
            'employers', json_build_object('id', e.id, 'company_name', e.company_name)) as job,
-          ${SEEKER_JSON} as seeker ${APP_JOIN}
+          ${seekerJson} as seeker ${APP_JOIN}
           where a.status in ('Accepted', 'Placed') ${bound('order by a.updated_at desc')}`, params());
       return { title: 'Placements report', headers: ['Seeker', 'Email', 'Job', 'Company', 'Status', 'Updated At'],
         rows: rows.map((a) => [s(a.seeker?.full_name), s(a.seeker?.email), s(a.job?.title),

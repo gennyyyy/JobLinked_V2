@@ -3,7 +3,7 @@ import { pool } from '../db.js';
 import { auth, requireRole } from '../auth.js';
 import { requirePermission } from '../middleware/permissions.js';
 import { ah, err, audit, isUuid, pageParams, withTransaction } from '../util.js';
-import { ACCOUNT_STATUSES, likeFilter, SEEKER_JSON } from './admin-shared.js';
+import { ACCOUNT_STATUSES, likeFilter } from './admin-shared.js';
 import logger from '../logger.js';
 
 const router = Router();
@@ -13,6 +13,7 @@ const viewer = [...admin, requirePermission('dashboard.view')];
 const accreditationAdmin = [...admin, requirePermission('accreditation.manage')];
 const logsAdmin = [...admin, requirePermission('logs.view')];
 const notifyAdmin = [...admin, requirePermission('notifications.send')];
+const SEEKER_COLS = 'id, full_name, email, phone, barangay_district, skills, employment_status, preferred_position, preferred_location';
 // B6: enum-valued filters are validated before they reach Postgres — an
 // unknown value raises 22P02 (500) instead of the 400 the contract wants.
 const APPLICATION_STATUSES = ['Applied', 'Under Review', 'Interview', 'Accepted', 'Rejected', 'Placed', 'Terminated'];
@@ -94,7 +95,7 @@ router.get('/admin/applications', ...viewer, ah(async (req, res) => {
   const { rows } = await pool.query(
     `select a.*, json_build_object('id', j.id, 'title', j.title, 'location', j.location,
        'employers', json_build_object('company_name', e.company_name)) as job,
-     ${SEEKER_JSON} as seeker ${base}
+     json_build_object(${SEEKER_COLS.split(', ').map((c) => `'${c.trim()}', s.${c.trim()}`).join(', ')}) as seeker ${base}
      order by a.applied_at desc limit $${vals.length + 1} offset $${vals.length + 2}`,
     [...vals, pg.pageSize, (pg.page - 1) * pg.pageSize]);
   res.json({ data: rows, total, page: pg.page, pageSize: pg.pageSize });
@@ -107,7 +108,7 @@ router.get('/admin/employees', ...viewer, ah(async (req, res) => {
     `select a.*, json_build_object('id', j.id, 'title', j.title, 'company_id', j.company_id,
        'employment_type', j.employment_type, 'location', j.location, 'office', j.office,
        'employers', json_build_object('id', e.id, 'company_name', e.company_name)) as job,
-     ${SEEKER_JSON} as seeker,
+     json_build_object(${SEEKER_COLS.split(', ').map((c) => `'${c.trim()}', s.${c.trim()}`).join(', ')}) as seeker,
      (select json_build_object('start_date', h.start_date, 'end_date', h.end_date, 'is_current', h.is_current, 'created_at', h.created_at)
       from employment_history h where h.application_id = a.id limit 1) as employment
      from job_applications a join job_vacancies j on j.id = a.job_id
@@ -123,7 +124,7 @@ router.get('/admin/referrals', ...viewer, ah(async (req, res) => {
   const { rows } = await pool.query(
     `select a.*, json_build_object('id', j.id, 'title', j.title,
        'employers', json_build_object('company_name', e.company_name)) as job,
-     ${SEEKER_JSON} as seeker
+     json_build_object(${SEEKER_COLS.split(', ').map((c) => `'${c.trim()}', s.${c.trim()}`).join(', ')}) as seeker
      from job_applications a join job_vacancies j on j.id = a.job_id
      join employers e on e.id = j.company_id join job_seekers s on s.id = a.seeker_id
      where a.referred_by is not null order by a.applied_at desc limit $1 offset $2`,
