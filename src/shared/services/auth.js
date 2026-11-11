@@ -1,7 +1,5 @@
 import { supabase } from '../lib/supabase';
 import { api } from '../lib/api';
-import { logAudit } from './audit';
-
 // True when the token is valid but no profile row exists yet (contract says
 // GET /api/auth/me 404s; the built middleware answers 403 'Account not
 // provisioned' — accept both).
@@ -120,7 +118,6 @@ export async function signIn(email, password, captchaToken) {
     profile = await getProfile(data.user.id);
   }
   if (!profile || profile.status === 'suspended') throw new Error('Invalid email or password');
-  logAudit('auth.login');
   return { ...data.user, ...profile };
 }
 
@@ -186,7 +183,6 @@ export async function signUp({ email, password, role, firstName, middleName = ''
 }
 
 export async function signOut() {
-  logAudit('auth.logout'); // posted before the session token is cleared
   // Best-effort: a revoke failure on a dead token (e.g. server 403) must not
   // prevent local session clear — the caller always ends up logged out.
   try {
@@ -212,7 +208,6 @@ export async function changePassword(currentPassword, newPassword, captchaToken)
 
   const { error } = await supabase.auth.updateUser({ password: newPassword });
   if (error) throw friendlyAuthError(error);
-  logAudit('auth.password.change');
 }
 
 export async function resetPassword(email, captchaToken) {
@@ -221,5 +216,4 @@ export async function resetPassword(email, captchaToken) {
     ...(captchaToken ? { captchaToken } : {}),
   });
   if (error) throw friendlyAuthError(error);
-  logAudit('auth.password.reset.request');
 }
