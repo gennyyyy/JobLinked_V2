@@ -110,7 +110,7 @@ export default function JobPostFormDialog({ form, setForm, setErrors, errors, sa
               label={<>Employment Type <span aria-hidden="true" className="text-destructive">*</span></>}
               value={form.employment_type}
               onChange={(e) => setForm({ ...form, employment_type: e.target.value })}
-              options={["Full-time", "Part-time", "Contractual", "Job Order", "Seasonal", "Internship"]}
+              options={["Full-time", "Part-time", "Contractual", "Seasonal", "Casual", "Job Order", "Project-based", "Internship"]}
             />
             <SelectField
               id="job-work-arrangement"

@@ -82,7 +82,7 @@ export default function Reports() {
     }
   }, [applications, jobs, users, from, to])
 
-  const employmentTypes = ['Full-time', 'Part-time', 'Contractual', 'Seasonal', 'Job Order']
+  const employmentTypes = ['Full-time', 'Part-time', 'Contractual', 'Seasonal', 'Casual', 'Job Order', 'Project-based', 'Internship']
     .map((name) => ({ name, value: jobs.filter((job) => job.employment_type === name && (job.status === 'published' || job.status === 'Published')).length }))
 
   function exportReport() {

@@ -14,7 +14,7 @@ import { JobListSkeleton } from "./Skeletons";
 import { prefetchRoute } from "../lib/routeLoaders";
 
 const PAGE_SIZE = 10;
-const EMPLOYMENT_TYPES = ["Full-time", "Part-time", "Contractual", "Seasonal", "Job Order"];
+const EMPLOYMENT_TYPES = ["Full-time", "Part-time", "Contractual", "Seasonal", "Casual", "Job Order", "Project-based", "Internship"];
 const MAX_SKILLS = 3;
 
 // Requirements arrive as one free-text blob; the design shows a short bullet
