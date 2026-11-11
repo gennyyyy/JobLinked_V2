@@ -26,7 +26,7 @@ const STORED = {
   headline: 'Cashier',
   barangay_district: 'Poblacion',
   street_address: '12 Mabini Street',
-  education_summary: 'College — PUP Santa Maria',
+  education_summary: 'College',
   experience_summary: 'Cashier, 2 years',
   skills: ['Data Entry'],
 }
@@ -52,7 +52,7 @@ describe('Profile fields and save', () => {
     expect(screen.getByLabelText(/professional headline/i)).toHaveValue('Cashier')
     expect(screen.getByLabelText('Barangay')).toHaveValue('Poblacion')
     expect(screen.getByLabelText(/street or local address/i)).toHaveValue('12 Mabini Street')
-    expect(screen.getByText('College — PUP Santa Maria')).toBeInTheDocument()
+    expect(screen.getByText('College')).toBeInTheDocument()
     expect(screen.getAllByText('Cashier').length).toBeGreaterThan(0)
     expect(screen.getByText('2 years')).toBeInTheDocument()
     expect(screen.getAllByText('Data Entry').length).toBeGreaterThan(0)
@@ -76,7 +76,7 @@ describe('Profile fields and save', () => {
       headline: 'Head cashier',
       barangay_district: 'Bagbaguin',
       street_address: '48 Rizal Street',
-      education_summary: 'College — PUP Santa Maria',
+      education_summary: 'College',
       experience_summary: 'Cashier, 2 years',
       skills: ['Data Entry', 'Customer Service'],
     }))

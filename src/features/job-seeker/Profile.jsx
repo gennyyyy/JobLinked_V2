@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Eye, FileText, Save, Trash2, UploadCloud, UserRound } from 'lucide-react'
+import { Eye, FileText, ImagePlus, Save, Settings2, Trash2, UploadCloud, UserRound } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import useAuth from '@/shared/hooks/useAuth'
@@ -10,9 +10,9 @@ import { buildFullName } from '@/shared/utils/names'
 import { PageSkeleton } from '@/shared/components/Skeletons'
 import { InlineError } from '@/shared/components/dashboard'
 import ConfirmationModal from '@/shared/components/ConfirmationModal'
-import ResumeFileField from '@/shared/components/ResumeFileField'
 import { PageHeading, Panel, TextField, SelectField, Notice, EmptyState } from '@/shared/components/design'
 import { SANTA_MARIA_BARANGAYS } from '@/shared/constants'
+import { EDUCATION_LEVELS } from '../auth/jobSeekerRegistration'
 import TagField from './TagField'
 import ResumeAutofill from './ResumeAutofill'
 
@@ -77,8 +77,6 @@ function ResumeLinks({ resume }) {
   )
 }
 
-const fileSize = (bytes) => `${(bytes / 1024 / 1024).toFixed(1)} MB`
-
 function Profile() {
   const { user, refreshUser } = useAuth()
   const userId = user?.id
@@ -92,6 +90,8 @@ function Profile() {
   const [photoBusy, setPhotoBusy] = useState(false)
   const [photoStatus, setPhotoStatus] = useState('')
   const [photoError, setPhotoError] = useState('')
+  const [photoActionsOpen, setPhotoActionsOpen] = useState(false)
+  const photoActionsRef = useRef(null)
   const [resumes, setResumes] = useState([])
   const [draft, setDraft] = useState(null)
   const [uploadError, setUploadError] = useState('')
@@ -136,6 +136,15 @@ function Profile() {
 
   useEffect(() => () => { if (avatarObjectUrl.current) URL.revokeObjectURL(avatarObjectUrl.current) }, [])
 
+  useEffect(() => {
+    if (!photoActionsOpen) return
+    function closeOnOutsideClick(event) {
+      if (!photoActionsRef.current?.contains(event.target)) setPhotoActionsOpen(false)
+    }
+    document.addEventListener('pointerdown', closeOnOutsideClick)
+    return () => document.removeEventListener('pointerdown', closeOnOutsideClick)
+  }, [photoActionsOpen])
+
   if (loading) return <PageSkeleton stats={0} panels={2} />
   if (error) return <InlineError message={error} />
 
@@ -162,7 +171,7 @@ function Profile() {
     if (form.headline.trim().length < 5) next.headline = 'Add a short professional headline.'
     if (!form.barangay) next.barangay = 'Choose your barangay.'
     if (form.address.trim().length < 5) next.address = 'Enter your address.'
-    if (form.education.trim().length < 5) next.education = 'Add your education or training.'
+    if (!form.education) next.education = 'Add your education.'
     if (!skills.length) next.skills = 'Add at least one skill, separated by commas.'
     setErrors(next)
     return Object.keys(next).length === 0
@@ -198,16 +207,21 @@ function Profile() {
     setForm((previous) => {
       const next = { ...previous }
       for (const [key, value] of Object.entries(details)) {
-        if (value && key in next) next[key] = value
+        if (!value) continue
+        if (key === 'education') {
+          const level = String(value).split('—')[0].trim()
+          if (EDUCATION_LEVELS.includes(level)) next.education = level
+          continue
+        }
+        if (key in next) next[key] = value
       }
       return next
     })
   }
 
-  function pickResume(event) {
-    const file = event.target.files?.[0]
-    event.target.value = ''
+  function pickResume(file) {
     if (!file) return
+    setResumeStatus('')
     const validationError = validateFile(file)
     if (validationError) { setUploadError(validationError); setDraft(null); return }
     setUploadError('')
@@ -270,6 +284,11 @@ function Profile() {
     }
   }
 
+  function openPicturePicker() {
+    document.getElementById('profile-picture')?.click()
+    setPhotoActionsOpen(false)
+  }
+
   async function handleRemovePicture() {
     setPhotoError('')
     setPhotoStatus('')
@@ -279,6 +298,7 @@ function Profile() {
       if (refreshUser) await refreshUser(user)
       showAvatar(null)
       setPhotoStatus('Photo removed.')
+      setPhotoActionsOpen(false)
     } catch (err) {
       setPhotoError(err.message || 'Could not remove the photo')
     } finally {
@@ -294,23 +314,60 @@ function Profile() {
       />
       <div className="grid items-start gap-6 xl:grid-cols-[1fr_280px]">
         <form onSubmit={handleSubmit} className="flex min-w-0 flex-col gap-6" noValidate>
-          <ResumeAutofill onApply={applyAutofill} />
           <Panel title="Personal & contact details" description="Use the information employers need to reach you.">
             <div className="flex flex-wrap items-center gap-4 rounded-lg border border-dashed border-border bg-muted/30 p-4">
-              <div className="flex size-20 shrink-0 items-center justify-center overflow-hidden rounded-full bg-primary/10 text-primary">
-                {avatarUrl ? <img src={avatarUrl} alt="Profile picture" className="size-full object-cover" /> : <UserRound className="size-8" />}
+              <div ref={photoActionsRef} className="group relative size-30 shrink-0">
+                <div className="flex size-full items-center justify-center overflow-hidden rounded-full bg-primary/10 text-primary">
+                  {avatarUrl ? <img src={avatarUrl} alt="Profile picture" className="size-full object-cover" /> : <UserRound className="size-12" />}
+                </div>
+                <div className={`absolute inset-0 flex items-center justify-center gap-2 rounded-full bg-black/50 transition-opacity ${photoActionsOpen ? 'opacity-100' : 'opacity-0 group-hover:opacity-100 group-focus-within:opacity-100'}`}>
+                  {!photoActionsOpen ? (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      aria-label="Profile picture settings"
+                      aria-expanded={photoActionsOpen}
+                      disabled={photoBusy}
+                      className="text-white hover:bg-white/20 hover:text-white"
+                      onClick={() => setPhotoActionsOpen(true)}
+                    >
+                      <Settings2 className="size-4" />
+                    </Button>
+                  ) : (
+                    <>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        aria-label={avatarUrl ? 'Edit profile picture' : 'Add profile picture'}
+                        disabled={photoBusy}
+                        className="text-white hover:bg-white/20 hover:text-white"
+                        onClick={openPicturePicker}
+                      >
+                        <ImagePlus className="size-4" />
+                      </Button>
+                      {avatarUrl && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          aria-label="Remove profile picture"
+                          disabled={photoBusy}
+                          className="text-white hover:bg-white/20 hover:text-white"
+                          onClick={handleRemovePicture}
+                        >
+                          <Trash2 className="size-4" />
+                        </Button>
+                      )}
+                    </>
+                  )}
+                </div>
               </div>
               <div className="flex min-w-0 flex-1 flex-col gap-1">
                 <label htmlFor="profile-picture" className="text-sm font-semibold text-foreground">Profile picture</label>
                 <p className="text-xs leading-5 text-muted-foreground">Upload a clear face photo. It is saved to your account and stays after refresh.</p>
-                <div className="mt-1 flex flex-wrap items-center gap-3">
-                  <input id="profile-picture" type="file" accept="image/png,image/jpeg,image/webp" disabled={photoBusy} className="block text-xs text-muted-foreground file:mr-3 file:rounded-md file:border-0 file:bg-primary file:px-3 file:py-1.5 file:text-xs file:font-medium file:text-primary-foreground hover:file:bg-primary/90" onChange={handlePicture} />
-                  {avatarUrl && (
-                    <Button type="button" variant="outline" size="sm" onClick={handleRemovePicture} disabled={photoBusy}>
-                      <Trash2 data-icon="inline-start" />Remove photo
-                    </Button>
-                  )}
-                </div>
+                <input id="profile-picture" type="file" accept="image/png,image/jpeg,image/webp" disabled={photoBusy} className="sr-only" onChange={handlePicture} />
                 {photoBusy && <p role="status" className="text-[11px] text-muted-foreground">Uploading…</p>}
                 {photoStatus && !photoBusy && <p role="status" className="text-[11px] font-medium text-success">{photoStatus}</p>}
                 {photoError && <p role="alert" className="text-[11px] text-destructive">{photoError}</p>}
@@ -330,7 +387,7 @@ function Profile() {
           </Panel>
           <Panel title="Education, experience & skills" description="These details power simple, transparent skill matching.">
             <div className="flex flex-col gap-5">
-              <TagField label="Education or training" required value={form.education} onChange={(value) => setField('education', value)} placeholder="Type a qualification and press Enter" error={errors.education} />
+              <SelectField label="Education" value={form.education} onChange={(event) => setField('education', event.target.value)} options={EDUCATION_LEVELS} placeholder="Select education level" error={errors.education} />
               <TagField label="Work experience" value={form.experience} onChange={(value) => setField('experience', value)} placeholder="Type a role or experience and press Enter" help="Add internships, volunteer work, or previous roles as separate tags." />
               <TagField label="Your skills" required value={form.skills} onChange={(value) => setField('skills', value)} placeholder="Type a skill and press Enter" help="Add each skill as a separate tag." error={errors.skills} />
             </div>
@@ -345,9 +402,6 @@ function Profile() {
         </form>
         <div className="flex flex-col gap-5">
           <Panel title="A profile that feels like you">
-            <div className="soft-icon mb-4">
-              <UserRound className="size-5" />
-            </div>
             <p className="text-sm font-semibold text-navy">{form.name || 'Job Seeker'}</p>
             <p className="mt-2 text-xs leading-6 text-muted-foreground">{form.headline || 'Add a professional headline to introduce yourself.'}</p>
             <p className="mt-4 text-xs font-medium text-teal">{completion}% complete</p>
@@ -367,59 +421,55 @@ function Profile() {
             Only you, authorized PESO personnel, and the employers you apply to can open the resume attached to your application.
           </Notice>
         </div>
-        <div className="grid items-start gap-6 xl:grid-cols-[1.4fr_1fr]">
-          <Panel title="My resumes">
-            {resumes.length ? (
-              <ul className="flex flex-col gap-4">
-                {resumes.map((resume) => (
-                  <li className="rounded-xl border p-4" key={resume.id}>
-                    <div className="flex items-start gap-3">
-                      <span className="soft-icon"><FileText className="size-5" /></span>
-                      <div className="min-w-0 flex-1">
-                        <h2 className="break-all text-sm font-medium">{resume.file_name}</h2>
-                        <p className="mt-2 text-[11px] text-muted-foreground">
-                          {resume.is_active ? 'Active resume · ' : ''}Added {new Date(resume.uploaded_at).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' })}
-                        </p>
-                      </div>
+        <Panel title="My resumes">
+          {resumes.length ? (
+            <ul className="flex flex-col gap-4">
+              {resumes.map((resume) => (
+                <li className="rounded-xl border p-4" key={resume.id}>
+                  <div className="flex items-start gap-3">
+                    <span className="soft-icon"><FileText className="size-5" /></span>
+                    <div className="min-w-0 flex-1">
+                      <h2 className="break-all text-sm font-medium">{resume.file_name}</h2>
+                      <p className="mt-2 text-[11px] text-muted-foreground">
+                        {resume.is_active ? 'Active resume · ' : ''}Added {new Date(resume.uploaded_at).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' })}
+                      </p>
                     </div>
-                    <div className="mt-4 flex flex-wrap gap-2">
-                      <ResumeLinks resume={resume} />
-                      {!resume.is_active && (
-                        <Button type="button" variant="ghost" onClick={() => handleSetActiveResume(resume.id)}>Set active</Button>
-                      )}
-                      <Button type="button" variant="ghost" onClick={() => document.getElementById('resume-upload')?.click()}>Replace</Button>
-                      <Button type="button" variant="ghost" onClick={() => setPendingDelete(resume)}>
-                        <Trash2 data-icon="inline-start" />
-                        Delete
-                      </Button>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <EmptyState title="Start with your story." description="Add a resume using the form. PDF, DOC, or DOCX up to 5 MB." />
-            )}
-          </Panel>
-          <Panel title="Add a resume" description="PDF up to 2 MB · DOC or DOCX up to 5 MB">
-            <ResumeFileField
-              id="resume-upload"
-              label="Choose a resume"
-              accept=".pdf,.doc,.docx"
-              onChange={pickResume}
-              help={draft ? `${draft.name} · ${fileSize(draft.size)}` : 'PDF up to 2 MB · DOC or DOCX up to 5 MB.'}
-              error={uploadError}
-            >
-              <Button type="button" variant="outline" disabled={!draft || uploading} onClick={handleResumeUpload}>
-                <UploadCloud data-icon="inline-start" />
-                {uploading ? 'Uploading…' : 'Add resume'}
-              </Button>
-            </ResumeFileField>
+                  </div>
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    <ResumeLinks resume={resume} />
+                    {!resume.is_active && (
+                      <Button type="button" variant="ghost" onClick={() => handleSetActiveResume(resume.id)}>Set active</Button>
+                    )}
+                    <Button type="button" variant="ghost" onClick={() => document.getElementById('resume-upload')?.click()}>Replace</Button>
+                    <Button type="button" variant="ghost" onClick={() => setPendingDelete(resume)}>
+                      <Trash2 data-icon="inline-start" />
+                      Delete
+                    </Button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <EmptyState title="Start with your story." description="Add a resume using the form. PDF, DOC, or DOCX up to 5 MB." />
+          )}
+          <div className="mt-5">
+            <ResumeAutofill
+              onApply={applyAutofill}
+              onFileSelected={pickResume}
+              uploadError={uploadError}
+              uploadControl={draft && (
+                <Button type="button" variant="outline" disabled={uploading} onClick={handleResumeUpload}>
+                  <UploadCloud data-icon="inline-start" />
+                  {uploading ? 'Uploading…' : 'Add resume'}
+                </Button>
+              )}
+            />
             {resumeStatus && <p role="status" className="mt-3 text-xs text-muted-foreground">{resumeStatus}</p>}
             <p className="mt-3 text-[11px] leading-6 text-muted-foreground">
               Replacing a resume does not alter an already submitted application. A newly uploaded resume becomes the active one.
             </p>
-          </Panel>
-        </div>
+          </div>
+        </Panel>
       </div>
 
       {pendingDelete && (

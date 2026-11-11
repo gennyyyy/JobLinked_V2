@@ -37,8 +37,8 @@ describe('Profile accessibility', () => {
 
     for (const name of [
       /full name/i, /contact number/i, /professional headline/i, 'Barangay',
-      /street or local address/i, 'Education or training', 'Work experience', 'Your skills',
-      'Choose a resume', 'Profile picture',
+      /street or local address/i, 'Education', 'Work experience', 'Your skills',
+      'Choose a resume to autofill', 'Profile picture',
     ]) {
       expect(screen.getByLabelText(name)).toBeInTheDocument()
     }
