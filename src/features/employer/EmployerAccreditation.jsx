@@ -30,6 +30,7 @@ function EmployerAccreditation() {
   const [accreditations, setAccreditations] = useState([]);
   const [documents, setDocuments] = useState([]);
   const [files, setFiles] = useState({});
+  const [fileErrors, setFileErrors] = useState({});
   const [uploading, setUploading] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [updating, setUpdating] = useState(false);
@@ -84,9 +85,10 @@ function EmployerAccreditation() {
     if (!file) return;
     const validationError = validateFile(file);
     if (validationError) {
-      alert(validationError);
+      setFileErrors((prev) => ({ ...prev, [docType]: validationError }));
       return;
     }
+    setFileErrors((prev) => ({ ...prev, [docType]: '' }));
     setFiles((prev) => ({ ...prev, [docType]: file }));
   }
 
@@ -117,7 +119,6 @@ function EmployerAccreditation() {
 
   const heading = (
     <PageHeading
-      eyebrow="A trusted local connection"
       title="Your accreditation journey."
       description="Review your documents, read PESO feedback, and keep your requirements up to date."
       action={latest ? <StatusBadge status={statusLabel(status)} /> : null}
@@ -185,6 +186,7 @@ function EmployerAccreditation() {
                         <p className="mt-1 max-w-[240px] truncate text-[10px] text-muted-foreground">
                           {doc ? `${doc.file_name} · ${doc.status}` : "Not uploaded"}
                         </p>
+                        {fileErrors[docType] && <p className="mt-1 text-[10px] text-destructive">{fileErrors[docType]}</p>}
                       </div>
                     </div>
                     <div className="flex shrink-0 gap-2">

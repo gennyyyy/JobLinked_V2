@@ -25,6 +25,9 @@ function AuthProvider({ children }) {
       setSessionUser(null);
       return;
     }
+    // Bail unless this load targets the currently signed-in user, so a stale
+    // session object can't overwrite a newer sign-in (Task 9).
+    if (signedInId.current && sessUser.id !== signedInId.current) return;
     const seq = ++loadSeq.current;
     try {
       const profile = await getProfile(sessUser.id);
@@ -55,14 +58,17 @@ function AuthProvider({ children }) {
         if (unchanged) return current;
         return { ...sessUser, ...profile };
       });
-    } catch {
-      // A failed refetch is not a logout — the Supabase session is still valid.
-      // Only clear when we never had a user; otherwise keep the session alive so
-      // a dropped packet after a save can't bounce the user to the login page.
+    } catch (e) {
       if (seq !== loadSeq.current) return;
-      // Let the next SIGNED_IN retry: otherwise a transient first-login failure
-      // is permanently suppressed by the signedInId guard above.
       signedInId.current = null;
+      // Clear the user on auth failures so a revoked/expired session can't
+      // linger (Task 9 / Task 42).
+      if (e?.status === 401 || e?.status === 403) {
+        setUser(null);
+        setNeedsProvisioning(false);
+        setSessionUser(null);
+        return;
+      }
       setUser((current) => (current ? current : null));
     }
   }, []);
@@ -118,6 +124,10 @@ function AuthProvider({ children }) {
     try {
       await apiSignOut();
     } finally {
+      // Supersede any in-flight profile fetch so a late response can't
+      // resurrect the signed-out user (Task 3).
+      loadSeq.current += 1;
+      signedInId.current = null;
       setUser(null);
       setNeedsProvisioning(false);
       setSessionUser(null);

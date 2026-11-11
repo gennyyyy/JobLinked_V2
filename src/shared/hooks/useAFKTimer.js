@@ -10,27 +10,23 @@ function useAFKTimer(enabled = true, onWarning) {
   const { logout, user } = useAuth();
   const timeoutRef = useRef(null);
   const warningTimeoutRef = useRef(null);
+  const onWarningRef = useRef(onWarning);
+  useEffect(() => { onWarningRef.current = onWarning; }, [onWarning]);
 
   const resetTimer = useCallback(() => {
-    // Clear existing timeouts
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
     if (warningTimeoutRef.current) clearTimeout(warningTimeoutRef.current);
 
     if (!enabled || !user) return;
 
-    // Set warning timeout at 4 minutes
     warningTimeoutRef.current = setTimeout(() => {
-      if (onWarning) {
-        onWarning();
-      }
+      if (onWarningRef.current) onWarningRef.current();
     }, WARNING_TIME);
 
-    // Set logout timeout at 5 minutes
     timeoutRef.current = setTimeout(() => {
-      logout();
-      navigate('/');
+      Promise.resolve(logout()).then(() => navigate('/'));
     }, AFK_TIMEOUT);
-  }, [enabled, user, logout, navigate, onWarning]);
+  }, [enabled, user, logout, navigate]);
 
   useEffect(() => {
     if (!enabled || !user) return;

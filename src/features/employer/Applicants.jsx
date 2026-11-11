@@ -156,10 +156,12 @@ export default function Applicants() {
 
   useEffect(() => {
     if (!user) return
+    let cancelled = false
     listByCompany(user.id)
-      .then((list) => setApplicants(list || []))
-      .catch((err) => setError(err.message || 'Failed to load applicants'))
-      .finally(() => setLoading(false))
+      .then((list) => { if (!cancelled) setApplicants(list || []) })
+      .catch((err) => { if (!cancelled) setError(err.message || 'Failed to load applicants') })
+      .finally(() => { if (!cancelled) setLoading(false) })
+    return () => { cancelled = true }
   }, [user])
 
   const jobs = useMemo(() => {
@@ -207,7 +209,6 @@ export default function Applicants() {
   return (
     <>
       <PageHeading
-        eyebrow="Meet your next teammate"
         title="People with potential, close to home."
         description="Review candidates who applied to your company’s vacancies. Private profiles from unrelated employers are not shown."
       />

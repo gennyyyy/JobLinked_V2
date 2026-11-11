@@ -7,12 +7,15 @@ function ProtectedRoute({ role, children }) {
   const { user, role: currentRole, loading, logout, needsProvisioning } = useAuth();
   const [resetDone, setResetDone] = useState(false);
 
-  // Wrong role — destroy the foreign session, then send the visitor to the one
-  // shared sign-in page (there are no per-portal login routes any more).
   useEffect(() => {
+    let active = true
     if (!loading && user && currentRole !== role && !resetDone) {
-      Promise.resolve(typeof logout === 'function' ? logout() : null).then(() => setResetDone(true), () => setResetDone(true));
+      Promise.resolve(typeof logout === 'function' ? logout() : null).then(
+        () => { if (active) setResetDone(true) },
+        () => { if (active) setResetDone(true) }
+      )
     }
+    return () => { active = false }
   }, [loading, user, currentRole, role, resetDone, logout]);
 
   // Unprovisioned: a session exists but no local profile row yet. Route to the

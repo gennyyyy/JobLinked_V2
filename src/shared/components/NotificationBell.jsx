@@ -61,6 +61,12 @@ function NotificationBell({ dark = false, align = "right", rows: controlledRows 
     return () => window.removeEventListener(NOTIFICATIONS_CHANGED, onChange);
   }, [user, refresh, controlled]);
 
+  // Clear the shared cache whenever the signed-in user changes (Task 6/26).
+  useEffect(() => {
+    cache = { userId: null, rows: [], promise: null };
+    Promise.resolve().then(() => setOwnRows([]));
+  }, [user?.id]);
+
   useEffect(() => {
     if (!open) return;
     function onPointerDown(e) {

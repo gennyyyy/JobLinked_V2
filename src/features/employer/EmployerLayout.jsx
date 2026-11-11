@@ -31,7 +31,8 @@ const ACCREDITATION_NOTICE = {
 
 export default function EmployerLayout() {
   const { user } = useAuth()
-  const [dismissed, setDismissed] = useState(false)
+  const [dismissedFor, setDismissedFor] = useState(null)
+  const dismissed = dismissedFor === user?.id
   const notice = user?.role === 'employer' ? ACCREDITATION_NOTICE[user?.accreditation_status] : undefined
 
   return (
@@ -55,7 +56,7 @@ export default function EmployerLayout() {
           </p>
           <Button
             type="button"
-            onClick={() => setDismissed(true)}
+            onClick={() => setDismissedFor(user?.id)}
             aria-label="Dismiss accreditation notice"
             className={`p-1 cursor-pointer shrink-0 ${notice.rejected ? 'text-danger hover:opacity-80' : 'text-warning hover:opacity-80'}`}
           >

@@ -54,9 +54,11 @@ function CompanyProfile() {
 
   useEffect(() => {
     if (!user) return;
-    // user.id IS the employers row id — no separate lookup needed
+    let live = true;
+    Promise.resolve().then(() => { if (live) setLoading(true) });
     getEmployer()
       .then((data) => {
+        if (!live) return;
         setCompany(data);
         if (data) {
           setForm({
@@ -83,9 +85,10 @@ function CompanyProfile() {
           });
         }
       })
-      .catch((err) => setError(err.message || "Failed to load profile"))
-      .finally(() => setLoading(false));
-  }, [user]);
+      .catch((err) => { if (live) setError(err.message || "Failed to load profile") })
+      .finally(() => { if (live) setLoading(false) });
+    return () => { live = false };
+  }, [user?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (loading) return <PageSkeleton stats={0} panels={2} />;
   if (error && !company) return <p role="alert" className="py-8 text-center text-sm text-destructive">{error}</p>;
@@ -194,7 +197,6 @@ function CompanyProfile() {
   return (
     <>
       <PageHeading
-        eyebrow="Let your company shine"
         title="A good team starts with your story."
         description="Help candidates understand who you are, what you do, and where they can find you."
       />

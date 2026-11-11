@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent, waitFor, within, act } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
-import OpportunityList from '../OpportunityList'
+import JobsBrowser from '@/shared/components/JobsBrowser'
 import { listJobs } from '@/shared/services/jobs'
 import { matchJobs } from '@/shared/services/ai'
 
@@ -50,7 +50,7 @@ function cardFor(title) {
 }
 
 function renderList() {
-  return render(<MemoryRouter><OpportunityList /></MemoryRouter>)
+  return render(<MemoryRouter><JobsBrowser jobHref={(id) => `/job-seeker/jobs/${id}`} /></MemoryRouter>)
 }
 
 async function submitPrompt(text) {
@@ -165,9 +165,8 @@ describe('OpportunityList AI matching', () => {
     await screen.findByText('Administrative Assistant')
 
     await submitPrompt('night shift')
-    fireEvent.click(screen.getByRole('button', { name: /view matching jobs/i }))
-    // Re-querying the list (filter change) starts a second request mid-flight.
-    fireEvent.change(screen.getByLabelText('Job category'), { target: { value: 'Full-time' } })
+    // Re-submitting the same prompt bumps the nonce and starts a second request mid-flight.
+    await submitPrompt('night shift')
     await waitFor(() => expect(matchJobs).toHaveBeenCalledTimes(2))
 
     await act(async () => {

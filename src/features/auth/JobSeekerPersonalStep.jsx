@@ -19,7 +19,7 @@ function JobSeekerPersonalStep({ form, errors, set, autofillStatus, autofillTouc
               />
               <p className="mt-2 text-xs text-muted-foreground">PDF up to 2 MB or DOCX up to 5 MB. We'll fill in details below; review and edit them before continuing.</p>
               <label className="mt-2 flex items-start gap-2 text-xs text-muted-foreground">
-                <input type="checkbox" checked={consent} onChange={(e) => onConsentChange?.(e.target.checked)} className="mt-0.5" />
+                <input type="checkbox" checked={consent} onChange={(e) => onConsentChange?.(e.target.checked)} aria-invalid={errors?.consent ? 'true' : undefined} data-invalid={!!errors?.consent} className="mt-0.5" />
                 <span>Use AI to read my resume — sends the file's text to an AI service.</span>
               </label>
               {autofillStatus && (
@@ -28,7 +28,7 @@ function JobSeekerPersonalStep({ form, errors, set, autofillStatus, autofillTouc
             </section>
 
             <div className="grid grid-cols-1 gap-3">
-              <div>
+              <div data-invalid={!!errors.firstName}>
                 <Label htmlFor="firstName" className={labelClass}>First Name{reqMark}</Label>
                 <Input id="firstName" name="firstName" type="text" placeholder="Juan" value={form.firstName} onChange={(e) => set("firstName", e.target.value)} className={inputClass} />
                 {errors.firstName && <p className="text-danger text-xs mt-1">{errors.firstName}</p>}
@@ -37,7 +37,7 @@ function JobSeekerPersonalStep({ form, errors, set, autofillStatus, autofillTouc
                 <Label htmlFor="middleName" className={labelClass}>Middle Name <span className="text-muted-foreground font-normal">(optional)</span></Label>
                 <Input id="middleName" name="middleName" type="text" placeholder="Santos" value={form.middleName} onChange={(e) => set("middleName", e.target.value)} className={inputClass} />
               </div>
-              <div>
+              <div data-invalid={!!errors.lastName}>
                 <Label htmlFor="lastName" className={labelClass}>Last Name{reqMark}</Label>
                 <Input id="lastName" name="lastName" type="text" placeholder="Dela Cruz" value={form.lastName} onChange={(e) => set("lastName", e.target.value)} className={inputClass} />
                 {errors.lastName && <p className="text-danger text-xs mt-1">{errors.lastName}</p>}
@@ -48,7 +48,7 @@ function JobSeekerPersonalStep({ form, errors, set, autofillStatus, autofillTouc
                 <Label htmlFor="suffix" className={labelClass}>Suffix <span className="text-muted-foreground font-normal">(optional)</span></Label>
                 <Input id="suffix" name="suffix" type="text" placeholder="Jr., Sr., III" value={form.suffix} onChange={(e) => set("suffix", e.target.value)} className={inputClass} />
               </div>
-              <div>
+              <div data-invalid={!!errors.birthdate}>
                 <Label htmlFor="birthdate" className={labelClass}>Birthday{reqMark}</Label>
                 <Input id="birthdate" name="birthdate" type="date" max={new Date().toISOString().slice(0, 10)} value={form.birthdate} onChange={(e) => set("birthdate", e.target.value)} className={inputClass} />
                 {errors.birthdate && <p className="text-danger text-xs mt-1">{errors.birthdate}</p>}
@@ -56,7 +56,7 @@ function JobSeekerPersonalStep({ form, errors, set, autofillStatus, autofillTouc
             </div>
 
             <div className="grid grid-cols-1 gap-3">
-              <div>
+              <div data-invalid={!!errors.mobileNumber}>
                 <Label htmlFor="mobileNumber" className={labelClass}>Mobile Number{reqMark}</Label>
                 <div className="relative">
                   <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm text-muted-foreground select-none">+63</span>
@@ -66,26 +66,26 @@ function JobSeekerPersonalStep({ form, errors, set, autofillStatus, autofillTouc
               </div>
             </div>
 
-            <div>
+            <div data-invalid={!!errors.email}>
               <Label htmlFor="email" className={labelClass}>Email Address{reqMark}</Label>
               <Input id="email" name="email" type="email" placeholder="juan.delacruz@example.com" value={form.email} onChange={(e) => set("email", e.target.value)} className={inputClass} />
               {errors.email && <p className="text-danger text-xs mt-1">{errors.email}</p>}
             </div>
 
             <div className="grid grid-cols-1 gap-3">
-              <div>
+              <div data-invalid={!!errors.password}>
                 <Label htmlFor="password" className={labelClass}>Password{reqMark}</Label>
                 <Input id="password" name="password" type="password" placeholder="Min. 8 characters" value={form.password} onChange={(e) => set("password", e.target.value)} className={inputClass} />
                 {errors.password && <p className="text-danger text-xs mt-1">{errors.password}</p>}
               </div>
-              <div>
+              <div data-invalid={!!errors.confirmPassword}>
                 <Label htmlFor="confirmPassword" className={labelClass}>Confirm Password{reqMark}</Label>
                 <Input id="confirmPassword" name="confirmPassword" type="password" placeholder="Re-enter password" value={form.confirmPassword} onChange={(e) => set("confirmPassword", e.target.value)} className={inputClass} />
                 {errors.confirmPassword && <p className="text-danger text-xs mt-1">{errors.confirmPassword}</p>}
               </div>
             </div>
 
-            <div>
+            <div data-invalid={!!errors.employmentStatus}>
               <Label htmlFor="employmentStatus" className={labelClass}>Employment Status{reqMark}</Label>
               <select id="employmentStatus" name="employmentStatus" value={form.employmentStatus} onChange={(e) => set("employmentStatus", e.target.value)} className={inputClass}>
                 <option value="">Select status</option>

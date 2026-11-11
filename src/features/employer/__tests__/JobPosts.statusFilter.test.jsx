@@ -41,12 +41,12 @@ describe('JobPosts status filter', () => {
     )
 
     await screen.findByRole('button', { name: 'Welder' })
-    expect(listEmployerJobs).toHaveBeenLastCalledWith('emp-1', { page: 1, status: null })
+    expect(listEmployerJobs).toHaveBeenLastCalledWith('emp-1', { page: 1, pageSize: 500, status: null })
 
     fireEvent.change(screen.getByLabelText(/posting status/i), { target: { value: 'draft' } })
 
     await waitFor(() =>
-      expect(listEmployerJobs).toHaveBeenLastCalledWith('emp-1', { page: 1, status: 'draft' }),
+      expect(listEmployerJobs).toHaveBeenLastCalledWith('emp-1', { page: 1, pageSize: 500, status: 'draft' }),
     )
   })
 })

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import {
   ArrowUpRight,
@@ -6,7 +6,6 @@ import {
   ChevronRight,
   ChevronsLeft,
   ChevronsRight,
-  HelpCircle,
   LogOut,
   Menu,
   Search,
@@ -49,10 +48,14 @@ export default function TopNavLayout({ role, navItems, profileTo, roleLabel, hom
   const [searchOpen, setSearchOpen] = useState(false)
   const [query, setQuery] = useState('')
   const [showWarning, setShowWarning] = useState(false)
+  const staySignedInRef = useRef(null)
   const [notificationRows, setNotificationRows] = useState([])
   const [pendingAccreditations, setPendingAccreditations] = useState(0)
   const [unprovisioned, setUnprovisioned] = useState(false)
   const handleWarning = useCallback(() => setShowWarning(true), [setShowWarning])
+  useEffect(() => {
+    if (showWarning) staySignedInRef.current?.focus()
+  }, [showWarning])
   const afkRef = useDialog(() => setShowWarning(false), showWarning)
   useAFKTimer(true, handleWarning)
 
@@ -119,8 +122,8 @@ export default function TopNavLayout({ role, navItems, profileTo, roleLabel, hom
     return () => window.clearTimeout(timer)
   }, [pathname, hash])
 
-  function handleLogout() {
-    logout()
+  async function handleLogout() {
+    await logout()
     navigate('/')
   }
 
@@ -175,22 +178,6 @@ export default function TopNavLayout({ role, navItems, profileTo, roleLabel, hom
           )
         })}
       </nav>
-      {(!collapsed || small) && (
-        <div className="m-4 rounded-xl border border-primary/10 bg-blue-soft/60 p-4">
-          <p className="text-xs font-semibold text-navy">Made for our community.</p>
-          <p className="mt-2 text-[10px] leading-5 text-muted-foreground">One local connection can open a new chapter.</p>
-          <Link to="/jobs" className="text-link mt-1 text-[10px]">
-            Explore opportunities
-            <ArrowUpRight className="size-3" />
-          </Link>
-        </div>
-      )}
-      <div className="flex flex-col gap-2 border-t p-4">
-        <Link className="flex min-h-10 items-center gap-3 px-2 text-[11px] text-muted-foreground" to="/#faq">
-          <HelpCircle className="size-4" />
-          {(!collapsed || small) && 'Help & resources'}
-        </Link>
-      </div>
     </div>
   )
 
@@ -334,7 +321,7 @@ export default function TopNavLayout({ role, navItems, profileTo, roleLabel, hom
             <p className="mb-6 text-sm text-muted-foreground">You will be logged out in 1 minute due to inactivity. Move your mouse or press a key to stay signed in.</p>
             <div className="flex gap-2">
               <Button onClick={handleLogout} className="flex-1 border border-border bg-muted px-4 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">Sign Out</Button>
-              <Button onClick={() => setShowWarning(false)} className="flex-1 bg-primary px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-primary/90">Stay Signed In</Button>
+              <Button ref={staySignedInRef} onClick={() => setShowWarning(false)} className="flex-1 bg-primary px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-primary/90">Stay Signed In</Button>
             </div>
           </div>
         </div>

@@ -1,9 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { CheckCircle2, Eye, FileText, Save, Trash2, UploadCloud, UserRound } from 'lucide-react'
+import { Eye, FileText, Save, Trash2, UploadCloud, UserRound } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Input } from '@/components/ui/input'
-import { Field, FieldError, FieldLabel } from '@/components/ui/field'
 import useAuth from '@/shared/hooks/useAuth'
 import { updateProfile } from '@/shared/services/auth'
 import { listResumes, uploadResume, setActiveResume, deleteResume, validateFile, signedUrl } from '@/shared/services/documents'
@@ -12,6 +10,7 @@ import { buildFullName } from '@/shared/utils/names'
 import { PageSkeleton } from '@/shared/components/Skeletons'
 import { InlineError } from '@/shared/components/dashboard'
 import ConfirmationModal from '@/shared/components/ConfirmationModal'
+import ResumeFileField from '@/shared/components/ResumeFileField'
 import { PageHeading, Panel, TextField, SelectField, Notice, EmptyState } from '@/shared/components/design'
 import { SANTA_MARIA_BARANGAYS } from '@/shared/constants'
 import TagField from './TagField'
@@ -58,7 +57,8 @@ function ResumeLinks({ resume }) {
         a.click()
         a.remove()
       }
-      setTimeout(() => URL.revokeObjectURL(url), 60_000)
+      // Do not revoke: the URL may be handed to a new tab that outlives this
+      // component (Task 12). The browser cleans up on navigation.
     } catch {
       tab?.close()
     } finally {
@@ -101,10 +101,12 @@ function Profile() {
 
   useEffect(() => {
     if (!userId) return
+    let live = true
     listResumes(userId)
-      .then((rows) => setResumes(rows || []))
-      .catch((err) => setError(err.message || 'Failed to load profile'))
-      .finally(() => setLoading(false))
+      .then((rows) => { if (live) setResumes(rows || []) })
+      .catch((err) => { if (live) setError(err.message || 'Failed to load profile') })
+      .finally(() => { if (live) setLoading(false) })
+    return () => { live = false }
   }, [userId])
 
   // One object URL at a time: whichever path loads a photo (page load, upload,
@@ -203,7 +205,8 @@ function Profile() {
   }
 
   function pickResume(event) {
-    const file = event.target.files?.[0] ?? event.dataTransfer?.files?.[0]
+    const file = event.target.files?.[0]
+    event.target.value = ''
     if (!file) return
     const validationError = validateFile(file)
     if (validationError) { setUploadError(validationError); setDraft(null); return }
@@ -230,14 +233,22 @@ function Profile() {
   }
 
   async function handleSetActiveResume(resumeId) {
-    await setActiveResume(userId, resumeId)
-    setResumes((previous) => previous.map((resume) => ({ ...resume, is_active: resume.id === resumeId })))
+    try {
+      await setActiveResume(userId, resumeId)
+      setResumes((previous) => previous.map((resume) => ({ ...resume, is_active: resume.id === resumeId })))
+    } catch (err) {
+      setError(err.message || 'Failed to set active resume')
+    }
   }
 
   async function handleDeleteResume(resume) {
-    await deleteResume(resume.id, resume.file_path)
-    setResumes((previous) => previous.filter((row) => row.id !== resume.id))
-    setPendingDelete(null)
+    try {
+      await deleteResume(resume.id, resume.file_path)
+      setResumes((previous) => previous.filter((row) => row.id !== resume.id))
+      setPendingDelete(null)
+    } catch (err) {
+      setError(err.message || 'Failed to delete resume')
+    }
   }
 
   async function handlePicture(event) {
@@ -278,7 +289,6 @@ function Profile() {
   return (
     <>
       <PageHeading
-        eyebrow="Introduce yourself"
         title="Your story, your next step."
         description="Give local employers a clear picture of your experience and the skills you bring."
       />
@@ -390,30 +400,20 @@ function Profile() {
               <EmptyState title="Start with your story." description="Add a resume using the form. PDF, DOC, or DOCX up to 5 MB." />
             )}
           </Panel>
-          <Panel title="Add a resume" description="PDF, DOC, or DOCX · Up to 5 MB">
-            <Field data-invalid={!!uploadError}>
-              <FieldLabel htmlFor="resume-upload">Choose a resume</FieldLabel>
-              <div
-                className="rounded-xl border border-dashed bg-muted/70 p-5"
-                onDragOver={(event) => event.preventDefault()}
-                onDrop={(event) => { event.preventDefault(); pickResume(event) }}
-              >
-                <div className="mb-4 flex items-center gap-3">
-                  <span className="soft-icon">{draft ? <FileText className="size-5" /> : <UploadCloud className="size-5" />}</span>
-                  <div className="min-w-0">
-                    <p className="truncate text-xs font-medium text-navy">{draft?.name ?? 'Choose a resume or drop it here'}</p>
-                    <p className="mt-1 text-[10px] text-muted-foreground">{draft ? fileSize(draft.size) : 'PDF, DOC, DOCX · Up to 5 MB'}</p>
-                  </div>
-                  {draft && <CheckCircle2 className="ml-auto size-4 shrink-0 text-teal" />}
-                </div>
-                <Input id="resume-upload" type="file" accept=".pdf,.doc,.docx" onChange={pickResume} aria-invalid={!!uploadError} />
-                <Button type="button" variant="outline" className="mt-3" disabled={!draft || uploading} onClick={handleResumeUpload}>
-                  <UploadCloud data-icon="inline-start" />
-                  {uploading ? 'Uploading…' : 'Add resume'}
-                </Button>
-              </div>
-              {uploadError && <FieldError>{uploadError}</FieldError>}
-            </Field>
+          <Panel title="Add a resume" description="PDF up to 2 MB · DOC or DOCX up to 5 MB">
+            <ResumeFileField
+              id="resume-upload"
+              label="Choose a resume"
+              accept=".pdf,.doc,.docx"
+              onChange={pickResume}
+              help={draft ? `${draft.name} · ${fileSize(draft.size)}` : 'PDF up to 2 MB · DOC or DOCX up to 5 MB.'}
+              error={uploadError}
+            >
+              <Button type="button" variant="outline" disabled={!draft || uploading} onClick={handleResumeUpload}>
+                <UploadCloud data-icon="inline-start" />
+                {uploading ? 'Uploading…' : 'Add resume'}
+              </Button>
+            </ResumeFileField>
             {resumeStatus && <p role="status" className="mt-3 text-xs text-muted-foreground">{resumeStatus}</p>}
             <p className="mt-3 text-[11px] leading-6 text-muted-foreground">
               Replacing a resume does not alter an already submitted application. A newly uploaded resume becomes the active one.

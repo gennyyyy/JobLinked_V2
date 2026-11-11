@@ -77,6 +77,7 @@ function JobDetail() {
   }
 
   async function handleApply() {
+    if (applying) return;
     setApplying(true);
     setApplyError("");
     try {

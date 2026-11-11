@@ -2,7 +2,7 @@ import { Button } from "../../components/ui/button";
 import { createPortal } from "react-dom";
 import useDialog from "../hooks/useDialog";
 
-function ConfirmationModal({ message, onConfirm, onCancel, confirmLabel = "Confirm", cancelLabel = "Cancel", danger = false, children }) {
+function ConfirmationModal({ title = "Confirmation", message, onConfirm, onCancel, confirmLabel = "Confirm", cancelLabel = "Cancel", danger = false, children }) {
   const panelRef = useDialog(onCancel);
   if (typeof document === "undefined") return null;
   return createPortal(
@@ -11,9 +11,11 @@ function ConfirmationModal({ message, onConfirm, onCancel, confirmLabel = "Confi
         ref={panelRef}
         role="dialog"
         aria-modal="true"
+        aria-labelledby="confirmation-title"
         aria-describedby="confirmation-message"
         className="bg-card border border-primary rounded-lg p-5 w-full max-w-md shadow-2xl"
       >
+        <h2 id="confirmation-title" className="sr-only">{title}</h2>
         <p id="confirmation-message" className="text-sm text-muted-foreground mb-6">{message}</p>
         {children}
         <div className="flex gap-3 justify-end">

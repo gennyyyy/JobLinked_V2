@@ -88,7 +88,7 @@ export default function JobPosts() {
         }
         // The { data, total, page, pageSize } envelope (M1) — one screen at a
         // time, paged with the footer below.
-        const res = await listEmployerJobs(companyData.id, { page, status: statusFilter });
+        const res = await listEmployerJobs(companyData.id, { page: 1, pageSize: 500, status: statusFilter });
         setJobs(res.data);
         setTotal(res.total);
         setPageSize(res.pageSize);
@@ -102,7 +102,7 @@ export default function JobPosts() {
     } finally {
       setLoading(false);
     }
-  }, [page, statusFilter]);
+  }, [statusFilter]);
 
   useEffect(() => {
     if (!user) return;
@@ -120,7 +120,7 @@ export default function JobPosts() {
   async function refreshJobs() {
     if (!company) return;
     try {
-      const res = await listEmployerJobs(company.id, { page, status: statusFilter });
+      const res = await listEmployerJobs(company.id, { page: 1, pageSize: 500, status: statusFilter });
       setJobs(res.data);
       setTotal(res.total);
       setPageSize(res.pageSize);
@@ -234,23 +234,32 @@ export default function JobPosts() {
         payload.remarks = null;
       }
 
+      let savedJob = null;
       if (editingId) {
-        await updateJob(editingId, payload);
-        setActionSuccess(
-          targetStatus === "published"
-            ? "Job is now live on the job board."
-            : "Job post updated successfully."
-        );
+        savedJob = await updateJob(editingId, payload);
+        if (targetStatus === "published" && savedJob?.status === "pending") {
+          setActionSuccess("Submitted for PESO review — mentions of fees/payments need PESO clearance before the post goes live.");
+        } else {
+          setActionSuccess(
+            targetStatus === "published"
+              ? "Job is now live on the job board."
+              : "Job post updated successfully."
+          );
+        }
       } else {
-        await createJob(company.id, {
+        savedJob = await createJob(company.id, {
           ...payload,
           status: targetStatus,
         });
-        setActionSuccess(
-          targetStatus === "published"
-            ? "Job is now live on the job board."
-            : "Job vacancy saved as draft."
-        );
+        if (targetStatus === "published" && savedJob?.status === "pending") {
+          setActionSuccess("Submitted for PESO review — mentions of fees/payments need PESO clearance before the post goes live.");
+        } else {
+          setActionSuccess(
+            targetStatus === "published"
+              ? "Job is now live on the job board."
+              : "Job vacancy saved as draft."
+          );
+        }
       }
 
       setShowForm(false);
@@ -258,7 +267,11 @@ export default function JobPosts() {
       setFormSnapshot(null);
       await refreshJobs();
     } catch (err) {
-      setActionError(err.message || "Failed to save job post");
+      if (err?.error?.code === 'FEE_POLICY_BLOCKED') {
+        setActionError(err.error.message);
+      } else {
+        setActionError(err.message || "Failed to save job post");
+      }
     } finally {
       setSaving(false);
     }
@@ -402,13 +415,12 @@ export default function JobPosts() {
       )}
 
       <PageHeading
-        eyebrow="Create local opportunities"
         title="Good work starts with a great team."
         description="Manage your vacancies, prepare drafts, and keep your recruitment up to date."
         action={(
           <Button type="button" onClick={handleOpenCreate} disabled={!company}>
             <Plus data-icon="inline-start" />
-            Create a vacancy
+            Post a Job
           </Button>
         )}
       />

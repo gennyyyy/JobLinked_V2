@@ -17,6 +17,7 @@ const route = (path) => lazyRoute(routeLoaders[path])
 const Landing = route('/')
 const PublicJobs = route('/jobs')
 const PublicJobDetail = route('/jobs/:id')
+const Faq = route('/faq')
 const Legal = route('/privacy')
 const ForgotPassword = route('/forgot-password')
 const ResetPassword = route('/reset-password')
@@ -82,6 +83,7 @@ function App() {
             <Route path="/" element={<PublicRoute><Landing /></PublicRoute>} />
             <Route path="/jobs" element={<PublicRoute><PublicJobs /></PublicRoute>} />
             <Route path="/jobs/:jobId" element={<PublicRoute><PublicJobDetail /></PublicRoute>} />
+            <Route path="/faq" element={<Faq />} />
             {/* New-design flow aliases for the portal roots. */}
             {/* New-design job-seeker flow: /jobseeker/<reference-section>. */}
             <Route path="/jobseeker" element={<Navigate to="/job-seeker" replace />} />
@@ -219,12 +221,18 @@ function PageTitle() {
 // on arrival at a public route, then render the page as guest.
 function PublicRoute({ children }) {
   const { user, loading, logout } = useAuth()
-  const [done, setDone] = useState(false)
+  const [loggedOutFor, setLoggedOutFor] = useState(null)
+  const done = loggedOutFor === user?.id
 
   useEffect(() => {
+    let active = true
     if (!loading && user && !done) {
-      logout().then(() => setDone(true), () => setDone(true))
+      Promise.resolve(logout()).then(
+        () => { if (active) setLoggedOutFor(user?.id) },
+        () => { if (active) setLoggedOutFor(user?.id) }
+      )
     }
+    return () => { active = false }
   }, [loading, user, done, logout])
 
   if (loading) return <LoadingScreen />

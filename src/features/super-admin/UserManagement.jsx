@@ -16,7 +16,7 @@ import { PageSkeleton } from '@/shared/components/Skeletons'
 import { InlineError, Pager } from '@/shared/components/dashboard'
 import useDialog from '@/shared/hooks/useDialog'
 import { titleCase } from '@/shared/utils/titleCase'
-import { EmptyState, Notice, PageHeading, Panel, SearchInput, SelectField, StatusBadge, TextField } from '@/shared/components/design'
+import { EmptyState, PageHeading, Panel, SearchInput, SelectField, StatusBadge, TextField } from '@/shared/components/design'
 
 const SYSTEM_ROLE_LABELS = { 'super-admin': 'Super Admin', employer: 'Employer', 'job-seeker': 'Job Seeker' }
 
@@ -109,16 +109,27 @@ function UserManagement() {
   }, [searchTerm])
 
   useEffect(() => {
+    const loadAll = async () => {
+      const first = await listUsers({ pageSize: 500, page: 1 })
+      const all = [...(first?.data || [])]
+      const total = first?.total || all.length
+      const size = first?.pageSize || 500
+      const pages = Math.ceil(total / size)
+      for (let p = 2; p <= pages; p += 1) {
+        const res = await listUsers({ pageSize: size, page: p })
+        all.push(...(res?.data || []))
+      }
+      return all
+    }
     Promise.all([
       listRoles().catch(() => []),
       listAuditLogs({ action: 'user.role.change', limit: 50 }).catch(() => []),
-      // Stat cards count every account, not just the current 25-row page.
-      listUsers({ pageSize: 500 }).catch(() => null),
+      loadAll().catch(() => []),
     ])
       .then(([roles, logs, everyone]) => {
         setCustomRoles(roles || [])
         setHistory(Array.isArray(logs) ? logs : [])
-        setAllUsers(everyone?.data || [])
+        setAllUsers(Array.isArray(everyone) ? everyone : (everyone?.data || []))
       })
       .finally(() => setLoading(false))
   }, [])
@@ -198,7 +209,7 @@ function UserManagement() {
     try {
       const url = await signedUrl('resumes', resume.file_path)
       if (tab) tab.location.href = url
-      setTimeout(() => URL.revokeObjectURL(url), 60_000)
+      // Do not revoke: tab may still be open (Task 12).
     } catch (err) {
       tab?.close()
       setDetailError(err.message || 'Could not open the resume')
@@ -275,7 +286,6 @@ function UserManagement() {
     <div className="space-y-6 pb-12">
       <div>
         <PageHeading
-          eyebrow="Accountable access. Clear responsibilities."
           title="User Management"
           description="Find registered users, assign their system roles, and manage account access."
           action={(
@@ -284,12 +294,6 @@ function UserManagement() {
             </Button>
           )}
         />
-      </div>
-
-      <div>
-        <Notice title="Frontend authorization preview">
-          Role checks are enforced by the shared API for this session, not by the browser. Production must validate JWT sessions, permissions, tenant scope, and audit writes server-side.
-        </Notice>
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
@@ -444,7 +448,7 @@ function UserManagement() {
       </Panel>
 
       {showInvite && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/60 p-4" onClick={() => setShowInvite(false)}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/60 p-4">
           <form
             ref={inviteRef}
             onSubmit={handleInvite}
