@@ -7,6 +7,10 @@ vi.mock('../../../shared/hooks/useAuth', () => ({
   default: () => ({ user: null, loading: false }),
 }))
 
+vi.mock('../../../shared/services/jobs', () => ({
+  getPublicStats: vi.fn().mockResolvedValue({ openJobs: 12, employers: 6, barangaysCovered: 4 }),
+}))
+
 // Every landing-page CTA must point at a route that exists in App.jsx.
 // /signup*, /login, /about, /faq, /peso-services, /jobs/job-1 were all dead
 // (the catch-all sent them back to "/").
@@ -14,7 +18,6 @@ const expected = [
   ['Find your next job', '/jobs'],
   ['Post a job', '/register/employer'],
   ["Let's get started", '/signup'],
-  ['Create your profile', '/signup'],
   ['Sign up', '/signup'],
   ['Log in', '/login'],
 ]
@@ -46,5 +49,32 @@ describe('Landing page routing', () => {
     expect(document.getElementById('peso-services')).toBeInTheDocument()
     expect(document.getElementById('faq')).toBeInTheDocument()
     expect(screen.getAllByRole('link', { name: /peso services/i })[0]).toHaveAttribute('href', '/#peso-services')
+  })
+
+  it('gives every landing link a real destination', () => {
+    render(
+      <MemoryRouter>
+        <Landing />
+      </MemoryRouter>
+    )
+
+    screen.getAllByRole('link').forEach((link) => {
+      expect(link.getAttribute('href'), link.textContent).toBeTruthy()
+    })
+  })
+
+  it('points the fixed links at their destinations', () => {
+    render(
+      <MemoryRouter>
+        <Landing />
+      </MemoryRouter>
+    )
+
+    expect(screen.getByRole('link', { name: 'Administrative' })).toHaveAttribute('href', '/jobs?keyword=Administrative')
+    expect(screen.getByRole('link', { name: 'Find your opportunity' })).toHaveAttribute('href', '/signup/jobseeker')
+    expect(screen.getByRole('link', { name: 'Build your team' })).toHaveAttribute('href', '/signup/employer')
+    expect(screen.getByRole('link', { name: 'Explore the PESO portal' })).toHaveAttribute('href', '/super-admin')
+    expect(screen.getByRole('link', { name: 'Explore PESO services' })).toHaveAttribute('href', '/#peso-services')
+    expect(screen.getByRole('link', { name: 'Explore all FAQs' })).toHaveAttribute('href', '/faq')
   })
 })

@@ -1,5 +1,9 @@
 import { api } from '../lib/api';
 
+export async function getPublicStats() {
+  return api.get('public/stats');
+}
+
 export async function listJobs({ search = '', location = '', employmentType = '', workArrangement = '', employer = '', salaryMin = null, skills = '', status = null, page = 1, pageSize = 10, order = 'created_at.desc' } = {}) {
   return api.get('jobs', { search, location, employmentType, workArrangement, employer, salaryMin, skills, status, page, pageSize, order });
 }

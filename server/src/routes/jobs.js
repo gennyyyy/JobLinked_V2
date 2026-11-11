@@ -44,6 +44,26 @@ export function listStatusFor(requestedStatus, user) {
   return user?.role === 'super-admin' ? (requestedStatus || 'published') : 'published';
 }
 
+router.get('/public/stats', ah(async (_req, res) => {
+  const { rows: [stats] } = await pool.query(
+    `select
+       (select count(*)::int from job_vacancies
+        where status = 'published' and (deadline is null or deadline >= current_date)) as open_jobs,
+       (select count(*)::int from employers where status = 'active') as employers,
+       (select count(*)::int from job_seekers) as job_seekers,
+       (select count(distinct lower(btrim(location)))::int from job_vacancies
+        where status = 'published' and (deadline is null or deadline >= current_date)
+          and nullif(btrim(location), '') is not null) as barangays_covered`
+  );
+  res.set('Cache-Control', 'no-store');
+  res.json({
+    openJobs: stats.open_jobs,
+    employers: stats.employers,
+    jobSeekers: stats.job_seekers,
+    barangaysCovered: stats.barangays_covered,
+  });
+}));
+
 const ownOrAdmin = async (req, res, job) => {
   if (!job) { err(res, 404, 'NOT_FOUND', 'Job not found'); return null; }
   if (req.user.role !== 'super-admin' && job.company_id !== req.user.id) {
