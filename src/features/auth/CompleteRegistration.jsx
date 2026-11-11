@@ -10,6 +10,7 @@ import { PORTALS } from '@/shared/constants';
 import LoadingScreen from '@/shared/components/LoadingScreen';
 import PublicShell from '@/shared/components/PublicShell';
 import AuthFrame from './AuthFrame';
+import FormSelect from '@/shared/components/FormSelect';
 
 // Cold-recovery page for unprovisioned accounts: a valid Supabase session
 // exists but no local profile row has been created yet. The visitor picks a
@@ -77,7 +78,7 @@ export default function CompleteRegistration() {
           <FieldGroup>
             <Field>
               <FieldLabel htmlFor="role">Registration path</FieldLabel>
-              <select
+              <FormSelect
                 id="role"
                 value={role}
                 onChange={(e) => setRole(e.target.value)}
@@ -85,7 +86,7 @@ export default function CompleteRegistration() {
               >
                 <option value="job-seeker">Job seeker</option>
                 <option value="employer">Employer</option>
-              </select>
+              </FormSelect>
             </Field>
           </FieldGroup>
 

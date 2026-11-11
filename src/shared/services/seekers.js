@@ -10,6 +10,10 @@ export async function addEducation(entry) {
   return api.post('seekers/me/education', entry);
 }
 
+export async function updateEducation(id, entry) {
+  return api.patch(`seekers/me/education/${id}`, entry);
+}
+
 export async function removeEducation(id) {
   return api.del(`seekers/me/education/${id}`);
 }

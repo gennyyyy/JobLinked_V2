@@ -31,6 +31,8 @@ describe('Profile resume upload', () => {
     extractResumeText.mockResolvedValue('')
 
     render(<Profile />)
+    await screen.findByRole('button', { name: /save my profile/i })
+    await user.click(screen.getByRole('tab', { name: /my resumes/i }))
     await screen.findByText(/start with your story/i)
 
     fireEvent.change(screen.getByLabelText('Choose a resume to autofill'), {

@@ -2,6 +2,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { TagInput } from "@/shared/components/TagInput";
 import { EDUCATION_LEVELS } from "./jobSeekerRegistration";
+import FormSelect from "@/shared/components/FormSelect";
 
 function JobSeekerBackgroundStep({ form, errors, set, education, setEducation, eduError, setTermsOpen, termsRead, labelClass, reqMark }) {
   return (
@@ -11,10 +12,10 @@ function JobSeekerBackgroundStep({ form, errors, set, education, setEducation, e
               <div>
               <p className="font-mono text-[11px] tracking-[0.2em] text-primary uppercase mb-4 font-semibold">Education History</p>
               <div className="grid gap-3 sm:grid-cols-2">
-                <select aria-label="Education level" id="educationLevel" value={education.level} onChange={(e) => setEducation({ ...education, level: e.target.value })} className="px-4 py-2.5 rounded-xl text-sm bg-muted border border-border text-foreground focus:outline-none focus:border-primary/60 transition-all">
+                <FormSelect aria-label="Education level" id="educationLevel" value={education.level} onChange={(e) => setEducation({ ...education, level: e.target.value })} className="px-4 py-2.5 rounded-xl text-sm bg-muted border border-border text-foreground focus:outline-none focus:border-primary/60 transition-all">
                   <option value="">Education level</option>
                   {EDUCATION_LEVELS.map((l) => <option key={l} value={l}>{l}</option>)}
-                </select>
+                </FormSelect>
                 <Input aria-label="School name" placeholder="School name" value={education.school} onChange={(e) => setEducation({ ...education, school: e.target.value })} className="px-4 py-2.5 rounded-xl text-sm bg-muted border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/60 transition-all" />
                 <div className="flex gap-2 sm:col-span-2">
                   <Input aria-label="Course / field of study" placeholder="Course / field" value={education.field} onChange={(e) => setEducation({ ...education, field: e.target.value })} className="flex-1 px-4 py-2.5 rounded-xl text-sm bg-muted border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/60 transition-all" />

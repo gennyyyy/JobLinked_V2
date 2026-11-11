@@ -2,6 +2,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { BULACAN_MUNICIPALITIES, SANTA_MARIA_BARANGAYS } from "@/shared/constants";
 import { toLocalDigits } from "@/shared/utils/phone";
+import FormSelect from "@/shared/components/FormSelect";
 
 function EmployerCompanyStep({ errors, setErrors, inputClass, labelClass, reqMark }) {
   return (
@@ -38,25 +39,25 @@ function EmployerCompanyStep({ errors, setErrors, inputClass, labelClass, reqMar
                     </div>
                     <div>
                       <Label htmlFor="barangayDistrict" className={labelClass}>Barangay / District <span className="text-muted-foreground font-normal">(optional)</span></Label>
-                      <select id="barangayDistrict" name="barangayDistrict" className={inputClass}>
+                      <FormSelect id="barangayDistrict" name="barangayDistrict" className={inputClass}>
                         <option value="">Select barangay</option>
                         {SANTA_MARIA_BARANGAYS.map((b) => <option key={b} value={b}>{b}</option>)}
-                      </select>
+                      </FormSelect>
                     </div>
                     <div>
                       <Label htmlFor="cityMunicipality" className={labelClass}>City / Municipality{reqMark}</Label>
-                      <select id="cityMunicipality" name="cityMunicipality" className={inputClass} onChange={() => { if (errors.cityMunicipality) setErrors((prev) => ({ ...prev, cityMunicipality: undefined })); }}>
+                      <FormSelect id="cityMunicipality" name="cityMunicipality" className={inputClass} onChange={() => { if (errors.cityMunicipality) setErrors((prev) => ({ ...prev, cityMunicipality: undefined })); }}>
                         <option value="">Select city / municipality</option>
                         {BULACAN_MUNICIPALITIES.map((m) => <option key={m} value={m}>{m}</option>)}
-                      </select>
+                      </FormSelect>
                       {errors.cityMunicipality && <p className="text-danger text-xs mt-1">{errors.cityMunicipality}</p>}
                     </div>
                     <div>
                       <Label htmlFor="provinceState" className={labelClass}>Province / State{reqMark}</Label>
-                      <select id="provinceState" name="provinceState" className={inputClass} onChange={() => { if (errors.provinceState) setErrors((prev) => ({ ...prev, provinceState: undefined })); }}>
+                      <FormSelect id="provinceState" name="provinceState" className={inputClass} onChange={() => { if (errors.provinceState) setErrors((prev) => ({ ...prev, provinceState: undefined })); }}>
                         <option value="">Select province</option>
                         <option value="Bulacan">Bulacan</option>
-                      </select>
+                      </FormSelect>
                       {errors.provinceState && <p className="text-danger text-xs mt-1">{errors.provinceState}</p>}
                     </div>
                     <div>

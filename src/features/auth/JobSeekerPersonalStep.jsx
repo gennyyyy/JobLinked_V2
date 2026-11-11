@@ -3,6 +3,7 @@ import { Label } from "@/components/ui/label";
 import { EMPLOYMENT_STATUSES } from "@/shared/constants";
 import { normalizePhone, withPrefix } from "@/shared/utils/phone";
 import ResumePicker from "@/shared/components/ResumePicker";
+import FormSelect from "@/shared/components/FormSelect";
 
 function JobSeekerPersonalStep({ form, errors, set, autofillStatus, autofillTouched = [], handleResumeChange, inputClass, labelClass, reqMark }) {
   return (
@@ -89,10 +90,10 @@ function JobSeekerPersonalStep({ form, errors, set, autofillStatus, autofillTouc
 
             <div data-invalid={!!errors.employmentStatus}>
               <Label htmlFor="employmentStatus" className={labelClass}>Employment Status{reqMark}</Label>
-              <select id="employmentStatus" name="employmentStatus" value={form.employmentStatus} onChange={(e) => set("employmentStatus", e.target.value)} className={inputClass}>
+              <FormSelect id="employmentStatus" name="employmentStatus" value={form.employmentStatus} onChange={(e) => set("employmentStatus", e.target.value)} className={inputClass}>
                 <option value="">Select status</option>
                 {EMPLOYMENT_STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
-              </select>
+              </FormSelect>
               {errors.employmentStatus && <p className="text-danger text-xs mt-1">{errors.employmentStatus}</p>}
             </div>
               </div>

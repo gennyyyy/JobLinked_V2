@@ -416,6 +416,31 @@ const seekerChild = (path, table, order, allow = null, required = []) => {
     void audit(req.user.id, `${table}.delete`, table, req.params.id);
     res.json({ deleted: true });
   }));
+  if (allow) {
+    router.patch(`${path}/:id`, auth, requireRole('job-seeker'), ah(async (req, res) => {
+      if (!isNumericId(req.params.id)) return err(res, 404, 'NOT_FOUND', 'Entry not found');
+      const patch = {};
+      for (const c of allow) if (req.body?.[c] !== undefined) {
+        const value = req.body[c];
+        patch[c] = value === '' ? null
+          : table === 'education' && typeof value === 'string' ? value.trim().toLowerCase()
+            : value;
+      }
+      for (const k of ['start_year', 'end_year']) {
+        if (patch[k] !== undefined && patch[k] !== null && !Number.isInteger(Number(patch[k]))) {
+          return err(res, 400, 'BAD_REQUEST', `${k} must be an integer`);
+        }
+      }
+      if (!Object.keys(patch).length) return err(res, 400, 'BAD_REQUEST', 'Nothing to update');
+      const keys = Object.keys(patch);
+      const { rows } = await pool.query(
+        `update ${table} set ${keys.map((k, i) => `${k} = $${i + 3}`).join(', ')} where id = $1 and seeker_id = $2 returning *`,
+        [req.params.id, req.user.id, ...keys.map((k) => patch[k])]);
+      if (!rows[0]) return err(res, 404, 'NOT_FOUND', 'Entry not found');
+      void audit(req.user.id, `${table}.update`, table, rows[0].id);
+      res.json(rows[0]);
+    }));
+  }
 };
 seekerChild('/seekers/me/education', 'education', 'id desc',
   ['level', 'school', 'field', 'start_year', 'end_year'], ['level', 'school']);

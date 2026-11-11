@@ -70,13 +70,13 @@ export function PublicShell({ children }) {
         </SheetContent>
       </Sheet>
       <main id="main-content" className="flex-1">{children}</main>
-      <footer className="border-t bg-white pt-14">
+      <footer className="border-t bg-white pt-8">
         <div className="page-container">
-          <div className="grid gap-10 pb-10 sm:grid-cols-2 lg:grid-cols-[1.5fr_1fr_1fr_1fr]">
+          <div className="grid gap-6 pb-2 sm:grid-cols-2 lg:grid-cols-[1.5fr_1fr_1fr_1fr]">
             <div>
               <Logo />
-              <p className="mt-4 max-w-[270px] text-xs leading-6 text-muted-foreground">Connecting local talent with meaningful opportunities in Santa Maria, Bulacan.</p>
-              <p className="mt-5 inline-flex items-center gap-1.5 text-[11px] text-navy"><MapPin className="size-3.5 text-teal" />Made for our community.</p>
+              <p className="mt-3 max-w-[270px] text-xs leading-6 text-muted-foreground">Connecting local talent with meaningful opportunities in Santa Maria, Bulacan.</p>
+              <p className="mt-3 inline-flex items-center gap-1.5 text-[11px] text-navy"><MapPin className="size-3.5 text-teal" />Made for our community.</p>
             </div>
             {[
               { title: 'For job seekers', items: [['Browse jobs', '/jobs'], ['Create an account', '/register/job-seeker'], ['Application tracking', '/job-seeker/applications'], ['Career resources', '/#peso-services']] },
@@ -84,20 +84,20 @@ export function PublicShell({ children }) {
               { title: 'JobLinked', items: [['About the platform', '/#about'], ['PESO services', '/#peso-services'], ['Frequently asked questions', '/#faq']] },
             ].map(group => (
               <div key={group.title}>
-                <h3 className="mb-4 text-xs font-semibold">{group.title}</h3>
-                <ul className="flex flex-col gap-1">
+                <h3 className="mb-2 text-xs font-semibold">{group.title}</h3>
+                <ul className="flex flex-col gap-0">
                   {group.items.map(([label, href]) => (
-                    <li key={href}><Link to={href} className="inline-flex min-h-9 items-center text-xs text-muted-foreground transition-colors hover:text-primary">{label}</Link></li>
+                    <li key={href}><Link to={href} className="inline-flex min-h-6 items-center text-xs text-muted-foreground transition-colors hover:text-primary">{label}</Link></li>
                   ))}
                 </ul>
               </div>
             ))}
           </div>
-          <div className="flex flex-col justify-between gap-3 py-6 text-[10px] text-muted-foreground sm:flex-row sm:items-center">
+          <div className="flex flex-col justify-between gap-2 py-2 text-[10px] text-muted-foreground sm:flex-row sm:items-center">
             <p>© {new Date().getFullYear()} JobLinked. Built with community in mind.</p>
-            <div className="flex items-center gap-5">
-              <Link className="min-h-9 content-center hover:text-primary" to="/privacy">Privacy notice</Link>
-              <Link className="min-h-9 content-center hover:text-primary" to="/terms">Terms of Use</Link>
+            <div className="flex items-center gap-3">
+              <Link className="min-h-6 content-center hover:text-primary" to="/privacy">Privacy notice</Link>
+              <Link className="min-h-6 content-center hover:text-primary" to="/terms">Terms of Use</Link>
             </div>
           </div>
         </div>

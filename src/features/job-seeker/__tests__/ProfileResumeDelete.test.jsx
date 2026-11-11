@@ -31,6 +31,8 @@ describe('Profile resume delete', () => {
     deleteResume.mockResolvedValue({ deleted: true })
 
     render(<Profile />)
+    await screen.findByRole('button', { name: /save my profile/i })
+    await user.click(screen.getByRole('tab', { name: /my resumes/i }))
     await screen.findByText('old.pdf')
 
     await user.click(screen.getAllByRole('button', { name: 'Delete' })[1])

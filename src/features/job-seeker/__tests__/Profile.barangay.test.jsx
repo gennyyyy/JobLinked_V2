@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render, screen, fireEvent } from '@testing-library/react'
 import Profile from '../Profile'
 
 vi.mock('../../../shared/hooks/useAuth', () => ({ default: vi.fn() }))
@@ -20,6 +20,8 @@ import { listResumes } from '../../../shared/services/documents'
 async function openProfile() {
   render(<Profile />)
   await screen.findByRole('button', { name: /save my profile/i })
+  fireEvent.click(screen.getByRole('tab', { name: /address/i }))
+  await screen.findByLabelText('Barangay')
 }
 
 describe('Profile barangay field', () => {

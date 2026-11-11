@@ -7,10 +7,12 @@ import { updateProfile } from '@/shared/services/auth'
 import { listResumes, uploadResume, setActiveResume, deleteResume, validateFile, signedUrl } from '@/shared/services/documents'
 import { uploadAvatar, removeAvatar, fetchAvatarObjectUrl } from '@/shared/services/images'
 import { buildFullName } from '@/shared/utils/names'
+import { listEducation, addEducation, removeEducation } from '@/shared/services/seekers'
 import { PageSkeleton } from '@/shared/components/Skeletons'
 import { InlineError } from '@/shared/components/dashboard'
 import ConfirmationModal from '@/shared/components/ConfirmationModal'
 import { PageHeading, Panel, TextField, SelectField, Notice, EmptyState } from '@/shared/components/design'
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { SANTA_MARIA_BARANGAYS } from '@/shared/constants'
 import { EDUCATION_LEVELS } from '../auth/jobSeekerRegistration'
 import TagField from './TagField'
@@ -19,16 +21,34 @@ import ResumeAutofill from './ResumeAutofill'
 const PHONE_PATTERN = /^(\+63|0)[\d\s-]{9,15}$/
 const splitList = (value) => String(value || '').split(',').map((item) => item.trim()).filter(Boolean)
 
-const EMPTY_FORM = { name: '', phone: '', headline: '', barangay: '', address: '', education: '', experience: '', skills: '' }
+const EMPTY_FORM = {
+  name: '', firstName: '', middleName: '', lastName: '', suffix: '',
+  phone: '', headline: '', birthdate: '', employmentStatus: '',
+  lot: '', block: '', barangay: '', address: '', subdivisionBuilding: '',
+  cityMunicipality: '', provinceState: '', postalCode: '',
+  education: '', experience: '', skills: '',
+}
 
 function formFromUser(user) {
   if (!user) return EMPTY_FORM
   return {
     name: user.full_name || buildFullName(user.first_name, user.middle_name, user.last_name, user.suffix),
+    firstName: user.first_name || '',
+    middleName: user.middle_name || '',
+    lastName: user.last_name || '',
+    suffix: user.suffix || '',
     phone: user.phone || '',
     headline: user.headline || '',
+    birthdate: user.birthdate || '',
+    employmentStatus: user.employment_status || '',
+    lot: user.lot || '',
+    block: user.block || '',
     barangay: user.barangay_district || '',
     address: user.street_address || '',
+    subdivisionBuilding: user.subdivision_building || '',
+    cityMunicipality: user.city_municipality || '',
+    provinceState: user.province_state || '',
+    postalCode: user.postal_code || '',
     education: user.education_summary || '',
     experience: user.experience_summary || '',
     skills: (user.skills || []).join(', '),
@@ -93,7 +113,12 @@ function Profile() {
   const [photoActionsOpen, setPhotoActionsOpen] = useState(false)
   const photoActionsRef = useRef(null)
   const [resumes, setResumes] = useState([])
+  const [educationList, setEducationList] = useState([])
+  const [eduForm, setEduForm] = useState({ level: '', school: '', field: '', year: '', studying: false })
+  const [eduError, setEduError] = useState('')
+  const [eduSaving, setEduSaving] = useState(false)
   const [draft, setDraft] = useState(null)
+  const [tab, setTab] = useState('personal')
   const [uploadError, setUploadError] = useState('')
   const [resumeStatus, setResumeStatus] = useState('')
   const [uploading, setUploading] = useState(false)
@@ -106,6 +131,9 @@ function Profile() {
       .then((rows) => { if (live) setResumes(rows || []) })
       .catch((err) => { if (live) setError(err.message || 'Failed to load profile') })
       .finally(() => { if (live) setLoading(false) })
+    listEducation()
+      .then((rows) => { if (live) setEducationList(rows || []) })
+      .catch(() => { /* education list unavailable (e.g. legacy/unauthenticated) */ })
     return () => { live = false }
   }, [userId])
 
@@ -183,16 +211,33 @@ function Profile() {
     setSaving(true)
     setSaved(false)
     try {
-      await updateProfile(user.id, {
-        full_name: form.name.trim(),
+      const hasComponents = [form.firstName, form.middleName, form.lastName, form.suffix].some((v) => String(v || '').trim())
+      const patch = {
         phone: form.phone.trim(),
         headline: form.headline.trim(),
+        birthdate: form.birthdate || null,
+        employment_status: form.employmentStatus || null,
+        lot: form.lot.trim() || null,
+        block: form.block.trim() || null,
         barangay_district: form.barangay,
         street_address: form.address.trim(),
+        subdivision_building: form.subdivisionBuilding.trim() || null,
+        city_municipality: form.cityMunicipality.trim() || null,
+        province_state: form.provinceState.trim() || null,
+        postal_code: form.postalCode.trim() || null,
         education_summary: form.education.trim(),
         experience_summary: form.experience.trim(),
         skills,
-      })
+      }
+      if (hasComponents) {
+        patch.first_name = form.firstName.trim().toLowerCase()
+        patch.middle_name = form.middleName.trim().toLowerCase()
+        patch.last_name = form.lastName.trim().toLowerCase()
+        patch.suffix = form.suffix.trim().toLowerCase()
+      } else {
+        patch.full_name = form.name.trim()
+      }
+      await updateProfile(user.id, patch)
       if (refreshUser) await refreshUser(user)
       setSaved(true)
       setTimeout(() => setSaved(false), 3000)
@@ -200,6 +245,39 @@ function Profile() {
       setError(err.message || 'Failed to save profile')
     } finally {
       setSaving(false)
+    }
+  }
+
+  async function handleAddEducation(event) {
+    event?.preventDefault?.()
+    const eduError = (!eduForm.level.trim() || !eduForm.school.trim())
+      ? 'Please select a level and enter a school name.'
+      : (!eduForm.studying && !/^\\d{4}$/.test(eduForm.year.trim()) ? 'Graduation year must be a 4-digit year.' : '')
+    if (eduError) { setEduError(eduError); return }
+    setEduSaving(true)
+    setEduError('')
+    try {
+      const created = await addEducation({
+        level: eduForm.level.trim(),
+        school: eduForm.school.trim(),
+        field: eduForm.field.trim() || null,
+        end_year: eduForm.studying ? null : Number(eduForm.year.trim()),
+      })
+      setEducationList((prev) => [created, ...prev])
+      setEduForm({ level: '', school: '', field: '', year: '', studying: false })
+    } catch (err) {
+      setEduError(err.message || 'Failed to add education')
+    } finally {
+      setEduSaving(false)
+    }
+  }
+
+  async function handleRemoveEducation(id) {
+    try {
+      await removeEducation(id)
+      setEducationList((prev) => prev.filter((e) => e.id !== id))
+    } catch (err) {
+      setError(err.message || 'Failed to remove education')
     }
   }
 
@@ -217,6 +295,7 @@ function Profile() {
       }
       return next
     })
+    setTab('personal')
   }
 
   function pickResume(file) {
@@ -314,7 +393,29 @@ function Profile() {
       />
       <div className="grid items-start gap-6 xl:grid-cols-[1fr_280px]">
         <form onSubmit={handleSubmit} className="flex min-w-0 flex-col gap-6" noValidate>
-          <Panel title="Personal & contact details" description="Use the information employers need to reach you.">
+          <Tabs value={tab} onValueChange={setTab} className="gap-0">
+            <Panel
+              title={{
+                personal: 'Personal & contact details',
+                address: 'Address',
+                education: 'Education, experience & skills',
+                resumes: 'My resumes',
+              }[tab]}
+              description={{
+                personal: 'Use the information employers need to reach you.',
+                address: 'Where employers and PESO can reach you.',
+                education: 'These details power simple, transparent skill matching.',
+                resumes: 'Manage the resumes you share with employers.',
+              }[tab]}
+            >
+            <TabsList className="mb-5 w-full">
+              <TabsTrigger value="personal">Personal</TabsTrigger>
+              <TabsTrigger value="address">Address</TabsTrigger>
+              <TabsTrigger value="education">Education</TabsTrigger>
+              <TabsTrigger value="resumes">My resumes</TabsTrigger>
+            </TabsList>
+            <TabsContent value="personal">
+          <div className="flex flex-col gap-5">
             <div className="flex flex-wrap items-center gap-4 rounded-lg border border-dashed border-border bg-muted/30 p-4">
               <div ref={photoActionsRef} className="group relative size-30 shrink-0">
                 <div className="flex size-full items-center justify-center overflow-hidden rounded-full bg-primary/10 text-primary">
@@ -378,20 +479,130 @@ function Profile() {
                 <TextField label="Full name" required value={form.name} onChange={(event) => setField('name', event.target.value)} error={errors.name} />
                 <TextField label="Contact number" required type="tel" value={form.phone} onChange={(event) => setField('phone', event.target.value)} error={errors.phone} />
               </div>
+              <div className="grid gap-5 sm:grid-cols-2">
+                <TextField label="First Name" value={form.firstName} onChange={(event) => setField('firstName', event.target.value)} />
+                <TextField label="Middle Name" value={form.middleName} onChange={(event) => setField('middleName', event.target.value)} />
+                <TextField label="Last Name" value={form.lastName} onChange={(event) => setField('lastName', event.target.value)} />
+                <TextField label="Suffix" value={form.suffix} onChange={(event) => setField('suffix', event.target.value)} />
+              </div>
+              <div className="grid gap-5 sm:grid-cols-2">
+                <TextField label="Birthday" type="date" value={form.birthdate} onChange={(event) => setField('birthdate', event.target.value)} />
+                <SelectField label="Employment Status" placeholder="Select status" options={['Employed','Unemployed','Underemployed','Fresh Graduate','Student']} value={form.employmentStatus} onChange={(event) => setField('employmentStatus', event.target.value)} />
+              </div>
               <TextField label="Professional headline" required value={form.headline} onChange={(event) => setField('headline', event.target.value)} error={errors.headline} />
+            </div>
+          </div>
+            </TabsContent>
+            <TabsContent value="address">
+            <div className="flex flex-col gap-5">
+              <div className="grid gap-5 sm:grid-cols-2">
+                <TextField label="Lot" value={form.lot} onChange={(event) => setField('lot', event.target.value)} />
+                <TextField label="Block" value={form.block} onChange={(event) => setField('block', event.target.value)} />
+              </div>
               <div className="grid gap-5 sm:grid-cols-2">
                 <SelectField label="Barangay" placeholder="Select barangay" options={barangays} value={form.barangay} onChange={(event) => setField('barangay', event.target.value)} error={errors.barangay} />
                 <TextField label="Street or local address" required value={form.address} onChange={(event) => setField('address', event.target.value)} error={errors.address} />
               </div>
+              <div className="grid gap-5 sm:grid-cols-2">
+                <TextField label="Subdivision / Village / Building" value={form.subdivisionBuilding} onChange={(event) => setField('subdivisionBuilding', event.target.value)} />
+                <TextField label="City / Municipality" value={form.cityMunicipality} onChange={(event) => setField('cityMunicipality', event.target.value)} />
+                <TextField label="Province / State" value={form.provinceState} onChange={(event) => setField('provinceState', event.target.value)} />
+                <TextField label="Postal Code" value={form.postalCode} onChange={(event) => setField('postalCode', event.target.value)} />
+              </div>
             </div>
-          </Panel>
-          <Panel title="Education, experience & skills" description="These details power simple, transparent skill matching.">
+            </TabsContent>
+            <TabsContent value="education">
             <div className="flex flex-col gap-5">
               <SelectField label="Education" value={form.education} onChange={(event) => setField('education', event.target.value)} options={EDUCATION_LEVELS} placeholder="Select education level" error={errors.education} />
               <TagField label="Work experience" value={form.experience} onChange={(value) => setField('experience', value)} placeholder="Type a role or experience and press Enter" help="Add internships, volunteer work, or previous roles as separate tags." />
               <TagField label="Your skills" required value={form.skills} onChange={(value) => setField('skills', value)} placeholder="Type a skill and press Enter" help="Add each skill as a separate tag." error={errors.skills} />
             </div>
-          </Panel>
+          <div className="border-t border-border pt-5">
+            <h2 className="mb-4 text-sm font-semibold text-foreground">Education history</h2>
+            <ul className="flex flex-col gap-3">
+              {educationList.map((edu) => (
+                <li key={edu.id} className="flex items-center justify-between rounded-xl border p-3 text-sm">
+                  <div>
+                    <p className="font-medium">{edu.school} — {edu.level}</p>
+                    <p className="text-xs text-muted-foreground">{edu.field || ''}{edu.end_year ? ` · ${edu.end_year}` : (edu.end_year === null ? ' · Currently studying' : '')}</p>
+                  </div>
+                  <Button type="button" variant="ghost" onClick={() => handleRemoveEducation(edu.id)}>Remove</Button>
+                </li>
+              ))}
+              {educationList.length === 0 && <p className="text-xs text-muted-foreground">No education records yet.</p>}
+            </ul>
+            <div className="mt-4 flex flex-col gap-3">
+              <div className="grid gap-3 sm:grid-cols-2">
+                <SelectField label="Level" placeholder="Education level" options={EDUCATION_LEVELS} value={eduForm.level} onChange={(e) => setEduForm((p) => ({ ...p, level: e.target.value }))} />
+                <TextField label="School" value={eduForm.school} onChange={(e) => setEduForm((p) => ({ ...p, school: e.target.value }))} />
+                <TextField label="Field / Course" value={eduForm.field} onChange={(e) => setEduForm((p) => ({ ...p, field: e.target.value }))} />
+                <TextField label="Graduation year" value={eduForm.year} disabled={eduForm.studying} onChange={(e) => setEduForm((p) => ({ ...p, year: e.target.value }))} />
+              </div>
+              <label className="flex items-center gap-2 text-xs text-muted-foreground">
+                <input type="checkbox" checked={eduForm.studying} onChange={(e) => setEduForm((p) => ({ ...p, studying: e.target.checked }))} />
+                Currently studying here
+              </label>
+              {eduError && <p className="text-xs text-danger">{eduError}</p>}
+              <Button type="button" disabled={eduSaving} onClick={handleAddEducation}>{eduSaving ? 'Adding…' : 'Add education'}</Button>
+            </div>
+          </div>
+            </TabsContent>
+            <TabsContent value="resumes">
+              <div className="mb-5">
+                <Notice title="Your resume stays private">
+                  Only you, authorized PESO personnel, and the employers you apply to can open the resume attached to your application.
+                </Notice>
+              </div>
+              {resumes.length ? (
+                <ul className="flex flex-col gap-4">
+                  {resumes.map((resume) => (
+                    <li className="rounded-xl border p-4" key={resume.id}>
+                      <div className="flex items-start gap-3">
+                        <span className="soft-icon"><FileText className="size-5" /></span>
+                        <div className="min-w-0 flex-1">
+                          <h2 className="break-all text-sm font-medium">{resume.file_name}</h2>
+                          <p className="mt-2 text-[11px] text-muted-foreground">
+                            {resume.is_active ? 'Active resume · ' : ''}Added {new Date(resume.uploaded_at).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' })}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="mt-4 flex flex-wrap gap-2">
+                        <ResumeLinks resume={resume} />
+                        {!resume.is_active && (
+                          <Button type="button" variant="ghost" onClick={() => handleSetActiveResume(resume.id)}>Set active</Button>
+                        )}
+                        <Button type="button" variant="ghost" onClick={() => document.getElementById('resume-upload')?.click()}>Replace</Button>
+                        <Button type="button" variant="ghost" onClick={() => setPendingDelete(resume)}>
+                          <Trash2 data-icon="inline-start" />
+                          Delete
+                        </Button>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <EmptyState title="Start with your story." description="Add a resume using the form. PDF, DOC, or DOCX up to 5 MB." />
+              )}
+              <div className="mt-5">
+                <ResumeAutofill
+                  onApply={applyAutofill}
+                  onFileSelected={pickResume}
+                  uploadError={uploadError}
+                  uploadControl={draft && (
+                    <Button type="button" variant="outline" disabled={uploading} onClick={handleResumeUpload}>
+                      <UploadCloud data-icon="inline-start" />
+                      {uploading ? 'Uploading…' : 'Add resume'}
+                    </Button>
+                  )}
+                />
+                {resumeStatus && <p role="status" className="mt-3 text-xs text-muted-foreground">{resumeStatus}</p>}
+                <p className="mt-3 text-[11px] leading-6 text-muted-foreground">
+                  Replacing a resume does not alter an already submitted application. A newly uploaded resume becomes the active one.
+                </p>
+              </div>
+            </TabsContent>
+            </Panel>
+          </Tabs>
           <div className="flex flex-wrap items-center justify-between gap-3">
             <p role="status" className="text-[11px] text-muted-foreground">{saved ? 'Profile saved.' : 'Changes are saved to your JobLinked account.'}</p>
             <Button type="submit" disabled={saving}>
@@ -410,63 +621,6 @@ function Profile() {
             </div>
           </Panel>
         </div>
-      </div>
-
-      <div className="mt-8 border-t border-border pt-8">
-        <div className="mb-6">
-          <Notice title="Your resume stays private">
-            Only you, authorized PESO personnel, and the employers you apply to can open the resume attached to your application.
-          </Notice>
-        </div>
-        <Panel title="My resumes">
-          {resumes.length ? (
-            <ul className="flex flex-col gap-4">
-              {resumes.map((resume) => (
-                <li className="rounded-xl border p-4" key={resume.id}>
-                  <div className="flex items-start gap-3">
-                    <span className="soft-icon"><FileText className="size-5" /></span>
-                    <div className="min-w-0 flex-1">
-                      <h2 className="break-all text-sm font-medium">{resume.file_name}</h2>
-                      <p className="mt-2 text-[11px] text-muted-foreground">
-                        {resume.is_active ? 'Active resume · ' : ''}Added {new Date(resume.uploaded_at).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' })}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="mt-4 flex flex-wrap gap-2">
-                    <ResumeLinks resume={resume} />
-                    {!resume.is_active && (
-                      <Button type="button" variant="ghost" onClick={() => handleSetActiveResume(resume.id)}>Set active</Button>
-                    )}
-                    <Button type="button" variant="ghost" onClick={() => document.getElementById('resume-upload')?.click()}>Replace</Button>
-                    <Button type="button" variant="ghost" onClick={() => setPendingDelete(resume)}>
-                      <Trash2 data-icon="inline-start" />
-                      Delete
-                    </Button>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <EmptyState title="Start with your story." description="Add a resume using the form. PDF, DOC, or DOCX up to 5 MB." />
-          )}
-          <div className="mt-5">
-            <ResumeAutofill
-              onApply={applyAutofill}
-              onFileSelected={pickResume}
-              uploadError={uploadError}
-              uploadControl={draft && (
-                <Button type="button" variant="outline" disabled={uploading} onClick={handleResumeUpload}>
-                  <UploadCloud data-icon="inline-start" />
-                  {uploading ? 'Uploading…' : 'Add resume'}
-                </Button>
-              )}
-            />
-            {resumeStatus && <p role="status" className="mt-3 text-xs text-muted-foreground">{resumeStatus}</p>}
-            <p className="mt-3 text-[11px] leading-6 text-muted-foreground">
-              Replacing a resume does not alter an already submitted application. A newly uploaded resume becomes the active one.
-            </p>
-          </div>
-        </Panel>
       </div>
 
       {pendingDelete && (

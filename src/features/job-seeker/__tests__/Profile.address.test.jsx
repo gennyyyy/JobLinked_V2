@@ -50,9 +50,15 @@ describe('Profile fields and save', () => {
     expect(screen.getByLabelText(/full name/i)).toHaveValue('Juana Santos')
     expect(screen.getByLabelText(/contact number/i)).toHaveValue('09171234567')
     expect(screen.getByLabelText(/professional headline/i)).toHaveValue('Cashier')
+
+    fireEvent.click(screen.getByRole('tab', { name: /address/i }))
+    await screen.findByLabelText('Barangay')
     expect(screen.getByLabelText('Barangay')).toHaveValue('Poblacion')
     expect(screen.getByLabelText(/street or local address/i)).toHaveValue('12 Mabini Street')
-    expect(screen.getByText('College')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('tab', { name: /education/i }))
+    await screen.findByRole('combobox', { name: /education/i })
+    expect(screen.getAllByText('College').length).toBeGreaterThan(0)
     expect(screen.getAllByText('Cashier').length).toBeGreaterThan(0)
     expect(screen.getByText('2 years')).toBeInTheDocument()
     expect(screen.getAllByText('Data Entry').length).toBeGreaterThan(0)
@@ -63,10 +69,17 @@ describe('Profile fields and save', () => {
 
     fireEvent.change(screen.getByLabelText(/full name/i), { target: { value: 'Juana S. Santos' } })
     fireEvent.change(screen.getByLabelText(/professional headline/i), { target: { value: 'Head cashier' } })
+
+    fireEvent.click(screen.getByRole('tab', { name: /address/i }))
+    await screen.findByLabelText('Barangay')
     fireEvent.change(screen.getByLabelText('Barangay'), { target: { value: 'Bagbaguin' } })
     fireEvent.change(screen.getByLabelText(/street or local address/i), { target: { value: '48 Rizal Street' } })
+
+    fireEvent.click(screen.getByRole('tab', { name: /education/i }))
+    await screen.findByLabelText('Your skills')
     fireEvent.change(screen.getByLabelText('Your skills'), { target: { value: 'Customer Service' } })
     fireEvent.keyDown(screen.getByLabelText('Your skills'), { key: 'Enter' })
+
     fireEvent.click(screen.getByRole('button', { name: /save my profile/i }))
 
     await waitFor(() => expect(updateProfile).toHaveBeenCalled())
@@ -90,8 +103,13 @@ describe('Profile fields and save', () => {
 
     expect(await screen.findByText('Enter your full name.')).toBeInTheDocument()
     expect(screen.getByText('Add a short professional headline.')).toBeInTheDocument()
-    expect(screen.getByText('Choose your barangay.')).toBeInTheDocument()
-    expect(screen.getByText('Add at least one skill, separated by commas.')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('tab', { name: /address/i }))
+    await screen.findByText('Choose your barangay.')
+
+    fireEvent.click(screen.getByRole('tab', { name: /education/i }))
+    await screen.findByText('Add at least one skill, separated by commas.')
+
     expect(updateProfile).not.toHaveBeenCalled()
   })
 })

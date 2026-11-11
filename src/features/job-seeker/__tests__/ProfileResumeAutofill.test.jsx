@@ -29,6 +29,8 @@ Skills: Data Entry, Communication`
 async function openProfile() {
   render(<Profile />)
   await screen.findByRole('button', { name: /save my profile/i })
+  fireEvent.click(screen.getByRole('tab', { name: /my resumes/i }))
+  await screen.findByLabelText('Choose a resume to autofill')
 }
 
 function selectResume() {
@@ -55,6 +57,7 @@ describe('Profile resume autofill', () => {
     expect(await screen.findByText('Full name')).toBeInTheDocument()
     expect(screen.getByText('Juan Dela Cruz')).toBeInTheDocument()
     expect(screen.getByText(/fields detected/i)).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('tab', { name: /personal/i }))
     expect(screen.getByLabelText(/contact number/i)).toHaveValue('')
     expect(screen.getByLabelText(/full name/i)).toHaveValue('')
   })
@@ -68,15 +71,20 @@ describe('Profile resume autofill', () => {
     expect(reviewCheckbox.closest('label').querySelector('[aria-hidden="true"]')).toHaveTextContent('*')
     fireEvent.click(await screen.findByRole('button', { name: 'Apply detected details' }))
     expect(await screen.findByText(/please confirm you will review the resume autofill information/i)).toBeInTheDocument()
-    expect(screen.getByLabelText(/full name/i)).toHaveValue('')
     fireEvent.click(reviewCheckbox)
     fireEvent.click(await screen.findByRole('button', { name: 'Apply detected details' }))
 
     expect(screen.getByLabelText(/full name/i)).toHaveValue('Juan Dela Cruz')
     expect(screen.getByLabelText(/contact number/i)).toHaveValue('+639171234567')
+
+    fireEvent.click(screen.getByRole('tab', { name: /address/i }))
+    await screen.findByLabelText('Barangay')
     expect(screen.getByLabelText('Barangay')).toHaveValue('Poblacion')
     expect(screen.getByLabelText(/street or local address/i).value).toContain('Norzagaray-Santa Maria Road')
-    expect(screen.getByLabelText('Education')).toHaveValue('College')
+
+    fireEvent.click(screen.getByRole('tab', { name: /education/i }))
+    await screen.findByRole('combobox', { name: /education/i })
+    expect(screen.getByRole('combobox', { name: /education/i })).toHaveValue('College')
     expect(screen.getAllByText('Data Entry').length).toBeGreaterThan(0)
     expect(screen.getAllByText('Communication').length).toBeGreaterThan(0)
   })

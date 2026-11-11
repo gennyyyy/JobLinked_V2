@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom'
 import { ArrowRight, Building2, Check, Users } from 'lucide-react'
 import PublicShell from '@/shared/components/PublicShell'
 import { LinkButton, Notice } from '@/shared/components/design'
+import landingBg from '../../assets/landing_page_bg.png'
 
 const journeys = [
   {
@@ -33,7 +34,10 @@ const journeys = [
 export default function Register() {
   return (
     <PublicShell>
-      <div className="bg-muted/60">
+      <div
+        className="bg-cover bg-center"
+        style={{ backgroundImage: `linear-gradient(180deg, rgba(247,250,255,0.88) 0%, rgba(247,250,255,0.72) 100%), url(${landingBg})` }}
+      >
         <div className="page-container py-14">
           <div className="mx-auto max-w-3xl">
             <div className="mb-9 text-center">
