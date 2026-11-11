@@ -6,10 +6,12 @@ import { updateProfile, getEmployer, provision } from "../../shared/services/aut
 import { uploadLogo, removeLogo, logoUrl } from "../../shared/services/images";
 import { PageSkeleton } from '../../shared/components/Skeletons';
 import ChangePassword from "../../shared/components/ChangePassword";
+import TabbedProfileLayout from "../../shared/components/TabbedProfileLayout";
+import { TabsContent } from "../../components/ui/tabs";
 import { buildFullName } from "../../shared/utils/names";
 import { titleCase } from "../../shared/utils/titleCase";
 import { SANTA_MARIA_BARANGAYS } from "../../shared/constants";
-import { CompanyMark, PageHeading, Panel, SelectField, StatusBadge, TextField } from "../../shared/components/design";
+import { CompanyMark, Panel, SelectField, StatusBadge, TextField } from "../../shared/components/design";
 
 const COMPANY_FIELDS = [
   ["name", "Company name", "e.g. Santa Maria Trading"],
@@ -39,6 +41,12 @@ const REPRESENTATIVE_FIELDS = [
   ["representative_email", "Representative Email", "maria@company.com"],
 ];
 
+const COMPANY_PROFILE_TABS = [
+  { value: "company", label: "Company", title: "Company details", description: "These details appear alongside your public vacancies." },
+  { value: "contact", label: "Contact & location", title: "Contact & location", description: "Where candidates can reach and find your office." },
+  { value: "representative", label: "Representative", title: "Authorized representative", description: "The person PESO contacts about this company." },
+];
+
 function CompanyProfile() {
   const { user, refreshUser } = useAuth();
   const [loading, setLoading] = useState(true);
@@ -47,6 +55,7 @@ function CompanyProfile() {
   const [saved, setSaved] = useState(false);
   const [company, setCompany] = useState(null);
   const [form, setForm] = useState({});
+  const [tab, setTab] = useState("company");
   const [logoFailed, setLogoFailed] = useState(false);
   const [logoBusy, setLogoBusy] = useState(false);
   const [logoStatus, setLogoStatus] = useState("");
@@ -196,35 +205,81 @@ function CompanyProfile() {
 
   return (
     <>
-      <PageHeading
-        title="A good team starts with your story."
-        description="Help candidates understand who you are, what you do, and where they can find you."
-      />
-
-      <div className="grid items-start gap-6 xl:grid-cols-[1fr_280px]">
-        <form onSubmit={handleSubmit} noValidate className="flex min-w-0 flex-col gap-6">
-          {saved && (
-            <p role="status" className="rounded-lg border border-success/20 bg-success-soft px-4 py-3 text-xs font-medium text-success">
-              Company profile updated successfully.
+      <TabbedProfileLayout
+        pageTitle="A good team starts with your story."
+        pageDescription="Help candidates understand who you are, what you do, and where they can find you."
+        tabs={COMPANY_PROFILE_TABS}
+        activeTab={tab}
+        onTabChange={setTab}
+        onSubmit={handleSubmit}
+        saving={saving}
+        saveLabel="Save company profile"
+        savingLabel="Saving…"
+        status={saved ? "Company profile updated successfully." : ""}
+        error={error}
+        sidebar={(
+          <Panel title="Your company at a glance">
+            {companyLogo ? (
+              <img
+                src={companyLogo}
+                alt={`${form.name || "Company"} logo`}
+                data-testid="company-logo-image"
+                loading="lazy"
+                decoding="async"
+                className="size-16 rounded-2xl border object-cover"
+                onError={() => setLogoFailed(true)}
+              />
+            ) : (
+              <CompanyMark initials={(form.name?.[0] || "C").toUpperCase()} large />
+            )}
+            <h2 className="mt-4 text-base font-semibold text-navy">{titleCase(form.name) || "My Company"}</h2>
+            <p className="my-3 text-xs leading-6 text-muted-foreground">
+              {[form.industry || "Company profile", form.barangay_district].filter(Boolean).join(" · ")}
             </p>
-          )}
-          {error && <p role="alert" className="text-xs text-destructive">{error}</p>}
-
-          <Panel id="company-details" title="Company details" description="These details appear alongside your public vacancies.">
-            <div className="grid gap-5 sm:grid-cols-2">
-              {COMPANY_FIELDS.map(([name, label, placeholder]) => (
-                <TextField key={name} label={label} placeholder={placeholder} required {...field(name)} />
-              ))}
-            </div>
-            <div className="mt-5">
-              <TextField label="About the company" multiline rows={5} required placeholder="Brief description of your company…" {...field("description")} />
-            </div>
-            <div className="mt-5">
-              <TextField label="Website (optional)" placeholder="https://…" {...field("website")} />
-            </div>
+            <StatusBadge status={accreditationStatus} />
+            {company && (
+              <div className="mt-4 flex flex-col gap-2 border-t pt-4">
+                <label htmlFor="company-logo" className="text-xs font-semibold text-navy">Company logo</label>
+                <input
+                  id="company-logo"
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp"
+                  disabled={logoBusy}
+                  onChange={handleLogo}
+                  className="block w-full text-[11px] text-muted-foreground file:mr-3 file:rounded-md file:border-0 file:bg-primary file:px-3 file:py-1.5 file:text-xs file:font-medium file:text-primary-foreground hover:file:bg-primary/90"
+                />
+                <div className="flex flex-wrap items-center gap-3">
+                  {company.has_logo && (
+                    <Button type="button" variant="outline" size="sm" onClick={handleRemoveLogo} disabled={logoBusy}>
+                      <Trash2 data-icon="inline-start" />Remove logo
+                    </Button>
+                  )}
+                  {logoBusy && <span role="status" className="text-[11px] text-muted-foreground">Uploading…</span>}
+                  {logoStatus && !logoBusy && <span role="status" className="text-[11px] font-medium text-success">{logoStatus}</span>}
+                </div>
+                {logoError && <p role="alert" className="text-[11px] text-destructive">{logoError}</p>}
+              </div>
+            )}
+            <p className="mt-4 text-[11px] leading-6 text-muted-foreground">
+              Authorized representative: {representativeName || "Not set"}. Editing your profile does not replace the accreditation review.
+            </p>
           </Panel>
-
-          <Panel id="contact-location" title="Contact & location" description="Where candidates can reach and find your office.">
+        )}
+      >
+        <TabsContent value="company" id="company-details">
+          <div className="grid gap-5 sm:grid-cols-2">
+            {COMPANY_FIELDS.map(([name, label, placeholder]) => (
+              <TextField key={name} label={label} placeholder={placeholder} required {...field(name)} />
+            ))}
+          </div>
+          <div className="mt-5">
+              <TextField label="About the company" multiline rows={5} required placeholder="Brief description of your company…" {...field("description")} />
+          </div>
+          <div className="mt-5">
+              <TextField label="Website (optional)" placeholder="https://…" {...field("website")} />
+          </div>
+        </TabsContent>
+        <TabsContent value="contact" id="contact-location">
             <div className="grid gap-5 sm:grid-cols-2">
               {CONTACT_FIELDS.map(([name, label, placeholder]) => (
                 <TextField key={name} label={label} placeholder={placeholder} required type={name === "company_email" ? "email" : "text"} {...field(name)} />
@@ -244,9 +299,8 @@ function CompanyProfile() {
                 {...field("barangay_district")}
               />
             </div>
-          </Panel>
-
-          <Panel id="authorized-representative" title="Authorized representative" description="The person PESO contacts about this company.">
+        </TabsContent>
+        <TabsContent value="representative" id="authorized-representative">
             <div className="grid gap-5 sm:grid-cols-2">
               {REPRESENTATIVE_FIELDS.map(([name, label, placeholder]) => (
                 <TextField
@@ -261,62 +315,8 @@ function CompanyProfile() {
             <div className="mt-5">
               <TextField label="Login Email (read-only)" value={form.email || ""} disabled />
             </div>
-          </Panel>
-
-          <div className="flex justify-end">
-            <Button type="submit" disabled={saving}>
-              {saving ? "Saving…" : "Save company profile"}
-            </Button>
-          </div>
-        </form>
-
-        <Panel title="Your company at a glance">
-          {companyLogo ? (
-            <img
-              src={companyLogo}
-              alt={`${form.name || "Company"} logo`}
-              data-testid="company-logo-image"
-              loading="lazy"
-              decoding="async"
-              className="size-16 rounded-2xl border object-cover"
-              onError={() => setLogoFailed(true)}
-            />
-          ) : (
-            <CompanyMark initials={(form.name?.[0] || "C").toUpperCase()} large />
-          )}
-          <h2 className="mt-4 text-base font-semibold text-navy">{titleCase(form.name) || "My Company"}</h2>
-          <p className="my-3 text-xs leading-6 text-muted-foreground">
-            {[form.industry || "Company profile", form.barangay_district].filter(Boolean).join(" · ")}
-          </p>
-          <StatusBadge status={accreditationStatus} />
-          {company && (
-            <div className="mt-4 flex flex-col gap-2 border-t pt-4">
-              <label htmlFor="company-logo" className="text-xs font-semibold text-navy">Company logo</label>
-              <input
-                id="company-logo"
-                type="file"
-                accept="image/png,image/jpeg,image/webp"
-                disabled={logoBusy}
-                onChange={handleLogo}
-                className="block w-full text-[11px] text-muted-foreground file:mr-3 file:rounded-md file:border-0 file:bg-primary file:px-3 file:py-1.5 file:text-xs file:font-medium file:text-primary-foreground hover:file:bg-primary/90"
-              />
-              <div className="flex flex-wrap items-center gap-3">
-                {company.has_logo && (
-                  <Button type="button" variant="outline" size="sm" onClick={handleRemoveLogo} disabled={logoBusy}>
-                    <Trash2 data-icon="inline-start" />Remove logo
-                  </Button>
-                )}
-                {logoBusy && <span role="status" className="text-[11px] text-muted-foreground">Uploading…</span>}
-                {logoStatus && !logoBusy && <span role="status" className="text-[11px] font-medium text-success">{logoStatus}</span>}
-              </div>
-              {logoError && <p role="alert" className="text-[11px] text-destructive">{logoError}</p>}
-            </div>
-          )}
-          <p className="mt-4 text-[11px] leading-6 text-muted-foreground">
-            Authorized representative: {representativeName || "Not set"}. Editing your profile does not replace the accreditation review.
-          </p>
-        </Panel>
-      </div>
+        </TabsContent>
+      </TabbedProfileLayout>
 
       <div className="mt-6"><ChangePassword /></div>
     </>

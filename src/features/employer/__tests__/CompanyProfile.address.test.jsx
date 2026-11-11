@@ -33,6 +33,7 @@ describe('CompanyProfile address fields', () => {
       postal_code: '3022',
     })
     await openProfile()
+    fireEvent.click(screen.getByRole('tab', { name: /contact & location/i }))
 
     expect(screen.getByLabelText('City / Municipality')).toHaveValue('Santa Maria')
     expect(screen.getByLabelText('Province / State')).toHaveValue('Bulacan')
@@ -42,6 +43,7 @@ describe('CompanyProfile address fields', () => {
   it('saves the typed city, province, and postal code', async () => {
     getEmployer.mockResolvedValue({ company_name: 'Santa Maria Trading' })
     await openProfile()
+    fireEvent.click(screen.getByRole('tab', { name: /contact & location/i }))
 
     fireEvent.change(screen.getByLabelText('City / Municipality'), { target: { value: 'Angat' } })
     fireEvent.change(screen.getByLabelText('Province / State'), { target: { value: 'Bulacan' } })

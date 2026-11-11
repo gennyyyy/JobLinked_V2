@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render, screen, fireEvent } from '@testing-library/react'
 import CompanyProfile from '../CompanyProfile'
 
 vi.mock('../../../shared/hooks/useAuth', () => ({ default: vi.fn() }))
@@ -27,6 +27,7 @@ describe('CompanyProfile barangay field', () => {
   it('shows an official stored barangay in the dropdown', async () => {
     getEmployer.mockResolvedValue({ company_name: 'Santa Maria Trading', barangay_district: 'Poblacion' })
     await openProfile()
+    fireEvent.click(screen.getByRole('tab', { name: /contact & location/i }))
 
     expect(screen.getByLabelText('Barangay / District')).toHaveValue('Poblacion')
   })
@@ -34,6 +35,7 @@ describe('CompanyProfile barangay field', () => {
   it('keeps a legacy stored barangay that is not in the official list', async () => {
     getEmployer.mockResolvedValue({ company_name: 'Santa Maria Trading', barangay_district: 'Sto. Rosario' })
     await openProfile()
+    fireEvent.click(screen.getByRole('tab', { name: /contact & location/i }))
 
     expect(screen.getByLabelText('Barangay / District')).toHaveValue('Sto. Rosario')
     expect(screen.getByRole('option', { name: 'Sto. Rosario' })).toBeInTheDocument()
