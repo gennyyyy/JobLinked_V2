@@ -14,11 +14,7 @@
     "server": {
       "root": "server",
       "framework": "express",
-      "entrypoint": "src/index.js",
-      "env": {
-        "TRUST_PROXY": "1",
-        "UPLOAD_DIR": "uploads"
-      }
+      "entrypoint": "src/index.js"
     }
   },
   "rewrites": [
