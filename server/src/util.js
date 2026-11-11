@@ -92,3 +92,20 @@ export async function notifyAdmins({ type, title, message, link = null }) {
       [...ids, type, title, message, link]);
   } catch { /* ponytail: best-effort by contract */ }
 }
+
+// Shared tag normalisation: lowercase + trim + dedupe (first occurrence).
+// Job tags share the seeker-skills case domain; fan-out compares
+// case-sensitively against lowercased seeker skills.
+export function normalizeTags(list) {
+  if (!Array.isArray(list)) return [];
+  const seen = new Set();
+  const out = [];
+  for (const t of list) {
+    const v = String(t).trim().toLowerCase();
+    if (!v) continue;
+    if (seen.has(v)) continue;
+    seen.add(v);
+    out.push(v);
+  }
+  return out;
+}

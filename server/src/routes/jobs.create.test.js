@@ -22,12 +22,12 @@ describe('jobs create direct publish', () => {
     expect(create).toContain("const status = b.status === 'draft' ? 'draft' : 'published';");
   });
 
-  it('never produces pending from any create request', () => {
-    expect(create).not.toContain("'pending'");
+  it('may produce pending only when the fee filter holds a post', () => {
+    expect(create).toContain("finalStatus = held && status === 'published' ? 'pending' : status");
   });
 
   it('writes status through writeStatus inside the withTransaction block (S6)', () => {
-    expect(create).toContain('await writeStatus(client, jobId, status, b.remarks ?? null, req.user.id)');
+    expect(create).toContain('await writeStatus(client, jobId, finalStatus, b.remarks ?? null, req.user.id)');
     expect(create).toContain('await withTransaction(async (client) => {');
     expect(create.indexOf('writeStatus(client, jobId')).toBeGreaterThan(create.indexOf('withTransaction'));
     // One history row only: the direct insert is gone, writeStatus owns it.

@@ -2,8 +2,8 @@ import { Router } from 'express';
 import { pool } from '../db.js';
 import { auth, requireRole } from '../auth.js';
 import { requirePermission } from '../middleware/permissions.js';
-import { ah, err, audit, notifyUser, isUuid, pageParams, withTransaction } from '../util.js';
-import { notifyMatchingSeekers } from './jobs.js';
+import { ah, err, audit, notifyUser, isUuid, pageParams, withTransaction, normalizeTags } from '../util.js';
+import { notifyMatchingSeekers, EMPLOYMENT_TYPES } from './jobs.js';
 
 const router = Router();
 const admin = [auth, requireRole('super-admin'), requirePermission('jobs.manage')];
@@ -49,20 +49,30 @@ router.patch('/admin/jobs/:id', ...admin, ah(async (req, res) => {
   if (!jrows[0]) return err(res, 404, 'NOT_FOUND', 'Job not found');
   const job = jrows[0];
   const patch = {};
-  for (const c of ADMIN_JOB_COLS) if (req.body?.[c] !== undefined) patch[c] = req.body[c] === '' && c !== 'title' ? null : req.body[c];
-  if (!Object.keys(patch).length) return err(res, 400, 'BAD_REQUEST', 'Nothing to update');
+  for (const c of ADMIN_JOB_COLS) if (req.body?.[c] !== undefined) patch[c] = c === 'tags' ? normalizeTags(req.body[c]) : (req.body[c] === '' && c !== 'title' ? null : req.body[c]);
   if (patch.status !== undefined && !ADMIN_JOB_STATUSES.includes(patch.status)) {
     return err(res, 400, 'BAD_REQUEST', `status must be one of ${ADMIN_JOB_STATUSES.join(', ')}`);
   }
   if (patch.work_arrangement !== undefined && !ADMIN_JOB_ARRANGEMENTS.includes(patch.work_arrangement)) {
     return err(res, 400, 'BAD_REQUEST', `work_arrangement must be one of ${ADMIN_JOB_ARRANGEMENTS.join(', ')}`);
   }
-  // '' is coerced to null above, and `vacancies int not null` (schema.sql:190)
-  // cannot store null — an emptied or non-integer value must answer 400 here
-  // instead of raising 23502 on the UPDATE.
-  if (patch.vacancies !== undefined && (patch.vacancies === null || !Number.isInteger(Number(patch.vacancies)))) {
-    return err(res, 400, 'BAD_REQUEST', 'vacancies must be a whole number');
+  if (patch.employment_type != null && !EMPLOYMENT_TYPES.includes(patch.employment_type)) {
+    return err(res, 400, 'BAD_REQUEST', `employment_type must be one of ${EMPLOYMENT_TYPES.join(', ')}`);
   }
+  if (patch.vacancies !== undefined && (patch.vacancies === null || !Number.isInteger(Number(patch.vacancies)) || Number(patch.vacancies) <= 0)) {
+    return err(res, 400, 'BAD_REQUEST', 'vacancies must be a positive integer');
+  }
+  if ((patch.salary_min !== undefined || patch.salary_max !== undefined)) {
+    const mn = patch.salary_min !== undefined ? patch.salary_min : job.salary_min;
+    const mx = patch.salary_max !== undefined ? patch.salary_max : job.salary_max;
+    if (mn != null && mn !== '' && mx != null && mx !== '' && Number(mn) > Number(mx)) {
+      return err(res, 400, 'BAD_REQUEST', 'salary_min must be <= salary_max');
+    }
+  }
+  if (patch.deadline !== undefined && patch.deadline !== null && patch.deadline !== '' && isNaN(Date.parse(patch.deadline))) {
+    return err(res, 400, 'BAD_REQUEST', 'deadline must be a valid date');
+  }
+  if (!Object.keys(patch).length) return err(res, 400, 'BAD_REQUEST', 'Nothing to update');
   await withTransaction(async (client) => {
     if (patch.status !== undefined) {
       const { status, ...rest } = patch;
@@ -96,6 +106,11 @@ const adminJobPublish = (status, title) => ah(async (req, res) => {
   const job = jrows[0];
   await withTransaction(async (client) => {
     await adminWriteStatus(client, job.id, status, job.remarks, req.user.id);
+    if (status === 'published') {
+      await client.query(
+        'update job_prohibited_flags set resolved = $2, resolved_by = $3, resolved_at = now() where job_id = $1 and resolved is null',
+        [job.id, 'cleared', req.user.id]);
+    }
   });
   void audit(req.user.id, `job.${status === 'published' ? 'publish' : 'unpublish'}`, 'job_vacancies', job.id);
   void notifyUser(job.company_id, { type: 'job', title, message: `"${job.title}" ${status === 'published' ? 'is now live on the job board.' : 'was unpublished by PESO.'}`, link: '/employer/job-posts' });
