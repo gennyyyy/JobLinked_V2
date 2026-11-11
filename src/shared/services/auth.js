@@ -7,6 +7,11 @@ import { logAudit } from './audit';
 // provisioned' — accept both).
 const needsProvision = (e) => e?.status === 404 || (e?.status === 403 && /not provisioned/i.test(e?.message || ''));
 
+// Shared frontend metadata normalisation: trim + lowercase strings, pass other
+// values through. Server re-normalises authoritatively; this keeps the
+// client-side copy in one place.
+const lower = (value) => (typeof value === 'string' ? value.trim().toLowerCase() : value);
+
 // Supabase surfaces an unreachable/deleted project as a bare "Failed to fetch".
 // Turn that into something the person at the keyboard can act on.
 function friendlyAuthError(error) {
@@ -80,11 +85,11 @@ export async function updateProfile(userId, patch) {
           if (Array.isArray(value)) {
             return Array.isArray(actual)
               && actual.length === value.length
-              && actual.every((item, index) => String(item).trim().toLowerCase() === String(value[index]).trim().toLowerCase());
+              && actual.every((item, index) => lower(String(item)) === lower(String(value[index])));
           }
           if (value == null || value === '') return actual == null || actual === '';
           if (typeof value === 'string' && typeof actual === 'string') {
-            return actual.trim().toLowerCase() === value.trim().toLowerCase();
+            return lower(actual) === lower(value);
           }
           return actual === value;
         });
@@ -124,7 +129,6 @@ const ALLOWED_SIGNUP_ROLES = ['job-seeker', 'employer'];
 export async function signUp({ email, password, role, firstName, middleName = '', lastName, suffix = '', captchaToken, extra = {} }) {
   if (!ALLOWED_SIGNUP_ROLES.includes(role)) throw new Error('Invalid role');
   const fullName = [firstName, middleName, lastName, suffix].filter(Boolean).join(' ');
-  const lower = (value) => typeof value === 'string' ? value.trim().toLowerCase() : value;
   const meta = {
     role,
     first_name: lower(firstName),
@@ -145,7 +149,7 @@ export async function signUp({ email, password, role, firstName, middleName = ''
     country: lower(extra.country) || 'philippines',
     birthdate: extra.birthdate || null,
     employment_status: extra.employmentStatus || null,
-    skills: Array.isArray(extra.skills) ? extra.skills.map((skill) => String(skill).trim().toLowerCase()).filter(Boolean) : [],
+    skills: Array.isArray(extra.skills) ? extra.skills.map((skill) => lower(String(skill))).filter(Boolean) : [],
     education: extra.education ? {
       level: lower(extra.education.level),
       school: lower(extra.education.school),
