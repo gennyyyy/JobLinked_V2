@@ -25,6 +25,7 @@ export function validate(values) {
   if (!values.confirmPassword) e.confirmPassword = "Please confirm your password";
   else if (values.password !== values.confirmPassword) e.confirmPassword = "Passwords do not match";
   if (!values.agree) e.agree = "You must agree to the terms";
+  if (!values.confirmAccurate) e.confirmAccurate = "Please confirm your information is true and correct";
   return e;
 }
 

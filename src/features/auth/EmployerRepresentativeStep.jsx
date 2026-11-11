@@ -7,7 +7,7 @@ function EmployerRepresentativeStep({ errors, setErrors, inputClass, labelClass,
             <section className="surface p-5">
               <p className="font-mono text-[11px] tracking-[0.2em] text-primary uppercase mb-4 font-semibold">Step 2 — Authorized Representative</p>
               <div className="space-y-4">
-                <div className="grid grid-cols-1 gap-3">
+                <div className="grid gap-4 sm:grid-cols-2">
                   <div>
                     <Label htmlFor="repFirstName" className={labelClass}>First Name{reqMark}</Label>
                   <Input id="repFirstName" name="repFirstName" type="text" placeholder="Maria" className={inputClass} onChange={() => { if (errors.repFirstName) setErrors((prev) => ({ ...prev, repFirstName: undefined })); }} />
@@ -23,7 +23,7 @@ function EmployerRepresentativeStep({ errors, setErrors, inputClass, labelClass,
                     {errors.repLastName && <p className="text-danger text-xs mt-1">{errors.repLastName}</p>}
                   </div>
                 </div>
-                <div className="grid grid-cols-1 gap-3">
+                <div className="grid gap-4 sm:grid-cols-2">
                   <div>
                     <Label htmlFor="repSuffix" className={labelClass}>Suffix <span className="text-muted-foreground font-normal">(optional)</span></Label>
                   <Input id="repSuffix" name="repSuffix" type="text" placeholder="Jr., Sr., III" className={inputClass} />
@@ -39,7 +39,7 @@ function EmployerRepresentativeStep({ errors, setErrors, inputClass, labelClass,
                     {errors.repBirthdate && <p className="text-danger text-xs mt-1">{errors.repBirthdate}</p>}
                   </div>
                 </div>
-                <div className="grid grid-cols-1 gap-3">
+                <div className="grid gap-4 sm:grid-cols-2">
                   <div>
                     <Label htmlFor="repMobile" className={labelClass}>Representative Mobile{reqMark}</Label>
                     <div className="relative">

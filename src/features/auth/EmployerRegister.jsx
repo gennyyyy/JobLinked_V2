@@ -1,5 +1,4 @@
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
@@ -142,14 +141,35 @@ function EmployerRegister() {
               <div role="alert" className="p-3.5 rounded-xl bg-danger/10 border border-danger/20 text-danger text-xs font-medium">{error}</div>
             )}
 
-            <div className="flex items-start gap-2.5 text-xs text-muted-foreground">
-              <Input id="agree" type="checkbox" name="agree" checked={agree} disabled={!termsRead} onChange={(e) => { setAgree(e.target.checked); if (errors.agree) setErrors((prev) => ({ ...prev, agree: undefined })); }} className="mt-0.5 accent-primary shrink-0 disabled:opacity-50 disabled:cursor-not-allowed" />
-              <div>
+            <div className="text-xs text-muted-foreground">
+              <div className="flex items-center gap-2.5">
+                <input id="agree" type="checkbox" name="agree" checked={agree} disabled={!termsRead} onChange={(e) => { setAgree(e.target.checked); if (errors.agree) setErrors((prev) => ({ ...prev, agree: undefined })); }} className="size-4 shrink-0 accent-primary disabled:opacity-50 disabled:cursor-not-allowed" />
                 <Label htmlFor="agree" className={!termsRead ? "cursor-not-allowed opacity-70" : "cursor-pointer"}>I agree to the municipal data collection terms and PESO privacy policies.{reqMark}</Label>
-                <Button type="button" onClick={() => setTermsOpen(true)} className="ml-1 whitespace-nowrap text-primary hover:underline underline-offset-4">View terms</Button>
-                {!termsRead && <p className="mt-1 text-muted-foreground">Please open and read the terms before agreeing.</p>}
-                {errors.agree && <p className="text-danger text-xs mt-1">{errors.agree}</p>}
               </div>
+              <div className="ml-[26px] mt-0.5">
+                <button type="button" onClick={() => setTermsOpen(true)} className="text-xs leading-4 text-primary hover:underline underline-offset-4">View terms</button>
+                {!termsRead && <p className="mt-0.5 text-muted-foreground">Please open and read the terms before agreeing.</p>}
+              </div>
+              {errors.agree && <p className="mt-1 text-danger">{errors.agree}</p>}
+            </div>
+
+            <div data-invalid={!!errors.confirmAccurate}>
+              <Label htmlFor="confirmAccurate" className="flex items-center gap-2.5 text-xs text-muted-foreground">
+                <input
+                  id="confirmAccurate"
+                  name="confirmAccurate"
+                  type="checkbox"
+                  required
+                  aria-invalid={!!errors.confirmAccurate}
+                  aria-describedby={errors.confirmAccurate ? "confirmAccurate-error" : undefined}
+                  onChange={() => {
+                    if (errors.confirmAccurate) setErrors((prev) => ({ ...prev, confirmAccurate: undefined }));
+                  }}
+                  className="size-4 shrink-0 accent-primary"
+                />
+                <span>I confirm that all the information I provided is true and correct to the best of my knowledge.{reqMark}</span>
+              </Label>
+              {errors.confirmAccurate && <p id="confirmAccurate-error" role="alert" className="mt-1 text-xs text-danger">{errors.confirmAccurate}</p>}
             </div>
 
             {captcha.required && <Turnstile onToken={captcha.setToken} resetKey={captcha.round} />}

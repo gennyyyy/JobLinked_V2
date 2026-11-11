@@ -60,6 +60,7 @@ function fillRequired() {
   fireEvent.change(screen.getByLabelText(/birthday/i), { target: { value: '1990-05-04' } })
   fireEvent.change(screen.getByLabelText(/representative mobile/i), { target: { value: '09171234567' } })
   fireEvent.change(screen.getByLabelText(/representative email/i), { target: { value: 'maria@company.com' } })
+  fireEvent.click(screen.getByRole('checkbox', { name: /all the information i provided is true and correct/i }))
 }
 
 function submit() {
@@ -136,6 +137,16 @@ describe('EmployerRegister address', () => {
 
     await waitFor(() => expect(screen.getByText(/city \/ municipality is required/i)).toBeInTheDocument())
     expect(screen.getByText(/province is required/i)).toBeInTheDocument()
+    expect(signUp).not.toHaveBeenCalled()
+  })
+
+  it('requires confirmation that the provided information is correct', async () => {
+    renderPage()
+    fillRequired()
+    fireEvent.click(screen.getByRole('checkbox', { name: /all the information i provided is true and correct/i }))
+    submit()
+
+    await waitFor(() => expect(screen.getByText(/please confirm your information is true and correct/i)).toBeInTheDocument())
     expect(signUp).not.toHaveBeenCalled()
   })
 })

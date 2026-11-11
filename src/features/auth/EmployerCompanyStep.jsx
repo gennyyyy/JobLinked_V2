@@ -8,6 +8,7 @@ function EmployerCompanyStep({ errors, setErrors, inputClass, labelClass, reqMar
             <section className="surface p-5">
               <p className="font-mono text-[11px] tracking-[0.2em] text-primary uppercase mb-4 font-semibold">Step 1 — Company Details</p>
               <div className="space-y-4">
+                <div className="grid gap-4 sm:grid-cols-2">
                 <div>
                   <Label htmlFor="companyName" className={labelClass}>Company / Trade Name{reqMark}</Label>
                   <Input id="companyName" name="companyName" type="text" placeholder="e.g. Santa Maria Logistics Inc." className={inputClass} onChange={() => { if (errors.companyName) setErrors((prev) => ({ ...prev, companyName: undefined })); }} />
@@ -18,14 +19,15 @@ function EmployerCompanyStep({ errors, setErrors, inputClass, labelClass, reqMar
                   <Input id="industry" name="industry" type="text" placeholder="e.g. Manufacturing, IT, Retail" className={inputClass} onChange={() => { if (errors.industry) setErrors((prev) => ({ ...prev, industry: undefined })); }} />
                   {errors.industry && <p className="text-danger text-xs mt-1">{errors.industry}</p>}
                 </div>
+                </div>
                 <div>
                   <p className={labelClass}>Address Information</p>
-                  <div className="grid grid-cols-1 gap-3">
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <div>
                       <Label htmlFor="houseNumberUnit" className={labelClass}>House / Building / Unit No. <span className="text-muted-foreground font-normal">(optional)</span></Label>
                       <Input id="houseNumberUnit" name="houseNumberUnit" type="text" placeholder="e.g. Unit 402 or Bldg 3" className={inputClass} />
                     </div>
-                    <div>
+                    <div className="sm:col-span-2">
                       <Label htmlFor="streetAddress" className={labelClass}>Street Address & Lot / Block{reqMark}</Label>
                       <Input id="streetAddress" name="streetAddress" type="text" placeholder="e.g. Norzagaray-Santa Maria Road" className={inputClass} onChange={() => { if (errors.streetAddress) setErrors((prev) => ({ ...prev, streetAddress: undefined })); }} />
                       {errors.streetAddress && <p className="text-danger text-xs mt-1">{errors.streetAddress}</p>}
@@ -64,7 +66,7 @@ function EmployerCompanyStep({ errors, setErrors, inputClass, labelClass, reqMar
                     </div>
                   </div>
                 </div>
-                <div>
+                <div className="grid gap-4 sm:grid-cols-2">
                   <div>
                     <Label htmlFor="contactNumber" className={labelClass}>Company Contact No.{reqMark}</Label>
                     <div className="relative">
@@ -73,13 +75,13 @@ function EmployerCompanyStep({ errors, setErrors, inputClass, labelClass, reqMar
                     </div>
                     {errors.contactNumber && <p className="text-danger text-xs mt-1">{errors.contactNumber}</p>}
                   </div>
+                  <div>
+                    <Label htmlFor="companyEmail" className={labelClass}>Official Company Email{reqMark}</Label>
+                    <Input id="companyEmail" name="companyEmail" type="email" placeholder="hr@company.com" className={inputClass} onChange={() => { if (errors.companyEmail) setErrors((prev) => ({ ...prev, companyEmail: undefined })); }} />
+                    {errors.companyEmail && <p className="text-danger text-xs mt-1">{errors.companyEmail}</p>}
+                  </div>
                 </div>
-                <div>
-                  <Label htmlFor="companyEmail" className={labelClass}>Official Company Email{reqMark}</Label>
-                  <Input id="companyEmail" name="companyEmail" type="email" placeholder="hr@company.com" className={inputClass} onChange={() => { if (errors.companyEmail) setErrors((prev) => ({ ...prev, companyEmail: undefined })); }} />
-                  {errors.companyEmail && <p className="text-danger text-xs mt-1">{errors.companyEmail}</p>}
-                </div>
-                <div className="grid grid-cols-1 gap-3 pt-2">
+                <div className="grid gap-4 pt-2 sm:grid-cols-2">
                   <div>
                     <Label htmlFor="password" className={labelClass}>Password{reqMark}</Label>
                     <Input id="password" name="password" type="password" placeholder="Min. 8 characters" className={inputClass} onChange={() => { if (errors.password) setErrors((prev) => ({ ...prev, password: undefined })); }} />
