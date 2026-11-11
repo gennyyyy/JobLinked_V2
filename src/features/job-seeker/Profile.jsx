@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Eye, FileText, ImagePlus, Save, Settings2, Trash2, UploadCloud, UserRound } from 'lucide-react'
+import { Eye, FileText, ImagePlus, Settings2, Trash2, UploadCloud, UserRound } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import useAuth from '@/shared/hooks/useAuth'
@@ -11,8 +11,9 @@ import { listEducation, addEducation, removeEducation } from '@/shared/services/
 import { PageSkeleton } from '@/shared/components/Skeletons'
 import { InlineError } from '@/shared/components/dashboard'
 import ConfirmationModal from '@/shared/components/ConfirmationModal'
-import { PageHeading, Panel, TextField, SelectField, Notice, EmptyState } from '@/shared/components/design'
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
+import { Panel, TextField, SelectField, Notice, EmptyState } from '@/shared/components/design'
+import TabbedProfileLayout from '@/shared/components/TabbedProfileLayout'
+import { TabsContent } from '@/components/ui/tabs'
 import { SANTA_MARIA_BARANGAYS } from '@/shared/constants'
 import { EDUCATION_LEVELS } from '../auth/jobSeekerRegistration'
 import TagField from './TagField'
@@ -28,6 +29,13 @@ const EMPTY_FORM = {
   cityMunicipality: '', provinceState: '', postalCode: '',
   education: '', experience: '', skills: '',
 }
+
+const PROFILE_TABS = [
+  { value: 'personal', label: 'Personal', title: 'Personal & contact details', description: 'Use the information employers need to reach you.' },
+  { value: 'address', label: 'Address', title: 'Address', description: 'Where employers and PESO can reach you.' },
+  { value: 'education', label: 'Education', title: 'Education, experience & skills', description: 'These details power simple, transparent skill matching.' },
+  { value: 'resumes', label: 'My resumes', title: 'My resumes', description: 'Manage the resumes you share with employers.' },
+]
 
 function formFromUser(user) {
   if (!user) return EMPTY_FORM
@@ -387,33 +395,28 @@ function Profile() {
 
   return (
     <>
-      <PageHeading
-        title="Your story, your next step."
-        description="Give local employers a clear picture of your experience and the skills you bring."
-      />
-      <div className="grid items-start gap-6 xl:grid-cols-[1fr_280px]">
-        <form onSubmit={handleSubmit} className="flex min-w-0 flex-col gap-6" noValidate>
-          <Tabs value={tab} onValueChange={setTab} className="gap-0">
-            <Panel
-              title={{
-                personal: 'Personal & contact details',
-                address: 'Address',
-                education: 'Education, experience & skills',
-                resumes: 'My resumes',
-              }[tab]}
-              description={{
-                personal: 'Use the information employers need to reach you.',
-                address: 'Where employers and PESO can reach you.',
-                education: 'These details power simple, transparent skill matching.',
-                resumes: 'Manage the resumes you share with employers.',
-              }[tab]}
-            >
-            <TabsList className="mb-5 w-full">
-              <TabsTrigger value="personal">Personal</TabsTrigger>
-              <TabsTrigger value="address">Address</TabsTrigger>
-              <TabsTrigger value="education">Education</TabsTrigger>
-              <TabsTrigger value="resumes">My resumes</TabsTrigger>
-            </TabsList>
+      <TabbedProfileLayout
+        pageTitle="Your story, your next step."
+        pageDescription="Give local employers a clear picture of your experience and the skills you bring."
+        tabs={PROFILE_TABS}
+        activeTab={tab}
+        onTabChange={setTab}
+        onSubmit={handleSubmit}
+        saving={saving}
+        saveLabel="Save my profile"
+        savingLabel="Saving…"
+        saveHint={saved ? 'Profile saved.' : 'Changes are saved to your JobLinked account.'}
+        sidebar={(
+          <Panel title="A profile that feels like you">
+            <p className="text-sm font-semibold text-navy">{form.name || 'Job Seeker'}</p>
+            <p className="mt-2 text-xs leading-6 text-muted-foreground">{form.headline || 'Add a professional headline to introduce yourself.'}</p>
+            <p className="mt-4 text-xs font-medium text-teal">{completion}% complete</p>
+            <div className="mt-4 flex flex-wrap gap-1.5">
+              {skills.map((skill) => <Badge key={skill} variant="secondary">{skill}</Badge>)}
+            </div>
+          </Panel>
+        )}
+      >
             <TabsContent value="personal">
           <div className="flex flex-col gap-5">
             <div className="flex flex-wrap items-center gap-4 rounded-lg border border-dashed border-border bg-muted/30 p-4">
@@ -601,27 +604,7 @@ function Profile() {
                 </p>
               </div>
             </TabsContent>
-            </Panel>
-          </Tabs>
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <p role="status" className="text-[11px] text-muted-foreground">{saved ? 'Profile saved.' : 'Changes are saved to your JobLinked account.'}</p>
-            <Button type="submit" disabled={saving}>
-              <Save data-icon="inline-start" />
-              {saving ? 'Saving…' : 'Save my profile'}
-            </Button>
-          </div>
-        </form>
-        <div className="flex flex-col gap-5">
-          <Panel title="A profile that feels like you">
-            <p className="text-sm font-semibold text-navy">{form.name || 'Job Seeker'}</p>
-            <p className="mt-2 text-xs leading-6 text-muted-foreground">{form.headline || 'Add a professional headline to introduce yourself.'}</p>
-            <p className="mt-4 text-xs font-medium text-teal">{completion}% complete</p>
-            <div className="mt-4 flex flex-wrap gap-1.5">
-              {skills.map((skill) => <Badge key={skill} variant="secondary">{skill}</Badge>)}
-            </div>
-          </Panel>
-        </div>
-      </div>
+      </TabbedProfileLayout>
 
       {pendingDelete && (
         <ConfirmationModal
