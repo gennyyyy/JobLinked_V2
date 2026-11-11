@@ -3,15 +3,15 @@ import { pool } from '../db.js';
 import { auth, optionalAuth, requireRole } from '../auth.js';
 import { ah, err, audit, notifyAdmins, notifyUser, isUuid, likeEscape, normalizeTags, pageParams, withTransaction } from '../util.js';
 import { scanJob, FEE_BLOCK_TERMS, FEE_HOLD_TERMS } from '../services/jobFeeFilter.js';const router = Router();
-export const JOB_STATUSES = ['draft', 'pending', 'approved', 'rejected', 'published', 'closed', 'archived'];
+const JOB_STATUSES = ['draft', 'pending', 'approved', 'rejected', 'published', 'closed', 'archived'];
 // Employer writes must not set the PESO review statuses — pending/approved/
 // rejected belong to the admin review flow (audit noise + a job that can jump
 // the accreditation gate). Owners get this set; super-admins keep the full
 // enum. No employer UI sends the review values (JobPosts: draft/published/
 // closed/archived only).
-export const EMPLOYER_JOB_STATUSES = ['draft', 'published', 'closed', 'archived'];
+const EMPLOYER_JOB_STATUSES = ['draft', 'published', 'closed', 'archived'];
 const jobStatusesFor = (user) => (user?.role === 'super-admin' ? JOB_STATUSES : EMPLOYER_JOB_STATUSES);
-export const JOB_ARRANGEMENTS = ['On-site', 'Remote / Work from home', 'Hybrid'];
+const JOB_ARRANGEMENTS = ['On-site', 'Remote / Work from home', 'Hybrid'];
 // One canonical employment_type list (ADR-046): mirrors db/seed.sql and the
 // job_vacancies CHECK in db/migrations/012_normalize_fixes.sql + schema.sql.
 // admin-jobs.js and the employer form import this constant — change the list
@@ -171,7 +171,7 @@ router.get('/employers/:employerId/jobs', auth, ah(async (req, res) => {
   res.json({ data: rows.map(embed), total, page: pg.page, pageSize: pg.pageSize, counts });
 }));
 
-export const JOB_COLS = ['title', 'office', 'location', 'employment_type', 'work_arrangement', 'salary_min', 'salary_max',
+const JOB_COLS = ['title', 'office', 'location', 'employment_type', 'work_arrangement', 'salary_min', 'salary_max',
   'description', 'requirements', 'benefits', 'vacancies', 'deadline', 'instructions', 'tags', 'status', 'remarks'];
 
 // Best-effort seeker matching on publish (skills overlap or location match).
