@@ -31,14 +31,7 @@ const { mapResumeText } = await import("../src/shared/utils/resumeAutofill.js");
 pdfjsLib.GlobalWorkerOptions.workerSrc = "pdfjs-dist/legacy/build/pdf.worker.min.mjs";
 
 const GOLDEN_DIR = path.resolve("sample_pdf", "golden");
-const args = Object.fromEntries(
-  process.argv.slice(2).map((a) => {
-    const m = /^--([^=]+)=(.*)$/.exec(a);
-    return m ? [m[1], m[2]] : [a.replace(/^--/, ""), "true"];
-  }),
-);
-const MODE = args.mode === "llm" ? "llm" : "heuristic";
-const BASE = (args.base || "http://localhost:4000").replace(/\/$/, "");
+const MODE = "heuristic";
 const FIELDS = [
   "firstName",
   "middleName",
@@ -164,7 +157,6 @@ async function main() {
     .sort();
 
   let failed = 0;
-  let needsServerCount = 0;
   for (const file of sources) {
     const ext = file.endsWith(".pdf") ? "pdf" : "docx";
     const base = file.slice(0, -(ext.length + 1));
@@ -193,31 +185,7 @@ async function main() {
       continue;
     }
 
-    let got;
-    let needsServer = false;
-    if (MODE === "llm") {
-      try {
-        const res = await fetch(`${BASE}/api/ai/resume-extract`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ text }),
-        });
-        if (!res.ok) needsServer = true;
-        else {
-          const body = await res.json();
-          if (body && body.fields) got = body.fields;
-          else needsServer = true;
-        }
-      } catch {
-        needsServer = true;
-      }
-    }
-    if (needsServer) {
-      report.files.push({ file, needsServer: true, error: "needs-server: endpoint unreachable or returned non-OK" });
-      needsServerCount++;
-      continue;
-    }
-    if (!got) got = mapResumeText(text);
+    const got = mapResumeText(text);
 
     const fields = {};
     for (const field of FIELDS) {
@@ -243,9 +211,9 @@ async function main() {
     report.files.push({ file, fields });
   }
 
-  const scored = report.files.filter((f) => !f.failed && !f.needsServer).length;
+  const scored = report.files.filter((f) => !f.failed).length;
   console.log(`mode: ${report.mode}`);
-  console.log(`files: ${scored} scored, ${failed} failed, ${needsServerCount} needs-server`);
+  console.log(`files: ${scored} scored, ${failed} failed`);
   printTable(report);
   console.log();
   console.log(JSON.stringify(report, null, 2));
