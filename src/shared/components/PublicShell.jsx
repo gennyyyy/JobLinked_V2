@@ -1,4 +1,4 @@
-﻿import { useState } from "react";
+import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { MapPin, Menu, ArrowRight, ArrowUpRight } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
@@ -8,7 +8,7 @@ import { Logo, LinkButton } from "./design";
 import { cn } from "@/lib/utils";
 import useAuth from "../hooks/useAuth";
 
-const links = [['Home', '/'], ['Find Jobs', '/jobs'], ['How It Works', '/#how-it-works'], ['PESO Services', '/#peso-services'], ['About', '/#about'], ['FAQ', '/#faq']];
+const links = [['Home', '/'], ['Find Jobs', '/jobs'], ['How It Works', '/how-it-works'], ['PESO Services', '/#peso-services'], ['About', '/#about'], ['FAQ', '/#faq']];
 
 export function PublicShell({ children }) {
   const { pathname } = useLocation();

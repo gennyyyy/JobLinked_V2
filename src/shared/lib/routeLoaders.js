@@ -10,6 +10,7 @@ export const routeLoaders = {
   '/': () => import('../../features/public-site/Landing'),
   '/jobs': () => import('../../features/public-site/PublicJobs'),
   '/jobs/:id': () => import('../../features/public-site/PublicJobDetail'),
+  '/how-it-works': () => import('../../features/public-site/HowItWorks'),
   '/privacy': () => import('../../features/public-site/Legal'),
   '/terms': () => import('../../features/public-site/Legal'),
   '/forgot-password': () => import('../../features/auth/ForgotPassword'),
