@@ -1,0 +1,16 @@
+{
+  "fields": {
+    "firstName": "Juan Miguel",
+    "lastName": "Dela Cruz",
+    "streetAddress": "Purok 2",
+    "barangayDistrict": "Bagong Silang",
+    "cityMunicipality": "Santa Maria",
+    "provinceState": "Bulacan",
+    "postalCode": "3022",
+    "education": {
+      "level": "Vocational",
+      "school": "TESDA Regional Training Center"
+    }
+  },
+  "skills": ["Electrical", "Welding", "Carpentry", "Plumbing"]
+}

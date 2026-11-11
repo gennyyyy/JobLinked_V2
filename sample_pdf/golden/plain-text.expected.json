@@ -1,0 +1,18 @@
+{
+  "fields": {
+    "firstName": "Benigno",
+    "middleName": "Aquino",
+    "lastName": "Reyes",
+    "houseNumberUnit": "Block 3 Lot 8",
+    "streetAddress": "Sampaguita Street",
+    "barangayDistrict": "Concepcion",
+    "cityMunicipality": "Santa Maria",
+    "provinceState": "Bulacan",
+    "postalCode": "3022",
+    "education": {
+      "level": "High School",
+      "school": "Santa Maria National High School"
+    }
+  },
+  "skills": ["Driving", "Delivery", "Warehouse", "Security", "Communication"]
+}

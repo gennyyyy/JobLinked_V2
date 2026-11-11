@@ -1,0 +1,16 @@
+{
+  "fields": {
+    "firstName": "Liza",
+    "lastName": "Ramos",
+    "streetAddress": "15 Luna Street",
+    "barangayDistrict": "Malinis",
+    "cityMunicipality": "Caloocan City",
+    "provinceState": "Metro Manila",
+    "postalCode": "1400",
+    "education": {
+      "level": "Senior High School",
+      "school": "Caloocan National High School"
+    }
+  },
+  "skills": ["Communication", "Customer Service", "Data Entry", "Time Management", "Microsoft Excel", "Inventory", "Sales", "Teamwork"]
+}

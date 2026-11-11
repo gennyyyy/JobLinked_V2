@@ -1,7 +1,6 @@
-import { useState, useRef } from "react";
-import { mapResumeText, mergeResumeFields } from "@/shared/utils/resumeAutofill";
+import { useState } from "react";
+import { mapResumeText } from "@/shared/utils/resumeAutofill";
 import { MAX_PDF_SIZE, MAX_RESUME_SIZE } from "./jobSeekerRegistration";
-import { api } from "@/shared/lib/api";
 
 const FIELD_LABELS = {
   firstName: "First name",
@@ -24,14 +23,6 @@ const FIELD_LABELS = {
 export function useResumeAutofill({ form, setForm, setEducation }) {
   const [autofillStatus, setAutofillStatus] = useState("");
   const [touched, setTouched] = useState([]);
-  const [consentState, setConsentState] = useState(false);
-  const consentRef = useRef(false);
-  const consent = consentState;
-  const setConsent = (v) => {
-    consentRef.current = !!v;
-    setConsentState(!!v);
-  };
-
   async function handleResumeChange(event) {
     const file = event.target.files?.[0];
     event.target.value = "";
@@ -56,24 +47,7 @@ export function useResumeAutofill({ form, setForm, setEducation }) {
     try {
       const { extractResumeText } = await import("@/shared/lib/resumeText");
       const text = await extractResumeText(file);
-      const heuristic = mapResumeText(text);
-
-      let mapped = heuristic;
-      let usedAi = false;
-      let aiFailed = false;
-      if (consentRef.current) {
-        try {
-          const body = await api.post("ai/resume-extract", { text });
-          if (body?.fields) {
-            mapped = mergeResumeFields(heuristic, body.fields);
-            usedAi = true;
-          } else {
-            aiFailed = true;
-          }
-        } catch {
-          aiFailed = true;
-        }
-      }
+      const mapped = mapResumeText(text);
 
       const skills = Array.isArray(mapped.skills) ? mapped.skills : [];
 
@@ -150,9 +124,7 @@ export function useResumeAutofill({ form, setForm, setEducation }) {
       setTouched(touchedKeys);
       if (touchedKeys.length) {
         const labels = touchedKeys.map((k) => FIELD_LABELS[k]).join(", ");
-        const prefix = usedAi ? "Autofill done with AI" : "Autofill done";
-        const suffix = aiFailed ? " — AI read unavailable, used built-in detection" : "";
-        setAutofillStatus(`${prefix} — please check: ${labels}${suffix}.`);
+        setAutofillStatus(`Autofill done — please check: ${labels}.`);
       } else {
         setAutofillStatus("Couldn't find any details to fill in — enter them manually.");
       }
@@ -162,5 +134,5 @@ export function useResumeAutofill({ form, setForm, setEducation }) {
     }
   }
 
-  return { autofillStatus, touched, consent, consentRef, setConsent, handleResumeChange };
+  return { autofillStatus, touched, handleResumeChange };
 }

@@ -83,6 +83,7 @@ function fillRequired() {
   fireEvent.click(screen.getByRole('button', { name: /view terms/i }))
   fireEvent.click(screen.getByRole('checkbox', { name: /agree to the municipal/i }))
   fireEvent.click(screen.getByRole('checkbox', { name: /true and correct/i }))
+  fireEvent.click(screen.getByRole('checkbox', { name: /resume autofill can make mistakes/i }))
 }
 
 describe('JobSeekerRegister autofill', () => {
@@ -165,6 +166,7 @@ describe('JobSeekerRegister autofill', () => {
     fireEvent.click(screen.getByRole('button', { name: /view terms/i }))
     fireEvent.click(screen.getByRole('checkbox', { name: /agree to the municipal/i }))
     fireEvent.click(screen.getByRole('checkbox', { name: /true and correct/i }))
+    fireEvent.click(screen.getByRole('checkbox', { name: /resume autofill can make mistakes/i }))
     fireEvent.click(screen.getByRole('button', { name: /create account/i }))
 
     await waitFor(() => expect(signUp).toHaveBeenCalled())
@@ -191,6 +193,7 @@ describe('JobSeekerRegister autofill', () => {
     fireEvent.click(screen.getByRole('button', { name: /view terms/i }))
     fireEvent.click(screen.getByRole('checkbox', { name: /agree to the municipal/i }))
     fireEvent.click(screen.getByRole('checkbox', { name: /true and correct/i }))
+    fireEvent.click(screen.getByRole('checkbox', { name: /resume autofill can make mistakes/i }))
     fireEvent.click(screen.getByRole('button', { name: /create account/i }))
 
     await waitFor(() => expect(signUp).toHaveBeenCalled())
@@ -238,6 +241,7 @@ describe('JobSeekerRegister autofill', () => {
     fireEvent.click(screen.getByRole('button', { name: /view terms/i }))
     fireEvent.click(screen.getByRole('checkbox', { name: /agree to the municipal/i }))
     fireEvent.click(screen.getByRole('checkbox', { name: /true and correct/i }))
+    fireEvent.click(screen.getByRole('checkbox', { name: /resume autofill can make mistakes/i }))
     fireEvent.click(screen.getByRole('button', { name: /create account/i }))
 
     await waitFor(() => expect(signUp).toHaveBeenCalled())
@@ -396,51 +400,30 @@ describe('JobSeekerRegister captcha', () => {
   })
 })
 
-describe('JobSeekerRegister autofill (consent)', () => {
+describe('JobSeekerRegister resume autofill', () => {
   beforeEach(() => vi.clearAllMocks())
 
-  it('uses the heuristic path when consent is off', async () => {
+  it('uses built-in extraction and asks the user to review the results', async () => {
     extractResumeText.mockResolvedValue(TEXT)
     const fetchMock = vi.fn()
     vi.stubGlobal('fetch', fetchMock)
     renderPage()
+    expect(screen.getByRole('checkbox', { name: /resume autofill can make mistakes/i })).toBeInTheDocument()
     pickFile()
     await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent(/Autofill done — please check:/i))
     expect(fetchMock).not.toHaveBeenCalled()
     vi.unstubAllGlobals()
   })
+})
 
-  it('calls the AI endpoint and merges fields when consent is on', async () => {
-    extractResumeText.mockResolvedValue(TEXT)
-    const fetchMock = vi.fn().mockResolvedValue({
-      ok: true,
-      status: 200,
-      text: async () => JSON.stringify({ fields: { firstName: 'AI Juan', skills: ['AI Skill'] }, meta: { model: 'm', tookMs: 1 } }),
-      json: async () => ({ fields: { firstName: 'AI Juan', skills: ['AI Skill'] }, meta: { model: 'm', tookMs: 1 } }),
-    })
-    vi.stubGlobal('fetch', fetchMock)
+describe('JobSeekerRegister resume review acknowledgement', () => {
+  it('requires confirmation to review resume autofill information', async () => {
     renderPage()
-    fireEvent.click(screen.getByLabelText(/use ai to read my resume/i))
-    pickFile()
-    await waitFor(() => expect(fetchMock).toHaveBeenCalled())
-    expect(fetchMock).toHaveBeenCalled()
-    await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent(/Autofill done with AI — please check:/i))
-    expect(fetchMock).toHaveBeenCalledWith(expect.stringContaining('/api/ai/resume-extract'), expect.anything())
-    expect(screen.getByLabelText(/^first name/i)).toHaveValue('AI Juan')
-    expect(screen.getByLabelText(/email address/i)).toHaveValue('juan.delacruz@example.com')
-    expect(screen.getByText('AI Skill')).toBeInTheDocument()
-    vi.unstubAllGlobals()
-  })
+    fillRequired()
+    fireEvent.click(screen.getByRole('checkbox', { name: /resume autofill can make mistakes/i }))
+    fireEvent.click(screen.getByRole('button', { name: /create account/i }))
 
-  it('falls back to built-in detection when the AI endpoint fails', async () => {
-    extractResumeText.mockResolvedValue(TEXT)
-    const fetchMock = vi.fn().mockResolvedValue({ ok: false, status: 503, text: async () => JSON.stringify({ error: { code: 'AI_NOT_CONFIGURED' } }), json: async () => ({ error: { code: 'AI_NOT_CONFIGURED' } }) })
-    vi.stubGlobal('fetch', fetchMock)
-    renderPage()
-    fireEvent.click(screen.getByLabelText(/use ai to read my resume/i))
-    pickFile()
-    await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent(/AI read unavailable/i))
-    expect(screen.getByLabelText(/^first name/i)).toHaveValue('Juan')
-    vi.unstubAllGlobals()
+    expect(await screen.findByText(/please confirm you will review the resume autofill information/i)).toBeInTheDocument()
+    expect(signUp).not.toHaveBeenCalled()
   })
 })

@@ -1,0 +1,18 @@
+{
+  "fields": {
+    "firstName": "Maria",
+    "middleName": "Clara",
+    "lastName": "Santos",
+    "houseNumberUnit": "Blk 7 Lot 12",
+    "streetAddress": "Mabini Street",
+    "barangayDistrict": "San Isidro",
+    "cityMunicipality": "Santa Maria",
+    "provinceState": "Bulacan",
+    "postalCode": "3022",
+    "education": {
+      "level": "College",
+      "school": "Polytechnic University of the Philippines"
+    }
+  },
+  "skills": ["Programming", "SQL", "JavaScript", "Teamwork"]
+}

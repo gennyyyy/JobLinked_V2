@@ -2,32 +2,34 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { EMPLOYMENT_STATUSES } from "@/shared/constants";
 import { normalizePhone, withPrefix } from "@/shared/utils/phone";
+import ResumePicker from "@/shared/components/ResumePicker";
 
-function JobSeekerPersonalStep({ form, errors, set, autofillStatus, autofillTouched = [], consent = false, onConsentChange, handleResumeChange, inputClass, labelClass, reqMark }) {
+function JobSeekerPersonalStep({ form, errors, set, autofillStatus, autofillTouched = [], handleResumeChange, inputClass, labelClass, reqMark }) {
   return (
             <section className="surface p-5">
               <p className="font-mono text-[11px] tracking-[0.2em] text-primary uppercase mb-4 font-semibold">Step 1 — Personal Details</p>
               <div className="space-y-4">
-            <section className="rounded-xl border border-dashed border-primary/40 bg-primary/5 p-4">
-              <Label htmlFor="resumeAutofill" className={`${labelClass} text-primary`}>Autofill from resume (PDF or DOCX only)</Label>
-              <Input
-                id="resumeAutofill"
-                type="file"
-                accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-                onChange={handleResumeChange}
-                className="block w-full text-xs text-muted-foreground file:mr-3 file:min-h-[40px] file:px-4 file:rounded-xl file:border-0 file:bg-primary file:text-white file:text-xs file:font-semibold hover:file:bg-primary-hover file:cursor-pointer cursor-pointer"
-              />
-              <p className="mt-2 text-xs text-muted-foreground">PDF up to 2 MB or DOCX up to 5 MB. We'll fill in details below; review and edit them before continuing.</p>
-              <label className="mt-2 flex items-start gap-2 text-xs text-muted-foreground">
-                <input type="checkbox" checked={consent} onChange={(e) => onConsentChange?.(e.target.checked)} aria-invalid={errors?.consent ? 'true' : undefined} data-invalid={!!errors?.consent} className="mt-0.5" />
-                <span>Use AI to read my resume — sends the file's text to an AI service.</span>
-              </label>
-              {autofillStatus && (
-                <p role="status" aria-live="polite" data-autofill-touched={autofillTouched.join(",")} className="mt-2 text-xs font-medium text-primary">{autofillStatus}</p>
-              )}
-            </section>
+            <ResumePicker
+              id="resumeAutofill"
+              label="Autofill from resume (PDF or DOCX only)"
+              labelClassName={labelClass}
+              accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+              onChange={handleResumeChange}
+              help="PDF up to 2 MB or DOCX up to 5 MB. We'll fill in details below; review and edit them before continuing."
+              status={autofillStatus}
+              statusProps={{ "data-autofill-touched": autofillTouched.join(",") }}
+              reviewAcknowledgement={{
+                id: "resumeReviewConfirmed",
+                required: true,
+                checked: form.resumeReviewConfirmed,
+                onChange: (checked) => set("resumeReviewConfirmed", checked),
+                error: errors.resumeReviewConfirmed,
+                label: "I understand resume autofill can make mistakes and will review and correct the extracted information before continuing.",
+              }}
+            >
+            </ResumePicker>
 
-            <div className="grid grid-cols-1 gap-3">
+            <div className="grid gap-4 sm:grid-cols-2">
               <div data-invalid={!!errors.firstName}>
                 <Label htmlFor="firstName" className={labelClass}>First Name{reqMark}</Label>
                 <Input id="firstName" name="firstName" type="text" placeholder="Juan" value={form.firstName} onChange={(e) => set("firstName", e.target.value)} className={inputClass} />
@@ -43,7 +45,7 @@ function JobSeekerPersonalStep({ form, errors, set, autofillStatus, autofillTouc
                 {errors.lastName && <p className="text-danger text-xs mt-1">{errors.lastName}</p>}
               </div>
             </div>
-            <div className="grid grid-cols-1 gap-3">
+            <div className="grid gap-4 sm:grid-cols-2">
               <div>
                 <Label htmlFor="suffix" className={labelClass}>Suffix <span className="text-muted-foreground font-normal">(optional)</span></Label>
                 <Input id="suffix" name="suffix" type="text" placeholder="Jr., Sr., III" value={form.suffix} onChange={(e) => set("suffix", e.target.value)} className={inputClass} />
@@ -55,7 +57,7 @@ function JobSeekerPersonalStep({ form, errors, set, autofillStatus, autofillTouc
               </div>
             </div>
 
-            <div className="grid grid-cols-1 gap-3">
+            <div className="grid gap-4 sm:grid-cols-2">
               <div data-invalid={!!errors.mobileNumber}>
                 <Label htmlFor="mobileNumber" className={labelClass}>Mobile Number{reqMark}</Label>
                 <div className="relative">
@@ -64,15 +66,15 @@ function JobSeekerPersonalStep({ form, errors, set, autofillStatus, autofillTouc
                 </div>
                 {errors.mobileNumber && <p className="text-danger text-xs mt-1">{errors.mobileNumber}</p>}
               </div>
+
+              <div data-invalid={!!errors.email}>
+                <Label htmlFor="email" className={labelClass}>Email Address{reqMark}</Label>
+                <Input id="email" name="email" type="email" placeholder="juan.delacruz@example.com" value={form.email} onChange={(e) => set("email", e.target.value)} className={inputClass} />
+                {errors.email && <p className="text-danger text-xs mt-1">{errors.email}</p>}
+              </div>
             </div>
 
-            <div data-invalid={!!errors.email}>
-              <Label htmlFor="email" className={labelClass}>Email Address{reqMark}</Label>
-              <Input id="email" name="email" type="email" placeholder="juan.delacruz@example.com" value={form.email} onChange={(e) => set("email", e.target.value)} className={inputClass} />
-              {errors.email && <p className="text-danger text-xs mt-1">{errors.email}</p>}
-            </div>
-
-            <div className="grid grid-cols-1 gap-3">
+            <div className="grid gap-4 sm:grid-cols-2">
               <div data-invalid={!!errors.password}>
                 <Label htmlFor="password" className={labelClass}>Password{reqMark}</Label>
                 <Input id="password" name="password" type="password" placeholder="Min. 8 characters" value={form.password} onChange={(e) => set("password", e.target.value)} className={inputClass} />

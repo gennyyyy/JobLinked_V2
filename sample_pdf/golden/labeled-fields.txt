@@ -1,0 +1,25 @@
+JUAN DELA CRUZ
+Registered Nurse
+juan.delacruz@example.com | 0917 555 0142
+
+PERSONAL INFORMATION
+Name: Juan Dela Cruz
+Birthdate: March 3, 1996
+House Number: 4-B
+Street Address: 123 Rizal Street
+Subdivision: Villa Elena
+Barangay: Poblacion
+City: Santa Maria
+Province: Bulacan
+Postal Code: 3022
+
+EDUCATION
+Bachelor of Science in Nursing
+University of Santo Tomas, 2014 - 2018
+
+SKILLS
+Communication • Customer Service • First Aid • Inventory
+
+WORK EXPERIENCE
+Staff Nurse, Santa Maria District Hospital
+2018 - 2023

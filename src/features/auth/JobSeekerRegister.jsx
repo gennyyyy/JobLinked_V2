@@ -26,7 +26,7 @@ function JobSeekerRegister() {
   // Optional education is stored with signup metadata and provisioned after
   // email verification when a session becomes available.
   const [education, setEducation] = useState({ level: "", school: "", field: "", year: "", studying: false });
-  const { autofillStatus, touched, consent, setConsent, handleResumeChange } = useResumeAutofill({ form, setForm, setEducation });
+  const { autofillStatus, touched, handleResumeChange } = useResumeAutofill({ form, setForm, setEducation });
   const [eduError, setEduError] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const [needsConfirmation, setNeedsConfirmation] = useState(false);
@@ -140,8 +140,6 @@ function JobSeekerRegister() {
               set={set}
               autofillStatus={autofillStatus}
               autofillTouched={touched}
-              consent={consent}
-              onConsentChange={setConsent}
               handleResumeChange={handleResumeChange}
               inputClass={inputClass}
               labelClass={labelClass}

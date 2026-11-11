@@ -1,0 +1,18 @@
+{
+  "fields": {
+    "firstName": "Juan",
+    "lastName": "Dela Cruz",
+    "houseNumberUnit": "4-B",
+    "streetAddress": "123 Rizal Street",
+    "subdivisionBuilding": "Villa Elena",
+    "barangayDistrict": "Poblacion",
+    "cityMunicipality": "Santa Maria",
+    "provinceState": "Bulacan",
+    "postalCode": "3022",
+    "education": {
+      "level": "College",
+      "school": "University of Santo Tomas"
+    }
+  },
+  "skills": ["Communication", "Customer Service", "First Aid", "Inventory"]
+}

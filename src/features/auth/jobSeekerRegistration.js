@@ -24,6 +24,7 @@ export const EMPTY_FORM = {
   postalCode: "",
   employmentStatus: "",
   skills: "",
+  resumeReviewConfirmed: false,
   agree: false,
   confirmAccurate: false,
 };
@@ -46,6 +47,7 @@ export function validate(values) {
   if (!values.confirmPassword) e.confirmPassword = "Please confirm your password";
   else if (values.password !== values.confirmPassword) e.confirmPassword = "Passwords do not match";
   if (!values.employmentStatus) e.employmentStatus = "Employment status is required";
+  if (!values.resumeReviewConfirmed) e.resumeReviewConfirmed = "Please confirm you will review the resume autofill information";
   if (!values.agree) e.agree = "You must agree to the terms";
   if (!values.confirmAccurate) e.confirmAccurate = "Please confirm your information is true and correct";
   return e;

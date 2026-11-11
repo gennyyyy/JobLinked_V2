@@ -1,0 +1,17 @@
+{
+  "fields": {
+    "firstName": "Roberto",
+    "middleName": "Manalo",
+    "lastName": "Bautista",
+    "streetAddress": "88 Mabini Avenue",
+    "barangayDistrict": "Santo Niño",
+    "cityMunicipality": "Quezon City",
+    "provinceState": "Metro Manila",
+    "postalCode": "1100",
+    "education": {
+      "level": "College",
+      "school": "Far Eastern University"
+    }
+  },
+  "skills": ["Accounting", "Bookkeeping", "Microsoft Excel", "Communication"]
+}
