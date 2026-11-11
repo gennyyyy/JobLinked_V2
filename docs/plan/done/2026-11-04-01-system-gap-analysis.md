@@ -1,5 +1,8 @@
 # System Gap Analysis — what is lacking, what to improve (2026-11-04)
 
+> **Archived 2026-11-11:** reference register, closed out 2026-11-10 (see the close-out
+> tables below). Not an implementation plan; the only open rows are external inputs.
+
 **For agentic workers:** implement only with Lead Architect sign-off. This is the
 INPUT document for the other plans in `plan/` — do not implement its rows here,
 follow the linked plan.

@@ -1,5 +1,8 @@
 # Routing & Discoverability Plan (MemoryRouter → real URLs)
 
+> **Archived 2026-11-11:** superseded by ADR-036 and never executed as written;
+> the shipped state is the frozen address bar with working Back/Forward.
+
 > **SUPERSEDED 2026-11-04 — DO NOT EXECUTE AS WRITTEN.** The product owner chose a
 > frozen address bar with working Back/Forward in ADR-036
 > (`docs/arch/adr-036-frozen-url-with-history.md`, Accepted 2026-11-04), which

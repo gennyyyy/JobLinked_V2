@@ -1,5 +1,9 @@
 # Design Analysis — Next.js (peso_project-next-upgrade) → Vite app
 
+> **Archived 2026-11-11:** migration completed 2026-11-04 (Section 9). The cleanup items
+> that remain are intentional: `Toast`/`ConfirmationModal` are still used by live pages;
+> ThemeToggle/ThemeProvider/sonner are already retired.
+
 Source of truth for pixels: `E:\code_ni_hans\peso_project-next-upgrade`.
 Destination: this repo (Vite + React 19, JS/JSX).
 

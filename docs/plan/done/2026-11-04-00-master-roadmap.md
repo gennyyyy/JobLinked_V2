@@ -1,5 +1,9 @@
 # Master Roadmap — PESO JobLinked (index of 2026-11-04 plans)
 
+> **Archived 2026-11-11:** this is a reference index, not pending work. Every plan it
+> indexes is implemented and archived under `docs/plan/done/`; the remaining register
+> items are external inputs (official PESO report template, legal wording review).
+
 **For agentic workers:** every plan in this folder is implemented only AFTER the Lead
 Architect signs off on it (and any ADR it names). Then use the
 superpowers:subagent-driven-development skill to execute task-by-task, one plan at a time.
