@@ -335,7 +335,6 @@ Supersedes the role clause of Addendum D: `POST /api/ai/help` is no longer
 - `POST /admin/system-notifications`
 ### ai.js
 - `POST /ai/help`
-- `POST /ai/resume-extract`
 ### aiMatch.js
 - `POST /ai/job-match`
 ### applications.js
