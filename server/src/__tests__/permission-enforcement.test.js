@@ -50,24 +50,61 @@ beforeAll(async () => {
 afterAll(() => new Promise((resolve) => server.close(resolve)));
 
 beforeEach(() => {
-  mocks.query.mockResolvedValue({ rows: [], rowCount: 0 });
+  // One dummy row keeps the paginated handlers (`rows[0].c`) on their success
+  // path; these tests assert the permission gate, never the payload.
+  mocks.query.mockResolvedValue({ rows: [{}], rowCount: 1 });
   mocks.user = { id: 'admin-1', email: 'a@x.com', role: 'super-admin' };
 });
 
-const get = (path) => fetch(`${base}${path}`);
+const call = ({ method = 'GET', path, body }) => fetch(`${base}${path}`, {
+  method,
+  ...(body ? { headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) } : {}),
+});
+const get = (path) => call({ path });
 
-// The route → key mapping from ADR-042, one representative route per key.
+// ADR-042's route → key mapping, one representative route per catalogue key.
+// The old table pointed `dashboard.view` at /admin/audit-logs, a `logs.view`
+// route, so its allow assertion was vacuous (G-04). `roles.manage` has no
+// read-only route of its own (GET /admin/roles also accepts `users.manage`),
+// so it pins a mutation.
 const ROUTES = [
-  ['dashboard.view', '/admin/audit-logs'], // any dashboard read; the key is what matters
-  ['logs.view', '/admin/audit-logs'],
-  ['roles.manage', '/admin/roles'],
+  { key: 'dashboard.view', path: '/admin/stats' },
+  { key: 'accreditation.manage', path: '/admin/accreditations' },
+  { key: 'jobs.manage', path: '/admin/jobs' },
+  { key: 'users.manage', path: '/admin/users' },
+  { key: 'roles.manage', method: 'DELETE', path: '/admin/roles/1' },
+  { key: 'reports.view', path: '/admin/reports/seekers/export' },
+  { key: 'logs.view', path: '/admin/audit-logs' },
+  { key: 'notifications.send', method: 'POST', path: '/admin/system-notifications', body: { title: 'Pin', message: 'Pin' } },
+  { key: 'settings.manage', path: '/admin/reference/barangay' },
 ];
 
 describe('a custom role is an allow-list (ADR-042)', () => {
   it('grants full access when no custom role is assigned', async () => {
-    for (const [, path] of ROUTES) {
-      const res = await get(path);
-      expect(res.status, `${path} should be allowed for a system admin`).not.toBe(403);
+    for (const route of ROUTES) {
+      const res = await call(route);
+      expect(res.status, `${route.path} should be allowed for a system admin`).not.toBe(403);
+    }
+  });
+
+  // G-04: every catalogue key needs a route that admits it when granted and
+  // refuses it when missing. Coverage is per key (one route each), not more
+  // assertions on one route.
+  it('admits each catalogue key on its own route', async () => {
+    for (const route of ROUTES) {
+      mocks.user = { id: 'admin-key', role: 'super-admin', customRoleId: 9, permissions: [route.key] };
+      const res = await call(route);
+      expect(res.status, `${route.key} granted → ${route.path}`).not.toBe(403);
+    }
+  });
+
+  it('refuses each catalogue key on its own route when the bundle lacks it', async () => {
+    const keys = ROUTES.map((route) => route.key);
+    for (const route of ROUTES) {
+      mocks.user = { id: 'admin-key', role: 'super-admin', customRoleId: 9, permissions: keys.filter((k) => k !== route.key) };
+      const res = await call(route);
+      expect(res.status, `${route.key} missing → ${route.path}`).toBe(403);
+      expect((await res.json()).error.message).toContain(route.key);
     }
   });
 

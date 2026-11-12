@@ -19,7 +19,7 @@ process.env.SUPABASE_SERVICE_ROLE_KEY ||= 'test-service-role-key';
 // admin.js starts a 24h retention timer at import; skip it in tests.
 process.env.RETENTION_DISABLE ||= '1';
 
-const { seedRoleTable, reset, callsOf, query } = await import('./__tests__/helpers/db.js');
+const { seedRoleTable, on, reset, callsOf, query } = await import('./__tests__/helpers/db.js');
 const { resolveRole } = await import('./auth.js');
 const { findUserTable } = await import('./routes/admin-users.js');
 
@@ -72,6 +72,39 @@ describe('resolveRole', () => {
 
   it('returns null when the id is in no role table', async () => {
     expect(await resolveRole('id-4')).toBeNull();
+  });
+
+  // G-03 (Medium): the fail-open branch in middleware/permissions.js rests on
+  // the premise that a tagged admin's principal carries BOTH fields from the
+  // custom-role bundle. If the bundle query regresses, `permissions` silently
+  // becomes [] and every custom-role admin hits 403 (fail closed), but if
+  // `custom_role_id` stops riding along the guard `!customRoleId` grants the
+  // full break-glass set (fail OPEN). Neither may pass unnoticed.
+  //
+  // The reply is shaped like Postgres would answer the query as written: only
+  // a statement that reads `details->'permissions'` from a `custom_role` row
+  // yields a bundle, so dropping/renaming the column or the category filter
+  // changes the result instead of being masked by the fixture.
+  it('resolves customRoleId AND permissions from the custom-role bundle', async () => {
+    const permissions = ['logs.view', 'jobs.manage'];
+    seedRoleTable('id-12', SA, { status: 'active', custom_role_id: 30 });
+    on(/from reference_data/, (_params, sql) => {
+      const readsDetails = /details\s*->\s*'permissions'/.test(sql);
+      const filtersCategory = /category\s*=\s*'custom_role'/.test(sql);
+      return readsDetails && filtersCategory
+        ? { rows: [{ permissions }], rowCount: 1 }
+        : { rows: [], rowCount: 0 };
+    });
+
+    const found = await resolveRole('id-12');
+    expect(found.custom_role_id).toBe(30);
+    expect(found.permissions).toEqual(permissions);
+    // One round-trip: the bundle is a single query bound to the role id, not a
+    // per-key lookup. Two reads total (role union + bundle).
+    const bundles = callsOf(/from reference_data/);
+    expect(bundles).toHaveLength(1);
+    expect(bundles[0].params).toEqual([30]);
+    expect(query).toHaveBeenCalledTimes(2);
   });
 
   it('binds the id as a parameter (no interpolation)', async () => {

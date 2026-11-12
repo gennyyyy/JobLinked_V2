@@ -251,12 +251,19 @@ if (enabled('jobs')) {
   const bySkills = await req('GET', '/api/jobs?skills=benchspecific')
   check('skills filter finds job', (bySkills.body.jobs || []).some((j) => j.id === jobId))
 
-  // Employer job list envelope + cross-tenant.
+  // Employer job list envelope + cross-tenant (ADR-048): a non-owner caller is
+  // pinned to published rows — never 403 — and a caller-supplied ?status is
+  // ignored for them. The owner keeps the full enum; counts stay company-wide.
   const own = await req('GET', `/api/employers/${F.employerA.id}/jobs`, { token: F.employerA.token })
   ok('employer own jobs', own)
   check('envelope counts.published >= 1', own.body.counts?.published >= 1, JSON.stringify(own.body.counts))
-  ok('employer B reads A jobs -> 403',
-    await req('GET', `/api/employers/${F.employerA.id}/jobs`, { token: F.employerB.token }), 403)
+  const foreign = await req('GET', `/api/employers/${F.employerA.id}/jobs?status=draft&pageSize=100`, { token: F.employerB.token })
+  ok('employer B reads A jobs -> 200 (ADR-048)', foreign)
+  check('employer B sees only published rows',
+    (foreign.body.data || []).every((j) => j.status === 'published'),
+    JSON.stringify((foreign.body.data || []).map((j) => j.status)))
+  check('employer B sees A published row', (foreign.body.data || []).some((j) => j.id === jobId))
+  check('employer B cannot see A draft', !(foreign.body.data || []).some((j) => j.id === draftA.body.id))
   ok('invalid employer uuid -> 400',
     await req('GET', '/api/employers/nope/jobs', { token: F.employerA.token }), 400)
 
