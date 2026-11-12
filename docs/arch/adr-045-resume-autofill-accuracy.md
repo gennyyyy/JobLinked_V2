@@ -1,6 +1,6 @@
 # ADR-045: Resume auto-fill accuracy (LLM-assisted extraction + review gate)
 
-- Status: Accepted (2026-11-11) — heuristic-mode corpus accuracy 100% (18 fields × 7 fixtures); LLM mode is the safety net for layouts outside the corpus
+- Status: Accepted (2026-11-11) — heuristic-mode corpus accuracy 100% (18 fields × 7 fixtures); LLM mode is the safety net for layouts outside the corpus. **Amended 2026-11-13: the server endpoint was never shipped; autofill is client-side only — see Amendment.**
 - Date: 2026-11-11
 - Related: ADR-023 (AI provider / OpenRouter), ADR-038 (rate limiting), ADR-041 (Turnstile), plan `docs/plan/2026-11-11-resume-autofill-accuracy.md`
 
@@ -34,3 +34,11 @@ Owner requirement: ≥90% confidence on long-string fields.
 - Registration UX gains a consent checkbox and a "checked ✓" hint; API consumers unaffected.
 - Upstream AI cost: ≤ one small call per consenting registration (≤20k chars, default cheap model).
 - The ≥90% metric is defined against the golden corpus, not vibes; regression testing enters `npm test`.
+
+## Amendment (2026-11-13)
+
+The `POST /api/ai/resume-extract` endpoint and its module were never shipped: the 2026-11-11 bug-hunt
+cleanup removed them, and registration auto-fill runs entirely client-side (pdfjs/mammoth +
+`src/shared/utils/resumeAutofill.js` regex heuristics). No resume text leaves the browser and nothing
+is sent to OpenRouter. Decisions 2-4 above (privacy gate, abuse control, availability) apply only if
+the server path is ever reintroduced; the shipped state is the client-side path.
