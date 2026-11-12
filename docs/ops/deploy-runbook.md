@@ -270,3 +270,15 @@ change to backup tooling, and at least quarterly:
 `scripts/backup.sh`; scratch restore → API boot on :4100 → deep health 200 →
 resume `HTTP 200, 236 587 bytes, %PDF-`). See the plan's Results for the full
 record.
+
+## Known limits and follow-ups
+
+**Authenticated API throttle (300 req / 15 min per user).** One admin session
+browsing the console can exhaust it: the admin pages fetch large lists
+(`pageSize=500`) across several endpoints (~2.5 req/s observed 2026-11-12), and
+the in-memory bucket then returns `429 RATE_LIMITED` on every endpoint until the
+window resets. Client symptom: panels stop loading for a few minutes. Workaround:
+wait up to 15 minutes, or restart the API (the limiter store is in-memory and
+resets; ADR-037 single node). **Deferred decision (2026-11-13):** raise the limit
+for authenticated principals (e.g. 1000/15 min, keep 300 for anonymous/IP)
+and/or remove duplicate per-page fetches. Revisit before the next admin-UI change.
