@@ -46,7 +46,7 @@ export function isUnprovisioned(err) {
 }
 
 function unreachable(url) {
-  const error = new Error('We couldn\u2019t load this right now. Please check your connection and try again.');
+  const error = new Error('Can\u2019t reach the server right now \u2014 it may be restarting. Please try again in a moment.');
   error.status = 0;
   error.detail = `Cannot reach the API at ${url} \u2014 is the server running? (npm: node src/index.js in server/)`;
   throw error;
@@ -73,10 +73,20 @@ async function settleAuth(res, sent, url, retry) {
   }
   if (!res.ok) {
     let apiError;
+    let parsed = false;
     try {
       apiError = (await res.json())?.error;
-    } catch { /* non-JSON error body */ }
-    throwStatus(res, apiError?.message, apiError);
+      parsed = true;
+    } catch { /* non-JSON error body (e.g. an nginx 502 HTML page) */ }
+    // Say what actually happened: a saturated rate bucket and a restarting
+    // service are not "check your connection" problems.
+    let message = apiError?.message;
+    if (res.status === 429 && apiError?.code === 'RATE_LIMITED') {
+      message = 'Too many requests \u2014 please wait a moment.';
+    } else if (res.status >= 500 && !parsed) {
+      message = 'The service is having trouble \u2014 please try again shortly.';
+    }
+    throwStatus(res, message, apiError);
   }
   return res;
 }

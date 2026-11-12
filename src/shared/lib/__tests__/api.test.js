@@ -30,6 +30,13 @@ const json = (status, body) => ({
   blob: () => Promise.resolve(new Blob([JSON.stringify(body)])),
 })
 const err401 = () => json(401, { error: { message: 'expired' } })
+const html = (status) => ({
+  ok: false,
+  status,
+  statusText: status === 502 ? 'Bad Gateway' : `status ${status}`,
+  json: () => Promise.reject(new SyntaxError('Unexpected token <')),
+  text: () => Promise.resolve('<html><body>Bad Gateway</body></html>'),
+})
 
 beforeEach(() => {
   vi.clearAllMocks()
@@ -195,17 +202,44 @@ describe('signOut', () => {
   })
 })
 
-describe('network failure', () => {
+describe('error messages', () => {
   it('yields a neutral user-facing message and a technical detail', async () => {
     globalThis.fetch = vi.fn().mockRejectedValue(new TypeError('Failed to fetch'))
     try {
       await api.get('auth/me')
       expect.fail('should have thrown')
     } catch (e) {
-      expect(e.message).not.toMatch(/localhost|npm:|server running/i)
-      expect(e.message).toMatch(/couldn.t load this right now/i)
+      expect(e.message).toBe('Can\u2019t reach the server right now \u2014 it may be restarting. Please try again in a moment.')
       expect(e.status).toBe(0)
       expect(e.detail).toMatch(/Cannot reach the API/)
     }
+  })
+
+  it('names the rate limit on a 429 RATE_LIMITED', async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue(json(429, {
+      error: { code: 'RATE_LIMITED', message: 'Too many requests, please try again later.' },
+    }))
+    await expect(api.get('auth/me')).rejects.toMatchObject({
+      message: 'Too many requests \u2014 please wait a moment.',
+      status: 429,
+    })
+  })
+
+  it('falls back to the server message for a 429 without the code', async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue(json(429, { error: { message: 'Slow down.' } }))
+    await expect(api.get('auth/me')).rejects.toMatchObject({ message: 'Slow down.', status: 429 })
+  })
+
+  it('reports a restarting service for a 502 HTML page', async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue(html(502))
+    await expect(api.get('auth/me')).rejects.toMatchObject({
+      message: 'The service is having trouble \u2014 please try again shortly.',
+      status: 502,
+    })
+  })
+
+  it('keeps the server message for a JSON 5xx', async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue(json(500, { error: { message: 'Database is down.' } }))
+    await expect(api.get('auth/me')).rejects.toMatchObject({ message: 'Database is down.', status: 500 })
   })
 })
