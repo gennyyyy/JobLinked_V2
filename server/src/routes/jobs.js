@@ -288,6 +288,12 @@ router.post('/jobs', auth, requireRole('employer'), ah(async (req, res) => {
       Number(b.salary_min) > Number(b.salary_max)) {
     return err(res, 400, 'BAD_REQUEST', 'salary_min must be <= salary_max');
   }
+  // F-11: numeric columns — "abc" would reach Postgres and 22P02 into a 500.
+  for (const k of ['salary_min', 'salary_max']) {
+    if (b[k] != null && b[k] !== '' && !Number.isFinite(Number(b[k]))) {
+      return err(res, 400, 'BAD_REQUEST', `${k} must be a number`);
+    }
+  }
   if (b.deadline != null && b.deadline !== '' && isNaN(Date.parse(b.deadline))) {
     return err(res, 400, 'BAD_REQUEST', 'deadline must be a valid date');
   }
@@ -353,6 +359,12 @@ router.patch('/jobs/:id', auth, ah(async (req, res) => {
     return err(res, 400, 'BAD_REQUEST', 'vacancies must be a positive integer');
   }
   if ((patch.salary_min !== undefined || patch.salary_max !== undefined)) {
+    // F-11: same guard as POST — compare only after both are finite numbers.
+    for (const k of ['salary_min', 'salary_max']) {
+      if (patch[k] != null && !Number.isFinite(Number(patch[k]))) {
+        return err(res, 400, 'BAD_REQUEST', `${k} must be a number`);
+      }
+    }
     const mn = patch.salary_min !== undefined ? patch.salary_min : job.salary_min;
     const mx = patch.salary_max !== undefined ? patch.salary_max : job.salary_max;
     if (mn != null && mn !== '' && mx != null && mx !== '' && Number(mn) > Number(mx)) {

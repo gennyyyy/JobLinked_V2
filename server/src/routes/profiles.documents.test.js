@@ -49,21 +49,24 @@ describe('F-04 — POST /files/documents requires doc_type', () => {
   const start = src.indexOf("router.post('/files/documents'");
   const end = src.indexOf("router.delete('/files/resumes/:id'");
   const route = src.slice(start, end === -1 ? undefined : end);
+  // rejectUpload + checkedDocType: the one gate both upload routes share.
+  const gate = src.slice(src.indexOf('const rejectUpload'), src.indexOf('async function storeDocument'));
 
   it('finds the route', () => {
     expect(start).toBeGreaterThan(-1);
   });
 
   it('rejects a missing doc_type with 400, mirroring POST /documents', () => {
-    expect(route).toContain("err(res, 400, 'BAD_REQUEST', 'doc_type is required')");
+    expect(route).toContain('const doc_type = checkedDocType(req, res)');
+    expect(gate).toContain("rejectUpload(req, res, 'doc_type is required')");
     // The silent no-row branch (201 { path } with nothing stored) is gone.
     expect(route).not.toMatch(/if \(doc_type\)/);
     expect(route).not.toContain('{ path: rel })');
   });
 
   it('unlinks multer\'s file BEFORE answering 400 — no orphan left on disk', () => {
-    expect(route).toContain('fs.unlinkSync(req.file.path)');
-    expect(route.indexOf('unlinkSync')).toBeLessThan(route.indexOf("'doc_type is required'"));
+    expect(gate).toContain('fs.unlinkSync(req.file.path)');
+    expect(gate.indexOf('unlinkSync')).toBeLessThan(gate.indexOf("err(res, 400, 'BAD_REQUEST', message)"));
   });
 
   it('keeps the storeDocument + audit + notify happy path', () => {

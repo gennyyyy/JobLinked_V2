@@ -201,6 +201,32 @@ from employer_documents d
 left join super_admins s on s.id = d.reviewed_by
 left join employers e on e.id = d.company_id`;
 
+// F-04: doc_type lands in employer_documents and is rendered in the PESO review
+// UI and the admin notification. The accreditation screen offers exactly these
+// nine documents (src/shared/constants.js DOC_TYPES); that list is a UI hint,
+// this set is the trust boundary.
+export const DOC_TYPES = new Set([
+  'Letter of Intent', 'Company Profile', 'Business Permit', 'DOLE Certificate', 'Job Orders',
+  'PhilJobNet Accreditation', 'Pag-IBIG Registration', 'PhilHealth Registration',
+  'Fire Safety Inspection Certificate',
+]);
+
+// multer has already written the file: a rejected upload must not orphan it.
+const rejectUpload = (req, res, message) => {
+  try { fs.unlinkSync(req.file.path); } catch { /* compensation best-effort */ }
+  return err(res, 400, 'BAD_REQUEST', message);
+};
+
+const checkedDocType = (req, res) => {
+  const { doc_type } = req.body || {};
+  if (!doc_type) { rejectUpload(req, res, 'doc_type is required'); return null; }
+  if (!DOC_TYPES.has(doc_type)) {
+    rejectUpload(req, res, `doc_type must be one of: ${[...DOC_TYPES].join(', ')}`);
+    return null;
+  }
+  return doc_type;
+};
+
 async function storeDocument(companyId, docType, accreditationId, file) {
   const rel = relPath('documents', companyId, path.basename(file.path));
   try {
@@ -234,8 +260,9 @@ async function notifyDocAdmins(companyId, docType) {
 }
 
 router.post('/documents', auth, requireRole('employer'), uploadSingle('documents'), ah(async (req, res) => {
-  const { doc_type, accreditation_id = null } = req.body || {};
-  if (!doc_type) return err(res, 400, 'BAD_REQUEST', 'doc_type is required');
+  const { accreditation_id = null } = req.body || {};
+  const doc_type = checkedDocType(req, res);
+  if (!doc_type) return;
   const doc = await storeDocument(req.user.id, doc_type, accreditation_id, req.file);
   void audit(req.user.id, 'document.upload', 'employer_documents', doc.id, { doc_type });
   void notifyDocAdmins(req.user.id, doc_type);
@@ -312,14 +339,12 @@ router.post('/files/resumes', auth, requireRole('job-seeker'), uploadSingle('res
 
 // Raw file store for the documents bucket; creates the employer_documents row when doc_type is given.
 router.post('/files/documents', auth, requireRole('employer'), uploadSingle('documents'), ah(async (req, res) => {
-  const { doc_type, accreditation_id = null } = req.body || {};
-  // F-04: mirror POST /documents — without doc_type there is no
+  const { accreditation_id = null } = req.body || {};
+  // F-04: mirror POST /documents — without a valid doc_type there is no
   // employer_documents row, no audit, no read/delete path: multer has already
   // written a 5 MB file nobody can ever reach. Reject AND unlink the orphan.
-  if (!doc_type) {
-    try { fs.unlinkSync(req.file.path); } catch { /* compensation best-effort */ }
-    return err(res, 400, 'BAD_REQUEST', 'doc_type is required');
-  }
+  const doc_type = checkedDocType(req, res);
+  if (!doc_type) return;
   const rel = relPath('documents', req.user.id, path.basename(req.file.path));
   const document = await storeDocument(req.user.id, doc_type, accreditation_id, req.file);
   void audit(req.user.id, 'document.upload', 'employer_documents', document.id, { doc_type });
