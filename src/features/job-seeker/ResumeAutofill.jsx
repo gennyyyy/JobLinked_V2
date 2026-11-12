@@ -18,8 +18,9 @@ const LABELS = {
 
 // 1:1 port of the reference resume-autofill panel. The file is parsed locally
 // (PDF/DOCX) and only the previewed fields are written into the form.
-export default function ResumeAutofill({ onApply, onFileSelected, uploadError, uploadControl }) {
-  const id = useId()
+export default function ResumeAutofill({ onApply, onFileSelected, uploadError, uploadControl, onReviewConfirmedChange, inputId }) {
+  const generatedId = useId()
+  const id = inputId || generatedId
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [status, setStatus] = useState('')
@@ -28,6 +29,12 @@ export default function ResumeAutofill({ onApply, onFileSelected, uploadError, u
   const [reviewConfirmed, setReviewConfirmed] = useState(false)
   const [reviewError, setReviewError] = useState('')
 
+  function updateReviewConfirmed(checked) {
+    setReviewConfirmed(checked)
+    if (checked) setReviewError('')
+    onReviewConfirmedChange?.(checked)
+  }
+
   async function select(file) {
     if (!file) return
     onFileSelected?.(file)
@@ -35,8 +42,10 @@ export default function ResumeAutofill({ onApply, onFileSelected, uploadError, u
     setError('')
     setStatus('Reading resume on your device…')
     setPreview(null)
+    setFileName(file.name)
     setReviewConfirmed(false)
     setReviewError('')
+    onReviewConfirmedChange?.(false)
     try {
       const { extractResumeText } = await import('@/shared/lib/resumeText')
       const mapped = mapResumeText(await extractResumeText(file))
@@ -72,16 +81,13 @@ export default function ResumeAutofill({ onApply, onFileSelected, uploadError, u
         label="Choose a resume to autofill"
         accept=".pdf,.doc,.docx"
         disabled={busy}
-        onChange={(event) => { void select(event.target.files?.[0]); event.target.value = '' }}
+        onChange={(event) => { void select(event.target.files?.[0]) }}
         help="One resume only · PDF, DOC, or DOCX · Up to 5 MB. PDF and DOCX autofill is read locally on your device; uploaded resumes are saved to your account."
         error={uploadError || error}
         reviewAcknowledgement={{
           required: true,
           checked: reviewConfirmed,
-          onChange: (checked) => {
-            setReviewConfirmed(checked)
-            if (checked) setReviewError('')
-          },
+          onChange: (checked) => updateReviewConfirmed(checked),
           error: reviewError,
           label: 'I understand resume autofill can make mistakes and will review and correct the extracted information before applying.',
         }}

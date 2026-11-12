@@ -9,7 +9,6 @@ vi.mock('../../../shared/services/auth', () => ({ updateProfile: vi.fn() }))
 vi.mock('../../../shared/services/documents', () => ({
   listResumes: vi.fn(),
   uploadResume: vi.fn(),
-  setActiveResume: vi.fn(),
   deleteResume: vi.fn(),
   validateFile: vi.fn(() => null),
   signedUrl: vi.fn(),
@@ -19,8 +18,7 @@ import useAuth from '../../../shared/hooks/useAuth'
 import { listResumes, deleteResume, signedUrl } from '../../../shared/services/documents'
 
 const RESUMES = [
-  { id: 'r-active', file_name: 'active.pdf', file_path: 'resumes/u1/active.pdf', uploaded_at: '2026-02-01T00:00:00Z', is_active: true },
-  { id: 'r-old', file_name: 'old.pdf', file_path: 'resumes/u1/old.pdf', uploaded_at: '2026-01-01T00:00:00Z', is_active: false },
+  { id: 'r-old', file_name: 'old.pdf', file_path: 'resumes/u1/old.pdf', uploaded_at: '2026-01-01T00:00:00Z', is_active: true },
 ]
 
 describe('Profile resume delete', () => {
@@ -36,7 +34,7 @@ describe('Profile resume delete', () => {
     await user.click(screen.getByRole('tab', { name: /my resumes/i }))
     await screen.findByText('old.pdf')
 
-    await user.click(screen.getAllByRole('button', { name: 'Delete' })[1])
+    await user.click(screen.getByRole('button', { name: 'Delete' }))
     await screen.findByText(/delete this resume/i)
     const confirmButtons = screen.getAllByRole('button', { name: 'Delete' })
     await user.click(confirmButtons[confirmButtons.length - 1])

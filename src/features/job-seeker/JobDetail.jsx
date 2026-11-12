@@ -1,5 +1,4 @@
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { useState, useEffect } from "react";
@@ -8,7 +7,7 @@ import { ArrowLeft, ArrowRight, Banknote, BriefcaseBusiness, CalendarDays, Check
 import useAuth from "@/shared/hooks/useAuth";
 import { getJob } from "@/shared/services/jobs";
 import { applyToJob, listBySeeker } from "@/shared/services/applications";
-import { listResumes, uploadResume, validateFile } from "@/shared/services/documents";
+import { listResumes } from "@/shared/services/documents";
 import { PageSkeleton } from '@/shared/components/Skeletons';
 import { CompanyMark, LinkButton, Panel } from "@/shared/components/design";
 import { titleCase } from "@/shared/utils/titleCase";
@@ -24,8 +23,6 @@ function JobDetail() {
   const [applyError, setApplyError] = useState("");
   const [resumes, setResumes] = useState([]);
   const [selectedResume, setSelectedResume] = useState("");
-  const [uploading, setUploading] = useState(false);
-  const [uploadError, setUploadError] = useState("");
   // Snapshot once per mount (same convention as the employer job list) so the
   // deadline comparison stays pure.
   const [today] = useState(() => Date.now());
@@ -54,27 +51,6 @@ function JobDetail() {
   if (loading) return <PageSkeleton stats={0} panels={1} />;
   if (error) return <div className="py-8 text-center text-sm text-danger">{error}</div>;
   if (!job) return <Navigate to="/job-seeker" replace />;
-
-  async function handleResumeUpload(e) {
-    const file = e.target.files[0];
-    e.target.value = "";
-    if (!file) return;
-    const validationError = validateFile(file);
-    if (validationError) { setUploadError(validationError); return; }
-    setUploadError("");
-    setUploading(true);
-    try {
-      await uploadResume(user.id, file);
-      const updated = await listResumes(user.id);
-      setResumes(updated);
-      const active = updated.find((r) => r.is_active) || updated[0];
-      setSelectedResume(active?.id || "");
-    } catch (err) {
-      setUploadError(err.message || "Upload failed");
-    } finally {
-      setUploading(false);
-    }
-  }
 
   async function handleApply() {
     if (applying) return;
@@ -232,10 +208,6 @@ function JobDetail() {
                       </select>
                     </>
                   )}
-                  <Input type="file" accept=".pdf,.doc,.docx" onChange={handleResumeUpload} className="hidden" id="job-resume-upload" />
-                  <Label htmlFor="job-resume-upload" className="w-fit cursor-pointer rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground">
-                    {uploading ? "Uploading…" : "Upload new resume"}
-                  </Label>
                   <p className="text-[10px] leading-5 text-muted-foreground">PDF up to 2 MB; DOC or DOCX up to 5 MB.</p>
                   {deadlinePassed && (
                     <p className="text-xs text-danger">Applications are closed — the deadline has passed.</p>
@@ -247,7 +219,6 @@ function JobDetail() {
                 </>
               )}
               {applyError && <p className="text-xs text-danger">{applyError}</p>}
-              {uploadError && <p className="text-xs text-danger">{uploadError}</p>}
             </div>
           </Panel>
         </div>

@@ -302,36 +302,38 @@ router.patch('/documents/:id', auth, requireRole('super-admin'), ah(async (req, 
   res.json(rows[0]);
 }));
 
-// Upload + resume row. New upload becomes the active resume (setActiveResume, server-side).
-// Concurrent uploads used to race the one-active partial index (three 500s out
-// of six live); the advisory lock serialises the deactivate+insert per user.
-const MAX_RESUMES_PER_SEEKER = 20;
+// Upload + resume row. One resume per seeker: a second upload replaces the
+// existing row in place (row id kept, so job_applications.resume_id resolves
+// to the new file). The advisory lock serialises replace vs. concurrent ops.
 router.post('/files/resumes', auth, requireRole('job-seeker'), uploadSingle('resumes'), ah(async (req, res) => {
   const rel = relPath('resumes', req.user.id, path.basename(req.file.path));
   let row;
+  let oldFile = null;
   try {
     row = await withTransaction(async (client) => {
       await client.query('select pg_advisory_xact_lock(hashtext($1))', [req.user.id]);
-      const { rows: q } = await client.query('select count(*)::int n from resumes where seeker_id = $1', [req.user.id]);
-      if (q[0].n >= MAX_RESUMES_PER_SEEKER) {
-        throw new Error('QUOTA_EXCEEDED');
+      const { rows: existing } = await client.query('select file_path from resumes where seeker_id = $1', [req.user.id]);
+      if (existing[0]) {
+        oldFile = existing[0].file_path;
+        const { rows } = await client.query(
+          'update resumes set file_path = $1, file_name = $2, uploaded_at = now(), is_active = true where seeker_id = $3 returning *',
+          [rel, req.file.originalname, req.user.id]);
+        return rows[0];
       }
-      await client.query('update resumes set is_active = false where seeker_id = $1', [req.user.id]);
       const { rows } = await client.query(
         'insert into resumes (seeker_id, file_path, file_name, is_active) values ($1,$2,$3,true) returning *',
         [req.user.id, rel, req.file.originalname]);
       return rows[0];
     });
   } catch (e) {
-    if (e?.message === 'QUOTA_EXCEEDED') {
-      try { fs.unlinkSync(req.file.path); } catch { /* compensation best-effort */ }
-      return err(res, 400, 'BAD_REQUEST', `You can keep at most ${MAX_RESUMES_PER_SEEKER} resumes. Delete an old one first.`);
-    }
-    // B4: multer already wrote the file to disk — a failed insert (e.g. the
-    // one-active-resume unique index on a concurrent upload) must not leak
+    // B4: multer already wrote the file to disk — a failed write must not leak
     // the orphan. Same compensation as storeDocument.
     try { fs.unlinkSync(req.file.path); } catch { /* compensation best-effort */ }
     throw e;
+  }
+  if (oldFile && oldFile !== rel) {
+    try { fs.unlinkSync(path.join(uploadDir, oldFile)); } catch { /* file already gone */ }
+    try { fs.rmdirSync(path.dirname(path.join(uploadDir, oldFile))); } catch { /* not empty or missing */ }
   }
   void audit(req.user.id, 'resume.upload', 'resumes', rel);
   res.status(201).json({ path: rel, resume: row });
@@ -364,13 +366,6 @@ router.delete('/files/resumes/:id', auth, ah(async (req, res) => {
     await client.query('select pg_advisory_xact_lock(hashtext($1))', [rows[0].seeker_id]);
     const del = await client.query('delete from resumes where id = $1 returning id', [req.params.id]);
     if (!del.rowCount) return false;
-    // Never strand the seeker without an active resume: promote the newest one.
-    if (rows[0].is_active) {
-      await client.query(
-        `update resumes set is_active = true where id = (
-           select id from resumes where seeker_id = $1 order by uploaded_at desc, id desc limit 1)`,
-        [rows[0].seeker_id]);
-    }
     return true;
   });
   if (!removed) return err(res, 404, 'NOT_FOUND', 'Resume not found');
@@ -380,27 +375,10 @@ router.delete('/files/resumes/:id', auth, ah(async (req, res) => {
   res.json({ deleted: true });
 }));
 
-// Addendum A: own resume list (listResumes) + active-resume swap (setActiveResume).
+// Addendum A: own resume list (listResumes).
 router.get('/files/resumes/mine', auth, requireRole('job-seeker'), ah(async (req, res) => {
   const { rows } = await pool.query('select * from resumes where seeker_id = $1 order by uploaded_at desc', [req.user.id]);
   res.json(rows);
-}));
-
-router.post('/files/resumes/:id/activate', auth, requireRole('job-seeker'), ah(async (req, res) => {
-  if (!isUuid(req.params.id)) return err(res, 404, 'NOT_FOUND', 'Resume not found');
-  const { rows } = await pool.query('select * from resumes where id = $1', [req.params.id]);
-  if (!rows[0]) return err(res, 404, 'NOT_FOUND', 'Resume not found');
-  if (rows[0].seeker_id !== req.user.id) return err(res, 403, 'FORBIDDEN', 'Not your resume');
-  const row = await withTransaction(async (client) => {
-    // Same per-user lock as upload/delete: two concurrent activates (or an
-    // activate racing an upload) would otherwise trip the one-active index.
-    await client.query('select pg_advisory_xact_lock(hashtext($1))', [req.user.id]);
-    await client.query('update resumes set is_active = false where seeker_id = $1', [req.user.id]);
-    const r = await client.query('update resumes set is_active = true where id = $1 returning *', [req.params.id]);
-    return r.rows[0];
-  });
-  void audit(req.user.id, 'resume.activate', 'resumes', req.params.id);
-  res.json(row);
 }));
 
 // Addendum A: seeker profile children. Education/experience are seeker-owned

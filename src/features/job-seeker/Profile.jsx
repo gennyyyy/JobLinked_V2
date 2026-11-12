@@ -4,7 +4,7 @@ import { Eye, FileText, ImagePlus, Settings2, Trash2, UploadCloud, UserRound } f
 import { Button } from '@/components/ui/button'
 import useAuth from '@/shared/hooks/useAuth'
 import { updateProfile } from '@/shared/services/auth'
-import { listResumes, uploadResume, setActiveResume, deleteResume, validateFile, signedUrl } from '@/shared/services/documents'
+import { listResumes, uploadResume, deleteResume, validateFile, signedUrl } from '@/shared/services/documents'
 import { uploadAvatar, removeAvatar, fetchAvatarObjectUrl } from '@/shared/services/images'
 import { buildFullName } from '@/shared/utils/names'
 import { titleCase } from '@/shared/utils/titleCase'
@@ -144,6 +144,7 @@ function Profile() {
   const activeTab = ACCOUNT_SETTINGS_SECTIONS.has(hash.slice(1)) ? 'account' : tab
   const [uploadError, setUploadError] = useState('')
   const [resumeStatus, setResumeStatus] = useState('')
+  const [resumeReviewConfirmed, setResumeReviewConfirmed] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [pendingDelete, setPendingDelete] = useState(null)
 
@@ -345,10 +346,16 @@ function Profile() {
     if (validationError) { setUploadError(validationError); setDraft(null); return }
     setUploadError('')
     setDraft(file)
+    setResumeReviewConfirmed(false)
   }
 
   async function handleResumeUpload() {
     if (!draft) return
+    if (!resumeReviewConfirmed) {
+      setUploadError('Please confirm you will review the resume autofill information.')
+      setResumeStatus('')
+      return
+    }
     setUploading(true)
     setResumeStatus('Uploading…')
     try {
@@ -362,15 +369,6 @@ function Profile() {
       setResumeStatus('')
     } finally {
       setUploading(false)
-    }
-  }
-
-  async function handleSetActiveResume(resumeId) {
-    try {
-      await setActiveResume(userId, resumeId)
-      setResumes((previous) => previous.map((resume) => ({ ...resume, is_active: resume.id === resumeId })))
-    } catch (err) {
-      setError(err.message || 'Failed to set active resume')
     }
   }
 
@@ -587,40 +585,37 @@ function Profile() {
                   Only you, authorized PESO personnel, and the employers you apply to can open the resume attached to your application.
                 </Notice>
               </div>
-              {resumes.length ? (
+              {resumes[0] ? (
                 <ul className="flex flex-col gap-4">
-                  {resumes.map((resume) => (
-                    <li className="rounded-xl border p-4" key={resume.id}>
-                      <div className="flex items-start gap-3">
-                        <span className="soft-icon"><FileText className="size-5" /></span>
-                        <div className="min-w-0 flex-1">
-                          <h2 className="break-all text-sm font-medium">{resume.file_name}</h2>
-                          <p className="mt-2 text-[11px] text-muted-foreground">
-                            {resume.is_active ? 'Active resume · ' : ''}Added {new Date(resume.uploaded_at).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' })}
-                          </p>
-                        </div>
+                  <li className="rounded-xl border p-4" key={resumes[0].id}>
+                    <div className="flex items-start gap-3">
+                      <span className="soft-icon"><FileText className="size-5" /></span>
+                      <div className="min-w-0 flex-1">
+                        <h2 className="break-all text-sm font-medium">{resumes[0].file_name}</h2>
+                        <p className="mt-2 text-[11px] text-muted-foreground">
+                          Added {new Date(resumes[0].uploaded_at).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' })}
+                        </p>
                       </div>
-                      <div className="mt-4 flex flex-wrap gap-2">
-                        <ResumeLinks resume={resume} />
-                        {!resume.is_active && (
-                          <Button type="button" variant="ghost" onClick={() => handleSetActiveResume(resume.id)}>Set active</Button>
-                        )}
-                        <Button type="button" variant="ghost" onClick={() => document.getElementById('resume-upload')?.click()}>Replace</Button>
-                        <Button type="button" variant="ghost" onClick={() => setPendingDelete(resume)}>
-                          <Trash2 data-icon="inline-start" />
-                          Delete
-                        </Button>
-                      </div>
-                    </li>
-                  ))}
+                    </div>
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      <ResumeLinks resume={resumes[0]} />
+                      <Button type="button" variant="ghost" onClick={() => document.getElementById('resume-upload')?.click()}>Replace</Button>
+                      <Button type="button" variant="ghost" onClick={() => setPendingDelete(resumes[0])}>
+                        <Trash2 data-icon="inline-start" />
+                        Delete
+                      </Button>
+                    </div>
+                  </li>
                 </ul>
               ) : (
                 <EmptyState title="Start with your story." description="Add a resume using the form. PDF, DOC, or DOCX up to 5 MB." />
               )}
               <div className="mt-5">
                 <ResumeAutofill
+                  inputId="resume-upload"
                   onApply={applyAutofill}
                   onFileSelected={pickResume}
+                  onReviewConfirmedChange={setResumeReviewConfirmed}
                   uploadError={uploadError}
                   uploadControl={draft && (
                     <Button type="button" variant="outline" disabled={uploading} onClick={handleResumeUpload}>
@@ -631,8 +626,7 @@ function Profile() {
                 />
                 {resumeStatus && <p role="status" className="mt-3 text-xs text-muted-foreground">{resumeStatus}</p>}
                 <p className="mt-3 text-[11px] leading-6 text-muted-foreground">
-                  Replacing a resume does not alter an already submitted application. A newly uploaded resume becomes the active one.
-                </p>
+                  Replacing your resume updates what employers see for applications attached to it.                </p>
               </div>
             </TabsContent>
             <TabsContent value="account">
@@ -644,8 +638,7 @@ function Profile() {
 
       {pendingDelete && (
         <ConfirmationModal
-          message="Are you sure you want to delete this resume? Applications you already sent keep the resume that was attached at the time."
-          onConfirm={() => handleDeleteResume(pendingDelete)}
+          message="Are you sure you want to delete this resume? Applications you already sent stay, but they no longer show this resume."          onConfirm={() => handleDeleteResume(pendingDelete)}
           onCancel={() => setPendingDelete(null)}
           confirmLabel="Delete"
           danger

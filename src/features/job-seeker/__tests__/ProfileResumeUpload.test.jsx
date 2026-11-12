@@ -10,7 +10,6 @@ vi.mock('../../../shared/lib/resumeText', () => ({ extractResumeText: vi.fn() })
 vi.mock('../../../shared/services/documents', () => ({
   listResumes: vi.fn(),
   uploadResume: vi.fn(),
-  setActiveResume: vi.fn(),
   deleteResume: vi.fn(),
   validateFile: vi.fn(() => null),
   signedUrl: vi.fn(),
@@ -39,6 +38,7 @@ describe('Profile resume upload', () => {
     fireEvent.change(screen.getByLabelText('Choose a resume to autofill'), {
       target: { files: [new File(['x'], 'resume.pdf', { type: 'application/pdf' })] },
     })
+    fireEvent.click(screen.getByRole('checkbox', { name: /resume autofill can make mistakes/i }))
     await user.click(screen.getByRole('button', { name: 'Add resume' }))
 
     await waitFor(() => expect(uploadResume).toHaveBeenCalledWith('u1', expect.any(File)))

@@ -442,7 +442,7 @@ create index if not exists application_status_history_app_idx on public.applicat
 create index if not exists resumes_seeker_idx on public.resumes(seeker_id);
 create index if not exists resumes_path_idx on public.resumes(file_path);
 create unique index if not exists resumes_one_active_uidx on public.resumes(seeker_id) where is_active;
-create index if not exists education_seeker_idx on public.education(seeker_id);
+create unique index if not exists resumes_one_per_seeker_uidx on public.resumes(seeker_id);create index if not exists education_seeker_idx on public.education(seeker_id);
 create index if not exists work_experience_seeker_idx on public.work_experience(seeker_id);
 create index if not exists employment_history_seeker_idx on public.employment_history(seeker_id);
 create index if not exists employer_accreditations_company_idx on public.employer_accreditations(company_id);

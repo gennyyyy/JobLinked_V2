@@ -9,7 +9,6 @@ vi.mock('../../../shared/lib/resumeText', () => ({ extractResumeText: vi.fn() })
 vi.mock('../../../shared/services/documents', () => ({
   listResumes: vi.fn(),
   uploadResume: vi.fn(),
-  setActiveResume: vi.fn(),
   deleteResume: vi.fn(),
   validateFile: vi.fn(() => null),
   signedUrl: vi.fn(),

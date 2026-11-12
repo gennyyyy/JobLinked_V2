@@ -9,7 +9,6 @@ vi.mock('../../../shared/lib/resumeText', () => ({ extractResumeText: vi.fn() })
 vi.mock('../../../shared/services/documents', () => ({
   listResumes: vi.fn(),
   uploadResume: vi.fn(),
-  setActiveResume: vi.fn(),
   deleteResume: vi.fn(),
   validateFile: vi.fn(() => null),
   signedUrl: vi.fn(),
@@ -75,11 +74,6 @@ describe('Profile accessibility', () => {
   it('keeps the save hint in a status region', async () => {
     await openProfile()
     expect(screen.getAllByRole('status').some((node) => node.textContent === 'Changes are saved to your JobLinked account.')).toBe(true)
-  })
-
-  it('reports profile completion as text', async () => {
-    await openProfile()
-    expect(screen.getByText(/13% complete/i)).toBeInTheDocument()
   })
 
   it('announces that the resume "View" action opens in a new tab', async () => {

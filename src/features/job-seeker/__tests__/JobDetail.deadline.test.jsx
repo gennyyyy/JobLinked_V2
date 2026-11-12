@@ -85,4 +85,9 @@ describe('JobDetail deadline handling', () => {
     await renderDetail(job({ deadline: null }))
     expect(screen.getByText('Verified Open')).toBeInTheDocument()
   })
+
+  it('does not offer resume upload on the job detail page', async () => {
+    await renderDetail(job({ deadline: null }))
+    expect(screen.queryByLabelText(/upload new resume/i)).not.toBeInTheDocument()
+  })
 })

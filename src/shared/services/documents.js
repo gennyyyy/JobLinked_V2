@@ -37,11 +37,6 @@ export async function listResumes(seekerId) {
   return api.get('files/resumes/mine');
 }
 
-export async function setActiveResume(seekerId, resumeId) {
-  void seekerId;
-  return api.post(`files/resumes/${resumeId}/activate`);
-}
-
 export async function deleteResume(resumeId, filePath) {
   void filePath; // server deletes the DB row + disk file together
   return api.del(`files/resumes/${resumeId}`);

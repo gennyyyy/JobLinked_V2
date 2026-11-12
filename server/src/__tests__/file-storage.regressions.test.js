@@ -9,29 +9,17 @@ const upload = srv('src/upload.js');
 const between = (src, start, end) => src.slice(src.indexOf(start), src.indexOf(end));
 
 describe('file-storage regressions (2026-11-05 audit)', () => {
-  it('serialises resume uploads per user before deactivate+insert', () => {
+  it('serialises resume uploads per user before replace+insert', () => {
     const route = between(profiles, "router.post('/files/resumes'", "router.post('/files/documents'");
     expect(route).toContain('pg_advisory_xact_lock(hashtext($1))');
-    expect(route.indexOf('pg_advisory_xact_lock')).toBeLessThan(route.indexOf('update resumes set is_active = false'));
     expect(route).toContain("insert into resumes (seeker_id, file_path, file_name, is_active)");
-    // quota guard runs inside the per-user lock (race-safe)
-    expect(profiles).toContain('const MAX_RESUMES_PER_SEEKER');
-    expect(profiles).toContain("select count(*)::int n from resumes where seeker_id = $1");
     expect(route).toContain('fs.unlinkSync(req.file.path)');
   });
 
-  it('promotes the newest remaining resume when the active one is deleted', () => {
+  it('cleans up disk on delete', () => {
     const route = between(profiles, "router.delete('/files/resumes/:id'", "router.get('/files/resumes/mine'");
-    expect(route).toContain("if (rows[0].is_active)");
-    expect(route).toContain('update resumes set is_active = true');
-    expect(route).toContain('order by uploaded_at desc, id desc limit 1');
-    expect(route).toContain('rmdirSync');
-  });
-
-  it('serialises resume activation with the same per-user lock as upload', () => {
-    const route = between(profiles, "router.post('/files/resumes/:id/activate'", "// Addendum A: seeker profile children");
     expect(route).toContain('pg_advisory_xact_lock(hashtext($1))');
-    expect(route.indexOf('pg_advisory_xact_lock')).toBeLessThan(route.indexOf('update resumes set is_active = false'));
+    expect(route).toContain('rmdirSync');
   });
 
   it('marks authenticated file downloads private and varies on Authorization', () => {
