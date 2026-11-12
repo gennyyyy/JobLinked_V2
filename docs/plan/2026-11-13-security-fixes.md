@@ -49,6 +49,18 @@ Tailwind tokens. Tests near the code (`*.test.js(x)`). `npm test` and `npm run l
 - [ ] Verify: re-run local P-06 probe from the Phase 4 report — omitting the body tag must NOT yield
       break-glass; a narrow tag must stay limited.
 
+**Amendment (2026-11-13, after Task 10 live re-verification — R10-01/R10-02):**
+
+- Supabase GoTrue strips JSON `null` from `app_metadata`, so "explicit null = full admin" is
+  unrepresentable — a full-admin invite ended with no key and its invitee was permanently 403. Replace
+  it with the sentinel **`custom_role_id: 0`**: the invite handler writes `customRoleId ?? 0`.
+- Provision resolution order: key absent → 403 `INVITE_INCOMPLETE`; value `0`/`"0"` → `null` (full
+  admin); numeric id that resolves to a `custom_role` row → that id; **anything else present
+  (non-numeric, unresolvable, negative) → 403 `INVITE_INCOMPLETE`** — never silently `null`
+  (closes R10-01: create empty role → invite → delete role → stale tag became break-glass).
+- Tests must pin the stale-tag 403 and the sentinel round-trip; the old test that mocked a persisted
+  JSON `null` must be replaced (it asserted a state the platform cannot produce).
+
 ## Task 2 — F-15/F-16 (High, blocking): frontend security headers
 
 **Agent:** vercel-deployment-specialist. **Files:** `vercel.json`.
