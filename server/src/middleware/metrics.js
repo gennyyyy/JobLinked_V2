@@ -39,6 +39,10 @@ function maybeAlert(payload) {
 
 export function metricsMiddleware(req, res, next) {
   const start = process.hrtime.bigint();
+  // F-09: capture the bare path at entry, like requestLog. Never the query
+  // string — it is read back by the token-gated snapshot and posted to the
+  // alert webhook, and admin searches (?search=<name>) carry PII.
+  const { path } = req;
   res.on('finish', () => {
     const ms = Number(process.hrtime.bigint() - start) / 1e6;
     totalRequests += 1;
@@ -54,7 +58,7 @@ export function metricsMiddleware(req, res, next) {
 
     if (res.statusCode >= 500) {
       totalErrors += 1;
-      lastError = { at: new Date().toISOString(), method: req.method, path: req.originalUrl || req.url, status: res.statusCode };
+      lastError = { at: new Date().toISOString(), method: req.method, path, status: res.statusCode };
       maybeAlert({ ...lastError, errors5xx: totalErrors, requests: totalRequests });
     }
   });

@@ -10,6 +10,7 @@ function app() {
   const instance = express();
   instance.use(metricsMiddleware);
   instance.get('/api/boom', () => { throw new Error('kaboom'); });
+  instance.get('/api/admin/users', () => { throw new Error('search failed'); });
   instance.get('/api/ok', (_req, res) => res.json({ ok: true }));
   instance.use('/api', metricsRoutes);
   // Four args: Express only treats a handler as the error middleware with this shape.
@@ -43,6 +44,16 @@ describe('metrics middleware', () => {
     const snap = metricsSnapshot();
     expect(snap.lastError).toMatchObject({ method: 'GET', path: '/api/boom', status: 500 });
     expect(typeof snap.lastError.at).toBe('string');
+  });
+
+  it('never stores the query string in lastError (F-09 — admin search PII)', async () => {
+    process.env.METRICS_TOKEN = 'scrape-me';
+    const instance = app();
+    await request(instance).get('/api/admin/users?search=Juan%20Cruz&userId=abc');
+    const res = await request(instance).get('/api/metrics').set('x-metrics-token', 'scrape-me');
+    expect(res.body.lastError).toMatchObject({ method: 'GET', path: '/api/admin/users', status: 500 });
+    expect(JSON.stringify(res.body.lastError)).not.toContain('Juan');
+    expect(res.body.lastError.path).not.toContain('?');
   });
 
   it('is a 404 while the token is unset, and for a wrong token', async () => {

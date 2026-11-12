@@ -155,30 +155,6 @@ router.post('/auth/provision', tokenAuth, ah(async (req, res) => {
   res.status(201).json({ ...row, role });
 }));
 
-// Client-observed events only; server-side data auditing stays in the handlers.
-// F-03: the action names are allow-listed to exactly what the SPA posts
-// (shared/services/auth.js) — without the list, any authenticated user could
-// forge server action names (admin.login, user.role.change, …) into the admin
-// Audit-Logs view. An unknown action is a 400: a deliberate, documented
-// exception to "never 4xxs the caller" (the contract line covers best-effort
-// WRITES, not request validation — see 02-api-contract.md).
-const CLIENT_AUDIT_ACTIONS = [
-  'auth.login',
-  'auth.logout',
-  'auth.password.change',
-  'auth.password.reset.request',
-];
-router.post('/audit', tokenAuth, ah(async (req, res) => {
-  const found = await resolveRole(req.user.id);
-  if (found && found.profile.status !== 'active') return err(res, 403, 'FORBIDDEN', 'This account has been suspended or deactivated. Contact PESO.');
-  const { action, entity, entity_id, details } = req.body || {};
-  if (!CLIENT_AUDIT_ACTIONS.includes(action)) {
-    return err(res, 400, 'BAD_REQUEST', `action must be one of ${CLIENT_AUDIT_ACTIONS.join(', ')}`);
-  }
-  await audit(req.user.id, action, entity ?? null, entity_id ?? null, details ?? null);
-  res.status(204).end();
-}));
-
 // Replaces the getProfile fan-out. Valid token + no row → 404 (needs provision);
 // non-active row → 403.
 router.get('/auth/me', tokenAuth, ah(async (req, res) => {
