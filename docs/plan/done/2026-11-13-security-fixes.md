@@ -4,6 +4,9 @@
 headers), then the Medium/Low findings in risk order. No audit re-run; each task closes named findings
 with a test or a recorded verification.
 
+**Status (2026-11-13):** executed — gate **PASS** (G-01/G-02/F-15 closed with live evidence; audit
+report §14). P4-01 deferred by owner. Non-security API restart-loop incident remains open.
+
 **Baseline (do not re-audit):** `docs/arch/audit/2026-11-13-delta-security-audit.md` (F-findings, gate
 FAIL), `2026-11-13-admin-guard-matrix.md` (G-findings), `2026-11-13-phase4-probes.md` (live proof).
 Fix handoff order: audit report §12.

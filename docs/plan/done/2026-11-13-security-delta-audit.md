@@ -3,7 +3,7 @@
 **Project:** JobLinked (PESO Santa Maria) — React/Vite SPA + Express API + PostgreSQL (Supabase auth only)
 **Owner:** Lead Architect (sign-off required before any execution agent starts)
 **Mode:** Read-only audit. No code or schema changes by auditors; fixes become separate tasks after sign-off.
-**Status:** Executed 2026-11-13 — all phases complete. Reports: `docs/arch/audit/2026-11-13-delta-security-audit.md`, `2026-11-13-admin-guard-matrix.md`, `2026-11-13-phase4-probes.md`. Gate: **FAIL** — G-01 and F-15 (both High) blocking; fixes proceed via the report's §12 fix-task handoff as separate tasks.
+**Status:** Executed 2026-11-13; remediation complete. Gate: **PASS** — G-01, G-02, and F-15 closed with live evidence (report §14). P4-01 deferred by owner. Both security plans archived to `docs/plan/done/`.
 
 ## Why a delta, not a full re-audit
 
