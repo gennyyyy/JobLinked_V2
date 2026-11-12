@@ -19,9 +19,12 @@ describe('invite route shape', () => {
     expect(invite).toContain('/accept-invite');
     expect(invite).toContain("audit(req.user.id, 'user.invite'");
   });
+  it('writes role and custom_role_id to service-role app_metadata (G-01)', () => {
+    expect(invite).toMatch(/app_metadata:\s*\{\s*role,\s*custom_role_id:\s*customRoleId\s*\}/);
+  });
 });
 
-const mocks = vi.hoisted(() => ({ poolQuery: vi.fn(), invite: vi.fn(), role: 'super-admin' }));
+const mocks = vi.hoisted(() => ({ poolQuery: vi.fn(), invite: vi.fn(), updateUser: vi.fn(), role: 'super-admin' }));
 vi.mock('../db.js', () => ({ pool: { query: mocks.poolQuery } }));
 vi.mock('../auth.js', () => ({
   auth: (req, _res, next) => { req.user = { id: 'admin-1', email: 'a@x.com', role: mocks.role }; next(); },
@@ -29,7 +32,7 @@ vi.mock('../auth.js', () => ({
   requireRole: (...roles) => (req, res, next) =>
     roles.includes(req.user?.role) ? next() : res.status(403).json({ error: { code: 'FORBIDDEN', message: 'Insufficient role' } }),
   // S7: supa is a lazy getter, not a module-scope client.
-  supa: () => ({ auth: { admin: { inviteUserByEmail: mocks.invite, updateUserById: vi.fn().mockResolvedValue({ data: { user: { id: 'u1' } }, error: null }) } } }),
+  supa: () => ({ auth: { admin: { inviteUserByEmail: mocks.invite, updateUserById: mocks.updateUser } } }),
 }));
 process.env.RETENTION_DISABLE = '1';
 process.env.CORS_ORIGIN = 'https://app.test';
@@ -42,7 +45,12 @@ beforeAll(async () => {
   base = `http://127.0.0.1:${server.address().port}/api`;
 });
 afterAll(() => new Promise((r) => server.close(r)));
-beforeEach(() => { mocks.role = 'super-admin'; mocks.poolQuery.mockReset(); mocks.invite.mockReset(); });
+beforeEach(() => {
+  mocks.role = 'super-admin';
+  mocks.poolQuery.mockReset();
+  mocks.invite.mockReset();
+  mocks.updateUser.mockReset().mockResolvedValue({ data: { user: { id: 'u1' } }, error: null });
+});
 
 const post = (body) => fetch(`${base}/admin/users/invite`, {
   method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
@@ -58,6 +66,26 @@ describe('invite runtime', () => {
       redirectTo: 'https://app.test/accept-invite',
       data: expect.objectContaining({ role: 'job-seeker', first_name: 'Ana', last_name: 'Cruz' }),
     }));
+    // G-01: the tag is service-role state, written in the same call as role.
+    // null = the inviter explicitly granted a full admin (no custom role).
+    expect(mocks.updateUser).toHaveBeenCalledWith('u1', {
+      app_metadata: { role: 'job-seeker', custom_role_id: null },
+    });
+  });
+  it('writes the custom-role tag into app_metadata in the same call (G-01)', async () => {
+    mocks.poolQuery.mockImplementation(async (sql) => (/category = 'custom_role'/.test(sql)
+      ? { rows: [{ id: 12, base_role: 'job-seeker' }] }
+      : { rows: [] }));
+    mocks.invite.mockResolvedValue({ data: { user: { id: 'u1' } }, error: null });
+    const r = await post({ email: 'tagged@x.com', custom_role_id: 12, first_name: 'Ana', last_name: 'Cruz' });
+    expect(r.status).toBe(201);
+    expect(await r.json()).toEqual({ invited: true, email: 'tagged@x.com', role: 'job-seeker' });
+    expect(mocks.updateUser).toHaveBeenCalledWith('u1', {
+      app_metadata: { role: 'job-seeker', custom_role_id: 12 },
+    });
+    // user_metadata still mirrors it for the accept-invite form; the authority
+    // provision reads is app_metadata.
+    expect(mocks.invite.mock.calls[0][1].data).toMatchObject({ custom_role_id: 12 });
   });
   it('409 when the email already exists in a role table (case-insensitive)', async () => {
     mocks.poolQuery.mockResolvedValue({ rows: [{ '?column?': 1 }] });

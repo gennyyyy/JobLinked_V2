@@ -48,6 +48,66 @@ beforeEach(() => {
 const post = (body) => fetch(`${base}/auth/provision`, {
   method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
 
+// G-01: the custom-role tag is invite-time state in service-role app_metadata.
+// The invitee's body is client-writable and must never influence it.
+describe('provision custom-role tag (G-01)', () => {
+  const insertParams = (re) => {
+    const call = mocks.clientQuery.mock.calls.find(([sql]) => re.test(sql));
+    return call?.[1];
+  };
+
+  it('honours the tag from app_metadata (super-admin invite)', async () => {
+    mocks.appMetadata = { role: 'super-admin', custom_role_id: 7 };
+    mocks.poolQuery.mockImplementation(async (sql) => (
+      /category = 'custom_role'/.test(sql) ? { rows: [{ id: 7 }] } : { rows: [] }));
+    const r = await post({ role: 'super-admin', first_name: 'Cid', last_name: 'Reyes' });
+    expect(r.status).toBe(201);
+    // id,email,first,middle,last,suffix,full_name,custom_role_id
+    expect(insertParams(/insert into super_admins/i)[7]).toBe(7);
+  });
+
+  it('ignores a body tag — app_metadata is the only source', async () => {
+    mocks.appMetadata = { role: 'super-admin', custom_role_id: null };
+    const r = await post({ role: 'super-admin', custom_role_id: 7, first_name: 'Cid', last_name: 'Reyes' });
+    expect(r.status).toBe(201);
+    expect(insertParams(/insert into super_admins/i)[7]).toBeNull();
+    expect(mocks.poolQuery.mock.calls.some(([sql]) => /category = 'custom_role'/.test(sql))).toBe(false);
+  });
+
+  it('403 INVITE_INCOMPLETE when a super-admin invite has no custom_role_id key', async () => {
+    mocks.appMetadata = { role: 'super-admin' }; // pre-fix invite
+    const r = await post({ role: 'super-admin', custom_role_id: null, first_name: 'Cid', last_name: 'Reyes' });
+    expect(r.status).toBe(403);
+    expect((await r.json()).error.code).toBe('INVITE_INCOMPLETE');
+    // Fail closed before any lookup or write — never NULL → break-glass.
+    expect(mocks.resolveRole).not.toHaveBeenCalled();
+    expect(mocks.clientQuery).not.toHaveBeenCalled();
+  });
+
+  it('explicit null in app_metadata is the inviter granting a full admin', async () => {
+    mocks.appMetadata = { role: 'super-admin', custom_role_id: null };
+    const r = await post({ role: 'super-admin', first_name: 'Cid', last_name: 'Reyes' });
+    expect(r.status).toBe(201);
+    expect(insertParams(/insert into super_admins/i)[7]).toBeNull();
+  });
+
+  it('audit row carries the resolved tag', async () => {
+    mocks.appMetadata = { role: 'super-admin', custom_role_id: 7 };
+    mocks.poolQuery.mockImplementation(async (sql) => (
+      /category = 'custom_role'/.test(sql) ? { rows: [{ id: 7 }] } : { rows: [] }));
+    await post({ role: 'super-admin', first_name: 'Cid', last_name: 'Reyes' });
+    const write = mocks.poolQuery.mock.calls.find(([sql]) => /insert into audit_logs/i.test(sql));
+    expect(JSON.parse(write[1][4])).toEqual({ role: 'super-admin', custom_role_id: 7 });
+  });
+
+  it('seeker self-signup keeps null despite a body tag', async () => {
+    const r = await post({ role: 'job-seeker', custom_role_id: 7, first_name: 'Ana', last_name: 'Cruz' });
+    expect(r.status).toBe(201);
+    const params = insertParams(/insert into job_seekers/i);
+    expect(params[params.length - 1]).toBeNull();
+  });
+});
+
 describe('provision super-admin guard', () => {
   it('403 FORBIDDEN for a body role of super-admin with no app_metadata', async () => {
     const r = await post({ role: 'super-admin', first_name: 'Ada', last_name: 'Lovelace' });
@@ -89,8 +149,8 @@ describe('provision super-admin guard', () => {
     expect(sqls.some((s) => /insert into employer_accreditations/i.test(s))).toBe(true);
   });
 
-  it('201 super-admin when app_metadata.role is super-admin (invite path)', async () => {
-    mocks.appMetadata = { role: 'super-admin' };
+  it('201 super-admin when app_metadata grants role and an explicit tag key', async () => {
+    mocks.appMetadata = { role: 'super-admin', custom_role_id: null };
     const r = await post({ role: 'super-admin', first_name: 'Cid', last_name: 'Reyes' });
     expect(r.status).toBe(201);
     expect((await r.json()).role).toBe('super-admin');

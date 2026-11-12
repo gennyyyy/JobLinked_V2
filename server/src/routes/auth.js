@@ -28,6 +28,13 @@ router.post('/auth/provision', tokenAuth, ah(async (req, res) => {
   if (role === 'super-admin' && req.user.app_metadata?.role !== 'super-admin') {
     return err(res, 403, 'FORBIDDEN', 'Super-admin accounts can only be provisioned from an admin invite.');
   }
+  // G-01: an invite written before custom_role_id moved into app_metadata has
+  // no such key. Absent is NOT "no tag" (which would be break-glass) — refuse
+  // and make the admin re-send. A present key holding null IS the inviter's
+  // explicit full-admin grant; seekers/employers self-signup without a key.
+  if (role === 'super-admin' && !('custom_role_id' in (req.user.app_metadata || {}))) {
+    return err(res, 403, 'INVITE_INCOMPLETE', 'Invite is incomplete. Re-send the invite.');
+  }
   const existing = await resolveRole(req.user.id);
   if (existing) {
     if (existing.profile.status !== 'active') return err(res, 403, 'FORBIDDEN', 'This account has been suspended or deactivated. Contact PESO.');
@@ -66,13 +73,16 @@ router.post('/auth/provision', tokenAuth, ah(async (req, res) => {
     return err(res, 400, 'BAD_REQUEST', 'education requires a level and school, with an optional graduation year');
   }
 
-  // Optional invite tag: resolve against the custom_role catalog once. A stale
-  // or unknown id is ignored (null), never a 400 — the invite may be old. A
+  // G-01: the invite tag comes ONLY from service-role app_metadata — the same
+  // unforgeable signal as `role`. The request body is client-writable, so it is
+  // ignored outright. Re-validate against the catalog as defence: a stale or
+  // unknown id resolves to null (never a 400 — the invite may be old), and a
   // non-numeric id is ignored the same way (never a 22P02 500).
+  const appMeta = req.user.app_metadata || {};
   let customRoleId = null;
-  if (b.custom_role_id != null && isNumericId(b.custom_role_id)) {
+  if (appMeta.custom_role_id != null && isNumericId(appMeta.custom_role_id)) {
     const { rows } = await pool.query(
-      `select id from reference_data where id = $1 and category = 'custom_role'`, [b.custom_role_id]);
+      `select id from reference_data where id = $1 and category = 'custom_role'`, [appMeta.custom_role_id]);
     if (rows[0]) customRoleId = rows[0].id;
   }
 
@@ -141,7 +151,7 @@ router.post('/auth/provision', tokenAuth, ah(async (req, res) => {
     if (existing.profile.status !== 'active') return err(res, 403, 'FORBIDDEN', 'This account has been suspended or deactivated. Contact PESO.');
     return res.status(200).json({ ...existing.profile, role: existing.role });
   }
-  void audit(req.user.id, 'auth.register', role === 'job-seeker' ? 'job_seekers' : role === 'employer' ? 'employers' : 'super_admins', req.user.id, { role });
+  void audit(req.user.id, 'auth.register', role === 'job-seeker' ? 'job_seekers' : role === 'employer' ? 'employers' : 'super_admins', req.user.id, { role, custom_role_id: customRoleId });
   res.status(201).json({ ...row, role });
 }));
 

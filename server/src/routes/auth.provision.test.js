@@ -34,4 +34,8 @@ describe('provision custom_role_id', () => {
   it('ignores an unresolvable id instead of failing (stale invite)', () => {
     expect(authSrc).not.toMatch(/custom_role_id[\s\S]{0,120}BAD_REQUEST/);
   });
+  it('reads the tag from app_metadata only, never the request body (G-01)', () => {
+    expect(authSrc).toContain('req.user.app_metadata');
+    expect(authSrc).not.toMatch(/b\.custom_role_id/);
+  });
 });
