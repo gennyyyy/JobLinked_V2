@@ -177,6 +177,17 @@ DATABASE_URL=postgres://… ./db/apply-migrations.sh --status
 DATABASE_URL=postgres://… ./db/apply-migrations.sh
 ```
 
+**Deploy order (ADR-049 / F-17): apply migrations — 014 first — before starting
+the API build that replaces resumes in place.** The replace `UPDATE` assumes
+`resumes_one_per_seeker_uidx` already exists; code-before-migration updates every
+row of a multi-resume account and the index creation then fails. Verify, pre- and
+post-deploy:
+
+```sh
+psql "$DATABASE_URL" -c "select seeker_id, count(*) from resumes group by seeker_id having count(*) > 1"  # must return 0 rows
+psql "$DATABASE_URL" -c "select indexname from pg_indexes where tablename = 'resumes' and indexname = 'resumes_one_per_seeker_uidx'"  # must return 1 row
+```
+
 **First run on an existing database** (empty ledger) reconciles reality before
 applying anything: it probes for effects that were previously applied by hand
 and records them, then applies the rest.
