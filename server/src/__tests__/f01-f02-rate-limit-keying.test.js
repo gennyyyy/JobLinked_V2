@@ -11,6 +11,7 @@ process.env.SUPABASE_SERVICE_ROLE_KEY ||= 'test-service-role-key';
 const { reset } = await import('./helpers/db.js');
 const { loginAs, resetAuth } = await import('./helpers/auth.js');
 const { makeHardenedApp } = await import('./helpers/app.js');
+const { apiLimitFor } = await import('../middleware/rateLimit.js');
 
 // Vitest isolates module state per file, so the in-memory limiter counters
 // start at zero here.
@@ -25,6 +26,14 @@ const noProxyApp = makeHardenedApp();
 afterAll(() => { delete process.env.TRUST_PROXY; });
 
 beforeEach(() => { reset(); resetAuth(); });
+
+describe('Task 1 — apiLimitFor splits the authenticated bucket', () => {
+  it('gives an authenticated principal 1000 and anonymous 300', () => {
+    expect(apiLimitFor({ user: { id: 'aaaaaaaa-1111-4111-8111-111111111111' } })).toBe(1000);
+    expect(apiLimitFor({ user: undefined })).toBe(300);
+    expect(apiLimitFor({})).toBe(300);
+  });
+});
 
 describe('F-01 — general limiter keys by the authenticated user, IP otherwise', () => {
   const USER_A = 'aaaaaaaa-1111-4111-8111-111111111111';
@@ -50,11 +59,16 @@ describe('F-01 — general limiter keys by the authenticated user, IP otherwise'
     expect(ip2.status).toBe(404);
     expect(ra2.status).toBe(200);
 
-    expect(remaining(ra)).toBe(299);
-    expect(remaining(rb)).toBe(299); // separate per-user bucket (no NAT false-limit)
-    expect(remaining(ip1)).toBe(299); // anonymous still counted by IP
+    expect(remaining(ra)).toBe(999); // authenticated bucket is 1000
+    expect(remaining(rb)).toBe(999); // separate per-user bucket (no NAT false-limit)
+    expect(remaining(ip1)).toBe(299); // anonymous still counted by IP at 300
     expect(remaining(ip2)).toBe(298);
-    expect(remaining(ra2)).toBe(298); // user bucket moves on its own
+    expect(remaining(ra2)).toBe(998); // user bucket moves on its own
+  });
+
+  it('advertises the 1000 limit on authenticated responses', async () => {
+    const res = await asUser(loginAs({ id: USER_A, role: 'job-seeker' }));
+    expect(res.headers['ratelimit']).toContain('limit=1000');
   });
 
   it('an invalid token falls back to the IP bucket (no free rides)', async () => {

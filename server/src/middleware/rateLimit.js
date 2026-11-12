@@ -44,8 +44,9 @@ export const aiLimiter = rateLimit({
   keyGenerator: (req) => req.user?.id || ipKeyGenerator(req.ip),
 });
 
-// C1: general throttle for every other /api route — 300 req/15min keyed by
-// user id when available, IP for anonymous calls. The principal is attached
+// C1: general throttle for every other /api route — 1000 req/15min for an
+// authenticated user, 300 for anonymous calls, keyed by user id when
+// available and IP otherwise. The principal is attached
 // app-level by attachPrincipal (auth.js) before this limiter runs, so the key
 // is the authenticated user (NAT'd users get separate buckets), never the
 // shared proxy IP. Auth + uploads keep their own stricter buckets: the skip
@@ -55,9 +56,16 @@ export const stricterLimiterPaths = (req) =>
   req.path.startsWith('/auth') ||
   (req.method === 'POST' && (req.path === '/documents' || req.path.startsWith('/files/')));
 
+// Authenticated users get a bigger bucket: 300 was tuned before the admin
+// console started fetching several lists per mount (~8 endpoints in one page
+// load), which drained a shared 300 in seconds. Still a hard abuse ceiling for
+// everyone — no admin skip. Anonymous/IP traffic keeps the original 300 so the
+// cost of a token-less flood is unchanged.
+export const apiLimitFor = (req) => (req.user?.id ? 1000 : 300);
+
 export const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  limit: 300,
+  limit: apiLimitFor,
   standardHeaders: 'draft-7',
   legacyHeaders: false,
   handler: (_req, res) => limited(res),
