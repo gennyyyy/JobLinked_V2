@@ -19,8 +19,9 @@ describe('invite route shape', () => {
     expect(invite).toContain('/accept-invite');
     expect(invite).toContain("audit(req.user.id, 'user.invite'");
   });
-  it('writes role and custom_role_id to service-role app_metadata (G-01)', () => {
-    expect(invite).toMatch(/app_metadata:\s*\{\s*role,\s*custom_role_id:\s*customRoleId\s*\}/);
+  it('writes role and the 0 full-admin sentinel to service-role app_metadata (G-01/R10-02)', () => {
+    // GoTrue strips JSON null, so a full-admin grant must be a value it keeps.
+    expect(invite).toMatch(/app_metadata:\s*\{\s*role,\s*custom_role_id:\s*customRoleId \?\? 0\s*\}/);
   });
 });
 
@@ -67,9 +68,19 @@ describe('invite runtime', () => {
       data: expect.objectContaining({ role: 'job-seeker', first_name: 'Ana', last_name: 'Cruz' }),
     }));
     // G-01: the tag is service-role state, written in the same call as role.
-    // null = the inviter explicitly granted a full admin (no custom role).
+    // 0 = the inviter explicitly granted a full admin (no custom role); R10-02:
+    // null would be stripped by GoTrue, so the sentinel is the wire value.
     expect(mocks.updateUser).toHaveBeenCalledWith('u1', {
-      app_metadata: { role: 'job-seeker', custom_role_id: null },
+      app_metadata: { role: 'job-seeker', custom_role_id: 0 },
+    });
+  });
+  it('writes custom_role_id 0 for a full-admin invite (not null/absent)', async () => {
+    mocks.poolQuery.mockResolvedValue({ rows: [] });
+    mocks.invite.mockResolvedValue({ data: { user: { id: 'u1' } }, error: null });
+    const r = await post({ email: 'boss@x.com', role: 'super-admin', first_name: 'Cid', last_name: 'Reyes' });
+    expect(r.status).toBe(201);
+    expect(mocks.updateUser).toHaveBeenCalledWith('u1', {
+      app_metadata: { role: 'super-admin', custom_role_id: 0 },
     });
   });
   it('writes the custom-role tag into app_metadata in the same call (G-01)', async () => {

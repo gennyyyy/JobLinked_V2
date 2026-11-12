@@ -61,7 +61,7 @@ describe('invite writes the role into app_metadata', () => {
       redirectTo: 'https://app.test/accept-invite',
       data: expect.objectContaining({ role: 'job-seeker' }),
     }));
-    expect(mocks.updateUser).toHaveBeenCalledWith('auth-uuid-1', { app_metadata: { role: 'job-seeker', custom_role_id: null } });
+    expect(mocks.updateUser).toHaveBeenCalledWith('auth-uuid-1', { app_metadata: { role: 'job-seeker', custom_role_id: 0 } });
   });
 
   it('super-admin invites are pinned into app_metadata too', async () => {
@@ -69,7 +69,7 @@ describe('invite writes the role into app_metadata', () => {
     mocks.invite.mockResolvedValue({ data: { user: { id: 'auth-uuid-2' } }, error: null });
     const r = await invitePost({ email: 'boss@x.com', role: 'super-admin', first_name: 'Cid', last_name: 'Reyes' });
     expect(r.status).toBe(201);
-    expect(mocks.updateUser).toHaveBeenCalledWith('auth-uuid-2', { app_metadata: { role: 'super-admin', custom_role_id: null } });
+    expect(mocks.updateUser).toHaveBeenCalledWith('auth-uuid-2', { app_metadata: { role: 'super-admin', custom_role_id: 0 } });
   });
 
   it('500 when the app_metadata write fails (invite already sent)', async () => {

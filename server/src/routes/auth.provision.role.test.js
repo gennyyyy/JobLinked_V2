@@ -67,7 +67,7 @@ describe('provision custom-role tag (G-01)', () => {
   });
 
   it('ignores a body tag — app_metadata is the only source', async () => {
-    mocks.appMetadata = { role: 'super-admin', custom_role_id: null };
+    mocks.appMetadata = { role: 'super-admin', custom_role_id: 0 };
     const r = await post({ role: 'super-admin', custom_role_id: 7, first_name: 'Cid', last_name: 'Reyes' });
     expect(r.status).toBe(201);
     expect(insertParams(/insert into super_admins/i)[7]).toBeNull();
@@ -84,11 +84,57 @@ describe('provision custom-role tag (G-01)', () => {
     expect(mocks.clientQuery).not.toHaveBeenCalled();
   });
 
-  it('explicit null in app_metadata is the inviter granting a full admin', async () => {
+  // R10-02: GoTrue strips JSON null from app_metadata, so the full-admin grant
+  // is the sentinel 0 (the value the invite handler writes).
+  it('0 in app_metadata is the full-admin sentinel', async () => {
+    mocks.appMetadata = { role: 'super-admin', custom_role_id: 0 };
+    const r = await post({ role: 'super-admin', first_name: 'Cid', last_name: 'Reyes' });
+    expect(r.status).toBe(201);
+    expect(insertParams(/insert into super_admins/i)[7]).toBeNull();
+  });
+
+  it('"0" is the same sentinel after a string round-trip', async () => {
+    mocks.appMetadata = { role: 'super-admin', custom_role_id: '0' };
+    const r = await post({ role: 'super-admin', first_name: 'Cid', last_name: 'Reyes' });
+    expect(r.status).toBe(201);
+    expect(insertParams(/insert into super_admins/i)[7]).toBeNull();
+  });
+
+  it('tolerates a present null defensively (a state the platform strips)', async () => {
     mocks.appMetadata = { role: 'super-admin', custom_role_id: null };
     const r = await post({ role: 'super-admin', first_name: 'Cid', last_name: 'Reyes' });
     expect(r.status).toBe(201);
     expect(insertParams(/insert into super_admins/i)[7]).toBeNull();
+  });
+
+  // R10-01: a stale grant is not a full-admin grant. The old code mapped an
+  // unresolvable numeric id to null (= break-glass), so deleting the role
+  // between invite and accept minted a full admin.
+  it('403 INVITE_INCOMPLETE when the numeric tag no longer resolves (R10-01)', async () => {
+    mocks.appMetadata = { role: 'super-admin', custom_role_id: 99999999 };
+    const r = await post({ role: 'super-admin', custom_role_id: 7, first_name: 'Cid', last_name: 'Reyes' });
+    expect(r.status).toBe(403);
+    expect((await r.json()).error.code).toBe('INVITE_INCOMPLETE');
+    expect(mocks.clientQuery).not.toHaveBeenCalled();
+  });
+
+  it('403 INVITE_INCOMPLETE for non-numeric and negative tags, body cannot rescue', async () => {
+    for (const tag of ['stale', -1, '1.5']) {
+      mocks.appMetadata = { role: 'super-admin', custom_role_id: tag };
+      mocks.clientQuery.mockClear();
+      const r = await post({ role: 'super-admin', custom_role_id: 7, first_name: 'Cid', last_name: 'Reyes' });
+      expect(r.status).toBe(403);
+      expect((await r.json()).error.code).toBe('INVITE_INCOMPLETE');
+      expect(mocks.clientQuery).not.toHaveBeenCalled();
+    }
+  });
+
+  it('403 for a seeker whose service-role tag is stale too (same resolution)', async () => {
+    mocks.appMetadata = { custom_role_id: 99999999 };
+    const r = await post({ role: 'job-seeker', custom_role_id: 7, first_name: 'Ana', last_name: 'Cruz' });
+    expect(r.status).toBe(403);
+    expect((await r.json()).error.code).toBe('INVITE_INCOMPLETE');
+    expect(mocks.clientQuery).not.toHaveBeenCalled();
   });
 
   it('audit row carries the resolved tag', async () => {

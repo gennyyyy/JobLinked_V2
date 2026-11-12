@@ -31,8 +31,12 @@ describe('provision custom_role_id', () => {
   it('persists custom_role_id on the role insert', () => {
     expect(authSrc).toMatch(/insert into job_seekers[\s\S]*custom_role_id/);
   });
-  it('ignores an unresolvable id instead of failing (stale invite)', () => {
+  it('fails closed on an unresolvable or non-numeric tag instead of widening to break-glass (R10-01)', () => {
+    expect(authSrc).toContain('INVITE_INCOMPLETE');
     expect(authSrc).not.toMatch(/custom_role_id[\s\S]{0,120}BAD_REQUEST/);
+  });
+  it('reads the full-admin sentinel 0 as null (R10-02)', () => {
+    expect(authSrc).toMatch(/Number\(rawTag\) === 0/);
   });
   it('reads the tag from app_metadata only, never the request body (G-01)', () => {
     expect(authSrc).toContain('req.user.app_metadata');

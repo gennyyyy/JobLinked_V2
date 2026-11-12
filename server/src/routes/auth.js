@@ -30,8 +30,9 @@ router.post('/auth/provision', tokenAuth, ah(async (req, res) => {
   }
   // G-01: an invite written before custom_role_id moved into app_metadata has
   // no such key. Absent is NOT "no tag" (which would be break-glass) — refuse
-  // and make the admin re-send. A present key holding null IS the inviter's
-  // explicit full-admin grant; seekers/employers self-signup without a key.
+  // and make the admin re-send. A present 0 is the full-admin sentinel (R10-02:
+  // GoTrue strips JSON null, so the grant needs a value it keeps); seekers and
+  // employers self-signup without a key.
   if (role === 'super-admin' && !('custom_role_id' in (req.user.app_metadata || {}))) {
     return err(res, 403, 'INVITE_INCOMPLETE', 'Invite is incomplete. Re-send the invite.');
   }
@@ -75,15 +76,24 @@ router.post('/auth/provision', tokenAuth, ah(async (req, res) => {
 
   // G-01: the invite tag comes ONLY from service-role app_metadata — the same
   // unforgeable signal as `role`. The request body is client-writable, so it is
-  // ignored outright. Re-validate against the catalog as defence: a stale or
-  // unknown id resolves to null (never a 400 — the invite may be old), and a
-  // non-numeric id is ignored the same way (never a 22P02 500).
-  const appMeta = req.user.app_metadata || {};
+  // ignored outright. Resolve it fail-closed (R10-01): 0 (or "0") is the
+  // full-admin sentinel; a numeric id must still resolve to a custom_role row;
+  // anything else present is a stale/unknown grant and is refused, never widened
+  // to break-glass. A present null is tolerated defensively (the platform strips
+  // it), and self-signup has no tag at all.
+  const rawTag = (req.user.app_metadata || {}).custom_role_id;
   let customRoleId = null;
-  if (appMeta.custom_role_id != null && isNumericId(appMeta.custom_role_id)) {
-    const { rows } = await pool.query(
-      `select id from reference_data where id = $1 and category = 'custom_role'`, [appMeta.custom_role_id]);
-    if (rows[0]) customRoleId = rows[0].id;
+  if (rawTag != null) {
+    if (isNumericId(rawTag) && Number(rawTag) === 0) {
+      customRoleId = null;
+    } else if (isNumericId(rawTag)) {
+      const { rows } = await pool.query(
+        `select id from reference_data where id = $1 and category = 'custom_role'`, [rawTag]);
+      if (!rows[0]) return err(res, 403, 'INVITE_INCOMPLETE', 'Invite is incomplete. Re-send the invite.');
+      customRoleId = rows[0].id;
+    } else {
+      return err(res, 403, 'INVITE_INCOMPLETE', 'Invite is incomplete. Re-send the invite.');
+    }
   }
 
   let row;

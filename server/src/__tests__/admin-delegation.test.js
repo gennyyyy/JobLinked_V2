@@ -126,7 +126,7 @@ describe('G-02 invite: only a full admin may mint a full admin', () => {
     sqlDb([DUP_EMAIL, () => ({ rows: [] })]);
     const r = await invite({ email: 'boss2@x.com', role: 'super-admin', first_name: 'Cid', last_name: 'Reyes' });
     expect(r.status).toBe(201);
-    expect(mocks.updateUser).toHaveBeenCalledWith('auth-uuid-1', { app_metadata: { role: 'super-admin', custom_role_id: null } });
+    expect(mocks.updateUser).toHaveBeenCalledWith('auth-uuid-1', { app_metadata: { role: 'super-admin', custom_role_id: 0 } });
   });
 });
 
