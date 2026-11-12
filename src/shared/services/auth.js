@@ -1,5 +1,5 @@
 import { supabase } from '../lib/supabase';
-import { api } from '../lib/api';
+import { api, clearApiCache } from '../lib/api';
 // True when the token is valid but no profile row exists yet (contract says
 // GET /api/auth/me 404s; the built middleware answers 403 'Account not
 // provisioned' — accept both).
@@ -181,6 +181,7 @@ export async function signUp({ email, password, role, firstName, middleName = ''
 export async function signOut() {
   // Best-effort: a revoke failure on a dead token (e.g. server 403) must not
   // prevent local session clear — the caller always ends up logged out.
+  clearApiCache();
   try {
     await supabase.auth.signOut();
   } catch { /* revoke failed; local session still clears via SIGNED_OUT */ }

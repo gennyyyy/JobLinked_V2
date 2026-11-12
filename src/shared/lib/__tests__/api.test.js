@@ -11,7 +11,7 @@ vi.mock('../supabase', () => ({
 }))
 
 import { supabase } from '../supabase'
-import { api } from '../api'
+import { api, clearApiCache } from '../api'
 import { signOut } from '../../services/auth'
 
 vi.stubEnv('VITE_API_URL', 'http://localhost:4000')
@@ -33,8 +33,9 @@ const err401 = () => json(401, { error: { message: 'expired' } })
 
 beforeEach(() => {
   vi.clearAllMocks()
+  clearApiCache()
   window.location.href = 'http://localhost/'
-  supabase.auth.getSession.mockResolvedValue({ data: { session: { access_token: 'old' } } })
+  supabase.auth.getSession.mockResolvedValue({ data: { session: { access_token: 'old', user: { id: 'u1' } } } })
   supabase.auth.refreshSession.mockResolvedValue({ data: { session: { access_token: 'fresh' } }, error: null })
   supabase.auth.signOut.mockResolvedValue({ error: null })
 })
@@ -100,9 +101,68 @@ describe('in-flight GET dedupe', () => {
     expect(globalThis.fetch).toHaveBeenCalledTimes(1)
   })
 
-  it('starts a fresh request once the previous one has settled', async () => {
+  it('serves a second GET within the TTL from the cache', async () => {
     globalThis.fetch = vi.fn().mockResolvedValue(json(200, { ok: true }))
     await api.get('auth/me')
+    await expect(api.get('auth/me')).resolves.toEqual({ ok: true })
+    expect(globalThis.fetch).toHaveBeenCalledTimes(1)
+  })
+
+  it('refetches once the 10 s TTL has passed', async () => {
+    const now = vi.spyOn(Date, 'now').mockReturnValue(1_000_000)
+    try {
+      globalThis.fetch = vi.fn().mockResolvedValue(json(200, { ok: true }))
+      await api.get('auth/me')
+      now.mockReturnValue(1_000_000 + 9_999)
+      await api.get('auth/me')
+      expect(globalThis.fetch).toHaveBeenCalledTimes(1)
+      now.mockReturnValue(1_000_000 + 10_001)
+      await api.get('auth/me')
+      expect(globalThis.fetch).toHaveBeenCalledTimes(2)
+    } finally {
+      now.mockRestore()
+    }
+  })
+
+  it('never serves one identity\'s cached entry to another', async () => {
+    supabase.auth.getSession
+      .mockResolvedValueOnce({ data: { session: { access_token: 'a', user: { id: 'u1' } } } })
+      .mockResolvedValueOnce({ data: { session: { access_token: 'b', user: { id: 'u2' } } } })
+      .mockResolvedValueOnce({ data: { session: { access_token: 'a', user: { id: 'u1' } } } })
+    globalThis.fetch = vi.fn()
+      .mockResolvedValueOnce(json(200, { user: 'u1' }))
+      .mockResolvedValueOnce(json(200, { user: 'u2' }))
+    await expect(api.get('auth/me')).resolves.toEqual({ user: 'u1' })
+    await expect(api.get('auth/me')).resolves.toEqual({ user: 'u2' })
+    await expect(api.get('auth/me')).resolves.toEqual({ user: 'u1' })
+    expect(globalThis.fetch).toHaveBeenCalledTimes(2)
+  })
+
+  it('does not cache error responses', async () => {
+    globalThis.fetch = vi.fn()
+      .mockResolvedValueOnce(json(429, { error: { code: 'RATE_LIMITED', message: 'slow down' } }))
+      .mockResolvedValueOnce(json(500, { error: { message: 'boom' } }))
+      .mockResolvedValueOnce(json(200, { ok: true }))
+    await expect(api.get('auth/me')).rejects.toMatchObject({ status: 429 })
+    await expect(api.get('auth/me')).rejects.toMatchObject({ status: 500 })
+    await expect(api.get('auth/me')).resolves.toEqual({ ok: true })
+    expect(globalThis.fetch).toHaveBeenCalledTimes(3)
+  })
+
+  it('clears the cache after a write', async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue(json(200, { ok: true }))
+    await api.get('auth/me')
+    await api.get('auth/me')
+    expect(globalThis.fetch).toHaveBeenCalledTimes(1)
+    await api.post('auth/me', { name: 'x' })
+    await api.get('auth/me')
+    expect(globalThis.fetch).toHaveBeenCalledTimes(3)
+  })
+
+  it('refetches after clearApiCache()', async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue(json(200, { ok: true }))
+    await api.get('auth/me')
+    clearApiCache()
     await api.get('auth/me')
     expect(globalThis.fetch).toHaveBeenCalledTimes(2)
   })
@@ -124,6 +184,14 @@ describe('signOut', () => {
   it('resolves even when the server revoke fails', async () => {
     supabase.auth.signOut.mockResolvedValue({ error: { message: 'revoked', status: 403 } })
     await expect(signOut()).resolves.toBeUndefined()
+  })
+
+  it('drops cached reads so the next user never sees the previous identity\'s data', async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue(json(200, { ok: true }))
+    await api.get('auth/me')
+    await signOut()
+    await api.get('auth/me')
+    expect(globalThis.fetch).toHaveBeenCalledTimes(2)
   })
 })
 

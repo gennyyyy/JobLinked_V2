@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { mockApi } from '../../../test/api-helper'
 
-vi.mock('../../../shared/lib/api', () => ({ api: mockApi() }))
+vi.mock('../../../shared/lib/api', () => ({ api: mockApi(), clearApiCache: vi.fn() }))
 vi.mock('../../../shared/lib/supabase', () => ({
   supabase: {
     auth: {

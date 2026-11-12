@@ -14,9 +14,14 @@ function apiUrl() {
 // without an Authorization header.
 export const apiAssetUrl = (path) => `${apiUrl()}/api/${String(path || '').replace(/^\/+/, '')}`;
 
-async function authHeaders() {
+// Token and user id come from one session read: the GET cache is keyed per
+// identity, so the key must belong to the session that sends the request.
+async function sessionAuth() {
   const { data: { session } } = await supabase.auth.getSession();
-  return session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {};
+  return {
+    headers: session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {},
+    userId: session?.user?.id ?? 'anon',
+  };
 }
 
 function withQuery(path, params = {}) {
@@ -94,30 +99,57 @@ async function bounce(res) {
   throwStatus(res, message);
 }
 
-// Concurrent identical GETs share one request — e.g. auth/me asked for by the
-// auth provider and again by a page on a cold load. Entries are dropped the
-// moment they settle, so this is dedupe only; nothing is cached and a later
-// call always hits the network.
+// Two layers over GET, both keyed `${userId}::${path}` so one identity's data
+// can never be served to another:
+// - in-flight coalescing: identical GETs while one is pending share its promise;
+// - a 10 s cache of parsed 2xx JSON, so fast page switching does not refetch
+//   the same lists. Errors, 429s, and non-JSON bodies are never stored (send
+//   throws before resolution), and any non-GET clears the whole cache.
+const GET_CACHE_TTL_MS = 10_000;
+const getCache = new Map();
 const inFlightGets = new Map();
+// Bumped on every clear so a GET that was already in flight when a write
+// landed cannot store the pre-write body under the new state.
+let cacheGeneration = 0;
 
-async function request(method, path, body) {
-  if (method !== 'GET') return send(method, path, body);
-  const url = `${apiUrl()}/api/${path}`;
-  const existing = inFlightGets.get(url);
-  if (existing) return existing;
-  const pending = send(method, path, body);
-  inFlightGets.set(url, pending);
-  const settle = () => inFlightGets.delete(url);
-  pending.then(settle, settle);
-  return pending;
+export function clearApiCache() {
+  cacheGeneration += 1;
+  getCache.clear();
 }
 
-async function send(method, path, body) {
+async function request(method, path, body) {
+  if (method !== 'GET') {
+    clearApiCache();
+    return send(method, path, body);
+  }
+  const session = await sessionAuth();
+  const key = `${session.userId}::${path}`;
+  const cached = getCache.get(key);
+  if (cached && Date.now() - cached.at < GET_CACHE_TTL_MS) return cached.value;
+  // An expired entry is useless; drop it so the map only holds live reads.
+  if (cached) getCache.delete(key);
+  const pending = inFlightGets.get(key);
+  if (pending) return pending;
+  const generation = cacheGeneration;
+  const promise = send(method, path, body, session);
+  inFlightGets.set(key, promise);
+  const settle = () => inFlightGets.delete(key);
+  promise.then(
+    (value) => {
+      if (value !== null && generation === cacheGeneration) getCache.set(key, { value, at: Date.now() });
+      settle();
+    },
+    settle,
+  );
+  return promise;
+}
+
+async function send(method, path, body, session) {
   const isForm = body instanceof FormData;
   const url = `${apiUrl()}/api/${path}`;
   const base = isForm ? {} : { 'Content-Type': 'application/json' };
   const payload = isForm ? body : body === undefined ? undefined : JSON.stringify(body);
-  const sent = await authHeaders();
+  const { headers: sent } = session || await sessionAuth();
   let res;
   try {
     res = await fetch(url, {
@@ -137,7 +169,7 @@ async function send(method, path, body) {
 
 async function blob(path) {
   const url = `${apiUrl()}/api/${path}`;
-  const sent = await authHeaders();
+  const { headers: sent } = await sessionAuth();
   let res;
   try {
     res = await fetch(url, { headers: sent });

@@ -2,7 +2,7 @@
 import { vi } from 'vitest'
 import { mockApi } from '../../../test/api-helper'
 
-vi.mock('../../../shared/lib/api', () => ({ api: mockApi() }))
+vi.mock('../../../shared/lib/api', () => ({ api: mockApi(), clearApiCache: vi.fn() }))
 
 import { api } from '../../../shared/lib/api'
 import { changeJobStatus, duplicateJob, listJobs, createJob } from '../jobs'
