@@ -273,12 +273,11 @@ record.
 
 ## Known limits and follow-ups
 
-**Authenticated API throttle (300 req / 15 min per user).** One admin session
-browsing the console can exhaust it: the admin pages fetch large lists
-(`pageSize=500`) across several endpoints (~2.5 req/s observed 2026-11-12), and
-the in-memory bucket then returns `429 RATE_LIMITED` on every endpoint until the
-window resets. Client symptom: panels stop loading for a few minutes. Workaround:
-wait up to 15 minutes, or restart the API (the limiter store is in-memory and
-resets; ADR-037 single node). **Deferred decision (2026-11-13):** raise the limit
-for authenticated principals (e.g. 1000/15 min, keep 300 for anonymous/IP)
-and/or remove duplicate per-page fetches. Revisit before the next admin-UI change.
+**Authenticated API throttle (1000 req / 15 min per user; anonymous/IP 300).**
+Admin consoles fetch several large lists per mount (~2.5 req/s observed on
+2026-11-12); 300 was too tight and produced `429 RATE_LIMITED` across every
+endpoint. The client now coalesces identical in-flight GETs and caches GET
+responses for 10 s **per user** (`src/shared/lib/api.js`); any mutation or sign-out
+clears the cache, and errors are never cached. Remaining knob if admin usage
+grows: reduce per-page fetch volume (`pageSize=500` lists) or add server-side
+pagination.
