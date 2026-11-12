@@ -16,8 +16,8 @@ information we collect, why we collect it, how it is protected, and the rights
 you can exercise over it.
 
 1. Information we collect
-- Account and identity details: name, residential address or barangay, email
-  address, mobile number, and account credentials.
+- Account and identity details: name, date of birth, residential address or
+  barangay, email address, mobile number, and account credentials.
 - Employment profile: education, skills, qualifications, certifications, work
   experience, employment status, and job preferences.
 - Application records: résumés and supporting documents you upload, the
@@ -35,8 +35,9 @@ only when necessary, with its purpose and legal basis explained before collectio
 - Process applications and facilitate PESO employment assistance and referrals.
 - Display and update your application status.
 - Send account, application, and service notifications.
-- Prepare authorized municipal employment reports using aggregated or anonymized
-  information.
+- Prepare authorized municipal employment reports using aggregated employment
+  statistics and, where a report requires it, the limited applicant details
+  needed for authorized PESO follow-up.
 
 3. Who may access it
 Authorized PESO personnel may access the information needed to deliver employment
@@ -54,10 +55,12 @@ Your profile is not sold and is not published as a public applicant directory.
 Appropriate organizational, physical, and technical safeguards apply, including
 access restrictions to authorized users, encrypted transport, and audit logging of
 administrative actions. Records are retained only while necessary for the stated
-services or as required by applicable law and government records rules. When
-retention is no longer necessary, information is securely deleted, disposed of, or
-anonymized. Closing your account does not automatically erase records that must
-lawfully be retained.
+services or as required by applicable law and government records rules.
+Applications that do not result in employment are deleted 12 months after
+submission. Records of accepted, placed, or terminated employment are retained as
+employment records. When retention is no longer necessary, information is securely
+deleted, disposed of, or anonymized. Closing your account does not automatically
+erase records that must lawfully be retained.
 
 5. Your rights
 Subject to applicable law, you may request access to your records, ask for
