@@ -50,11 +50,13 @@ export function joinPdfItems(items) {
 }
 
 async function extractPdf(buf) {
-  const [pdfjsLib, workerMod] = await Promise.all([
+  const [pdfjsModule, workerMod] = await Promise.all([
     import("pdfjs-dist"),
     import("pdfjs-dist/build/pdf.worker.min.mjs?url"),
   ]);
-  pdfjsLib.GlobalWorkerOptions.workerSrc = workerMod.default;
+  const pdfjsLib = pdfjsModule?.default || pdfjsModule;
+  const workerSrc = workerMod?.default || workerMod;
+  pdfjsLib.GlobalWorkerOptions.workerSrc = workerSrc;
   const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
   let out = "";
   for (let i = 1; i <= pdf.numPages; i++) {
