@@ -127,11 +127,35 @@ comes up with `CORS_ORIGIN` unset is an outage even though health says 200.
 
 ## 5. Frontend (Vercel) and `VITE_*`
 
-The SPA is built and served by Vercel (`vercel.json` rewrite only). `VITE_*=`
-values (`.env.example`: `VITE_API_URL`, `VITE_SUPABASE_URL`,
-`VITE_SUPABASE_ANON_KEY`, `VITE_TURNSTILE_SITE_KEY`) are **baked into the bundle
-at build time** — changing one on Vercel does nothing until a **rebuild +
-redeploy**. `VITE_API_URL` must be the API's public origin.
+The SPA is built and served by Vercel (`vercel.json`: SPA rewrite + security
+headers). `VITE_*=` values (`.env.example`: `VITE_API_URL`,
+`VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `VITE_TURNSTILE_SITE_KEY`) are
+**baked into the bundle at build time** — changing one on Vercel does nothing
+until a **rebuild + redeploy**. `VITE_API_URL` must be the API's public origin.
+
+**Security headers (F-15/F-16).** `vercel.json` is the single source of truth for
+the frontend headers (CSP, `X-Content-Type-Options`, `X-Frame-Options`,
+`Referrer-Policy`, `Permissions-Policy`, and `Access-Control-Allow-Origin`
+narrowed to the canonical origin). Every CSP allowance has a provenance row in
+the delta audit §6.3 — add an allowance only with a new evidence row. The API's
+helmet headers are separate (`server/src/app.js`).
+
+**HSTS `includeSubDomains` is intentionally omitted (2026-11-13, F-19).** It is
+a one-way door: once served, every current and future subdomain is bound to
+HTTPS. Revisit only if the owner confirms no non-TLS subdomain exists.
+
+**Post-deploy verification (owner, after Vercel promotes the build):**
+
+```sh
+curl -sI https://www.joblinked.site/   # all five headers + narrowed ACAO
+```
+
+Then one browser pass with DevTools open (Console, CSP violations visible): Jobs,
+registration (Turnstile loads and solves), a resume upload + preview (pdf.js
+worker), a company logo, and a CSV download — zero CSP violations. If Turnstile's
+injected bootstrap trips `script-src`, the only permitted fallback is adding
+`'unsafe-inline'` to `script-src` (never `unsafe-eval`), recorded in the audit
+provenance table. Finally re-run the external scanner (F-15/F-16 should clear).
 
 ## Migration ledger
 
