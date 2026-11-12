@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { pool } from '../db.js';
 import { auth, requireRole, supa } from '../auth.js';
-import { requirePermission } from '../middleware/permissions.js';
+import { requirePermission, unheldKey } from '../middleware/permissions.js';
 import { ah, err, audit, buildFullName, isUuid, pageParams, withTransaction } from '../util.js';
 import { USER_TABLES, ACCOUNT_STATUSES, likeFilter } from './admin-shared.js';
 import logger from '../logger.js';
@@ -79,6 +79,38 @@ export async function findUserTable(id) {
   return row ? { table: row.tbl, profile: { ...row.profile, role: ROLE_BY_TABLE[row.tbl] } } : {};
 }
 
+// G-07: the break-glass recovery path (ADR-042) is an active super-admin with
+// no custom role. Every write that removes the target from that set — suspend,
+// demote, tag — must leave at least one behind, or no account can recover the
+// admin surface.
+const LAST_ADMIN_MSG = 'This would remove the last full admin. Assign another full admin first.';
+async function removesLastBreakGlass(table, profile, id) {
+  if (table !== 'super_admins' || profile.status !== 'active' || profile.custom_role_id != null) return false;
+  const { rows } = await pool.query(
+    `select count(*)::int c from super_admins where status = 'active' and custom_role_id is null and id <> $1`, [id]);
+  return !(rows[0]?.c > 0); // fail closed: an unreadable count must not remove the last recovery path
+}
+
+// G-02: a custom-role tag is a grant, so it obeys the same ceiling as an invite
+// or a role write. null/undefined clears the tag — for a super-admin that is
+// the full-admin break-glass grant, which only a full admin may hand out.
+// Returns the HTTP error to send, or null when the grant is within the ceiling.
+async function grantError(req, customRoleId, targetRole) {
+  if (customRoleId == null) {
+    return targetRole === 'super-admin' && req.user?.customRoleId
+      ? { status: 403, code: 'FORBIDDEN', message: 'Only a full admin can grant full admin access' }
+      : null;
+  }
+  const { rows } = await pool.query(
+    `select coalesce(details->'permissions', '[]'::jsonb) as permissions
+       from reference_data where id = $1 and category = 'custom_role'`, [customRoleId]);
+  if (!rows[0]) return { status: 400, code: 'BAD_REQUEST', message: 'Custom role not found' };
+  const missing = unheldKey(req, rows[0].permissions);
+  return missing
+    ? { status: 403, code: 'FORBIDDEN', message: `Your assigned role does not include "${missing}"` }
+    : null;
+}
+
 router.patch('/admin/users/:id', ...admin, ah(async (req, res) => {
   const body = { ...(req.body || {}) };
   // Lone super-admin footgun: suspending or re-tagging yourself here (unlike
@@ -120,9 +152,14 @@ router.patch('/admin/users/:id', ...admin, ah(async (req, res) => {
     const ACC = ['none','pending','approved','rejected','resubmission','revoked'];
     if (!ACC.includes(patch.accreditation_status)) return err(res, 400, 'BAD_REQUEST', `accreditation_status must be one of ${ACC.join(', ')}`);
   }
-  if (patch.custom_role_id !== undefined && patch.custom_role_id !== null) {
-    const { rows } = await pool.query(`select 1 from reference_data where id = $1 and category = 'custom_role'`, [patch.custom_role_id]);
-    if (!rows[0]) return err(res, 400, 'BAD_REQUEST', 'Custom role not found');
+  if (patch.custom_role_id !== undefined) {
+    const denied = await grantError(req, patch.custom_role_id, profile.role);
+    if (denied) return err(res, denied.status, denied.code, denied.message);
+  }
+  // G-07: suspension and tagging are both ways out of the break-glass set.
+  if ((patch.status === 'suspended' || patch.custom_role_id != null) &&
+      await removesLastBreakGlass(table, profile, req.params.id)) {
+    return err(res, 409, 'CONFLICT', LAST_ADMIN_MSG);
   }
   const keys = Object.keys(patch);
   if (!keys.length) return err(res, 400, 'BAD_REQUEST', 'Nothing to update');
@@ -155,17 +192,25 @@ router.post('/admin/users/invite', ...admin, ah(async (req, res) => {
   let customRoleId = null;
   if (b.custom_role_id != null) {
     const { rows } = await pool.query(
-      `select id, details->>'base_role' as base_role from reference_data
-        where id = $1 and category = 'custom_role'`, [b.custom_role_id]);
+      `select id, details->>'base_role' as base_role, coalesce(details->'permissions', '[]'::jsonb) as permissions
+        from reference_data where id = $1 and category = 'custom_role'`, [b.custom_role_id]);
     if (!rows[0]) return err(res, 400, 'BAD_REQUEST', 'Custom role not found');
     role = rows[0].base_role;
     customRoleId = rows[0].id;
     if (b.role && b.role !== role) {
       return err(res, 400, 'BAD_REQUEST', 'role must match the custom role base role');
     }
+    // G-02: an invite is a grant — the inviter cannot hand out a key it lacks.
+    const missing = unheldKey(req, rows[0].permissions);
+    if (missing) return err(res, 403, 'FORBIDDEN', `Your assigned role does not include "${missing}"`);
   }
   if (!INVITE_BASE_ROLES.includes(role)) {
     return err(res, 400, 'BAD_REQUEST', 'role must be job-seeker, employer, or super-admin');
+  }
+  // G-02b: only a full admin may mint another full admin. A tagged inviter
+  // must name a custom role — its null tag is the break-glass grant.
+  if (role === 'super-admin' && customRoleId === null && req.user?.customRoleId) {
+    return err(res, 403, 'FORBIDDEN', 'Only a full admin can invite an admin without a custom role');
   }
   if (role === 'employer' && !String(b.company_name || '').trim()) {
     return err(res, 400, 'BAD_REQUEST', 'company_name is required for employer accounts');
@@ -228,10 +273,10 @@ router.post('/admin/users/:id/custom-role', ...admin, ah(async (req, res) => {
   const { table, profile } = await findUserTable(req.params.id);
   if (!profile) return err(res, 404, 'NOT_FOUND', 'User account not found');
   const { custom_role_id = null } = req.body || {};
-  if (custom_role_id !== null) {
-    const { rows } = await pool.query(
-      `select id from reference_data where id = $1 and category = 'custom_role'`, [custom_role_id]);
-    if (!rows[0]) return err(res, 400, 'BAD_REQUEST', 'Custom role not found');
+  const denied = await grantError(req, custom_role_id, profile.role);
+  if (denied) return err(res, denied.status, denied.code, denied.message);
+  if (custom_role_id != null && await removesLastBreakGlass(table, profile, req.params.id)) {
+    return err(res, 409, 'CONFLICT', LAST_ADMIN_MSG);
   }
   const { rows } = await pool.query(
     `update ${table} set custom_role_id = $2, updated_at = now() where id = $1 returning *`,
@@ -256,6 +301,10 @@ router.post('/admin/users/:id/role', ...admin, ah(async (req, res) => {
   const { table, profile } = await findUserTable(req.params.id);
   if (!profile) return err(res, 404, 'NOT_FOUND', 'User account not found');
   if (profile.role === role) return res.json({ id: req.params.id, role });
+  // G-07: demoting the last break-glass super-admin removes the recovery path.
+  if (await removesLastBreakGlass(table, profile, req.params.id)) {
+    return err(res, 409, 'CONFLICT', LAST_ADMIN_MSG);
+  }
   try {
     await withTransaction(async (client) => {
       await client.query(`update ${table} set status = 'inactive', updated_at = now() where id = $1`, [req.params.id]);

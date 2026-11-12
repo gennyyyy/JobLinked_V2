@@ -28,7 +28,7 @@ describe('GET /admin/permissions', () => {
     const r = await fetch(`${base}/admin/permissions`);
     expect(r.status).toBe(200);
     expect(await r.json()).toEqual([
-      { key: 'dashboard.view', label: 'View Dashboard' },
+      { key: 'dashboard.view', label: 'View Directory' },
       { key: 'accreditation.manage', label: 'Manage Accreditations' },
       { key: 'jobs.manage', label: 'Manage Job Posts' },
       { key: 'users.manage', label: 'Manage Users' },

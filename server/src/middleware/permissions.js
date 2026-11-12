@@ -12,6 +12,17 @@ import { err } from '../util.js';
 //
 // Any of the listed keys satisfies the check, so one route can accept the two that
 // legitimately overlap (GET /admin/roles serves both the Roles and Users pages).
+// G-02 "cannot grant what you lack": the first key in `keys` the caller does
+// not hold itself, or null when the whole grant is within its ceiling. A
+// break-glass admin (no custom role) holds the full catalogue; a tagged admin
+// holds exactly its bundle. Shared by every grant site (invite, role writes,
+// custom-role assignment) so no path can hand out more than it has.
+export function unheldKey(req, keys) {
+  if (!req.user?.customRoleId) return null;
+  const held = Array.isArray(req.user.permissions) ? req.user.permissions : [];
+  return (Array.isArray(keys) ? keys : []).find((key) => !held.includes(key)) ?? null;
+}
+
 export function requirePermission(...keys) {
   return function requirePermissionMiddleware(req, res, next) {
     if (!req.user) return err(res, 401, 'UNAUTHORIZED', 'Sign in required');

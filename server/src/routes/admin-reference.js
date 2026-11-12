@@ -1,9 +1,8 @@
 import { Router } from 'express';
 import { pool } from '../db.js';
 import { auth, requireRole } from '../auth.js';
-import { requirePermission } from '../middleware/permissions.js';
+import { requirePermission, unheldKey } from '../middleware/permissions.js';
 import { ah, err, audit, isNumericId } from '../util.js';
-import { USER_TABLES } from './admin-shared.js';
 
 const router = Router();
 const admin = [auth, requireRole('super-admin')];
@@ -44,7 +43,7 @@ router.post('/admin/reference/:category', ...settingsAdmin, ah(async (req, res) 
 // validateRolePayload validates against ROLE_PERMISSION_KEYS (derived from the
 // same list), so the two can never drift.
 const ROLE_PERMISSIONS = [
-  { key: "dashboard.view", label: "View Dashboard" },
+  { key: "dashboard.view", label: "View Directory" },
   { key: "accreditation.manage", label: "Manage Accreditations" },
   { key: "jobs.manage", label: "Manage Job Posts" },
   { key: "users.manage", label: "Manage Users" },
@@ -99,6 +98,9 @@ router.get('/admin/roles', ...rolesRead, ah(async (req, res) => {
 router.post('/admin/roles', ...rolesWrite, ah(async (req, res) => {
   const checked = validateRolePayload(req.body);
   if (checked.error) return err(res, 400, 'BAD_REQUEST', checked.error);
+  // G-02: a role bundle is a grant — no key beyond the caller's own ceiling.
+  const missing = unheldKey(req, checked.value.permissions);
+  if (missing) return err(res, 403, 'FORBIDDEN', `Your assigned role does not include "${missing}"`);
   if (await roleNameTaken(checked.value.name)) return err(res, 409, 'CONFLICT', 'A role with this name already exists');
   const { rows } = await pool.query(
     `insert into reference_data (category, value, sort_order, details)
@@ -109,13 +111,23 @@ router.post('/admin/roles', ...rolesWrite, ah(async (req, res) => {
   res.status(201).json(parseCustomRole(rows[0]));
 }));
 
+// G-02: the role that sets the caller's own ceiling is off limits. Compared as
+// numbers: `/admin/roles/032` is the same row as `32`, and a string compare
+// would let the guard be walked around.
+const editsOwnRole = (req) => req.user?.customRoleId != null
+  && Number(req.user.customRoleId) === Number(req.params.id);
+
 router.patch('/admin/roles/:id', ...rolesWrite, ah(async (req, res) => {
   if (!isNumericId(req.params.id)) return err(res, 400, 'BAD_REQUEST', 'Invalid id');
+  if (editsOwnRole(req)) return err(res, 403, 'FORBIDDEN', 'You cannot edit the role assigned to you');
   const { rows: existing } = await pool.query(
     `select * from reference_data where id = $1 and category = 'custom_role'`, [req.params.id]);
   if (!existing[0]) return err(res, 404, 'NOT_FOUND', 'Custom role not found');
   const checked = validateRolePayload({ ...parseCustomRole(existing[0]), ...(req.body || {}) });
   if (checked.error) return err(res, 400, 'BAD_REQUEST', checked.error);
+  // The merged bundle is what persists, so the ceiling applies to the result.
+  const missing = unheldKey(req, checked.value.permissions);
+  if (missing) return err(res, 403, 'FORBIDDEN', `Your assigned role does not include "${missing}"`);
   if (await roleNameTaken(checked.value.name, req.params.id)) return err(res, 409, 'CONFLICT', 'A role with this name already exists');
   const { rows } = await pool.query(
     `update reference_data set value = $2, details = $3 where id = $1 and category = 'custom_role' returning *`,
@@ -127,11 +139,20 @@ router.patch('/admin/roles/:id', ...rolesWrite, ah(async (req, res) => {
 
 router.delete('/admin/roles/:id', ...rolesWrite, ah(async (req, res) => {
   if (!isNumericId(req.params.id)) return err(res, 400, 'BAD_REQUEST', 'Invalid id');
+  // G-02: deleting your own role nulls your tag — a silent break-glass promotion.
+  if (editsOwnRole(req)) return err(res, 403, 'FORBIDDEN', 'You cannot delete the role assigned to you');
   const { rows: existing } = await pool.query(
     `select * from reference_data where id = $1 and category = 'custom_role'`, [req.params.id]);
   if (!existing[0]) return err(res, 404, 'NOT_FOUND', 'Custom role not found');
-  for (const table of Object.values(USER_TABLES)) {
-    await pool.query(`update ${table} set custom_role_id = null, updated_at = now() where custom_role_id = $1`, [req.params.id]);
+  // The FK is `on delete set null`, so deleting an assigned role would promote
+  // every holder to break-glass. Refuse until the role is unassigned.
+  const { rows: refs } = await pool.query(
+    `select count(*)::int c from (
+       select 1 from super_admins where custom_role_id = $1
+       union all select 1 from employers where custom_role_id = $1
+       union all select 1 from job_seekers where custom_role_id = $1) t`, [req.params.id]);
+  if (refs[0].c > 0) {
+    return err(res, 409, 'CONFLICT', `Role is still assigned to ${refs[0].c} account(s); unassign it first`);
   }
   await pool.query(`delete from reference_data where id = $1 and category = 'custom_role'`, [req.params.id]);
   void audit(req.user.id, 'role.delete', 'reference_data', req.params.id, { name: existing[0].value });
@@ -142,10 +163,12 @@ router.delete('/admin/reference/:id', ...settingsAdmin, ah(async (req, res) => {
   if (!isNumericId(req.params.id)) return err(res, 400, 'BAD_REQUEST', 'Invalid id');
   const { rows } = await pool.query('select category from reference_data where id = $1', [req.params.id]);
   if (!rows[0]) return err(res, 404, 'NOT_FOUND', 'Reference not found');
-  // system admin (no custom role) retains full access; tagged admins need roles.manage
+  // G-05: a tagged admin without roles.manage gets the SAME 404 a missing row
+  // gets, so the status is not an oracle for "this id is a custom role".
+  // A break-glass admin keeps full access.
   if (rows[0].category === 'custom_role' && req.user?.customRoleId &&
       !(Array.isArray(req.user?.permissions) && req.user.permissions.includes('roles.manage'))) {
-    return err(res, 403, 'FORBIDDEN', 'roles.manage required to delete custom roles');
+    return err(res, 404, 'NOT_FOUND', 'Reference not found');
   }
   const { rowCount } = await pool.query('delete from reference_data where id = $1', [req.params.id]);
   if (!rowCount) return err(res, 404, 'NOT_FOUND', 'Reference not found');
