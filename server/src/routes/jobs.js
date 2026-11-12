@@ -156,24 +156,26 @@ router.get('/jobs/:id', optionalAuth, ah(async (req, res) => {
 // { data, total, page, pageSize } envelope as the public list (M1): count +
 // SQL LIMIT/OFFSET, default pageSize 25 / max 500 so a long-tenured employer's
 // listing is one screen by default and never unbounded.
-router.get('/employers/:employerId/jobs', auth, ah(async (req, res) => {
+router.get('/employers/:employerId/jobs', optionalAuth, ah(async (req, res) => {
   if (!isUuid(req.params.employerId)) return err(res, 400, 'BAD_REQUEST', 'Invalid id');
-  if (req.user.role !== 'super-admin' && req.params.employerId !== req.user.id) {
-    return err(res, 403, 'FORBIDDEN', 'Not your company');
-  }
+  const isOwnerOrAdmin = !!req.user && (req.user.role === 'super-admin' || req.user.id === req.params.employerId);
   const pg = pageParams(res, req.query, 25, 500);
   if (!pg) return;
   const vals = [req.params.employerId];
   let statusSql = '';
-  if (req.query.status) {
-    if (!JOB_STATUSES.includes(req.query.status)) {
-      return err(res, 400, 'BAD_REQUEST', `status must be one of ${JOB_STATUSES.join(', ')}`);
+  if (isOwnerOrAdmin) {
+    if (req.query.status) {
+      if (!JOB_STATUSES.includes(req.query.status)) {
+        return err(res, 400, 'BAD_REQUEST', `status must be one of ${JOB_STATUSES.join(', ')}`);
+      }
+      vals.push(req.query.status); statusSql = `and j.status = $${vals.length}`;
     }
-    vals.push(req.query.status); statusSql = `and j.status = $${vals.length}`;
+  } else {
+    vals.push('published'); statusSql = `and j.status = $${vals.length}`;
   }
   const base = `from job_vacancies j left join employers e on e.id = j.company_id
       where j.company_id = $1 ${statusSql}`;
-  const total = (await pool.query(`select count(*)::int c ${base}`, vals)).rows[0].c;
+  const total = (await pool.query(`select count(*)::int c ${base}`, vals)).rows[0]?.c ?? 0;
   const { rows } = await pool.query(
     `select j.*, e.company_name, e.logo_path,
        (select count(*)::int from job_applications a where a.job_id = j.id) as applicant_count ${base}
@@ -187,7 +189,7 @@ router.get('/employers/:employerId/jobs', auth, ah(async (req, res) => {
        count(*) filter (where status = 'closed')::int closed,
        count(*) filter (where status = 'draft')::int draft
      from job_vacancies where company_id = $1`, [req.params.employerId])).rows[0];
-  void audit(req.user.id, 'job.list.view', 'job_vacancies', null, { companyId: req.params.employerId });
+  if (req.user) void audit(req.user.id, 'job.list.view', 'job_vacancies', null, { companyId: req.params.employerId });
   res.json({ data: rows.map(embed), total, page: pg.page, pageSize: pg.pageSize, counts });
 }));
 

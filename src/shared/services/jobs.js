@@ -12,6 +12,10 @@ export async function getJob(id) {
   return api.get(`jobs/${id}`);
 }
 
+export async function getEmployer(id) {
+  return api.get(`employers/${id}`);
+}
+
 export async function listEmployerJobs(companyId, { status = null, page = 1, pageSize = 25 } = {}) {
   return api.get(`employers/${companyId}/jobs`, { status, page, pageSize });
 }

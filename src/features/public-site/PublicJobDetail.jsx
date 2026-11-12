@@ -74,7 +74,13 @@ export default function PublicJobDetail() {
                     <VerifiedBadge />
                   </div>
                   <h1 className="mt-3 text-2xl font-semibold tracking-tight sm:text-3xl">{titleCase(job.title)}</h1>
-                  <p className="mt-2 text-sm text-muted-foreground">{company}</p>
+                  <p className="mt-2 text-sm text-muted-foreground">
+                    {job.employers?.id ? (
+                      <Link to={`/employers/${job.employers.id}`} className="hover:text-primary hover:underline">{company}</Link>
+                    ) : (
+                      company
+                    )}
+                  </p>
                   <div className="mt-4 flex flex-wrap gap-4 text-xs text-muted-foreground">
                     <span className="flex items-center gap-1.5"><MapPin className="size-3.5" />{titleCase(job.location) || 'Santa Maria'}, Santa Maria</span>
                     <span className="flex items-center gap-1.5"><BriefcaseBusiness className="size-3.5" />{job.employment_type || 'Full-time'}</span>

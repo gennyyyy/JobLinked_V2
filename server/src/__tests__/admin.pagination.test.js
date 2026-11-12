@@ -196,10 +196,9 @@ describe('M1 — GET /employers/:employerId/jobs is paginated', () => {
     expect(callsOf(/job_vacancies/)).toHaveLength(0);
   });
 
-  it('403 for another employer company, unchanged', async () => {
+  it('allows another employer to read published jobs (public, ADR-048)', async () => {
     const res = await request(app).get(`/api/employers/${EMPLOYER}/jobs`).set('Authorization', as(OTHER_EMPLOYER, 'employer'));
-    expect(res.status).toBe(403);
-    expect(res.body.error.code).toBe('FORBIDDEN');
+    expect(res.status).toBe(200);
   });
 
   it('400 for a malformed company id, unchanged', async () => {

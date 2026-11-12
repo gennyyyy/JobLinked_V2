@@ -488,4 +488,19 @@ router.get('/files/:bucket/*', auth, ah(async (req, res) => {
   res.sendFile(abs);
 }));
 
+// Public: filtered employer profile projection (ADR-048). No PII.
+router.get('/employers/:id', ah(async (req, res) => {
+  const id = req.params.id;
+  if (!isUuid(id)) return err(res, 400, 'BAD_REQUEST', 'Invalid id');
+  const { rows } = await pool.query(
+    `select e.id, e.company_name, e.industry, e.description, e.website, e.city_municipality,
+            e.province_state, e.barangay_district, e.accreditation_status, e.created_at, e.logo_path,
+            i.updated_at as logo_updated_at
+       from employers e
+       left join profile_images i on i.owner_id = e.id and i.kind = 'employer-logo'
+      where e.id = $1 and e.status = 'active'`, [id]);
+  if (!rows[0]) return err(res, 404, 'NOT_FOUND', 'Employer not found');
+  res.json(rows[0]);
+}));
+
 export default router;
