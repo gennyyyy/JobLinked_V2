@@ -50,7 +50,7 @@ export function joinPdfItems(items) {
 }
 
 async function extractPdf(buf) {
-  const [{ default: pdfjsLib }, workerMod] = await Promise.all([
+  const [pdfjsLib, workerMod] = await Promise.all([
     import("pdfjs-dist"),
     import("pdfjs-dist/build/pdf.worker.min.mjs?url"),
   ]);
