@@ -458,3 +458,25 @@ then G-02 enforcement (decision taken: enforce — see fix plan Task 3). All thr
 fix is applied by an audit agent; the gate re-opens only after the three High findings are fixed and
 re-verified with local probes (P-06, P-07, P-08) plus a read-only header check of the production site
 root.
+
+---
+
+## 14. Gate closure (2026-11-13)
+
+All blocking findings are closed with live evidence:
+
+| Finding | Severity | Closure evidence |
+|---|---|---|
+| **G-01** | High | Task 10 live probe P-06: the tag resolves only from service-role `app_metadata`; absent key → `403 INVITE_INCOMPLETE`; body-supplied tags ignored in every shape; a narrow metadata tag stays limited (403 on routes its bundle lacks). |
+| **G-02** | High | P-07/P-08 vectors fixed in `aa48b74` (all 15 refusals). The R10-01 stale-tag chain found by Task 10 was fixed in `c3de5b6` (provision fails closed on any unresolvable tag) and re-probed in Task 10b: the full chain now ends in `403`, **no** `super_admins` row, `403` on `/admin/users`. R10-02 sentinel (`custom_role_id: 0`) round-trips: full-admin provision `201`, stored `NULL`, full access `200`; `null` is no longer required. |
+| **F-15** | High | Live read-only check: `https://www.joblinked.site/` serves CSP, X-Content-Type-Options, X-Frame-Options, Referrer-Policy, Permissions-Policy, and the narrowed ACAO. |
+
+**Gate: PASS — zero unmitigated Critical/High.** Medium G-03/G-04 are pinned by tests; the Low
+findings are fixed per the fix plan. **Deferred by owner:** P4-01 (Turnstile production assurance) —
+auth/Turnstile work parked 2026-11-13. Non-security operational item still open and unrelated to these
+fixes: the production API restart loop observed 2026-11-13 19:17–20:47 UTC (nginx 502 during restart
+gaps; API healthy afterward).
+
+Evidence: `2026-11-13-phase4-probes.md` (P-06/P-07/P-08), `2026-11-13-task10-reverification.md`
+(R10-01/R10-02), `2026-11-13-task10b-reverification.md` (G-02 closure). Fixes: `20587f2` (G-01),
+`65ee79b` (F-15), `aa48b74` (G-02 ceilings), `c3de5b6` (R10-01/R10-02).
