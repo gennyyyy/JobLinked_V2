@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
+import { MemoryRouter } from 'react-router-dom'
 import CompanyProfile from '../CompanyProfile'
 
 vi.mock('../../../shared/hooks/useAuth', () => ({ default: vi.fn() }))
@@ -14,7 +15,7 @@ import useAuth from '../../../shared/hooks/useAuth'
 import { getEmployer } from '../../../shared/services/auth'
 
 async function openProfile() {
-  render(<CompanyProfile />)
+  render(<MemoryRouter><CompanyProfile /></MemoryRouter>)
   await screen.findByLabelText(/^company name/i)
 }
 

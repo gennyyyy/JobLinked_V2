@@ -13,6 +13,7 @@ export default function TabbedProfileLayout({
   saving,
   saveLabel,
   savingLabel,
+  showSave = true,
   saveHint,
   status,
   error,
@@ -34,7 +35,7 @@ export default function TabbedProfileLayout({
           {error && <p role="alert" className="text-xs text-destructive">{error}</p>}
           <Tabs value={activeTab} onValueChange={onTabChange} className="gap-0">
             <Panel title={activeSection.title} description={activeSection.description}>
-              <TabsList className="mb-5 w-full">
+              <TabsList className="mb-5 h-auto w-full flex-wrap group-data-horizontal/tabs:h-auto">
                 {tabs.map((tab) => (
                   <TabsTrigger key={tab.value} value={tab.value}>{tab.label}</TabsTrigger>
                 ))}
@@ -42,13 +43,15 @@ export default function TabbedProfileLayout({
               {children}
             </Panel>
           </Tabs>
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            {saveHint && <p role="status" className="text-[11px] text-muted-foreground">{saveHint}</p>}
-            <Button type="submit" disabled={saving}>
-              <Save data-icon="inline-start" />
-              {saving ? savingLabel : saveLabel}
-            </Button>
-          </div>
+          {showSave && (
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              {saveHint && <p role="status" className="text-[11px] text-muted-foreground">{saveHint}</p>}
+              <Button type="submit" disabled={saving}>
+                <Save data-icon="inline-start" />
+                {saving ? savingLabel : saveLabel}
+              </Button>
+            </div>
+          )}
         </form>
         {sidebar && <aside className="flex min-w-0 flex-col gap-5">{sidebar}</aside>}
       </div>

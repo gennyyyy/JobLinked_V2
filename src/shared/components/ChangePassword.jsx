@@ -5,15 +5,16 @@ import { changePassword } from "../services/auth";
 import useCaptcha from "../hooks/useCaptcha";
 import Turnstile from "./Turnstile";
 
-function ChangePassword() {
+function ChangePassword({ embedded = false }) {
   const [form, setForm] = useState({ current: "", next: "", confirm: "" });
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const captcha = useCaptcha();
+  const PasswordForm = embedded ? "div" : "form";
 
   async function handleSubmit(event) {
-    event.preventDefault();
+    event?.preventDefault?.();
     setMessage("");
     setError("");
     if (form.next.length < 8) {
@@ -41,11 +42,18 @@ function ChangePassword() {
     }
   }
 
+  function handleEmbeddedKeyDown(event) {
+    if (embedded && event.key === "Enter" && event.target.tagName === "INPUT") {
+      event.preventDefault();
+      handleSubmit();
+    }
+  }
+
   return (
     <Panel id="password-settings" title="Password settings" description="Use a new password with at least 8 characters.">
       {message && <p className="mb-4 rounded-xl border border-success/20 bg-success-soft px-4 py-3 text-xs text-success">{message}</p>}
       {error && <p role="alert" className="mb-4 rounded-xl border border-danger/20 bg-danger-soft px-4 py-3 text-xs text-destructive">{error}</p>}
-      <form onSubmit={handleSubmit} className="flex max-w-xl flex-col gap-5">
+      <PasswordForm onSubmit={embedded ? undefined : handleSubmit} onKeyDown={handleEmbeddedKeyDown} className="flex max-w-xl flex-col gap-5">
         <TextField
           label="Current password"
           type="password"
@@ -71,10 +79,10 @@ function ChangePassword() {
           onChange={(e) => setForm({ ...form, confirm: e.target.value })}
         />
         {captcha.required && <Turnstile onToken={captcha.setToken} resetKey={captcha.round} />}
-        <Button type="submit" disabled={saving}>
+        <Button type={embedded ? "button" : "submit"} onClick={embedded ? () => handleSubmit() : undefined} disabled={saving}>
           {saving ? "Updating…" : "Update password"}
         </Button>
-      </form>
+      </PasswordForm>
     </Panel>
   );
 }

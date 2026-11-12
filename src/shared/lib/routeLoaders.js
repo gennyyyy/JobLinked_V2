@@ -10,6 +10,7 @@ export const routeLoaders = {
   '/': () => import('../../features/public-site/Landing'),
   '/jobs': () => import('../../features/public-site/PublicJobs'),
   '/jobs/:id': () => import('../../features/public-site/PublicJobDetail'),
+  '/employers/:employerId': () => import('../../features/public-site/PublicEmployerProfile'),
   '/how-it-works': () => import('../../features/public-site/HowItWorks'),
   '/privacy': () => import('../../features/public-site/Legal'),
   '/terms': () => import('../../features/public-site/Legal'),
@@ -53,7 +54,6 @@ export const routeLoaders = {
   '/job-seeker/applications': () => import('../../features/job-seeker/Applications'),
   '/job-seeker/employment': () => import('../../features/job-seeker/Employment'),
   '/job-seeker/profile': () => import('../../features/job-seeker/Profile'),
-  '/job-seeker/settings': () => import('../../features/job-seeker/Settings'),
   '/job-seeker/notifications': () => import('../../shared/components/NotificationsPage'),
 }
 

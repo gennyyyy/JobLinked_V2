@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
+import { MemoryRouter } from 'react-router-dom'
 import Profile from '../Profile'
 
 vi.mock('../../../shared/hooks/useAuth', () => ({ default: vi.fn() }))
@@ -27,7 +28,7 @@ BSIT PUP SANTA MARIA (2023 - Present)
 Skills: Data Entry, Communication`
 
 async function openProfile() {
-  render(<Profile />)
+  render(<MemoryRouter><Profile /></MemoryRouter>)
   await screen.findByRole('button', { name: /save my profile/i })
   fireEvent.click(screen.getByRole('tab', { name: /my resumes/i }))
   await screen.findByLabelText('Choose a resume to autofill')

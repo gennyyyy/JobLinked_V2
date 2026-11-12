@@ -34,7 +34,6 @@ export const PORTAL_NAV = {
     { label: 'My applications', path: '/job-seeker/applications', icon: ClipboardList },
     { label: 'Employment Tracking', path: '/job-seeker/employment', icon: BriefcaseBusiness },
     { label: 'Notifications', path: '/job-seeker/notifications', icon: Bell },
-    { label: 'Account settings', path: '/job-seeker/settings', icon: Settings },
   ],
   employer: [
     { label: 'Overview', path: '/employer', icon: LayoutDashboard, end: true },

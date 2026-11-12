@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { Eye, FileText, ImagePlus, Settings2, Trash2, UploadCloud, UserRound } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
 import useAuth from '@/shared/hooks/useAuth'
 import { updateProfile } from '@/shared/services/auth'
 import { listResumes, uploadResume, setActiveResume, deleteResume, validateFile, signedUrl } from '@/shared/services/documents'
@@ -12,8 +12,10 @@ import { listEducation, addEducation, removeEducation } from '@/shared/services/
 import { PageSkeleton } from '@/shared/components/Skeletons'
 import { InlineError } from '@/shared/components/dashboard'
 import ConfirmationModal from '@/shared/components/ConfirmationModal'
-import { Panel, TextField, SelectField, Notice, EmptyState } from '@/shared/components/design'
+import { TextField, SelectField, Notice, EmptyState } from '@/shared/components/design'
 import TabbedProfileLayout from '@/shared/components/TabbedProfileLayout'
+import AccountSettings, { PrivacyPanel } from '@/shared/components/AccountSettings'
+import ChangePassword from '@/shared/components/ChangePassword'
 import { TabsContent } from '@/components/ui/tabs'
 import { SANTA_MARIA_BARANGAYS } from '@/shared/constants'
 import { EDUCATION_LEVELS } from '../auth/jobSeekerRegistration'
@@ -36,7 +38,15 @@ const PROFILE_TABS = [
   { value: 'address', label: 'Address', title: 'Address', description: 'Where employers and PESO can reach you.' },
   { value: 'education', label: 'Education', title: 'Education, experience & skills', description: 'These details power simple, transparent skill matching.' },
   { value: 'resumes', label: 'My resumes', title: 'My resumes', description: 'Manage the resumes you share with employers.' },
+  { value: 'account', label: 'Account settings', title: 'Account settings', description: 'Manage your account preferences, privacy, and password.' },
 ]
+
+const ACCOUNT_SETTINGS_SECTIONS = new Set([
+  'account-overview',
+  'notification-preferences',
+  'privacy',
+  'password-settings',
+])
 
 function formFromUser(user) {
   if (!user) return EMPTY_FORM
@@ -107,6 +117,8 @@ function ResumeLinks({ resume }) {
 
 function Profile() {
   const { user, refreshUser } = useAuth()
+  const { hash } = useLocation()
+  const navigate = useNavigate()
   const userId = user?.id
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -129,6 +141,7 @@ function Profile() {
   const [eduSaving, setEduSaving] = useState(false)
   const [draft, setDraft] = useState(null)
   const [tab, setTab] = useState('personal')
+  const activeTab = ACCOUNT_SETTINGS_SECTIONS.has(hash.slice(1)) ? 'account' : tab
   const [uploadError, setUploadError] = useState('')
   const [resumeStatus, setResumeStatus] = useState('')
   const [uploading, setUploading] = useState(false)
@@ -202,11 +215,6 @@ function Profile() {
     : educationList.length
       ? `Completed — ${titleCase(educationList[0].level)}`
       : 'No education history added'
-  const completion = Math.round(([
-    form.name, form.phone, form.barangay, form.address,
-    educationList.length, form.experience, skills.length, resumes.length,
-  ].filter(Boolean).length / 8) * 100)
-
   function setField(name, value) {
     setForm((previous) => ({ ...previous, [name]: value }))
     setErrors((previous) => ({ ...previous, [name]: undefined }))
@@ -325,6 +333,11 @@ function Profile() {
     setTab(educationDetails ? 'education' : 'personal')
   }
 
+  function handleTabChange(nextTab) {
+    setTab(nextTab)
+    if (ACCOUNT_SETTINGS_SECTIONS.has(hash.slice(1))) navigate('/job-seeker/profile', { replace: true })
+  }
+
   function pickResume(file) {
     if (!file) return
     setResumeStatus('')
@@ -418,23 +431,15 @@ function Profile() {
         pageTitle="Your story, your next step."
         pageDescription="Give local employers a clear picture of your experience and the skills you bring."
         tabs={PROFILE_TABS}
-        activeTab={tab}
-        onTabChange={setTab}
+        activeTab={activeTab}
+        onTabChange={handleTabChange}
         onSubmit={handleSubmit}
         saving={saving}
         saveLabel="Save my profile"
         savingLabel="Saving…"
+        showSave={activeTab !== 'account'}
         saveHint={saved ? 'Profile saved.' : 'Changes are saved to your JobLinked account.'}
-        sidebar={(
-          <Panel title="A profile that feels like you">
-            <p className="text-sm font-semibold text-navy">{show('name') || 'Job Seeker'}</p>
-            <p className="mt-2 text-xs leading-6 text-muted-foreground">{form.headline || 'Add a professional headline to introduce yourself.'}</p>
-            <p className="mt-4 text-xs font-medium text-teal">{completion}% complete</p>
-            <div className="mt-4 flex flex-wrap gap-1.5">
-              {skills.map((skill) => <Badge key={skill} variant="secondary">{skill}</Badge>)}
-            </div>
-          </Panel>
-        )}
+        sidebar={<PrivacyPanel />}
       >
             <TabsContent value="personal">
           <div className="flex flex-col gap-5">
@@ -629,6 +634,11 @@ function Profile() {
                   Replacing a resume does not alter an already submitted application. A newly uploaded resume becomes the active one.
                 </p>
               </div>
+            </TabsContent>
+            <TabsContent value="account">
+              <AccountSettings embedded showPrivacy={false}>
+                <ChangePassword embedded />
+              </AccountSettings>
             </TabsContent>
       </TabbedProfileLayout>
 

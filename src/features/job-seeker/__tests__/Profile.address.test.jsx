@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { MemoryRouter } from 'react-router-dom'
 import Profile from '../Profile'
 
 vi.mock('../../../shared/hooks/useAuth', () => ({ default: vi.fn() }))
@@ -37,9 +38,9 @@ const STORED = {
   skills: ['Data Entry'],
 }
 
-async function openProfile() {
-  render(<Profile />)
-  await screen.findByRole('button', { name: /save my profile/i })
+async function openProfile(entry = '/job-seeker/profile') {
+  render(<MemoryRouter initialEntries={[entry]}><Profile /></MemoryRouter>)
+  await screen.findByRole('tab', { name: /personal/i })
 }
 
 describe('Profile fields and save', () => {
@@ -156,6 +157,29 @@ describe('Profile fields and save', () => {
     fireEvent.click(screen.getByRole('tab', { name: /education/i }))
     expect(await screen.findByText('Education history unavailable')).toBeInTheDocument()
     expect(screen.getByRole('alert')).toHaveTextContent('Education records could not be loaded')
+  })
+
+  it('shows account settings in the profile tab without a separate profile save form', async () => {
+    await openProfile()
+    fireEvent.click(screen.getByRole('tab', { name: /account settings/i }))
+
+    expect(await screen.findByText('Account overview')).toBeInTheDocument()
+    expect(screen.getByText('Privacy comes first').closest('aside')).toBeInTheDocument()
+    expect(screen.getByText('juana@example.com')).toBeInTheDocument()
+    expect(screen.getByLabelText(/current password/i)).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /save my profile/i })).not.toBeInTheDocument()
+    expect(document.querySelectorAll('form')).toHaveLength(1)
+
+    fireEvent.click(screen.getByRole('button', { name: /save preferences/i }))
+    expect(await screen.findByText('Your session notification preferences were saved.')).toBeInTheDocument()
+    expect(updateProfile).not.toHaveBeenCalled()
+  })
+
+  it('opens the account tab for account settings section links', async () => {
+    await openProfile('/job-seeker/profile#account-overview')
+
+    expect(await screen.findByText('Account overview')).toBeInTheDocument()
+    expect(screen.getByLabelText(/current password/i)).toBeInTheDocument()
   })
 
   it('blocks the save and explains what is missing', async () => {

@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { MemoryRouter } from 'react-router-dom'
 import Profile from '../Profile'
 
 vi.mock('../../../shared/hooks/useAuth', () => ({ default: vi.fn() }))
@@ -30,7 +31,7 @@ describe('Profile resume delete', () => {
     signedUrl.mockResolvedValue('blob:fake')
     deleteResume.mockResolvedValue({ deleted: true })
 
-    render(<Profile />)
+    render(<MemoryRouter><Profile /></MemoryRouter>)
     await screen.findByRole('button', { name: /save my profile/i })
     await user.click(screen.getByRole('tab', { name: /my resumes/i }))
     await screen.findByText('old.pdf')

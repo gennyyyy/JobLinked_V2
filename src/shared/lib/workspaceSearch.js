@@ -11,9 +11,9 @@ export const WORKSPACE_SECTIONS = [
   { title: 'Experience', path: '/job-seeker/profile', sectionId: 'experience', keywords: ['work history', 'jobs', 'employment'], roles: ['job-seeker'] },
   { title: 'Education', path: '/job-seeker/profile', sectionId: 'education', keywords: ['school', 'course', 'training', 'vocational'], roles: ['job-seeker'] },
   { title: 'My resumes', path: '/job-seeker/profile', sectionId: 'resumes', keywords: ['resume', 'cv', 'upload', 'pdf', 'docx'], roles: ['job-seeker'] },
-  { title: 'Account overview', path: '/job-seeker/settings', sectionId: 'account-overview', keywords: ['account', 'email', 'name', 'workspace'], roles: ['job-seeker'] },
-  { title: 'Notification preferences', path: '/job-seeker/settings', sectionId: 'notification-preferences', keywords: ['notifications', 'alerts', 'updates', 'announcements'], roles: ['job-seeker'] },
-  { title: 'Privacy', path: '/job-seeker/settings', sectionId: 'privacy', keywords: ['privacy', 'data', 'terms'], roles: ['job-seeker'] },
+  { title: 'Account overview', path: '/job-seeker/profile', sectionId: 'account-overview', keywords: ['account', 'email', 'name', 'workspace'], roles: ['job-seeker'] },
+  { title: 'Notification preferences', path: '/job-seeker/profile', sectionId: 'notification-preferences', keywords: ['notifications', 'alerts', 'updates', 'announcements'], roles: ['job-seeker'] },
+  { title: 'Privacy', path: '/job-seeker/profile', sectionId: 'privacy', keywords: ['privacy', 'data', 'terms'], roles: ['job-seeker'] },
 
   { title: 'Password settings', path: '/employer/company', sectionId: 'password-settings', keywords: PASSWORD_KEYWORDS, roles: ['employer'] },
   { title: 'Company details', path: '/employer/company', sectionId: 'company-details', keywords: ['company', 'business', 'industry', 'description'], roles: ['employer'] },

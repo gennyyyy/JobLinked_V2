@@ -1,17 +1,19 @@
 import { Button } from "../../components/ui/button";
-import { Trash2 } from "lucide-react";
-import { useState, useEffect } from "react";
+import { ImagePlus, Settings2, Trash2 } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import useAuth from "../../shared/hooks/useAuth";
 import { updateProfile, getEmployer, provision } from "../../shared/services/auth";
 import { uploadLogo, removeLogo, logoUrl } from "../../shared/services/images";
 import { PageSkeleton } from '../../shared/components/Skeletons';
 import ChangePassword from "../../shared/components/ChangePassword";
 import TabbedProfileLayout from "../../shared/components/TabbedProfileLayout";
+import AccountSettings, { PrivacyPanel } from "../../shared/components/AccountSettings";
 import { TabsContent } from "../../components/ui/tabs";
 import { buildFullName } from "../../shared/utils/names";
 import { titleCase } from "../../shared/utils/titleCase";
 import { SANTA_MARIA_BARANGAYS } from "../../shared/constants";
-import { CompanyMark, Panel, SelectField, StatusBadge, TextField } from "../../shared/components/design";
+import { SelectField, TextField } from "../../shared/components/design";
 
 const COMPANY_FIELDS = [
   ["name", "Company name", "e.g. Santa Maria Trading"],
@@ -52,10 +54,26 @@ const COMPANY_PROFILE_TABS = [
   { value: "company", label: "Company", title: "Company details", description: "These details appear alongside your public vacancies." },
   { value: "contact", label: "Contact & location", title: "Contact & location", description: "Where candidates can reach and find your office." },
   { value: "representative", label: "Representative", title: "Authorized representative", description: "The person PESO contacts about this company." },
+  { value: "account", label: "Account settings", title: "Account settings", description: "Manage your account preferences, privacy, and password." },
 ];
+
+const ACCOUNT_SETTINGS_SECTIONS = new Set([
+  "account-overview",
+  "notification-preferences",
+  "privacy",
+  "password-settings",
+]);
+
+function companyAcronym(name) {
+  const words = String(name || "").trim().split(/\s+/).filter(Boolean);
+  if (words.length > 1) return words.slice(0, 3).map((word) => word[0]).join("").toUpperCase();
+  return (words[0] || "C").slice(0, 2).toUpperCase();
+}
 
 function CompanyProfile() {
   const { user, refreshUser } = useAuth();
+  const { hash } = useLocation();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -63,10 +81,13 @@ function CompanyProfile() {
   const [company, setCompany] = useState(null);
   const [form, setForm] = useState({});
   const [tab, setTab] = useState("company");
+  const activeTab = ACCOUNT_SETTINGS_SECTIONS.has(hash.slice(1)) ? "account" : tab;
   const [logoFailed, setLogoFailed] = useState(false);
   const [logoBusy, setLogoBusy] = useState(false);
   const [logoStatus, setLogoStatus] = useState("");
   const [logoError, setLogoError] = useState("");
+  const [logoActionsOpen, setLogoActionsOpen] = useState(false);
+  const logoActionsRef = useRef(null);
 
   useEffect(() => {
     if (!user) return;
@@ -105,6 +126,15 @@ function CompanyProfile() {
       .finally(() => { if (live) setLoading(false) });
     return () => { live = false };
   }, [user?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (!logoActionsOpen) return undefined;
+    function closeOnOutsideClick(event) {
+      if (!logoActionsRef.current?.contains(event.target)) setLogoActionsOpen(false);
+    }
+    document.addEventListener("pointerdown", closeOnOutsideClick);
+    return () => document.removeEventListener("pointerdown", closeOnOutsideClick);
+  }, [logoActionsOpen]);
 
   if (loading) return <PageSkeleton stats={0} panels={2} />;
   if (error && !company) return <p role="alert" className="py-8 text-center text-sm text-destructive">{error}</p>;
@@ -152,6 +182,11 @@ function CompanyProfile() {
     return data;
   }
 
+  function openLogoPicker() {
+    document.getElementById("company-logo-picker")?.click();
+    setLogoActionsOpen(false);
+  }
+
   async function handleLogo(event) {
     const file = event.target.files?.[0];
     event.target.value = "";
@@ -178,6 +213,7 @@ function CompanyProfile() {
       await removeLogo();
       await refreshCompany();
       setLogoStatus("Logo removed.");
+      setLogoActionsOpen(false);
     } catch (err) {
       setLogoError(err.message || "Could not remove the logo");
     } finally {
@@ -185,14 +221,6 @@ function CompanyProfile() {
     }
   }
 
-  // Read directly from the employers row — kept in sync by documents.js
-  const accreditationStatus = company?.accreditation_status || "Not Applied";
-
-  // Display-only: title-case the name, force the suffix to ALL CAPS (e.g. Jr -> JR, iii -> III).
-  const representativeName = [
-    titleCase([form.first_name, form.middle_name, form.last_name].filter(Boolean).join(" ")),
-    (form.suffix || "").toUpperCase(),
-  ].filter(Boolean).join(" ");
   const companyLogo = !logoFailed && company
     ? (company.has_logo
       ? logoUrl(company.id, company.logo_updated_at)
@@ -209,6 +237,10 @@ function CompanyProfile() {
     value: TITLE_FIELDS.has(name) ? titleCase(form[name]) : (form[name] || ""),
     onChange: (e) => setForm({ ...form, [name]: e.target.value }),
   });
+  function handleTabChange(nextTab) {
+    setTab(nextTab);
+    if (ACCOUNT_SETTINGS_SECTIONS.has(hash.slice(1))) navigate("/employer/company", { replace: true });
+  }
 
   return (
     <>
@@ -216,64 +248,82 @@ function CompanyProfile() {
         pageTitle="A good team starts with your story."
         pageDescription="Help candidates understand who you are, what you do, and where they can find you."
         tabs={COMPANY_PROFILE_TABS}
-        activeTab={tab}
-        onTabChange={setTab}
+        activeTab={activeTab}
+        onTabChange={handleTabChange}
         onSubmit={handleSubmit}
         saving={saving}
         saveLabel="Save company profile"
         savingLabel="Saving…"
+        showSave={activeTab !== "account"}
         status={saved ? "Company profile updated successfully." : ""}
         error={error}
-        sidebar={(
-          <Panel title="Your company at a glance">
-            {companyLogo ? (
-              <img
-                src={companyLogo}
-                alt={`${form.name || "Company"} logo`}
-                data-testid="company-logo-image"
-                loading="lazy"
-                decoding="async"
-                className="size-16 rounded-2xl border object-cover"
-                onError={() => setLogoFailed(true)}
-              />
-            ) : (
-              <CompanyMark initials={(form.name?.[0] || "C").toUpperCase()} large />
-            )}
-            <h2 className="mt-4 text-base font-semibold text-navy">{titleCase(form.name) || "My Company"}</h2>
-            <p className="my-3 text-xs leading-6 text-muted-foreground">
-              {[form.industry || "Company profile", titleCase(form.barangay_district)].filter(Boolean).join(" · ")}
-            </p>
-            <StatusBadge status={accreditationStatus} />
-            {company && (
-              <div className="mt-4 flex flex-col gap-2 border-t pt-4">
-                <label htmlFor="company-logo" className="text-xs font-semibold text-navy">Company logo</label>
-                <input
-                  id="company-logo"
-                  type="file"
-                  accept="image/png,image/jpeg,image/webp"
-                  disabled={logoBusy}
-                  onChange={handleLogo}
-                  className="block w-full text-[11px] text-muted-foreground file:mr-3 file:rounded-md file:border-0 file:bg-primary file:px-3 file:py-1.5 file:text-xs file:font-medium file:text-primary-foreground hover:file:bg-primary/90"
-                />
-                <div className="flex flex-wrap items-center gap-3">
-                  {company.has_logo && (
-                    <Button type="button" variant="outline" size="sm" onClick={handleRemoveLogo} disabled={logoBusy}>
-                      <Trash2 data-icon="inline-start" />Remove logo
-                    </Button>
-                  )}
-                  {logoBusy && <span role="status" className="text-[11px] text-muted-foreground">Uploading…</span>}
-                  {logoStatus && !logoBusy && <span role="status" className="text-[11px] font-medium text-success">{logoStatus}</span>}
-                </div>
-                {logoError && <p role="alert" className="text-[11px] text-destructive">{logoError}</p>}
-              </div>
-            )}
-            <p className="mt-4 text-[11px] leading-6 text-muted-foreground">
-              Authorized representative: {representativeName || "Not set"}. Editing your profile does not replace the accreditation review.
-            </p>
-          </Panel>
-        )}
+        sidebar={<PrivacyPanel />}
       >
         <TabsContent value="company" id="company-details">
+          <div className="mb-5 flex flex-wrap items-center gap-4 rounded-lg border border-dashed border-border bg-muted/30 p-4">
+            <div ref={logoActionsRef} className="group relative size-30 shrink-0">
+              <div className="flex size-full items-center justify-center overflow-hidden rounded-full bg-primary/10 text-primary">
+                {companyLogo ? (
+                  <img src={companyLogo} alt="Company logo" className="size-full object-cover" onError={() => setLogoFailed(true)} />
+                ) : (
+                  <span aria-hidden="true" className="text-3xl font-bold tracking-tight">
+                    {companyAcronym(form.name)}
+                  </span>
+                )}
+              </div>
+              <div className={`absolute inset-0 flex items-center justify-center gap-2 rounded-full bg-black/50 transition-opacity ${logoActionsOpen ? "opacity-100" : "opacity-0 group-hover:opacity-100 group-focus-within:opacity-100"}`}>
+                {!logoActionsOpen ? (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    aria-label="Company logo settings"
+                    aria-expanded={logoActionsOpen}
+                    disabled={logoBusy}
+                    className="text-white hover:bg-white/20 hover:text-white"
+                    onClick={() => setLogoActionsOpen(true)}
+                  >
+                    <Settings2 className="size-4" />
+                  </Button>
+                ) : (
+                  <>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      aria-label={companyLogo ? "Edit company logo" : "Add company logo"}
+                      disabled={logoBusy}
+                      className="text-white hover:bg-white/20 hover:text-white"
+                      onClick={openLogoPicker}
+                    >
+                      <ImagePlus className="size-4" />
+                    </Button>
+                    {companyLogo && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        aria-label="Remove company logo"
+                        disabled={logoBusy}
+                        className="text-white hover:bg-white/20 hover:text-white"
+                        onClick={handleRemoveLogo}
+                      >
+                        <Trash2 className="size-4" />
+                      </Button>
+                    )}
+                  </>
+                )}
+              </div>
+            </div>
+            <div className="flex min-w-0 flex-1 flex-col gap-1">
+              <label htmlFor="company-logo-picker" className="text-sm font-semibold text-foreground">Company logo</label>
+              <p className="text-xs leading-5 text-muted-foreground">Upload a logo to appear with your company details and public job listings.</p>
+              <input id="company-logo-picker" type="file" accept="image/png,image/jpeg,image/webp" disabled={logoBusy} className="sr-only" aria-label="Upload company logo" onChange={handleLogo} />
+              {logoBusy && <p role="status" className="text-[11px] text-muted-foreground">Uploading…</p>}
+              {logoStatus && !logoBusy && <p role="status" className="text-[11px] font-medium text-success">{logoStatus}</p>}
+              {logoError && <p role="alert" className="text-[11px] text-destructive">{logoError}</p>}
+            </div>
+          </div>
           <div className="grid gap-5 sm:grid-cols-2">
             {COMPANY_FIELDS.map(([name, label, placeholder]) => (
               <TextField key={name} label={label} placeholder={placeholder} required {...field(name)} />
@@ -323,9 +373,12 @@ function CompanyProfile() {
               <TextField label="Login Email (read-only)" value={form.email || ""} disabled />
             </div>
         </TabsContent>
+        <TabsContent value="account">
+          <AccountSettings embedded showPrivacy={false}>
+            <ChangePassword embedded />
+          </AccountSettings>
+        </TabsContent>
       </TabbedProfileLayout>
-
-      <div className="mt-6"><ChangePassword /></div>
     </>
   );
 }

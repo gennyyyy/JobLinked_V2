@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
+import { MemoryRouter } from 'react-router-dom'
 import Profile from '../Profile'
 
 vi.mock('../../../shared/hooks/useAuth', () => ({ default: vi.fn() }))
@@ -18,7 +19,7 @@ import useAuth from '../../../shared/hooks/useAuth'
 import { listResumes, signedUrl } from '../../../shared/services/documents'
 
 async function openProfile() {
-  render(<Profile />)
+  render(<MemoryRouter><Profile /></MemoryRouter>)
   return screen.findByRole('button', { name: /save my profile/i })
 }
 
@@ -37,7 +38,7 @@ describe('Profile accessibility', () => {
 
     const profileCard = screen.getByRole('tab', { name: /personal/i }).closest('[data-slot="card"]')
     expect(profileCard).toContainElement(screen.getByRole('tablist'))
-    for (const name of [/personal/i, /address/i, /education/i, /my resumes/i]) {
+    for (const name of [/personal/i, /address/i, /education/i, /my resumes/i, /account settings/i]) {
       expect(profileCard).toContainElement(screen.getByRole('tab', { name }))
     }
 

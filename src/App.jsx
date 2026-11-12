@@ -17,6 +17,7 @@ const route = (path) => lazyRoute(routeLoaders[path])
 const Landing = route('/')
 const PublicJobs = route('/jobs')
 const PublicJobDetail = route('/jobs/:id')
+const PublicEmployerProfile = route('/employers/:employerId')
 const Faq = route('/faq')
 const HowItWorks = route('/how-it-works')
 const Legal = route('/privacy')
@@ -56,7 +57,6 @@ const Employment = route('/job-seeker/employment')
 const Profile = route('/job-seeker/profile')
 const Jobs = route('/job-seeker/jobs')
 const SavedJobs = route('/job-seeker/saved')
-const JobSeekerSettings = route('/job-seeker/settings')
 const NotificationsPage = route('/job-seeker/notifications')
 // The three portal index dashboards share their parent path, so they cannot be
 // keyed in routeLoaders — they stay inline.
@@ -84,6 +84,7 @@ function App() {
             <Route path="/" element={<PublicRoute><Landing /></PublicRoute>} />
             <Route path="/jobs" element={<PublicRoute><PublicJobs /></PublicRoute>} />
             <Route path="/jobs/:jobId" element={<PublicRoute><PublicJobDetail /></PublicRoute>} />
+            <Route path="/employers/:employerId" element={<PublicRoute><PublicEmployerProfile /></PublicRoute>} />
             <Route path="/faq" element={<Faq />} />
             <Route path="/how-it-works" element={<HowItWorks />} />
             {/* New-design flow aliases for the portal roots. */}            {/* New-design job-seeker flow: /jobseeker/<reference-section>. */}
@@ -95,7 +96,7 @@ function App() {
             <Route path="/jobseeker/applications" element={<Navigate to="/job-seeker/applications" replace />} />
             <Route path="/jobseeker/employment-tracking" element={<Navigate to="/job-seeker/employment" replace />} />
             <Route path="/jobseeker/notifications" element={<Navigate to="/job-seeker/notifications" replace />} />
-            <Route path="/jobseeker/settings" element={<Navigate to="/job-seeker/settings" replace />} />
+            <Route path="/jobseeker/settings" element={<Navigate to="/job-seeker/profile#account-overview" replace />} />
             <Route path="/jobseeker/*" element={<Navigate to="/job-seeker" replace />} />
             {/* New-design admin flow: /admin/<reference-section> maps onto this app. */}
             <Route path="/admin" element={<Navigate to="/super-admin" replace />} />
@@ -197,7 +198,7 @@ function App() {
               <Route path="applications" element={<Applications />} />
               <Route path="employment" element={<Employment />} />
               <Route path="profile" element={<Profile />} />
-              <Route path="settings" element={<JobSeekerSettings />} />
+              <Route path="settings" element={<Navigate to="/job-seeker/profile#account-overview" replace />} />
               <Route path="notifications" element={<NotificationsPage />} />
             </Route>
 

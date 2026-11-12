@@ -10,6 +10,14 @@ describe('searchWorkspace', () => {
     })
   })
 
+  it('links account settings sections through the job seeker profile', () => {
+    expect(searchWorkspace('account overview', 'job-seeker')[0]).toEqual({
+      title: 'Account overview',
+      subtitle: 'in My profile',
+      href: '/job-seeker/profile#account-overview',
+    })
+  })
+
   it('scopes results to the signed-in role', () => {
     expect(searchWorkspace('password', 'employer').map((r) => r.href)).toEqual(['/employer/company#password-settings'])
     expect(searchWorkspace('user management', 'job-seeker')).toEqual([])
