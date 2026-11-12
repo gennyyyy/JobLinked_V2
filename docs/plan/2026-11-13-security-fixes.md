@@ -142,9 +142,9 @@ Option B (amend ADR-042) is no longer on the table.
       restrict the replace `UPDATE` to the latest row.
 - [ ] **F-18** (architect): amend ADR-045 — `/api/ai/resume-extract` is not implemented; autofill is
       client-side only.
-- [ ] **P4-01** (ops, not code): verify Turnstile is ON in the production Supabase project; attempt a
-      password grant without a token against production → expect 400; store the artifact in the runbook.
-      If it is off, turn it on and re-run.
+- [ ] **P4-01** (ops — **DEFERRED 2026-11-13 per owner: disregard Turnstile/Supabase for now**). Reopen
+      when auth work resumes: verify Turnstile is ON in the production Supabase project, attempt a
+      password grant without a token against production → expect 400, store the artifact in the runbook.
 - [ ] **P-01-O-1** (backend/tester): `server/scripts/verify-live.mjs:258-259` — update the stale
       "employer B reads A's jobs → 403" assertion to expect 200 with published-only rows per ADR-048;
       run `node scripts/verify-live.mjs --only jobs` against the local bench to confirm.
