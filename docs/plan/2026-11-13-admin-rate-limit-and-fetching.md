@@ -1,5 +1,8 @@
 # Admin Rate-Limit and Over-Fetching Fix Plan — 2026-11-13
 
+**Status (2026-11-13):** executed and deployed — commits `e67caa6` (rate bucket),
+`4bc9287` (GET cache), `a842267` (messages); live on production as `d901d15`.
+
 **Goal:** stop the admin console from self-inflicted 429s and make failure messages honest:
 (1) raise the authenticated throttle, (2) stop refetching the same lists on every page switch,
 (3) distinguish "rate-limited" / "service restarting" from "check your connection".
