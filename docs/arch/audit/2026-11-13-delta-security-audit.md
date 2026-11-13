@@ -480,3 +480,29 @@ gaps; API healthy afterward).
 Evidence: `2026-11-13-phase4-probes.md` (P-06/P-07/P-08), `2026-11-13-task10-reverification.md`
 (R10-01/R10-02), `2026-11-13-task10b-reverification.md` (G-02 closure). Fixes: `20587f2` (G-01),
 `65ee79b` (F-15), `aa48b74` (G-02 ceilings), `c3de5b6` (R10-01/R10-02).
+
+---
+
+## 15. Environment correction (2026-11-13, post-deployment)
+
+While diagnosing a local-env database failure, the Lead Architect found that `server/.env`
+`DATABASE_URL=…@127.0.0.1:5433/myapp_db` is **an SSH tunnel to the production VPS**
+(`ssh -f -N -L 5433:127.0.0.1:5432 hans@85.211.176.236`), not a local database. Consequences:
+
+- Phase 4 and Task 10/10b live probes ran against the **production** API, database, and Supabase
+  project, not a local stack. Fixtures were created and removed; the agents restored the row counts
+  they recorded. The retained `audit_logs` rows (+26/+34/+9 across the runs) are production audit
+  records of that test activity.
+- Migration 014 was applied to the **production** database by the F-17 check at
+  `2026-11-12 20:37:26 UTC` (matches the production ledger). The action was approved by the fix plan
+  (F-17) but was labelled "local" at the time. It deduped one duplicate resume row (0 applications
+  referenced it) and created `resumes_one_per_seeker_uidx`. One orphaned resume file remains in the
+  VPS uploads directory (SQL cannot unlink files).
+- The pre-014 dump (`%TEMP%\opencode\pre-014-resumes.dump`) contains production
+  `resumes`/`job_applications` rows and should be deleted once the migration is verified.
+- Fix: point local development at the installed PostgreSQL 18 on `127.0.0.1:5432` with its own
+  database. Never run probes or migrations through the tunnel.
+
+The "local dev DB only; no remote connection" statements in the Phase 4 / Task 10 / Task 10b reports
+are superseded by this note; the gate verdict is unchanged (the fixes were verified against the
+production-equivalent stack).
