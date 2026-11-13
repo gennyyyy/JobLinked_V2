@@ -90,7 +90,7 @@ export default function HowItWorks() {
           </div>
         </header>
         <div className="page-container py-12 md:py-16">
-          <div className="mx-auto max-w-[940px]">
+          <div className="max-w-[940px]">
 
             <div className="inline-flex rounded-md border border-border bg-card p-1" role="group" aria-label="Choose your path">              {TABS.map((tab) => {
                 const isActive = activeTab === tab.id
