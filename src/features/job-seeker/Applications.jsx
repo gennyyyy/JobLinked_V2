@@ -9,7 +9,7 @@ import { listBySeeker } from '@/shared/services/applications'
 import { PageSkeleton } from '@/shared/components/Skeletons'
 import { InlineError, Pager } from '@/shared/components/dashboard'
 import ApplicationTimeline from '@/shared/components/ApplicationTimeline'
-import { CompanyMark, EmptyState, LinkButton, Notice, PageHeading, Panel, SearchInput, SelectField, StatusBadge } from '@/shared/components/design'
+import { CompanyMark, EmptyState, H3, LinkButton, Notice, PageHeading, Panel, SearchInput, SelectField, StatusBadge } from '@/shared/components/design'
 import { titleCase } from '@/shared/utils/titleCase'
 
 const PAGE_SIZE = 8
@@ -49,7 +49,7 @@ function ApplicationDetail({ application }) {
           </Notice>
         )}
         <div>
-          <h3 className="text-xs font-semibold text-navy">Your application journey</h3>
+          <H3 className="text-xs font-semibold text-navy">Your application journey</H3>
           <p className="mt-1 text-[11px] text-muted-foreground">Updates from the employer appear here and in your notifications.</p>
           <div className="mt-4"><ApplicationTimeline application={application} /></div>
         </div>

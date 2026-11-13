@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button'
 import { buildFullName } from '@/shared/utils/names'
 import ResumePicker from '@/shared/components/ResumePicker'
 import { mapResumeText } from '@/shared/utils/resumeAutofill'
+import { H3 } from '@/shared/components/design'
 
 const LABELS = {
   name: 'Full name',
@@ -75,7 +76,7 @@ export default function ResumeAutofill({ onApply, onFileSelected, uploadError, u
 
   return (
     <section aria-label="Resume autofill" className="flex flex-col gap-3">
-      <div className="flex items-center gap-2"><FileText className="size-4 text-muted-foreground" aria-hidden="true" /><h3 className="text-sm font-medium">Autofill from your resume</h3><span className="text-xs text-muted-foreground">Optional</span></div>
+      <div className="flex items-center gap-2"><FileText className="size-4 text-muted-foreground" aria-hidden="true" /><H3 className="text-sm font-medium">Autofill from your resume</H3><span className="text-xs text-muted-foreground">Optional</span></div>
       <ResumePicker
         id={id}
         label="Choose a resume to autofill"

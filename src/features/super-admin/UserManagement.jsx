@@ -16,7 +16,7 @@ import { PageSkeleton } from '@/shared/components/Skeletons'
 import { InlineError, Pager } from '@/shared/components/dashboard'
 import useDialog from '@/shared/hooks/useDialog'
 import { titleCase } from '@/shared/utils/titleCase'
-import { EmptyState, PageHeading, Panel, SearchInput, SelectField, StatusBadge, TextField } from '@/shared/components/design'
+import { EmptyState, H3, PageHeading, Panel, SearchInput, SelectField, StatusBadge, TextField } from '@/shared/components/design'
 
 const SYSTEM_ROLE_LABELS = { 'super-admin': 'Super Admin', employer: 'Employer', 'job-seeker': 'Job Seeker' }
 
@@ -653,7 +653,7 @@ function UserManagement() {
                 </TabsContent>
               </Tabs>
               <section className="border-t pt-4">
-                <h3 className="text-xs font-semibold text-navy">Resumes</h3>
+                <H3 className="text-xs font-semibold text-navy">Resumes</H3>
                 {detail.resumes.length ? (
                   <ul className="mt-3 flex flex-col gap-3">
                     {detail.resumes.map((resume) => (

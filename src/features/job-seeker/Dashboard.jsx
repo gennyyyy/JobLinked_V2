@@ -11,7 +11,7 @@ import { listNotifications } from '@/shared/services/notifications'
 import { getSavedJobIds, subscribeSavedJobs, toggleSavedJob } from '@/shared/lib/savedJobs'
 import { PageSkeleton } from '@/shared/components/Skeletons'
 import { InlineError } from '@/shared/components/dashboard'
-import { CompanyMark, EmptyState, LinkButton, PageHeading, Panel, StatCards, StatusBadge } from '@/shared/components/design'
+import { CompanyMark, EmptyState, H3, LinkButton, PageHeading, Panel, StatCards, StatusBadge } from '@/shared/components/design'
 import { titleCase } from '@/shared/utils/titleCase'
 
 function splitPref(value) {
@@ -160,7 +160,7 @@ export default function Dashboard() {
                     <Link to="/job-seeker/applications" className="flex min-h-24 flex-wrap items-center gap-3 py-3">
                       <CompanyMark initials={String(application.job?.employers?.company_name || 'J').charAt(0).toUpperCase()} />
                       <div className="min-w-0 flex-1">
-                        <h3 className="text-xs font-semibold leading-5">{application.job?.title || 'Unavailable vacancy'}</h3>
+                        <H3 className="text-xs font-semibold leading-5">{application.job?.title || 'Unavailable vacancy'}</H3>
                         <p className="mt-1 text-[10px] text-muted-foreground">{titleCase(application.job?.employers?.company_name)} · {new Date(application.applied_at).toLocaleDateString('en-PH', { month: 'short', day: 'numeric' })}</p>
                       </div>
                       <StatusBadge status={application.status} />

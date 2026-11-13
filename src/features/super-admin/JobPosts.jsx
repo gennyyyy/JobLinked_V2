@@ -8,7 +8,7 @@ import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@
 import { editJob, listAllJobs } from '@/shared/services/admin'
 import { PageSkeleton } from '@/shared/components/Skeletons'
 import { InlineError, Pager } from '@/shared/components/dashboard'
-import { EmptyState, Notice, PageHeading, Panel, SearchInput, SelectField, StatusBadge } from '@/shared/components/design'
+import { EmptyState, H3, Notice, PageHeading, Panel, SearchInput, SelectField, StatusBadge } from '@/shared/components/design'
 import { titleCase } from '@/shared/utils/titleCase'
 
 const PAGE_SIZE = 8
@@ -90,7 +90,7 @@ function VacancyReview({ job, onClose, onDecided }) {
       {job.description && <p className="whitespace-pre-wrap text-xs leading-7 text-muted-foreground">{job.description}</p>}
       {job.requirements && (
         <>
-          <h3 className="text-xs font-semibold">Qualifications</h3>
+          <H3 className="text-xs font-semibold">Qualifications</H3>
           <ul className="flex list-disc flex-col gap-2 pl-5 text-xs text-muted-foreground">
             {String(job.requirements).split('\n').filter(Boolean).map((line) => <li key={line}>{line}</li>)}
           </ul>

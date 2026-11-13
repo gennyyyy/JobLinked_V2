@@ -8,7 +8,7 @@ import { Shield, Plus, Pencil, Trash2, Lock, X } from 'lucide-react'
 import { listRoles, createRole, updateRole, deleteRole, listPermissions } from '@/shared/services/admin'
 import ConfirmationModal from '@/shared/components/ConfirmationModal'
 import { PageSkeleton } from '@/shared/components/Skeletons'
-import { Panel, PageHeading, StatusBadge } from '@/shared/components/design'
+import { H3, Panel, PageHeading, StatusBadge } from '@/shared/components/design'
 
 // The 3 system roles are fixed by the DB enum + auth — read-only here.
 // Custom roles (permission bundles) are added/edited below and assigned from
@@ -251,7 +251,7 @@ function RoleManagement() {
                   <div className="flex items-start gap-3">
                     <span className="soft-icon size-9"><Shield className="size-4" aria-hidden="true" /></span>
                     <div className="min-w-0">
-                      <h3 className="truncate text-sm font-semibold text-navy">{role.name}</h3>
+                      <H3 className="truncate text-sm font-semibold text-navy">{role.name}</H3>
                       <p className="mt-0.5 text-[10px] uppercase tracking-[.14em] text-muted-foreground">
                         base · {BASE_ROLE_OPTIONS.find((b) => b.key === role.base_role)?.label || role.base_role}
                       </p>

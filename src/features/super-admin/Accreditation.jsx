@@ -10,7 +10,7 @@ import { listAllAccreditations } from '@/shared/services/admin'
 import { listCompanyDocuments, signedUrl, updateAccreditation, updateDocumentStatus } from '@/shared/services/documents'
 import { PageSkeleton } from '@/shared/components/Skeletons'
 import { InlineError, Pager } from '@/shared/components/dashboard'
-import { CompanyMark, EmptyState, PageHeading, Panel, SelectField, StatusBadge } from '@/shared/components/design'
+import { CompanyMark, EmptyState, H3, PageHeading, Panel, SelectField, StatusBadge } from '@/shared/components/design'
 import { formatFullAddress } from '@/shared/utils/address'
 import { titleCase } from '@/shared/utils/titleCase'
 
@@ -116,7 +116,7 @@ function ReviewModal({ accreditation, onClose, onDecided }) {
           </dl>
 
           <section>
-            <h3 className="text-sm font-semibold text-navy">Accreditation documents</h3>
+            <H3 className="text-sm font-semibold text-navy">Accreditation documents</H3>
             <div className="mt-3 rounded-xl border bg-muted/50 p-4">
               {loading ? (
                 <p className="text-xs text-muted-foreground">Loading documents…</p>

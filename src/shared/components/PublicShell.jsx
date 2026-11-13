@@ -4,7 +4,7 @@ import { MapPin, Menu, ArrowRight, ArrowUpRight } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { Logo, LinkButton } from "./design";
+import { H3, Logo, LinkButton } from "./design";
 import { cn } from "@/lib/utils";
 import useAuth from "../hooks/useAuth";
 
@@ -75,7 +75,7 @@ export function PublicShell({ children }) {
               { title: 'JobLinked', items: [['About the platform', '/#about'], ['PESO services', '/#peso-services'], ['Frequently asked questions', '/#faq']] },
             ].map(group => (
               <div key={group.title}>
-                <h3 className="mb-2 text-xs font-semibold">{group.title}</h3>
+                <H3 className="mb-2 text-xs font-semibold">{group.title}</H3>
                 <ul className="flex flex-col gap-0">
                   {group.items.map(([label, href]) => (
                     <li key={href}><Link to={href} className="inline-flex min-h-6 items-center text-xs text-muted-foreground transition-colors hover:text-primary">{label}</Link></li>
