@@ -138,6 +138,9 @@ Postgres (`127.0.0.1:5432`) — **not a local database**. Treat that environment
   `restrict,port-forwarding,permitopen="127.0.0.1:5432"` (no shell, DB forward only).
 - A logon scheduled task runs `ssh -N joblinked-db` in a 5 s retry loop
   (`%USERPROFILE%\.ssh\joblinked-tunnel.ps1`) so the tunnel survives reboots and network changes.
+- `npm run dev` ensures the tunnel first (`npm run dev:tunnel`, `scripts/ensure-tunnel.mjs`): it
+  reuses an already-open `127.0.0.1:5433` and otherwise spawns `ssh -N joblinked-db` detached.
+  Idempotent, so it is safe alongside the logon task; override with `DB_TUNNEL_HOST`/`DB_TUNNEL_PORT`.
 - `verify-live.mjs` still refuses any DB whose name does not end in `_bench`; that is the last
   guard if the tunnel is up.
 
