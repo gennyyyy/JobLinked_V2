@@ -2,7 +2,7 @@
 import { Link } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from '@/components/ui/accordion';
-import { LinkButton } from '../../shared/components/design';
+import { H3, LinkButton } from '../../shared/components/design';
 import { FAQS, PESO_SERVICES } from '../../shared/constants';
 import CommunityStats from './CommunityStats';
 import { AudienceCards } from './AudienceCards';
@@ -37,7 +37,7 @@ export function CommunitySections() {
               <p className="text-xs font-semibold tracking-[0.16em] text-primary tabular-nums">
                 {String(index + 1).padStart(2, '0')}
               </p>
-              <h3 className="mt-3 text-base font-semibold">{title}</h3>
+              <H3 className="mt-3 text-base font-semibold">{title}</H3>
               <p className="mt-2 text-sm leading-7 text-muted-foreground">{description}</p>
             </li>
           ))}
@@ -65,7 +65,7 @@ export function CommunitySections() {
           <ul className="grid gap-x-10 sm:grid-cols-2">
             {PESO_SERVICES.map(({ title, description }) => (
               <li className="border-t border-border py-5" key={title}>
-                <h3 className="text-sm font-semibold">{title}</h3>
+                <H3 className="text-sm font-semibold">{title}</H3>
                 <p className="mt-1.5 text-sm leading-6 text-muted-foreground">{description}</p>
               </li>
             ))}

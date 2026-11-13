@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { ArrowRight, ShieldCheck } from 'lucide-react'
 import SkipLink from '@/shared/components/SkipLink'
 import PublicShell from '@/shared/components/PublicShell'
-import { LinkButton } from '@/shared/components/design'
+import { H3, LinkButton } from '@/shared/components/design'
 
 const TABS = [
   { id: 'jobseeker', label: 'For job seekers' },
@@ -120,7 +120,7 @@ export default function HowItWorks() {
               {current.steps.map((item) => (
                 <li key={item.step} className="border-t border-border pt-5">
                   <p className="text-xs font-semibold tracking-[0.16em] text-primary tabular-nums">{item.step}</p>
-                  <h3 className="mt-2 text-base font-semibold text-navy">{item.title}</h3>
+                  <H3 className="mt-2 text-base font-semibold text-navy">{item.title}</H3>
                   <p className="mt-2 text-sm leading-7 text-muted-foreground">{item.desc}</p>
                 </li>
               ))}
