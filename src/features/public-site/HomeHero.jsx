@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useState } from 'react';
 import { ArrowRight, MapPin, Search, ShieldCheck, Handshake, BriefcaseBusiness, FileCheck2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { LinkButton, CompanyMark } from '../../shared/components/design';
+import { H1, LinkButton, CompanyMark } from '../../shared/components/design';
 import { SANTA_MARIA_BARANGAYS as BARANGAYS } from '../../shared/constants';
 import teamImage from '../../assets/team.png';
 import landingBg from '../../assets/hero-bg.jpg';
@@ -29,10 +29,10 @@ export function HomeHero() {
           <div className="page-container relative">
             <div className="grid items-center gap-9 lg:grid-cols-[1.1fr_1fr] lg:gap-12">
               <div className="hero-enter relative pb-4">
-                <h1 className="max-w-[620px] text-[36px] font-semibold leading-[1.03] tracking-[-0.045em] sm:text-[52px] lg:text-[58px]">
+                <H1 className="max-w-[620px] text-[36px] font-semibold leading-[1.03] tracking-[-0.045em] sm:text-[52px] lg:text-[58px]">
                   Connecting Local<br className="hidden sm:block" /> Talent with<br className="hidden sm:block" />{' '}
                   <span className="text-primary">Local Opportunities.</span>
-                </h1>
+                </H1>
                 <p className="mt-5 max-w-[470px] text-[15px] leading-7 text-muted-foreground">
                   Discover verified job opportunities, track your applications, and connect with employers in Santa Maria, Bulacan—all in one platform.
                 </p>

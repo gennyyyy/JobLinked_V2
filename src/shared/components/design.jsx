@@ -1,6 +1,6 @@
 "use client";
 import { Link } from "react-router-dom";
-import { Fragment, useEffect, useId, useRef, useState } from "react";
+import { cloneElement, isValidElement, useEffect, useId, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import { ArrowRight, CheckCircle2, ChevronDown, Search, ShieldCheck, Loader2, } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -226,23 +226,77 @@ const HEADING_SIZES = { plain: "", display: "text-xl sm:text-2xl" };
 const HEADING_SPLIT_LIMIT = 160;
 const HEADING_STAGGER_MS = 25;
 const HEADING_STAGGER_CAP_MS = 600;
-function splitHeadingText(text) {
-    // Letters carry the global cascade index (spaces excluded); each word keeps
-    // its own wrapper so sheared words never break mid-line.
-    let index = 0;
-    return text.split(/\s+/).filter(Boolean).map((word) => [...word].map((letter) => ({
-        letter,
-        delay: `${Math.min(index++ * HEADING_STAGGER_MS, HEADING_STAGGER_CAP_MS)}ms`,
-    })));
+const HEADING_WORD_STYLE = { display: "inline-block", whiteSpace: "nowrap" };
+function headingText(node) {
+    // Flattened accessible name: numbers and strings concatenate, <br> reads as
+    // a space, wrappers contribute their descendants.
+    if (node === null || node === undefined || typeof node === "boolean")
+        return "";
+    if (typeof node === "string" || typeof node === "number")
+        return String(node);
+    if (Array.isArray(node))
+        return node.map(headingText).join("");
+    if (!isValidElement(node))
+        return "";
+    return node.type === "br" ? " " : headingText(node.props?.children);
 }
-export function H3({ children, className, animated = true, size = "plain", ...props }) {
+function headingSplittable(node) {
+    // Everything React can render is splittable: text and wrappers split,
+    // opaque component output (icons) is carried through untouched.
+    if (node === null || node === undefined || typeof node === "boolean")
+        return true;
+    if (typeof node === "string" || typeof node === "number")
+        return true;
+    if (Array.isArray(node))
+        return node.every(headingSplittable);
+    return isValidElement(node);
+}
+function renderHeadingText(text, cursor) {
+    // Whitespace is kept verbatim (a heading may rely on an explicit space
+    // between segments); words keep their own wrapper so they never break
+    // mid-line. Letters carry the cascade index, global across segments.
+    return text.split(/(\s+)/).filter(Boolean).map((part) => {
+        if (!part.trim())
+            return part;
+        return (<span key={`w${cursor.key++}`} style={HEADING_WORD_STYLE}>
+          {[...part].map((letter) => {
+            const delay = `${Math.min(cursor.index++ * HEADING_STAGGER_MS, HEADING_STAGGER_CAP_MS)}ms`;
+            return (<span key={`l${cursor.key++}`} className="ltr" style={{ display: "inline-block", animationDelay: delay, "--ltr-delay": delay }}>
+                {letter}
+              </span>);
+        })}
+        </span>);
+    });
+}
+function renderHeadingChildren(node, cursor) {
+    if (node === null || node === undefined || typeof node === "boolean")
+        return null;
+    if (typeof node === "string" || typeof node === "number")
+        return renderHeadingText(String(node), cursor);
+    if (Array.isArray(node))
+        return node.map((child) => renderHeadingChildren(child, cursor));
+    if (!isValidElement(node))
+        return null;
+    const key = `n${cursor.key++}`;
+    if (node.type === "br")
+        return cloneElement(node, { key });
+    // Host elements keep their props and classes; their children split in place.
+    if (typeof node.type === "string")
+        return cloneElement(node, { key }, renderHeadingChildren(node.props.children, cursor));
+    return cloneElement(node, { key });
+}
+function Heading({ tag: Tag = "h3", rich = false, children, className, animated = true, size = "plain", ...props }) {
     const ref = useRef(null);
     const [state, setState] = useState("hidden");
-    const text = typeof children === "string" ? children : null;
+    const text = headingText(children).replace(/\s+/g, " ").trim();
     // Static path: anything we cannot or should not animate renders plain, so
-    // the heading text is never trapped invisible.
+    // the heading text is never trapped invisible. H3 keeps its string-only
+    // split for its plain-text call sites; H1 also takes composed children
+    // (landing hero) where wrappers and <br> must survive the split.
     const split = animated
-        && text !== null
+        && (rich || typeof children === "string")
+        && headingSplittable(children)
+        && text.length > 0
         && text.length <= HEADING_SPLIT_LIMIT
         && typeof window !== "undefined"
         && typeof window.IntersectionObserver === "function";
@@ -286,21 +340,17 @@ export function H3({ children, className, animated = true, size = "plain", ...pr
     }, [split]);
     const classes = cn(HEADING_BASE, HEADING_SIZES[size], className);
     if (!split) {
-        return (<h3 className={classes} {...props}>
+        return (<Tag className={classes} {...props}>
         {children}
-      </h3>);
+      </Tag>);
     }
-    const words = splitHeadingText(text);
-    return (<h3 ref={ref} aria-label={text} data-letter-reveal data-state={state} className={classes} {...props}>
-      <span aria-hidden="true">
-        {words.map((letters, wordIndex) => (<Fragment key={wordIndex}>
-            {wordIndex > 0 && " "}
-            <span style={{ display: "inline-block", whiteSpace: "nowrap" }}>
-              {letters.map(({ letter, delay }, letterIndex) => (<span key={letterIndex} className="ltr" style={{ display: "inline-block", animationDelay: delay, "--ltr-delay": delay }}>
-                  {letter}
-                </span>))}
-            </span>
-          </Fragment>))}
-      </span>
-    </h3>);
+    return (<Tag ref={ref} aria-label={text} data-letter-reveal data-state={state} className={classes} {...props}>
+      <span aria-hidden="true">{renderHeadingChildren(children, { index: 0, key: 0 })}</span>
+    </Tag>);
+}
+export function H3(props) {
+    return <Heading {...props}/>;
+}
+export function H1(props) {
+    return <Heading {...props} tag="h1" rich/>;
 }

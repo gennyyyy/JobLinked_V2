@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { render, cleanup } from '@testing-library/react'
-import { H3 } from '../design'
+import { H1, H3 } from '../design'
 
 let reduced = false
 class IOStub {
@@ -92,5 +92,32 @@ describe('H3', () => {
     const cls = container.querySelector('h3').className
     expect(cls).toContain('text-xl')
     expect(cls).toContain('sm:text-2xl')
+  })
+})
+
+describe('H1', () => {
+  it('H1 splits composed hero text across br and span while keeping markup', () => {
+    const { container } = render(
+      <H1 className="hero">
+        Connecting Local<br className="hidden sm:block" /> Talent with<br className="hidden sm:block" />{' '}
+        <span className="text-primary">Local Opportunities.</span>
+      </H1>
+    )
+    const h1 = container.querySelector('h1')
+    expect(h1).toHaveAttribute('aria-label', 'Connecting Local Talent with Local Opportunities.')
+    expect(h1.querySelectorAll('.ltr').length).toBe(44)
+    expect(h1.querySelectorAll('br').length).toBe(2)
+    const span = h1.querySelector('span.text-primary')
+    expect(span).not.toBeNull()
+    expect(span.querySelectorAll('.ltr').length).toBe(19)
+    const letters = h1.querySelectorAll('.ltr')
+    expect(letters[0].style.animationDelay).toBe('0ms')
+    expect(letters[15].style.animationDelay).toBe('375ms')
+  })
+
+  it('H1 static path (animated=false) renders the hero text unsplit', () => {
+    const { container } = render(<H1 animated={false}>Local <span className="text-primary">Opportunities.</span></H1>)
+    expect(container.querySelector('h1')).not.toHaveAttribute('data-letter-reveal')
+    expect(container.querySelectorAll('.ltr')).toHaveLength(0)
   })
 })

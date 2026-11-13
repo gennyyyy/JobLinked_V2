@@ -59,3 +59,7 @@ dropping blur/translate variables).
   animation; product feedback was that requiring an OS setting change to see
   any effect is unacceptable. The fade-only variant keeps the effect for every
   visitor while removing vestibular-triggering motion (slide/blur).
+- **Amendment (2026-11-14):** the landing hero `<h1>` now uses the same reveal.
+  Rich heading children are supported — text is split per segment while `<br>`
+  and inline `<span>` wrappers (including color classes) are preserved; the
+  accessible name is the flattened plain text.
