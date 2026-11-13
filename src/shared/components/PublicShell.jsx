@@ -17,15 +17,6 @@ export function PublicShell({ children }) {
   const user = auth?.user;
   return (
     <div className="flex min-h-screen flex-col">
-      <div className="bg-navy text-white">
-        <div className="page-container flex min-h-8 items-center justify-between gap-3">
-          <span className="flex items-center gap-1.5 text-[10px] tracking-wide">
-            <MapPin className="size-3" />Santa Maria, Bulacan
-            <span className="mx-2 hidden opacity-35 sm:inline">|</span>
-            <span className="hidden text-white/70 sm:inline">Opportunities closer to home.</span>
-          </span>
-        </div>
-      </div>
       <header className="relative z-30 border-b border-border/70 bg-white">
         <div className="page-container flex h-[78px] items-center justify-between gap-4">
           <Logo />

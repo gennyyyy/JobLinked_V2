@@ -92,7 +92,7 @@ export default function HowItWorks() {
         <div className="page-container py-12 md:py-16">
           <div className="max-w-[940px]">
 
-            <div className="inline-flex rounded-md border border-border bg-card p-1" role="group" aria-label="Choose your path">              {TABS.map((tab) => {
+            <div className="inline-flex rounded-lg border border-border bg-card p-1" role="group" aria-label="Choose your path">              {TABS.map((tab) => {
                 const isActive = activeTab === tab.id
                 return (
                   <button
@@ -100,7 +100,7 @@ export default function HowItWorks() {
                     type="button"
                     onClick={() => setActiveTab(tab.id)}
                     aria-pressed={isActive}
-                    className={`min-h-11 rounded-sm px-4 text-sm font-medium transition-colors ${
+                    className={`min-h-11 rounded-lg px-4 text-sm font-medium transition-colors ${
                       isActive
                         ? 'bg-primary text-white'
                         : 'text-muted-foreground hover:text-navy'
