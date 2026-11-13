@@ -125,6 +125,22 @@ There is no graceful drain: a restart drops in-flight requests (seconds). Do it
 off-peak. Check the restart for the boot env warnings (§ 1) — a restart that
 comes up with `CORS_ORIGIN` unset is an outage even though health says 200.
 
+### Local dev against the VPS database (SSH tunnel)
+
+`server/.env` may point at `127.0.0.1:5433`, which is an SSH `LocalForward` to the VPS
+Postgres (`127.0.0.1:5432`) — **not a local database**. Treat that environment as production:
+
+- Never run `db/apply-migrations.sh`, the probe harnesses, or `verify-live.mjs` from a laptop
+  while the tunnel is up. Migrations run on the VPS as `joblinked`.
+- Tunnel setup (one-time): an `~/.ssh/config` host `joblinked-db` with
+  `LocalForward 5433 127.0.0.1:5432`, `ExitOnForwardFailure`, keepalives, and a dedicated key
+  restricted in `authorized_keys` with
+  `restrict,port-forwarding,permitopen="127.0.0.1:5432"` (no shell, DB forward only).
+- A logon scheduled task runs `ssh -N joblinked-db` in a 5 s retry loop
+  (`%USERPROFILE%\.ssh\joblinked-tunnel.ps1`) so the tunnel survives reboots and network changes.
+- `verify-live.mjs` still refuses any DB whose name does not end in `_bench`; that is the last
+  guard if the tunnel is up.
+
 ## 5. Frontend (Vercel) and `VITE_*`
 
 The SPA is built and served by Vercel (`vercel.json`: SPA rewrite + security
