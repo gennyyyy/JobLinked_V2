@@ -90,7 +90,7 @@ function VacancyReview({ job, onClose, onDecided }) {
       {job.description && <p className="whitespace-pre-wrap text-xs leading-7 text-muted-foreground">{job.description}</p>}
       {job.requirements && (
         <>
-          <H3 className="text-xs font-semibold">Qualifications</H3>
+          <H3 className="text-xs font-semibold" animated={false}>Qualifications</H3>
           <ul className="flex list-disc flex-col gap-2 pl-5 text-xs text-muted-foreground">
             {String(job.requirements).split('\n').filter(Boolean).map((line) => <li key={line}>{line}</li>)}
           </ul>

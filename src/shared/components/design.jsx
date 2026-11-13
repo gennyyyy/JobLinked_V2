@@ -230,7 +230,7 @@ function splitHeadingText(text) {
     // Letters carry the global cascade index (spaces excluded); each word keeps
     // its own wrapper so sheared words never break mid-line.
     let index = 0;
-    return text.trim().split(/\s+/).filter(Boolean).map((word) => [...word].map((letter) => ({
+    return text.split(/\s+/).filter(Boolean).map((word) => [...word].map((letter) => ({
         letter,
         delay: `${Math.min(index++ * HEADING_STAGGER_MS, HEADING_STAGGER_CAP_MS)}ms`,
     })));
@@ -248,8 +248,15 @@ export function H3({ children, className, animated = true, size = "plain", ...pr
         && typeof window.IntersectionObserver === "function"
         && !window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;
     useEffect(() => {
-        if (!split || !ref.current)
+        if (!split)
             return undefined;
+        if (!ref.current) {
+            // A caller-passed ref in {...props} overrides the internal one, so this
+            // element can never be observed. Reveal off the effect tick instead of
+            // leaving the heading invisible.
+            queueMicrotask(() => setState("run"));
+            return undefined;
+        }
         let observer;
         let observing = false;
         try {

@@ -49,7 +49,7 @@ function ApplicationDetail({ application }) {
           </Notice>
         )}
         <div>
-          <H3 className="text-xs font-semibold text-navy">Your application journey</H3>
+          <H3 className="text-xs font-semibold text-navy" animated={false}>Your application journey</H3>
           <p className="mt-1 text-[11px] text-muted-foreground">Updates from the employer appear here and in your notifications.</p>
           <div className="mt-4"><ApplicationTimeline application={application} /></div>
         </div>

@@ -1,6 +1,6 @@
 # ADR-051: Letter-reveal heading animation — system-wide, alongside parallax
 
-**Status:** Accepted (planned 2026-11-13)
+**Status:** Accepted (signed off 2026-11-13; implemented 2026-11-14)
 **Date:** 2026-11-13
 **Owner:** Lead Architect
 
@@ -26,9 +26,10 @@ scoped to the public marketing surface while portals stayed static.
   `animated={false}` render as plain styled headings).
 - **Scope**: system-wide per product decision (2026-11-13), which supersedes
   ADR-045's "portals stay static" line for one-shot text reveals only. Parallax
-  itself remains public-site-only per ADR-045. Dialog content (session-expiring
-  modal, job-post detail dialog) opts out with `animated={false}`: repeated
-  modal entrances must not re-play a letter cascade.
+  itself remains public-site-only per ADR-045. Dialog content opts out with
+  `animated={false}`: dialog libraries unmount content on close, so every open
+  would replay the cascade — this applies to ALL dialog-hosted headings,
+  blocking/expiring modals included.
 - **Safety**: reduced motion renders static (JS guard + CSS override; text can
   never be invisible); no IntersectionObserver → static; >160-char strings →
   unsplit; per-letter blur is small (6 px, 500 ms, letters only) so filter cost
@@ -49,3 +50,7 @@ dropping blur/translate variables).
   while its headings cascade) — both are entry-triggered, never competing for
   the same properties on the same element.
 - Pure presentation: no database, API, or state-management impact.
+- In this checkout `.parallax-bg` / `.parallax-reveal` exist as marker classes
+  only; no scroll-timeline CSS is present yet (ADR-045 is the intended design).
+  Coexistence is therefore structural today — the markers and their test are
+  untouched.

@@ -116,7 +116,7 @@ function ReviewModal({ accreditation, onClose, onDecided }) {
           </dl>
 
           <section>
-            <H3 className="text-sm font-semibold text-navy">Accreditation documents</H3>
+            <H3 className="text-sm font-semibold text-navy" animated={false}>Accreditation documents</H3>
             <div className="mt-3 rounded-xl border bg-muted/50 p-4">
               {loading ? (
                 <p className="text-xs text-muted-foreground">Loading documents…</p>

@@ -653,7 +653,7 @@ function UserManagement() {
                 </TabsContent>
               </Tabs>
               <section className="border-t pt-4">
-                <H3 className="text-xs font-semibold text-navy">Resumes</H3>
+                <H3 className="text-xs font-semibold text-navy" animated={false}>Resumes</H3>
                 {detail.resumes.length ? (
                   <ul className="mt-3 flex flex-col gap-3">
                     {detail.resumes.map((resume) => (
