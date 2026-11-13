@@ -21,7 +21,7 @@ import SkipLink from './SkipLink'
 import NotificationBell from './NotificationBell'
 import DashboardFooter from './DashboardFooter'
 import HelpChat from './HelpChat'
-import { Logo } from './design'
+import { H3, Logo } from './design'
 import useAuth from '../hooks/useAuth'
 import useAFKTimer from '../hooks/useAFKTimer'
 import useDialog from '../hooks/useDialog'
@@ -350,7 +350,7 @@ export default function TopNavLayout({ role, navItems, profileTo, roleLabel, hom
       {showWarning && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
           <div ref={afkRef} role="dialog" aria-modal="true" aria-labelledby="afk-title" className="mx-4 max-w-sm rounded-lg border border-primary bg-card p-5 shadow-xl">
-            <h3 id="afk-title" className="mb-2 text-lg font-bold text-foreground">Session Expiring</h3>
+            <H3 animated={false} id="afk-title" className="mb-2 text-lg font-bold text-foreground">Session Expiring</H3>
             <p className="mb-6 text-sm text-muted-foreground">You will be logged out in 1 minute due to inactivity. Move your mouse or press a key to stay signed in.</p>
             <div className="flex gap-2">
               <Button onClick={handleLogout} className="flex-1 border border-border bg-muted px-4 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">Sign Out</Button>

@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 import { Link } from "react-router-dom";
 import { Users, X } from "lucide-react";
 import useDialog from "../../shared/hooks/useDialog";
-import { StatusBadge } from "../../shared/components/design";
+import { H3, StatusBadge } from "../../shared/components/design";
 import { formatSalary } from "./jobPostFields";
 import { titleCase } from "../../shared/utils/titleCase";
 
@@ -89,7 +89,7 @@ export default function JobPostDetailDialog({ job, company, onClose, onEdit, onT
           .filter(([, value]) => value)
           .map(([label, value]) => (
             <div key={label}>
-              <h3 className="mb-2 text-xs font-semibold text-navy">{label}</h3>
+              <H3 animated={false} className="mb-2 text-xs font-semibold text-navy">{label}</H3>
               <p className="rounded-xl border bg-muted p-4 text-xs leading-6 whitespace-pre-line text-muted-foreground">
                 {value}
               </p>
