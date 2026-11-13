@@ -20,6 +20,8 @@ const PublicJobDetail = route('/jobs/:id')
 const PublicEmployerProfile = route('/employers/:employerId')
 const Faq = route('/faq')
 const HowItWorks = route('/how-it-works')
+const About = route('/about')
+const PesoServices = route('/peso-services')
 const Legal = route('/privacy')
 const ForgotPassword = route('/forgot-password')
 const ResetPassword = route('/reset-password')
@@ -87,6 +89,8 @@ function App() {
             <Route path="/employers/:employerId" element={<PublicRoute><PublicEmployerProfile /></PublicRoute>} />
             <Route path="/faq" element={<Faq />} />
             <Route path="/how-it-works" element={<HowItWorks />} />
+            <Route path="/about" element={<About />} />
+            <Route path="/peso-services" element={<PesoServices />} />
             {/* New-design flow aliases for the portal roots. */}            {/* New-design job-seeker flow: /jobseeker/<reference-section>. */}
             <Route path="/jobseeker" element={<Navigate to="/job-seeker" replace />} />
             <Route path="/jobseeker/dashboard" element={<Navigate to="/job-seeker" replace />} />

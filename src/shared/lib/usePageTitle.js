@@ -16,6 +16,10 @@ const TITLES = {
   '/reset-password': 'Choose a new password — JobLinked',
   '/privacy': 'Privacy notice — JobLinked',
   '/terms': 'Terms of use — JobLinked',
+  '/about': 'About JobLinked',
+  '/peso-services': 'PESO services — JobLinked',
+  '/faq': 'Frequently asked questions — JobLinked',
+  '/how-it-works': 'How JobLinked works — JobLinked',
   '/accept-invite': 'Accept invitation — JobLinked',
   '/employer/status': 'Accreditation status — JobLinked',
 }

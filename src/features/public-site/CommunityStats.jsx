@@ -56,25 +56,25 @@ export default function CommunityStats() {
   }, [])
 
   return (
-    <section className="border-y bg-muted/60">
-      <div className="page-container flex flex-col items-start justify-between gap-8 py-12 sm:flex-row sm:items-center">
-        <div>
-          <p className="eyebrow mb-2">A snapshot of our community</p>
-          <h2 className="text-xl font-semibold tracking-tight">Local connections. Real potential.</h2>
-          <p className="mt-2 text-[10px] text-muted-foreground">Platform counts only—not municipal employment statistics.</p>
+    <section className="bg-navy text-white">
+      <div className="page-container flex flex-col gap-10 py-14 md:py-16 lg:flex-row lg:items-end lg:justify-between">
+        <div className="max-w-sm">
+          <p className="eyebrow mb-3 text-white/70">A snapshot of our community</p>
+          <h2 className="text-2xl font-semibold leading-[1.15] tracking-[-0.03em] text-white">Local connections. Real potential.</h2>
+          <p className="mt-3 text-sm leading-6 text-white/70">Platform counts only—not municipal employment statistics.</p>
         </div>
-        <div className="flex w-full justify-between gap-8 sm:w-auto sm:gap-14">
+        <div className="grid grid-cols-2 gap-x-10 gap-y-8 sm:flex sm:items-end sm:gap-12">
           {STAT_ITEMS.map(({ key, label, format }) => (
             <div key={key}>
-              <p className="text-3xl font-semibold tracking-tight text-primary" aria-label={`${label} count`}>
+              <p className="text-[38px] font-semibold leading-none tracking-[-0.04em] text-white tabular-nums md:text-[46px]" aria-label={`${label} count`}>
                 {format ? format(stats?.[key]) : (stats ? stats[key].toLocaleString() : '—')}
               </p>
-              <p className="mt-2 text-[10px] text-muted-foreground">{label}</p>
+              <p className="mt-2.5 text-xs text-white/70">{label}</p>
             </div>
           ))}
         </div>
         {refreshError && (
-          <p role="status" className="text-xs text-muted-foreground">
+          <p role="status" className="text-xs text-white/70">
             {refreshError}{stats ? ' Showing the last available counts.' : ''}
           </p>
         )}

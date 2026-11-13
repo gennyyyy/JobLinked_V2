@@ -1,7 +1,8 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
 import { ArrowRight, ShieldCheck } from 'lucide-react'
+import SkipLink from '@/shared/components/SkipLink'
 import PublicShell from '@/shared/components/PublicShell'
+import { LinkButton } from '@/shared/components/design'
 
 const TABS = [
   { id: 'jobseeker', label: 'For job seekers' },
@@ -74,90 +75,76 @@ export default function HowItWorks() {
   const current = CONTENT[activeTab]
 
   return (
-    <PublicShell>
-      <div className="page-container py-14 md:py-20">
-        <div className="mx-auto max-w-[940px]">
-          {/* Header */}
-          <header className="mb-10">
-            <p className="eyebrow mb-3">LESS PAPERWORK. MORE POSSIBILITY.</p>
-            <h1 className="section-heading text-navy">How JobLinked works</h1>
-            <p className="section-copy mt-3 text-muted-foreground">
-              A clear path from your first profile to your next opportunity.
-            </p>
-          </header>
-
-          {/* Role Pill Switcher */}
-          <div className="mb-8 inline-flex items-center rounded-xl border border-primary/20 bg-blue-50/60 p-1.5 shadow-xs">
-            {TABS.map((tab) => {
-              const isActive = activeTab === tab.id
-              return (
-                <button
-                  key={tab.id}
-                  type="button"
-                  onClick={() => setActiveTab(tab.id)}
-                  aria-pressed={isActive}
-                  className={`rounded-lg px-4 py-2 text-xs font-semibold transition-all sm:text-sm ${
-                    isActive
-                      ? 'bg-primary text-white shadow-sm'
-                      : 'text-muted-foreground hover:text-navy hover:bg-white/50'
-                  }`}
-                >
-                  {tab.label}
-                </button>
-              )
-            })}
-          </div>
-
-          {/* Subheading */}
-          <h2 className="text-xl font-bold tracking-tight text-navy sm:text-2xl">
-            {current.heading}
-          </h2>
-
-          {/* Step Cards Grid */}
-          <div className="mt-8 grid gap-4 sm:grid-cols-2 sm:gap-5">
-            {current.steps.map((item) => (
-              <div
-                key={item.step}
-                className="flex items-start gap-4 rounded-2xl border border-border/80 bg-card p-6 shadow-xs transition-shadow hover:shadow-sm"
-              >
-                <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-blue-50 text-xs font-semibold text-primary">
-                  {item.step}
-                </span>
-                <div>
-                  <h3 className="text-sm font-bold text-navy sm:text-base">
-                    {item.title}
-                  </h3>
-                  <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground sm:text-[13px]">
-                    {item.desc}
-                  </p>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Primary CTA */}
-          <div className="mt-8">
-            <Link
-              to={current.cta.to}
-              className="inline-flex min-h-[44px] items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-white shadow-xs transition-colors hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-            >
-              {current.cta.label}
-              <ArrowRight className="size-4" />
-            </Link>
-          </div>
-
-          {/* Demonstration Notice Card */}
-          <div className="mt-10 flex items-start gap-3 rounded-2xl border border-blue-100 bg-[#f0f6ff] p-5 text-navy sm:p-6">
-            <ShieldCheck className="size-5 shrink-0 text-primary mt-0.5" />
-            <div className="text-xs leading-relaxed sm:text-[13px]">
-              <p className="font-semibold text-navy">A demonstration of the journey</p>
-              <p className="mt-1 text-muted-foreground">
-                Role guards and sample credentials only preview the experience. Production authorization must be enforced by the future Express API, with secure sessions and private document storage.
+    <>
+      <SkipLink />
+      <PublicShell>
+        <header className="page-hero">
+          <div className="page-container py-14 md:py-16">
+            <div>
+              <p className="eyebrow mb-4">Less paperwork. More possibility.</p>
+              <h1 className="display-heading text-navy">How JobLinked works</h1>
+              <p className="mt-5 max-w-xl text-sm leading-7 text-muted-foreground md:text-base">
+                A clear path from your first profile to your next opportunity.
               </p>
             </div>
           </div>
+        </header>
+        <div className="page-container py-12 md:py-16">
+          <div className="mx-auto max-w-[940px]">
+
+            <div className="inline-flex rounded-md border border-border bg-card p-1" role="group" aria-label="Choose your path">              {TABS.map((tab) => {
+                const isActive = activeTab === tab.id
+                return (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => setActiveTab(tab.id)}
+                    aria-pressed={isActive}
+                    className={`min-h-11 rounded-sm px-4 text-sm font-medium transition-colors ${
+                      isActive
+                        ? 'bg-primary text-white'
+                        : 'text-muted-foreground hover:text-navy'
+                    }`}
+                  >
+                    {tab.label}
+                  </button>
+                )
+              })}
+            </div>
+
+            <h2 className="mt-10 text-2xl font-semibold tracking-[-0.03em] text-navy sm:text-[28px]">
+              {current.heading}
+            </h2>
+
+            <ol className="mt-6 grid gap-x-10 gap-y-8 sm:grid-cols-2">
+              {current.steps.map((item) => (
+                <li key={item.step} className="border-t border-border pt-5">
+                  <p className="text-xs font-semibold tracking-[0.16em] text-primary tabular-nums">{item.step}</p>
+                  <h3 className="mt-2 text-base font-semibold text-navy">{item.title}</h3>
+                  <p className="mt-2 text-sm leading-7 text-muted-foreground">{item.desc}</p>
+                </li>
+              ))}
+            </ol>
+
+            <div className="mt-10">
+              <LinkButton href={current.cta.to}>
+                {current.cta.label}
+                <ArrowRight aria-hidden="true" className="size-4" />
+              </LinkButton>
+            </div>
+
+            <aside className="mt-12 border-l-2 border-primary pl-5">
+              <p className="flex items-center gap-2 text-sm font-semibold text-navy">
+                <ShieldCheck aria-hidden="true" className="size-4 shrink-0 text-primary" />
+                A demonstration of the journey
+              </p>
+              <p className="mt-2 text-sm leading-7 text-muted-foreground">
+                Role guards and sample credentials only preview the experience. Production authorization must be enforced by the future Express API, with secure sessions and private document storage.
+              </p>
+            </aside>
+          </div>
         </div>
-      </div>
-    </PublicShell>
+      </PublicShell>
+    </>
   )
 }

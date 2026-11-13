@@ -230,3 +230,10 @@ export const FAQS = [
       "Program pages are informational. Eligibility, schedules, and actual processing must be confirmed with the appropriate PESO office through verified official channels. JobLinked does not process SPES, GIP, or government transactions.",
   },
 ];
+
+export const PESO_SERVICES = [
+  { title: 'Job matching & placement', description: 'Connect with opportunities that fit.' },
+  { title: 'Community job fairs', description: 'Meet employers. Open new doors.' },
+  { title: 'Career guidance', description: 'Navigate your future with support.' },
+  { title: 'Skills & livelihood training', description: 'Learn more. Grow your possibilities.' },
+];

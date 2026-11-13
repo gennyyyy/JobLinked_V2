@@ -718,7 +718,9 @@
 }
 @layer components {
   .page-container { @apply mx-auto w-full max-w-[1240px] px-5 sm:px-8 lg:px-10; }
-  .section-heading { @apply text-3xl font-semibold tracking-[-0.035em] md:text-4xl; }
+  .page-hero { @apply bg-muted text-navy; }
+  .display-heading { @apply text-[36px] font-semibold leading-[1.06] tracking-[-0.045em] sm:text-[44px]; }
+  .section-heading { @apply text-[32px] font-semibold leading-[1.1] tracking-[-0.04em] sm:text-[36px] md:text-[40px]; }
   .eyebrow { @apply text-[11px] font-semibold tracking-[.16em] uppercase text-teal; }
   .section-copy { @apply text-sm leading-7 text-muted-foreground md:text-base; }
   .surface { @apply rounded-2xl border bg-card p-5 sm:p-6; box-shadow: 0 2px 5px #12325b03; }

@@ -29,7 +29,7 @@ describe('Landing anchor scrolling', () => {
   it('scrolls to #faq on every click of the FAQ link', () => {
     renderLanding()
 
-    const faqLink = screen.getByRole('link', { name: 'FAQ' })
+    const faqLink = screen.getByRole('link', { name: /frequently asked questions/i })
     const faq = document.getElementById('faq')
 
     fireEvent.click(faqLink)

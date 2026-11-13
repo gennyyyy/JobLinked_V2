@@ -48,7 +48,22 @@ describe('Landing page routing', () => {
     expect(document.getElementById('about')).toBeInTheDocument()
     expect(document.getElementById('peso-services')).toBeInTheDocument()
     expect(document.getElementById('faq')).toBeInTheDocument()
-    expect(screen.getAllByRole('link', { name: /peso services/i })[0]).toHaveAttribute('href', '/#peso-services')
+    expect(screen.getAllByRole('link', { name: /peso services/i })[0]).toHaveAttribute('href', '/peso-services')
+  })
+
+  it('places the community snapshot and about sections around PESO services', () => {
+    render(
+      <MemoryRouter>
+        <Landing />
+      </MemoryRouter>
+    )
+
+    const stats = screen.getByRole('heading', { name: 'Local connections. Real potential.' }).closest('section')
+    const services = screen.getByRole('heading', { name: "You don't have to take the next step alone." }).closest('section')
+    const about = screen.getByRole('heading', { name: 'Built around people, not paperwork.' }).closest('section')
+
+    expect(stats.compareDocumentPosition(services) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(services.compareDocumentPosition(about) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
   })
 
   it('gives every landing link a real destination', () => {
@@ -74,7 +89,7 @@ describe('Landing page routing', () => {
     expect(screen.getByRole('link', { name: 'Find your opportunity' })).toHaveAttribute('href', '/signup/jobseeker')
     expect(screen.getByRole('link', { name: 'Build your team' })).toHaveAttribute('href', '/signup/employer')
     expect(screen.getByRole('link', { name: 'Explore the PESO portal' })).toHaveAttribute('href', '/super-admin')
-    expect(screen.getByRole('link', { name: 'Explore PESO services' })).toHaveAttribute('href', '/#peso-services')
+    expect(screen.getByRole('link', { name: 'Explore PESO services' })).toHaveAttribute('href', '/peso-services')
     expect(screen.getByRole('link', { name: 'Explore all FAQs' })).toHaveAttribute('href', '/faq')
   })
 })

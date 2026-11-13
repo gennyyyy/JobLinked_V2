@@ -33,6 +33,7 @@ const isBrowsable = (job) => isJobOpen(job) && (!job.employers?.accreditation_st
 export default function JobsBrowser({
   saved = false,
   jobHref,
+  eyebrow,
   title,
   description,
   initialQuery = '',
@@ -223,6 +224,7 @@ export default function JobsBrowser({
   return (
     <>
       <PageHeading
+        eyebrow={saved ? 'Your collection' : (eyebrow || 'Built around your skills')}
         title={saved ? 'Keep good opportunities close.' : (title || 'Browse Jobs')}
         description={saved
           ? 'Your saved vacancies, together in one place. Closed roles may no longer accept applications.'
