@@ -784,7 +784,7 @@
    --ltr-delay because the global reduced-motion reset's `animation`
    shorthand zeroes `animation-delay`. */
 @media (prefers-reduced-motion: reduce) {
-  [data-letter-reveal] .ltr {
+  [data-letter-reveal][data-state='run'] .ltr {
     animation-name: letter-fade !important;
     animation-duration: 320ms !important;
     animation-timing-function: ease !important;
