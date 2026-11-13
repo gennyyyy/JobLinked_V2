@@ -1,6 +1,7 @@
 "use client";
 import { Link } from "react-router-dom";
-import { useId, useState } from "react";
+import { Fragment, useEffect, useId, useRef, useState } from "react";
+import { flushSync } from "react-dom";
 import { ArrowRight, CheckCircle2, ChevronDown, Search, ShieldCheck, Loader2, } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -217,4 +218,83 @@ export function SuccessMark() {
     return (<div className="mx-auto flex size-16 items-center justify-center rounded-full bg-success-soft text-success">
       <CheckCircle2 className="size-8"/>
     </div>);
+}
+const HEADING_BASE = "font-semibold text-navy tracking-[-0.03em] transition-colors duration-300";
+// Size is opt-in: a base text size would beat a caller's text-xs via the
+// unpaired sm: variant, growing every small portal heading.
+const HEADING_SIZES = { plain: "", display: "text-xl sm:text-2xl" };
+const HEADING_SPLIT_LIMIT = 160;
+const HEADING_STAGGER_MS = 25;
+const HEADING_STAGGER_CAP_MS = 600;
+function splitHeadingText(text) {
+    // Letters carry the global cascade index (spaces excluded); each word keeps
+    // its own wrapper so sheared words never break mid-line.
+    let index = 0;
+    return text.trim().split(/\s+/).filter(Boolean).map((word) => [...word].map((letter) => ({
+        letter,
+        delay: `${Math.min(index++ * HEADING_STAGGER_MS, HEADING_STAGGER_CAP_MS)}ms`,
+    })));
+}
+export function H3({ children, className, animated = true, size = "plain", ...props }) {
+    const ref = useRef(null);
+    const [state, setState] = useState("hidden");
+    const text = typeof children === "string" ? children : null;
+    // Static path: anything we cannot or should not animate renders plain, so
+    // the heading text is never trapped invisible (reduced motion included).
+    const split = animated
+        && text !== null
+        && text.length <= HEADING_SPLIT_LIMIT
+        && typeof window !== "undefined"
+        && typeof window.IntersectionObserver === "function"
+        && !window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;
+    useEffect(() => {
+        if (!split || !ref.current)
+            return undefined;
+        let observer;
+        let observing = false;
+        try {
+            observer = new window.IntersectionObserver(([entry], obs) => {
+                if (!entry.isIntersecting)
+                    return;
+                obs.disconnect();
+                // The browser fires this outside React, so flush now and start
+                // the reveal on the observed frame. A synchronous observe() ack
+                // arrives inside the effect, where plain state is already batched.
+                if (observing)
+                    setState("run");
+                else
+                    flushSync(() => setState("run"));
+            });
+            observing = true;
+            observer.observe(ref.current);
+        }
+        catch {
+            // Broken observer: reveal off the effect tick so the text can never
+            // stay hidden (lint forbids the cascading sync update here).
+            queueMicrotask(() => setState("run"));
+        }
+        finally {
+            observing = false;
+        }
+        return () => observer?.disconnect();
+    }, [split]);
+    const classes = cn(HEADING_BASE, HEADING_SIZES[size], className);
+    if (!split) {
+        return (<h3 className={classes} {...props}>
+        {children}
+      </h3>);
+    }
+    const words = splitHeadingText(text);
+    return (<h3 ref={ref} aria-label={text} data-letter-reveal data-state={state} className={classes} {...props}>
+      <span aria-hidden="true">
+        {words.map((letters, wordIndex) => (<Fragment key={wordIndex}>
+            {wordIndex > 0 && " "}
+            <span style={{ display: "inline-block", whiteSpace: "nowrap" }}>
+              {letters.map(({ letter, delay }, letterIndex) => (<span key={letterIndex} className="ltr" style={{ display: "inline-block", animationDelay: delay }}>
+                  {letter}
+                </span>))}
+            </span>
+          </Fragment>))}
+      </span>
+    </h3>);
 }
