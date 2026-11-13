@@ -63,3 +63,8 @@ dropping blur/translate variables).
   Rich heading children are supported — text is split per segment while `<br>`
   and inline `<span>` wrappers (including color classes) are preserved; the
   accessible name is the flattened plain text.
+- **Amendment (2026-11-14):** the landing page now reveals its marketing copy —
+  section eyebrows, h2 headings, intro/description paragraphs, PESO card
+  descriptions, FAQ questions, the "Explore all FAQs" label, and the community
+  stat numbers (labels excluded). The footer group headings are explicitly
+  excluded per product direction.

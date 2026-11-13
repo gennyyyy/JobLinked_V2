@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { render, cleanup } from '@testing-library/react'
-import { H1, H3 } from '../design'
+import { H1, H3, RevealText } from '../design'
 
 let reduced = false
 class IOStub {
@@ -118,6 +118,26 @@ describe('H1', () => {
   it('H1 static path (animated=false) renders the hero text unsplit', () => {
     const { container } = render(<H1 animated={false}>Local <span className="text-primary">Opportunities.</span></H1>)
     expect(container.querySelector('h1')).not.toHaveAttribute('data-letter-reveal')
+    expect(container.querySelectorAll('.ltr')).toHaveLength(0)
+  })
+})
+
+describe('RevealText', () => {
+  it('RevealText splits plain text into letters without aria overrides', () => {
+    const { container } = render(<RevealText as="p" className="section-copy">Good questions. Clear answers.</RevealText>)
+    const p = container.querySelector('p.section-copy')
+    expect(p).toHaveAttribute('data-letter-reveal')
+    expect(p).not.toHaveAttribute('aria-label')
+    expect(p.querySelector('.ltr').parentElement.parentElement).not.toHaveAttribute('aria-hidden')
+    expect(p.querySelectorAll('.ltr').length).toBe('Good questions. Clear answers.'.replace(/ /g, '').length)
+    expect(p.textContent).toBe('Good questions. Clear answers.')
+    expect(p.querySelectorAll('.ltr')[0].style.animationDelay).toBe('0ms')
+    expect(p.querySelectorAll('.ltr')[1].style.animationDelay).toBe('25ms')
+  })
+
+  it('RevealText renders a span by default and respects the static guards', () => {
+    const { container } = render(<RevealText>{'word '.repeat(40)}</RevealText>)
+    expect(container.querySelector('span')).not.toHaveAttribute('data-letter-reveal')
     expect(container.querySelectorAll('.ltr')).toHaveLength(0)
   })
 })

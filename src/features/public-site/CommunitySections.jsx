@@ -2,7 +2,7 @@
 import { Link } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from '@/components/ui/accordion';
-import { H3, LinkButton } from '../../shared/components/design';
+import { H3, LinkButton, RevealText } from '../../shared/components/design';
 import { FAQS, PESO_SERVICES } from '../../shared/constants';
 import CommunityStats from './CommunityStats';
 import { AudienceCards } from './AudienceCards';
@@ -27,9 +27,9 @@ export function CommunitySections() {
     <>
       <section id="how-it-works" className="page-container py-20 parallax-reveal">
         <div className="max-w-xl">
-          <p className="eyebrow text-primary mb-3">Simple steps. Meaningful possibilities.</p>
-          <h2 className="section-heading">Your next chapter starts here.</h2>
-          <p className="section-copy mt-3">Less searching, more possibility. We make finding local work a little easier.</p>
+          <RevealText as="p" className="eyebrow text-primary mb-3">Simple steps. Meaningful possibilities.</RevealText>
+          <RevealText as="h2" className="section-heading">Your next chapter starts here.</RevealText>
+          <RevealText as="p" className="section-copy mt-3">Less searching, more possibility. We make finding local work a little easier.</RevealText>
         </div>
         <ol className="mt-12 grid gap-x-10 gap-y-10 md:grid-cols-3">
           {STEPS.map(({ title, description }, index) => (
@@ -54,9 +54,9 @@ export function CommunitySections() {
       <section id="peso-services" className="page-container py-16 md:py-20">
         <div className="grid items-start gap-10 lg:grid-cols-[.9fr_1.1fr] lg:gap-16">
           <div>
-            <p className="eyebrow text-primary mb-3">Support beyond the job search</p>
-            <h2 className="section-heading">You don&apos;t have to take the next step alone.</h2>
-            <p className="section-copy mt-4 max-w-md">Explore employment programs, career guidance, and skills development information designed with your future in mind.</p>
+            <RevealText as="p" className="eyebrow text-primary mb-3">Support beyond the job search</RevealText>
+            <RevealText as="h2" className="section-heading">You don&apos;t have to take the next step alone.</RevealText>
+            <RevealText as="p" className="section-copy mt-4 max-w-md">Explore employment programs, career guidance, and skills development information designed with your future in mind.</RevealText>
             <Link to="/peso-services" className="text-link mt-5">
               Explore PESO services<ArrowRight aria-hidden="true" className="size-4" />
             </Link>
@@ -66,7 +66,7 @@ export function CommunitySections() {
             {PESO_SERVICES.map(({ title, description }) => (
               <li className="border-t border-border py-5" key={title}>
                 <H3 className="text-sm font-semibold">{title}</H3>
-                <p className="mt-1.5 text-sm leading-6 text-muted-foreground">{description}</p>
+                <RevealText as="p" className="mt-1.5 text-sm leading-6 text-muted-foreground">{description}</RevealText>
               </li>
             ))}
           </ul>
@@ -86,20 +86,20 @@ export function CommunitySections() {
       <section id="faq" className="page-container py-16 md:py-20">
         <div className="mx-auto max-w-[720px]">
           <div className="mb-7">
-            <p className="eyebrow text-primary mb-3">A little clarity goes a long way</p>
-            <h2 className="section-heading">Good questions. Clear answers.</h2>
+            <RevealText as="p" className="eyebrow text-primary mb-3">A little clarity goes a long way</RevealText>
+            <RevealText as="h2" className="section-heading">Good questions. Clear answers.</RevealText>
           </div>
           <Accordion>
             {FAQS.slice(0, 4).map((faq, index) => (
               <AccordionItem value={`faq-${index}`} key={faq.question} className="border-b border-border last:border-b-0">
-                <AccordionTrigger className="min-h-16 py-4 text-base font-medium text-navy">{faq.question}</AccordionTrigger>
+                <AccordionTrigger className="min-h-16 py-4 text-base font-medium text-navy"><RevealText as="span">{faq.question}</RevealText></AccordionTrigger>
                 <AccordionContent className="pb-4 text-sm leading-7 text-muted-foreground">{faq.answer}</AccordionContent>
               </AccordionItem>
             ))}
           </Accordion>
           <div className="mt-6">
             <Link to="/faq" className="text-link text-sm">
-              Explore all FAQs<ArrowRight aria-hidden="true" className="size-4" />
+              <RevealText as="span">Explore all FAQs</RevealText><ArrowRight aria-hidden="true" className="size-4" />
             </Link>
           </div>
         </div>

@@ -285,7 +285,7 @@ function renderHeadingChildren(node, cursor) {
         return cloneElement(node, { key }, renderHeadingChildren(node.props.children, cursor));
     return cloneElement(node, { key });
 }
-function Heading({ tag: Tag = "h3", rich = false, children, className, animated = true, size = "plain", ...props }) {
+function Heading({ tag: Tag = "h3", rich = false, children, className, animated = true, size = "plain", base = HEADING_BASE, sizes = HEADING_SIZES, labeled = true, ...props }) {
     const ref = useRef(null);
     const [state, setState] = useState("hidden");
     const text = headingText(children).replace(/\s+/g, " ").trim();
@@ -338,14 +338,14 @@ function Heading({ tag: Tag = "h3", rich = false, children, className, animated 
         }
         return () => observer?.disconnect();
     }, [split]);
-    const classes = cn(HEADING_BASE, HEADING_SIZES[size], className);
+    const classes = cn(base, sizes?.[size], className);
     if (!split) {
         return (<Tag className={classes} {...props}>
         {children}
       </Tag>);
     }
-    return (<Tag ref={ref} aria-label={text} data-letter-reveal data-state={state} className={classes} {...props}>
-      <span aria-hidden="true">{renderHeadingChildren(children, { index: 0, key: 0 })}</span>
+    return (<Tag ref={ref} aria-label={labeled ? text : undefined} data-letter-reveal data-state={state} className={classes} {...props}>
+      <span aria-hidden={labeled ? "true" : undefined}>{renderHeadingChildren(children, { index: 0, key: 0 })}</span>
     </Tag>);
 }
 export function H3(props) {
@@ -353,4 +353,12 @@ export function H3(props) {
 }
 export function H1(props) {
     return <Heading {...props} tag="h1" rich/>;
+}
+export function RevealText({ as: Tag = "span", children, className, animated = true, ...props }) {
+    // Landing-copy variant: no typography defaults and no aria overrides, so
+    // the letters stay the element's real text content and parents (links,
+    // accordion buttons) keep their accessible names.
+    return (<Heading tag={Tag} rich labeled={false} base="" sizes={null} className={className} animated={animated} {...props}>
+      {children}
+    </Heading>);
 }
