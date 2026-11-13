@@ -240,13 +240,12 @@ export function H3({ children, className, animated = true, size = "plain", ...pr
     const [state, setState] = useState("hidden");
     const text = typeof children === "string" ? children : null;
     // Static path: anything we cannot or should not animate renders plain, so
-    // the heading text is never trapped invisible (reduced motion included).
+    // the heading text is never trapped invisible.
     const split = animated
         && text !== null
         && text.length <= HEADING_SPLIT_LIMIT
         && typeof window !== "undefined"
-        && typeof window.IntersectionObserver === "function"
-        && !window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;
+        && typeof window.IntersectionObserver === "function";
     useEffect(() => {
         if (!split)
             return undefined;
@@ -297,7 +296,7 @@ export function H3({ children, className, animated = true, size = "plain", ...pr
         {words.map((letters, wordIndex) => (<Fragment key={wordIndex}>
             {wordIndex > 0 && " "}
             <span style={{ display: "inline-block", whiteSpace: "nowrap" }}>
-              {letters.map(({ letter, delay }, letterIndex) => (<span key={letterIndex} className="ltr" style={{ display: "inline-block", animationDelay: delay }}>
+              {letters.map(({ letter, delay }, letterIndex) => (<span key={letterIndex} className="ltr" style={{ display: "inline-block", animationDelay: delay, "--ltr-delay": delay }}>
                   {letter}
                 </span>))}
             </span>

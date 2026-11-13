@@ -30,10 +30,11 @@ scoped to the public marketing surface while portals stayed static.
   `animated={false}`: dialog libraries unmount content on close, so every open
   would replay the cascade — this applies to ALL dialog-hosted headings,
   blocking/expiring modals included.
-- **Safety**: reduced motion renders static (JS guard + CSS override; text can
-  never be invisible); no IntersectionObserver → static; >160-char strings →
-  unsplit; per-letter blur is small (6 px, 500 ms, letters only) so filter cost
-  stays trivial; no `will-change`.
+- **Safety**: reduced motion keeps the letter cascade as a fade-only animation
+  (no translate, no blur; 320 ms); print renders static and fully visible; no
+  IntersectionObserver → static; >160-char strings → unsplit; per-letter blur
+  is small (6 px, 500 ms, letters only) so filter cost stays trivial; no
+  `will-change`.
 
 Rejected: framer-motion / GSAP split-text (dependency + main-thread cost,
 contra ADR-045's reasoning); scroll-driven `view()` timelines for letters
@@ -54,3 +55,7 @@ dropping blur/translate variables).
   only; no scroll-timeline CSS is present yet (ADR-045 is the intended design).
   Coexistence is therefore structural today — the markers and their test are
   untouched.
+- **Amendment (2026-11-14):** reduced-motion visitors previously got no
+  animation; product feedback was that requiring an OS setting change to see
+  any effect is unacceptable. The fade-only variant keeps the effect for every
+  visitor while removing vestibular-triggering motion (slide/blur).

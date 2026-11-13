@@ -55,11 +55,11 @@ describe('H3', () => {
     expect(container.querySelectorAll('.ltr')).toHaveLength(0)
   })
 
-  it('renders static under reduced motion even with IO available', () => {
+  it('keeps the letter cascade under reduced motion (CSS fades only)', () => {
     reduced = true
     const { container } = render(<H3>Session Expiring</H3>)
-    expect(container.querySelector('h3')).not.toHaveAttribute('data-letter-reveal')
-    expect(container.querySelectorAll('.ltr')).toHaveLength(0)
+    expect(container.querySelector('h3')).toHaveAttribute('data-letter-reveal')
+    expect(container.querySelectorAll('.ltr').length).toBeGreaterThan(0)
   })
 
   it('stays hidden until observed, then reveals once', () => {

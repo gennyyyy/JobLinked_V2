@@ -772,11 +772,31 @@
   from { opacity: 0; transform: translateY(0.35em); filter: blur(6px); }
   to { opacity: 1; transform: none; filter: none; }
 }
-@media print, (prefers-reduced-motion: reduce) {
+/* Print never runs IntersectionObserver: show all text, unanimated. */
+@media print {
   [data-letter-reveal] .ltr {
     animation: none !important; opacity: 1 !important;
     transform: none !important; filter: none !important;
   }
+}
+/* Motion-sensitive visitors keep the letter cascade, fade-only: no
+   translate, no blur. The inline per-letter delay is replayed through
+   --ltr-delay because the global reduced-motion reset's `animation`
+   shorthand zeroes `animation-delay`. */
+@media (prefers-reduced-motion: reduce) {
+  [data-letter-reveal] .ltr {
+    animation-name: letter-fade !important;
+    animation-duration: 320ms !important;
+    animation-timing-function: ease !important;
+    animation-fill-mode: both !important;
+    animation-delay: var(--ltr-delay, 0ms) !important;
+    transform: none !important;
+    filter: none !important;
+  }
+}
+@keyframes letter-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; } }
 @media print {
