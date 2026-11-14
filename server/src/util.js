@@ -69,6 +69,17 @@ export async function audit(userId, action, entity = null, entityId = null, deta
 
 export async function notifyUser(userId, { type, title, message, link = null }) {
   try {
+    const { rows } = await pool.query(
+      'select application_updates, community_announcements from public.user_preferences where user_id = $1',
+      [userId]
+    );
+    if (rows.length) {
+      const p = rows[0];
+      let key = null;
+      if (['job', 'application', 'accreditation', 'document'].includes(type)) key = 'application_updates';
+      else if (type === 'system') key = 'community_announcements';
+      if (key && p[key] === false) return;
+    }
     await pool.query(
       'insert into notifications (user_id, type, title, message, link) values ($1,$2,$3,$4,$5)',
       [userId, type, title, message, link]

@@ -233,9 +233,12 @@ router.post('/admin/system-notifications', ...notifyAdmin, ah(async (req, res) =
   const { rowCount } = await pool.query(
     `insert into notifications (user_id, type, title, message, link)
      select id, 'system', $1, $2, $3 from (
-       select id from job_seekers where status = 'active'
-       union all select id from employers where status = 'active'
-       union all select id from super_admins where status = 'active') u`,
+       select u.id from (
+         select id from job_seekers where status = 'active'
+         union all select id from employers where status = 'active'
+         union all select id from super_admins where status = 'active') u
+       left join public.user_preferences p on p.user_id = u.id
+       where coalesce(p.community_announcements, true)) filtered`,
     [title, message, link]);
   void audit(req.user.id, 'notification.broadcast', null, null, { title, expires_at, sent: rowCount });
   res.json({ sent: rowCount });
