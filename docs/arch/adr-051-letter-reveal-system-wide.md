@@ -84,3 +84,7 @@ dropping blur/translate variables).
 - **Amendment (2026-11-15):** every timing was scaled ×0.75 — display 240 ms /
   15 ms per letter / 360 ms cap; body 300 ms / 18.75 ms / 450 ms cap (still
   exactly 1.25× display); count-up 600 ms; reduced-motion fades 195 ms / 244 ms.
+- **Amendment (2026-11-15):** super-admin numeric cards (dashboard,
+  applications, reports, employment, user management — 27 cards) use the
+  count-up on first visibility. The shared `StatCards` exposes an opt-in
+  `countUp` prop; job-seeker and employer dashboards are unchanged.
