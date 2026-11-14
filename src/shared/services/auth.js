@@ -227,3 +227,35 @@ export async function resetPassword(email, captchaToken) {
   });
   if (error) throw friendlyAuthError(error);
 }
+
+export async function listMfaFactors() {
+  const { data, error } = await supabase.auth.mfa.listFactors()
+  if (error) throw friendlyAuthError(error)
+  return data?.totp || []
+}
+
+export async function enrollMfa() {
+  const { data, error } = await supabase.auth.mfa.enroll({ factorType: 'totp' })
+  if (error) throw friendlyAuthError(error)
+  return data
+}
+
+export async function verifyMfaEnrollment(factorId, code) {
+  const { data: challenge, error: cErr } = await supabase.auth.mfa.challenge({ factorId })
+  if (cErr) throw friendlyAuthError(cErr)
+  const { data, error } = await supabase.auth.mfa.verify({ factorId, challengeId: challenge.id, code })
+  if (error) throw friendlyAuthError(error)
+  return data
+}
+
+export async function unenrollMfa(factorId, code) {
+  const factors = await listMfaFactors()
+  const factor = factors.find((f) => f.id === factorId)
+  if (!factor) throw new Error('Factor not found.')
+  const { data: challenge, error: cErr } = await supabase.auth.mfa.challenge({ factorId })
+  if (cErr) throw friendlyAuthError(cErr)
+  const { error: vErr } = await supabase.auth.mfa.verify({ factorId, challengeId: challenge.id, code })
+  if (vErr) throw friendlyAuthError(vErr)
+  const { error } = await supabase.auth.mfa.unenroll({ factorId })
+  if (error) throw friendlyAuthError(error)
+}

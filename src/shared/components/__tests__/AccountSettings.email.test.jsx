@@ -8,7 +8,13 @@ vi.mock('../../../shared/services/account', () => ({
   getPreferences: vi.fn(),
   updatePreferences: vi.fn(),
 }))
-vi.mock('../../services/auth', () => ({ changeEmail: vi.fn() }))
+vi.mock('../../services/auth', () => ({
+  changeEmail: vi.fn(),
+  listMfaFactors: vi.fn().mockResolvedValue([]),
+  enrollMfa: vi.fn(),
+  verifyMfaEnrollment: vi.fn(),
+  unenrollMfa: vi.fn(),
+}))
 
 import useAuth from '../../../shared/hooks/useAuth'
 import { getPreferences, updatePreferences } from '../../../shared/services/account'
