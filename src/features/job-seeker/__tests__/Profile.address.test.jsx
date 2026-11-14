@@ -4,6 +4,7 @@ import { MemoryRouter } from 'react-router-dom'
 import Profile from '../Profile'
 
 vi.mock('../../../shared/hooks/useAuth', () => ({ default: vi.fn() }))
+vi.mock('../../../shared/services/account', () => ({ getPreferences: vi.fn(), updatePreferences: vi.fn() }))
 vi.mock('../../../shared/services/auth', () => ({ updateProfile: vi.fn() }))
 vi.mock('../../../shared/services/seekers', () => ({
   listEducation: vi.fn(),
@@ -20,6 +21,7 @@ vi.mock('../../../shared/services/documents', () => ({
 }))
 
 import useAuth from '../../../shared/hooks/useAuth'
+import { getPreferences, updatePreferences } from '../../../shared/services/account'
 import { updateProfile } from '../../../shared/services/auth'
 import { listEducation, addEducation, removeEducation } from '../../../shared/services/seekers'
 import { listResumes } from '../../../shared/services/documents'
@@ -46,6 +48,8 @@ describe('Profile fields and save', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     listResumes.mockResolvedValue([])
+    getPreferences.mockResolvedValue({ application_updates: true, community_announcements: true })
+    updatePreferences.mockResolvedValue({ application_updates: true, community_announcements: true })
     listEducation.mockResolvedValue([{
       id: 'edu1',
       level: 'College',
@@ -169,8 +173,9 @@ describe('Profile fields and save', () => {
     expect(screen.queryByRole('button', { name: /save my profile/i })).not.toBeInTheDocument()
     expect(document.querySelectorAll('form')).toHaveLength(1)
 
+    fireEvent.click(screen.getByRole('switch', { name: /community announcements/i }))
     fireEvent.click(screen.getByRole('button', { name: /save preferences/i }))
-    expect(await screen.findByText('Your session notification preferences were saved.')).toBeInTheDocument()
+    expect(await screen.findByText('Your notification preferences were saved.')).toBeInTheDocument()
     expect(updateProfile).not.toHaveBeenCalled()
   })
 
