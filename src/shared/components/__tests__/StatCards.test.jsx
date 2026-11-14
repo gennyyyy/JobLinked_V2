@@ -20,15 +20,15 @@ describe('StatCards', () => {
     expect(container.textContent).toContain('1,234')
   })
 
-  it('countUp leaves non-numeric values as plain text', () => {
+  it('countUp leaves non-numbers as plain text (type gate)', () => {
     const { container } = render(<StatCards countUp stats={[{ label: 'State', value: '42', icon: NoIcon }]} />)
     expect(container.textContent).toContain('42')
     expect(container.textContent).not.toContain('—')
   })
 
   it('countUp falls back for non-finite values', () => {
-    const { container } = render(<StatCards countUp stats={[{ label: 'Broken', value: NaN, icon: NoIcon }]} />)
-    expect(container.textContent).toContain('NaN')
+    const { container } = render(<StatCards countUp stats={[{ label: 'Broken', value: Infinity, icon: NoIcon }]} />)
+    expect(container.textContent).toContain('Infinity')
     expect(container.textContent).not.toContain('—')
   })
 
