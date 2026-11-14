@@ -87,15 +87,21 @@ export default function AccountSettings({ embedded = false, children, childrenBe
         <PageHeading
           eyebrow="Make yourself at home"
           title={isAdmin ? 'Workspace & system settings' : 'Your account, your preferences.'}
-          description="Review your account, notification preferences, and privacy information."
+          description="Manage your account, notification preferences, privacy, and the reference values used across JobLinked."
         />
       )}
       {uniform ? (
-        <div className="grid items-stretch gap-6 sm:grid-cols-2 xl:grid-cols-3">
-          {accountOverviewPanel(UNIFORM_PANEL)}
-          {!embedded && notificationsPanel(UNIFORM_PANEL)}
-          {!embedded && showPrivacy && <PrivacyPanel {...UNIFORM_PANEL} />}
-        </div>
+        <section>
+          <div className="mb-4">
+            <h2 className="text-lg font-semibold tracking-tight text-navy">Account &amp; preferences</h2>
+            <p className="mt-1 text-xs text-muted-foreground">Your details, notification preferences, and privacy information.</p>
+          </div>
+          <div className="grid items-stretch gap-6 sm:grid-cols-2 xl:grid-cols-3">
+            {accountOverviewPanel(UNIFORM_PANEL)}
+            {!embedded && notificationsPanel(UNIFORM_PANEL)}
+            {!embedded && showPrivacy && <PrivacyPanel {...UNIFORM_PANEL} />}
+          </div>
+        </section>
       ) : (
         <div className="grid items-start gap-6 xl:grid-cols-[1.25fr_1fr]">
           <div className="flex min-w-0 flex-col gap-6">
@@ -108,7 +114,7 @@ export default function AccountSettings({ embedded = false, children, childrenBe
           </div>
         </div>
       )}
-      {childrenBelow && <div className="mt-6">{children}</div>}
+      {childrenBelow && <div className="mt-8">{children}</div>}
     </>
   )
 }

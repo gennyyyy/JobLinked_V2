@@ -141,9 +141,15 @@ function ReferenceCategory({ category, title, description, label }) {
 export default function Settings() {
   return (
     <AccountSettings childrenBelow uniform>
-      <div className="grid items-start gap-6 md:grid-cols-2">
-        {CATEGORIES.map((item) => <ReferenceCategory key={item.category} {...item} />)}
-      </div>
+      <section>
+        <div className="mb-4">
+          <h2 className="text-lg font-semibold tracking-tight text-navy">Reference data</h2>
+          <p className="mt-1 text-xs text-muted-foreground">Values offered when recording employment types and education levels.</p>
+        </div>
+        <div className="grid items-start gap-6 md:grid-cols-2">
+          {CATEGORIES.map((item) => <ReferenceCategory key={item.category} {...item} />)}
+        </div>
+      </section>
     </AccountSettings>
   )
 }

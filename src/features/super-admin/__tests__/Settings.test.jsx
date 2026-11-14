@@ -45,6 +45,8 @@ describe('super-admin Settings', () => {
     expect(screen.getByText('Employment types')).toBeInTheDocument()
     expect(screen.getByText('Education levels')).toBeInTheDocument()
     expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1)
+    expect(screen.getByRole('heading', { name: 'Account & preferences' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Reference data' })).toBeInTheDocument()
   })
 
   it('adds a value to a category', async () => {
