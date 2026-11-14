@@ -11,7 +11,8 @@ vi.mock('../../../shared/components/ChangePassword', () => ({ default: () => <di
 import useAuth from '../../../shared/hooks/useAuth'
 import { updateProfile } from '../../../shared/services/auth'
 
-describe('super-admin Profile email', () => {
+
+describe('super-admin Profile', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     useAuth.mockReturnValue({ user: { id: 'a1', full_name: 'Admin User', email: 'admin@example.com' }, refreshUser: vi.fn() })
@@ -29,7 +30,6 @@ describe('super-admin Profile email', () => {
     render(<MemoryRouter><Profile /></MemoryRouter>)
     fireEvent.change(screen.getByLabelText(/full name/i), { target: { value: 'New Name' } })
     fireEvent.click(screen.getByRole('button', { name: /save profile/i }))
-
     await waitFor(() => expect(updateProfile).toHaveBeenCalled())
     expect(updateProfile).toHaveBeenCalledWith('a1', { full_name: 'New Name' })
     expect(updateProfile.mock.calls[0][1]).not.toHaveProperty('email')
@@ -40,9 +40,15 @@ describe('super-admin Profile email', () => {
     expect(screen.getByText(/manage security & preferences in settings/i)).toBeInTheDocument()
   })
 
-  it('renders sign-out-all and deactivate buttons', () => {
+  it('renders the security tab with sign-out-all and deactivate buttons', () => {
     render(<MemoryRouter><Profile /></MemoryRouter>)
+    fireEvent.click(screen.getByRole('tab', { name: /security/i }))
     expect(screen.getByRole('button', { name: /sign out all devices/i })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /deactivate account/i })).toBeInTheDocument()
+  })
+
+  it('renders the account tab with the ChangePassword component', () => {
+    render(<MemoryRouter><Profile /></MemoryRouter>)
+    expect(screen.getByText('ChangePassword')).toBeInTheDocument()
   })
 })
