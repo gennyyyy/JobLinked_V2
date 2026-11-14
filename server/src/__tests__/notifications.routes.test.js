@@ -95,3 +95,73 @@ describe('notifications are user-scoped (auth, not admin-only)', () => {
     expect(res.body.error.code).toBe('UNAUTHORIZED');
   });
 });
+
+// Document review: PATCH /documents/:id tells the employer when PESO marks a
+// document verified, rejected, or missing — and stays silent for every other
+// status (a re-review to `pending` is not news).
+describe('PATCH /api/documents/:id notifies the employer', () => {
+  const ADMIN = '33333333-3333-3333-3333-333333333333';
+  const DOC = 'dddddddd-dddd-4ddd-8ddd-dddddddddddd';
+  const COMPANY = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc';
+
+  const patchDoc = (body) => {
+    const token = loginAs({ id: ADMIN, role: 'super-admin' });
+    return request(app).patch(`/api/documents/${DOC}`)
+      .set('Authorization', `Bearer ${token}`).send(body);
+  };
+
+  const stubReview = (status) => {
+    on(/update employer_documents set status/, () => ({
+      rows: [{ id: DOC, company_id: COMPANY, doc_type: 'business_permit', status }],
+    }));
+    on(/select id, company_name from employers/, () => ({ rows: [{ id: COMPANY, company_name: 'Acme Corp' }] }));
+  };
+
+  it('sends one document notification when a document is marked missing', async () => {
+    stubReview('missing');
+    const res = await patchDoc({ status: 'missing', remarks: 'Expired permit' });
+    expect(res.status).toBe(200);
+    const inserts = callsOf(/insert into notifications/);
+    expect(inserts).toHaveLength(1);
+    const [userId, type, title, message, link] = inserts[0].params;
+    expect(userId).toBe(COMPANY);
+    expect(type).toBe('document');
+    expect(title).toBe('Document missing');
+    expect(message).toContain('business permit');
+    expect(message).toContain('Acme Corp');
+    expect(message).toContain('Expired permit');
+    expect(link).toBe('/employer/accreditation');
+  });
+
+  it('keeps exactly one notification for verified', async () => {
+    stubReview('verified');
+    const res = await patchDoc({ status: 'verified' });
+    expect(res.status).toBe(200);
+    const inserts = callsOf(/insert into notifications/);
+    expect(inserts).toHaveLength(1);
+    expect(inserts[0].params[2]).toBe('Document verified');
+  });
+
+  it('sends nothing when the document is set back to pending', async () => {
+    stubReview('pending');
+    const res = await patchDoc({ status: 'pending' });
+    expect(res.status).toBe(200);
+    expect(callsOf(/insert into notifications/)).toHaveLength(0);
+  });
+
+  it('400 BAD_REQUEST on an unknown status — no update, no notification', async () => {
+    const res = await patchDoc({ status: 'archived' });
+    expect(res.status).toBe(400);
+    expect(res.body.error.code).toBe('BAD_REQUEST');
+    expect(callsOf(/update employer_documents/)).toHaveLength(0);
+    expect(callsOf(/insert into notifications/)).toHaveLength(0);
+  });
+
+  it('404 NOT_FOUND for an absent document — no notification', async () => {
+    on(/update employer_documents set status/, () => ({ rows: [] }));
+    const res = await patchDoc({ status: 'missing' });
+    expect(res.status).toBe(404);
+    expect(res.body.error.code).toBe('NOT_FOUND');
+    expect(callsOf(/insert into notifications/)).toHaveLength(0);
+  });
+});

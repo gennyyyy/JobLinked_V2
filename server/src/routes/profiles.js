@@ -291,7 +291,7 @@ router.patch('/documents/:id', auth, requireRole('super-admin'), ah(async (req, 
      where id = $1 returning *`, [req.params.id, status, remarks, req.user.id]);
   if (!rows[0]) return err(res, 404, 'NOT_FOUND', 'Document not found');
   void audit(req.user.id, `document.${status}`, 'employer_documents', rows[0].id);
-  if (['verified', 'rejected'].includes(status)) {
+  if (['verified', 'rejected', 'missing'].includes(status)) {
     const { rows: crows } = await pool.query('select id, company_name from employers where id = $1', [rows[0].company_id]);
     if (crows[0]) {
       void notifyUser(crows[0].id, { type: 'document', title: `Document ${status}`,
