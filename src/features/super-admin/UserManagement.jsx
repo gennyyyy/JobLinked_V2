@@ -16,7 +16,7 @@ import { PageSkeleton } from '@/shared/components/Skeletons'
 import { InlineError, Pager } from '@/shared/components/dashboard'
 import useDialog from '@/shared/hooks/useDialog'
 import { titleCase } from '@/shared/utils/titleCase'
-import { EmptyState, H3, PageHeading, Panel, SearchInput, SelectField, StatusBadge, TextField } from '@/shared/components/design'
+import { CountUp, EmptyState, H3, PageHeading, Panel, SearchInput, SelectField, StatusBadge, TextField } from '@/shared/components/design'
 
 const SYSTEM_ROLE_LABELS = { 'super-admin': 'Super Admin', employer: 'Employer', 'job-seeker': 'Job Seeker' }
 
@@ -297,12 +297,12 @@ function UserManagement() {
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-        <Panel title="Total system users"><p className="text-2xl font-semibold text-navy">{totalUsers}</p></Panel>
-        <Panel title="Job seekers"><p className="text-2xl font-semibold text-navy">{jobSeekerCount}</p></Panel>
-        <Panel title="Employers"><p className="text-2xl font-semibold text-navy">{employerCount}</p></Panel>
-        <Panel title="PESO administrators"><p className="text-2xl font-semibold text-navy">{adminCount}</p></Panel>
-        <Panel title="Active accounts"><p className="text-2xl font-semibold text-navy">{activeCount}</p></Panel>
-        <Panel title="Suspended accounts"><p className="text-2xl font-semibold text-navy">{suspendedCount}</p></Panel>
+        <Panel title="Total system users"><CountUp value={totalUsers} className="text-2xl font-semibold text-navy" /></Panel>
+        <Panel title="Job seekers"><CountUp value={jobSeekerCount} className="text-2xl font-semibold text-navy" /></Panel>
+        <Panel title="Employers"><CountUp value={employerCount} className="text-2xl font-semibold text-navy" /></Panel>
+        <Panel title="PESO administrators"><CountUp value={adminCount} className="text-2xl font-semibold text-navy" /></Panel>
+        <Panel title="Active accounts"><CountUp value={activeCount} className="text-2xl font-semibold text-navy" /></Panel>
+        <Panel title="Suspended accounts"><CountUp value={suspendedCount} className="text-2xl font-semibold text-navy" /></Panel>
       </div>
 
       {success && <p className="rounded-xl border border-success/20 bg-success-soft px-4 py-3 text-xs text-success">{success}</p>}

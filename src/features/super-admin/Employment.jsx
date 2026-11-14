@@ -6,7 +6,7 @@ import { listEmployees } from '@/shared/services/admin'
 import { PageSkeleton } from '@/shared/components/Skeletons'
 import { InlineError, Pager } from '@/shared/components/dashboard'
 import ApplicationTimeline from '@/shared/components/ApplicationTimeline'
-import { EmptyState, PageHeading, Panel, SearchInput, SelectField, StatusBadge } from '@/shared/components/design'
+import { CountUp, EmptyState, PageHeading, Panel, SearchInput, SelectField, StatusBadge } from '@/shared/components/design'
 import { titleCase } from '@/shared/utils/titleCase'
 
 const PAGE_SIZE = 8
@@ -79,7 +79,7 @@ export default function Employment() {
       <div className="my-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
         {stats.map(([label, value]) => (
           <Panel key={label} title={String(label)}>
-            <p className="break-words text-lg font-semibold text-navy">{value}</p>
+            <CountUp value={value} className="break-words text-lg font-semibold text-navy" />
           </Panel>
         ))}
       </div>
