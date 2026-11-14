@@ -21,7 +21,21 @@ describe('StatCards', () => {
   })
 
   it('countUp leaves non-numeric values as plain text', () => {
-    const { container } = render(<StatCards countUp stats={[{ label: 'State', value: '—', icon: NoIcon }]} />)
-    expect(container.textContent).toContain('—')
+    const { container } = render(<StatCards countUp stats={[{ label: 'State', value: '42', icon: NoIcon }]} />)
+    expect(container.textContent).toContain('42')
+    expect(container.textContent).not.toContain('—')
+  })
+
+  it('countUp falls back for non-finite values', () => {
+    const { container } = render(<StatCards countUp stats={[{ label: 'Broken', value: NaN, icon: NoIcon }]} />)
+    expect(container.textContent).toContain('NaN')
+    expect(container.textContent).not.toContain('—')
+  })
+
+  it('countUp handles zero and keeps the value classes', () => {
+    const { container } = render(<StatCards countUp stats={[{ label: 'Empty', value: 0, icon: NoIcon }]} />)
+    const p = container.querySelector('p')
+    expect(p).toHaveTextContent('0')
+    expect(p.className).toContain('text-[29px]')
   })
 })
