@@ -546,3 +546,11 @@ create table if not exists public.schema_migrations (
   applied_at timestamptz default now()
 );
 
+
+-- Per-user notification preferences (additive; defaults preserve current behavior).
+create table if not exists public.user_preferences (
+  user_id                  uuid        primary key,
+  application_updates      boolean     not null default true,
+  community_announcements  boolean     not null default true,
+  updated_at               timestamptz not null default now()
+);
