@@ -1,31 +1,20 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
-import AccountSettings from '../AccountSettings'
+import DangerZonePanel from '../DangerZonePanel'
 
 vi.mock('../../../shared/hooks/useAuth', () => ({ default: vi.fn() }))
 vi.mock('../../../shared/services/account', () => ({
-  getPreferences: vi.fn(),
-  updatePreferences: vi.fn(),
   deactivateAccount: vi.fn(),
-}))
-vi.mock('../../services/auth', () => ({
-  changeEmail: vi.fn(),
-  listMfaFactors: vi.fn().mockResolvedValue([]),
-  enrollMfa: vi.fn(),
-  verifyMfaEnrollment: vi.fn(),
-  unenrollMfa: vi.fn(),
 }))
 
 import useAuth from '../../../shared/hooks/useAuth'
-import { getPreferences, updatePreferences, deactivateAccount } from '../../../shared/services/account'
+import { deactivateAccount } from '../../../shared/services/account'
 
 describe('AccountSettings danger zone', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     useAuth.mockReturnValue({ user: { id: 'u1', role: 'super-admin', email: 'admin@example.com' } })
-    getPreferences.mockResolvedValue({ application_updates: true, community_announcements: true })
-    updatePreferences.mockResolvedValue({ application_updates: true, community_announcements: true })
     deactivateAccount.mockResolvedValue(undefined)
     window.confirm = vi.fn(() => true)
     Object.defineProperty(window, 'location', {
@@ -36,8 +25,7 @@ describe('AccountSettings danger zone', () => {
   })
 
   it('deactivates account and redirects to /login', async () => {
-    render(<MemoryRouter><AccountSettings /></MemoryRouter>)
-    await waitFor(() => expect(getPreferences).toHaveBeenCalled())
+    render(<MemoryRouter><DangerZonePanel /></MemoryRouter>)
 
     expect(screen.getByText('Danger zone')).toBeInTheDocument()
 

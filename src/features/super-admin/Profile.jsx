@@ -1,13 +1,15 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { ShieldCheck } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { TabsContent } from '@/components/ui/tabs'
 import useAuth from '@/shared/hooks/useAuth'
 import { updateProfile } from '@/shared/services/auth'
-import { revokeAllSessions, deactivateAccount } from '@/shared/services/account'
+import { revokeAllSessions } from '@/shared/services/account'
 import ChangePassword from '@/shared/components/ChangePassword'
 import { PrivacyPanel } from '@/shared/components/AccountSettings'
+import EmailChangePanel from '@/shared/components/EmailChangePanel'
+import MfaPanel from '@/shared/components/MfaPanel'
+import DangerZonePanel from '@/shared/components/DangerZonePanel'
 import TabbedProfileLayout from '@/shared/components/TabbedProfileLayout'
 import { LinkButton, Panel, TextField } from '@/shared/components/design'
 import { ROLE_LABELS } from '@/shared/constants'
@@ -18,7 +20,6 @@ const PROFILE_TABS = [
 ]
 
 export default function Profile() {
-  const navigate = useNavigate()
   const { user, refreshUser } = useAuth() || {}
   const [activeTab, setActiveTab] = useState('account')
   const [name, setName] = useState(user?.full_name || user?.name || '')
@@ -29,9 +30,7 @@ export default function Profile() {
   const [revokeMessage, setRevokeMessage] = useState('')
   const [revokeError, setRevokeError] = useState('')
   const [revoking, setRevoking] = useState(false)
-  const [confirmDeactivate, setConfirmDeactivate] = useState(false)
-  const [deactivating, setDeactivating] = useState(false)
-  const [deactivateError, setDeactivateError] = useState('')
+
 
   async function handleSignOutAll() {
     setRevoking(true)
@@ -44,19 +43,6 @@ export default function Profile() {
       setRevokeError(err?.message || 'Failed to sign out all devices.')
     } finally {
       setRevoking(false)
-    }
-  }
-
-  async function handleDeactivate() {
-    setDeactivating(true)
-    setDeactivateError('')
-    try {
-      await deactivateAccount()
-      navigate('/login')
-    } catch (err) {
-      setDeactivateError(err?.message || 'Failed to deactivate account.')
-    } finally {
-      setDeactivating(false)
     }
   }
 
@@ -118,6 +104,8 @@ export default function Profile() {
         <div className="flex flex-col gap-5">
           <ChangePassword embedded />
           <div className="grid items-start gap-6 md:grid-cols-2">
+            <EmailChangePanel />
+            <MfaPanel />
             <Panel id="sessions" title="Sessions" description="Sign out every active device.">
               <p className="text-xs text-muted-foreground">If you think your account is compromised, revoke all sessions and sign back in.</p>
               <Button type="button" variant="outline" className="mt-4" disabled={revoking} onClick={handleSignOutAll}>
@@ -126,18 +114,7 @@ export default function Profile() {
               {revokeMessage && <p role="status" className="mt-3 text-xs text-success">{revokeMessage}</p>}
               {revokeError && <p role="alert" className="mt-3 text-xs text-destructive">{revokeError}</p>}
             </Panel>
-            <Panel id="danger-zone" title="Danger zone" description="Deactivate your account. An administrator can reactivate it later." action={<ShieldCheck className="size-5 text-teal" />}>
-              <p className="text-xs text-muted-foreground">Deactivating signs you out of all devices and disables login until an administrator reactivates the account.</p>
-              {!confirmDeactivate ? (
-                <Button type="button" variant="destructive" className="mt-4" onClick={() => setConfirmDeactivate(true)}>Deactivate account</Button>
-              ) : (
-                <div className="mt-4 flex flex-wrap gap-3">
-                  <Button type="button" variant="destructive" disabled={deactivating} onClick={handleDeactivate}>{deactivating ? 'Deactivating…' : 'Confirm deactivation'}</Button>
-                  <Button type="button" variant="outline" disabled={deactivating} onClick={() => setConfirmDeactivate(false)}>Cancel</Button>
-                </div>
-              )}
-              {deactivateError && <p role="alert" className="mt-3 text-xs text-destructive">{deactivateError}</p>}
-            </Panel>
+            <DangerZonePanel />
           </div>
         </div>
       </TabsContent>

@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
-import AccountSettings from '../AccountSettings'
+import MfaPanel from '../MfaPanel'
 
 vi.mock('../../../shared/hooks/useAuth', () => ({ default: vi.fn() }))
 vi.mock('../../../shared/services/account', () => ({
@@ -34,13 +34,13 @@ describe('Mfa', () => {
   })
 
   it('not enrolled renders the enable button', async () => {
-    render(<MemoryRouter><AccountSettings /></MemoryRouter>)
+    render(<MemoryRouter><MfaPanel /></MemoryRouter>)
     await waitFor(() => expect(listMfaFactors).toHaveBeenCalled())
     expect(screen.getByRole('button', { name: /enable two-factor authentication/i })).toBeInTheDocument()
   })
 
   it('enrolling shows the QR image and a code input', async () => {
-    render(<MemoryRouter><AccountSettings /></MemoryRouter>)
+    render(<MemoryRouter><MfaPanel /></MemoryRouter>)
     await waitFor(() => expect(listMfaFactors).toHaveBeenCalled())
     fireEvent.click(screen.getByRole('button', { name: /enable two-factor authentication/i }))
     await waitFor(() => expect(enrollMfa).toHaveBeenCalled())
@@ -50,7 +50,7 @@ describe('Mfa', () => {
   })
 
   it('verify success calls verifyMfaEnrollment and announces enabled', async () => {
-    render(<MemoryRouter><AccountSettings /></MemoryRouter>)
+    render(<MemoryRouter><MfaPanel /></MemoryRouter>)
     await waitFor(() => expect(listMfaFactors).toHaveBeenCalled())
     fireEvent.click(screen.getByRole('button', { name: /enable two-factor authentication/i }))
     await waitFor(() => expect(enrollMfa).toHaveBeenCalled())
@@ -63,7 +63,7 @@ describe('Mfa', () => {
 
   it('enrolled lists a factor and shows Disable', async () => {
     listMfaFactors.mockResolvedValue([{ id: 'factor-1', friendly_name: 'Authenticator', status: 'verified' }])
-    render(<MemoryRouter><AccountSettings /></MemoryRouter>)
+    render(<MemoryRouter><MfaPanel /></MemoryRouter>)
     await waitFor(() => expect(listMfaFactors).toHaveBeenCalled())
     expect(screen.getByText('Authenticator')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /disable/i })).toBeInTheDocument()
@@ -71,7 +71,7 @@ describe('Mfa', () => {
 
   it('invalid code shows an error', async () => {
     verifyMfaEnrollment.mockRejectedValue(new Error('Invalid code'))
-    render(<MemoryRouter><AccountSettings /></MemoryRouter>)
+    render(<MemoryRouter><MfaPanel /></MemoryRouter>)
     await waitFor(() => expect(listMfaFactors).toHaveBeenCalled())
     fireEvent.click(screen.getByRole('button', { name: /enable two-factor authentication/i }))
     await waitFor(() => expect(enrollMfa).toHaveBeenCalled())

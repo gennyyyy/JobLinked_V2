@@ -4,12 +4,19 @@ import { MemoryRouter } from 'react-router-dom'
 import Profile from '../Profile'
 
 vi.mock('../../../shared/hooks/useAuth', () => ({ default: vi.fn() }))
-vi.mock('../../../shared/services/auth', () => ({ updateProfile: vi.fn() }))
+vi.mock('../../../shared/services/auth', () => ({
+  updateProfile: vi.fn(),
+  changeEmail: vi.fn(),
+  listMfaFactors: vi.fn(),
+  enrollMfa: vi.fn(),
+  verifyMfaEnrollment: vi.fn(),
+  unenrollMfa: vi.fn(),
+}))
 vi.mock('../../../shared/services/account', () => ({ revokeAllSessions: vi.fn(), deactivateAccount: vi.fn() }))
 vi.mock('../../../shared/components/ChangePassword', () => ({ default: () => <div>ChangePassword</div> }))
 
 import useAuth from '../../../shared/hooks/useAuth'
-import { updateProfile } from '../../../shared/services/auth'
+import { updateProfile, listMfaFactors } from '../../../shared/services/auth'
 
 
 describe('super-admin Profile', () => {
@@ -17,6 +24,7 @@ describe('super-admin Profile', () => {
     vi.clearAllMocks()
     useAuth.mockReturnValue({ user: { id: 'a1', full_name: 'Admin User', email: 'admin@example.com' }, refreshUser: vi.fn() })
     updateProfile.mockResolvedValue({})
+    listMfaFactors.mockResolvedValue([])
   })
 
   it('renders the email field as read-only', () => {
