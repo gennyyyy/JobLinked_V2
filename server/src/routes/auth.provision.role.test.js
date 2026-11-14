@@ -244,6 +244,7 @@ describe('auth/me status gate', () => {
     expect(r.status).toBe(200);
     expect(await r.json()).toEqual({
       id: 'user-1', status: 'active', role: 'job-seeker', has_avatar: false, avatar_updated_at: null, email: 'u@x.com',
+      permissions: [], custom_role_id: null, aal: 'aal1',
     });
   });
 

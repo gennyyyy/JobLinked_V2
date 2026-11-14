@@ -184,15 +184,29 @@ router.get('/auth/me', tokenAuth, ah(async (req, res) => {
       found.profile.email = tokenEmail;
     }
   }
+  // Phase 4, Task 4.1: surface the permission bundle (null = full admin), the
+  // custom role id, and the authenticator assurance level decoded from the JWT.
+  const permissions = found.role === 'super-admin'
+    ? (found.custom_role_id == null ? null : (Array.isArray(found.permissions) ? found.permissions : []))
+    : [];
+  const customRoleId = found.custom_role_id ?? null;
+  const token = (req.headers.authorization || '').replace(/^bearer\\s+/i, '');
+  let aal = 'aal1';
+  try {
+    const payload = JSON.parse(Buffer.from(token.split('.')[1] || '', 'base64url').toString('utf8'));
+    if (payload?.aal === 'aal2') aal = 'aal2';
+  } catch {
+    aal = 'aal1';
+  }
   // ADR-040: tell the client whether an avatar exists so a photo-less profile
   // makes no image request at all (and a removed photo does not 404 on reload).
   if (found.role === 'job-seeker') {
     const { rows: [img] } = await pool.query(
       `select updated_at from profile_images where owner_id = $1 and kind = 'seeker-avatar'`,
       [req.user.id]);
-    return res.json({ ...found.profile, role: found.role, has_avatar: Boolean(img), avatar_updated_at: img?.updated_at || null });
+    return res.json({ ...found.profile, role: found.role, has_avatar: Boolean(img), avatar_updated_at: img?.updated_at || null, permissions, custom_role_id: customRoleId, aal });
   }
-  res.json({ ...found.profile, role: found.role });
+  res.json({ ...found.profile, role: found.role, permissions, custom_role_id: customRoleId, aal });
 }));
 
 export default router;
