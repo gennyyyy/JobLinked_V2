@@ -80,32 +80,34 @@ function ReferenceCategory({ category, title, description, label }) {
   if (loading) return <PanelSkeleton lines={2} label={`Loading ${title.toLowerCase()}…`} />
 
   return (
-    <Panel title={title} description={description}>
-      {error && <p role="alert" className="mb-4 text-xs text-destructive">{error}</p>}
-      {rows.length === 0 ? (
-        !error && <EmptyState title={`No ${title.toLowerCase()} yet`} description={`Add the first ${label} below.`} className="min-h-0 py-8" />
-      ) : (
-        <ul className="divide-y">
-          {rows.map((row) => (
-            <li key={row.id} className="flex items-center justify-between gap-3 py-2.5">
-              <span className="min-w-0 break-words text-xs">{row.value}</span>
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                className="shrink-0 text-destructive"
-                aria-label={`Remove ${row.value}`}
-                onClick={() => setConfirmRow(row)}
-              >
-                <Trash2 data-icon="inline-start" aria-hidden="true" />
-                Remove
-              </Button>
-            </li>
-          ))}
-        </ul>
-      )}
+    <Panel title={title} description={description} className="h-[26rem]" contentClassName="flex min-h-0 flex-1 flex-col overflow-hidden">
+      <div className="min-h-0 flex-1 overflow-y-auto pr-1">
+        {error && <p role="alert" className="mb-4 text-xs text-destructive">{error}</p>}
+        {rows.length === 0 ? (
+          !error && <EmptyState title={`No ${title.toLowerCase()} yet`} description={`Add the first ${label} below.`} className="min-h-0 py-8" />
+        ) : (
+          <ul className="divide-y">
+            {rows.map((row) => (
+              <li key={row.id} className="flex items-center justify-between gap-3 py-2.5">
+                <span className="min-w-0 break-words text-xs">{row.value}</span>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="shrink-0 text-destructive"
+                  aria-label={`Remove ${row.value}`}
+                  onClick={() => setConfirmRow(row)}
+                >
+                  <Trash2 data-icon="inline-start" aria-hidden="true" />
+                  Remove
+                </Button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
 
-      <form onSubmit={handleAdd} className="mt-5 flex flex-col gap-4 border-t pt-5">
+      <form onSubmit={handleAdd} className="mt-4 flex shrink-0 flex-col gap-4 border-t pt-4">
         <TextField
           id={inputId}
           label={`New ${label}`}
@@ -138,7 +140,7 @@ function ReferenceCategory({ category, title, description, label }) {
 
 export default function Settings() {
   return (
-    <AccountSettings childrenBelow>
+    <AccountSettings childrenBelow uniform>
       <div className="grid items-start gap-6 md:grid-cols-2">
         {CATEGORIES.map((item) => <ReferenceCategory key={item.category} {...item} />)}
       </div>

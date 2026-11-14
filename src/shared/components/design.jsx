@@ -59,14 +59,14 @@ export function StatusBadge({ status }) {
       {status}
     </Badge>);
 }
-export function Panel({ title, description, action, children, footer, className, id, }) {
+export function Panel({ title, description, action, children, footer, className, id, contentClassName, }) {
     return (<Card id={id} className={className}>
       <CardHeader>
         <CardTitle>{title}</CardTitle>
         {description && <CardDescription>{description}</CardDescription>}
         {action && <CardAction>{action}</CardAction>}
       </CardHeader>
-      <CardContent>{children}</CardContent>
+      <CardContent className={contentClassName}>{children}</CardContent>
       {footer && <CardFooter>{footer}</CardFooter>}
     </Card>);
 }
