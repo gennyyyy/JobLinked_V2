@@ -15,11 +15,11 @@ import * as authService from '../services/auth'
 
 // Equal-height settings cards: the fixed height keeps the grid rows level and
 // the body scrolls instead of stretching the card.
-const UNIFORM_PANEL = { className: 'h-[26rem]', contentClassName: 'min-h-0 flex-1 overflow-y-auto' }
+const UNIFORM_PANEL = { className: 'h-[26rem]', contentClassName: 'min-h-0 flex-1 overflow-y-auto', size: 'sm' }
 
-export function PrivacyPanel({ className, contentClassName }) {
+export function PrivacyPanel({ className, contentClassName, size = 'default' }) {
   return (
-    <Panel id="privacy" title="Privacy comes first" action={<ShieldCheck className="size-5 text-teal" />} className={className} contentClassName={contentClassName}>
+    <Panel id="privacy" title="Privacy comes first" action={<ShieldCheck className="size-5 text-teal" />} className={className} contentClassName={contentClassName} size={size}>
       <p className="text-xs leading-6 text-muted-foreground">
         Review what JobLinked processes and who can access it.
       </p>
@@ -271,7 +271,7 @@ export default function AccountSettings({ embedded = false, children, childrenBe
   const notificationsPanel = (panelProps) => (
     <Panel id="notification-preferences" title="Notifications" description="Preferences apply to your JobLinked account." {...panelProps}>
       <PreferencesForm onSubmit={embedded ? undefined : handleSavePrefs}>
-        <FieldGroup>
+        <FieldGroup className="gap-3">
           {loadingPrefs && <p className="text-xs text-muted-foreground">Loading…</p>}
           {prefsError && <p role="alert" className="text-xs text-destructive">{prefsError}</p>}
           <Field orientation="horizontal">
@@ -288,10 +288,12 @@ export default function AccountSettings({ embedded = false, children, childrenBe
             </Field>
             <Switch id="community-notices" checked={announcements} disabled={loadingPrefs} onCheckedChange={(v) => togglePref('community_announcements', v)} />
           </Field>
-          <Button type={embedded ? 'button' : 'submit'} disabled={!dirty || savingPrefs || loadingPrefs} onClick={embedded ? handleSavePrefs : undefined}>
-            <Save data-icon="inline-start" />
-            {savingPrefs ? 'Saving…' : 'Save preferences'}
-          </Button>
+          <div className="mt-3">
+            <Button type={embedded ? 'button' : 'submit'} size="sm" disabled={!dirty || savingPrefs || loadingPrefs} onClick={embedded ? handleSavePrefs : undefined}>
+              <Save data-icon="inline-start" />
+              {savingPrefs ? 'Saving…' : 'Save preferences'}
+            </Button>
+          </div>
           {prefsMessage && <p role="status" className="text-xs text-success">{prefsMessage}</p>}
           {prefsSaveError && <p role="alert" className="text-xs text-destructive">{prefsSaveError}</p>}
         </FieldGroup>
@@ -395,7 +397,7 @@ export default function AccountSettings({ embedded = false, children, childrenBe
       )}
       {uniform ? (
         <section aria-labelledby="account-preferences-heading">
-          <div className="mb-4">
+          <div className="mb-3">
             <h2 id="account-preferences-heading" className="text-lg font-semibold tracking-tight text-navy">Account &amp; preferences</h2>
             <p className="mt-1 text-xs text-muted-foreground">Your details, notification preferences, and privacy information.</p>
           </div>
@@ -422,7 +424,7 @@ export default function AccountSettings({ embedded = false, children, childrenBe
           </div>
         </div>
       )}
-      {childrenBelow && <div className="mt-8">{children}</div>}
+      {childrenBelow && <div className="mt-4">{children}</div>}
     </>
   )
 }

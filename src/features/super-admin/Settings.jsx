@@ -85,11 +85,11 @@ function ReferenceCategory({ id, category, title, description, label, disabled =
   if (loading) return <PanelSkeleton lines={2} label={`Loading ${title.toLowerCase()}…`} />
 
   return (
-    <Panel id={id} title={title} description={description} className="h-[34rem]" contentClassName="flex min-h-0 flex-1 flex-col overflow-hidden">
+    <Panel id={id} title={title} description={description} size="sm" className="h-[34rem]" contentClassName="flex min-h-0 flex-1 flex-col overflow-hidden">
       <div className="min-h-0 flex-1 overflow-y-auto pr-1">
         {error && <p role="alert" className="mb-4 text-xs text-destructive">{error}</p>}
         {rows.length === 0 ? (
-          !error && <EmptyState title={`No ${title.toLowerCase()} yet`} description={`Add the first ${label} below.`} className="min-h-0 py-8" />
+          !error && <EmptyState title={`No ${title.toLowerCase()} yet`} description={`Add the first ${label} below.`} className="min-h-0 py-6" />
         ) : (
           <ul className="divide-y">
             {rows.map((row) => (
@@ -113,7 +113,7 @@ function ReferenceCategory({ id, category, title, description, label, disabled =
         )}
       </div>
 
-      <form onSubmit={handleAdd} className="mt-4 flex shrink-0 flex-col gap-4 border-t pt-4">
+      <form onSubmit={handleAdd} className="mt-3 flex shrink-0 flex-col gap-3 border-t pt-3">
         <TextField
           id={inputId}
           label={`New ${label}`}
@@ -124,7 +124,7 @@ function ReferenceCategory({ id, category, title, description, label, disabled =
           placeholder={`e.g. ${rows[0]?.value || label}`}
         />
         <div>
-          <Button type="submit" disabled={saving || disabled}>
+          <Button type="submit" size="sm" disabled={saving || disabled}>
             <Plus data-icon="inline-start" aria-hidden="true" />
             {saving ? 'Adding…' : `Add ${label}`}
           </Button>
@@ -171,7 +171,7 @@ export default function Settings() {
       {!canManage && <Notice warning className="mb-6">You don't have permission to manage system settings.</Notice>}
       <AccountSettings childrenBelow uniform>
       <section id="reference-data" aria-labelledby="reference-data-heading">
-        <div className="mb-4">
+        <div className="mb-3">
           <h2 id="reference-data-heading" className="text-lg font-semibold tracking-tight text-navy">Reference data</h2>
           <p className="mt-1 text-xs text-muted-foreground">Values offered when recording employment types and education levels.</p>
         </div>
@@ -179,8 +179,8 @@ export default function Settings() {
           {CATEGORIES.map((item) => <ReferenceCategory key={item.category} {...item} disabled={!canManage} />)}
         </div>
       </section>
-      <section id="security" className="mt-8" aria-labelledby="security-heading">
-        <div className="mb-4">
+      <section id="security" className="mt-6" aria-labelledby="security-heading">
+        <div className="mb-3">
           <h2 id="security-heading" className="text-lg font-semibold tracking-tight text-navy">Security</h2>
           <p className="mt-1 text-xs text-muted-foreground">Sessions and account access.</p>
         </div>

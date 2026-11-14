@@ -59,11 +59,11 @@ export function StatusBadge({ status }) {
       {status}
     </Badge>);
 }
-export function Panel({ title, description, action, children, footer, className, id, contentClassName, contentProps, }) {
+export function Panel({ title, description, action, children, footer, className, id, contentClassName, contentProps, size = 'default', }) {
     const derived = contentClassName
         ? { tabIndex: 0, role: 'region', 'aria-label': `${title} content`, ...contentProps }
         : (contentProps ?? {})
-    return (<Card id={id} className={className}>
+    return (<Card id={id} size={size} className={className}>
       <CardHeader>
         <CardTitle>{title}</CardTitle>
         {description && <CardDescription>{description}</CardDescription>}
