@@ -5,6 +5,7 @@ import Profile from '../Profile'
 
 vi.mock('../../../shared/hooks/useAuth', () => ({ default: vi.fn() }))
 vi.mock('../../../shared/services/auth', () => ({ updateProfile: vi.fn() }))
+vi.mock('../../../shared/services/account', () => ({ revokeAllSessions: vi.fn(), deactivateAccount: vi.fn() }))
 vi.mock('../../../shared/components/ChangePassword', () => ({ default: () => <div>ChangePassword</div> }))
 
 import useAuth from '../../../shared/hooks/useAuth'
@@ -37,5 +38,11 @@ describe('super-admin Profile email', () => {
   it('renders a link to settings security', () => {
     render(<MemoryRouter><Profile /></MemoryRouter>)
     expect(screen.getByText(/manage security & preferences in settings/i)).toBeInTheDocument()
+  })
+
+  it('renders sign-out-all and deactivate buttons', () => {
+    render(<MemoryRouter><Profile /></MemoryRouter>)
+    expect(screen.getByRole('button', { name: /sign out all devices/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /deactivate account/i })).toBeInTheDocument()
   })
 })

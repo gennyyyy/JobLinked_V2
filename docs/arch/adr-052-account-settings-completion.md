@@ -28,6 +28,7 @@ The account/system settings experience was incomplete: notification switches wer
 - The settings UI is permission-aware and accessible; reference data is editable/reorderable.
 - No changes to the letter-reveal animation, parallax, or other portals' stat cards.
 - One additive schema change (`user_preferences`); rollback is `drop table`.
+- **Amendment (2026-11-15):** sessions (sign-out-all) and account deactivation moved from `/super-admin/settings` to `/super-admin/profile`; the settings page no longer hosts a Security section (email change + MFA remain there).
 
 ## Follow-ups (not blocking)
 

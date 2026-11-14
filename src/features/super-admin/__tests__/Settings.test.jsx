@@ -109,10 +109,11 @@ describe('super-admin Settings', () => {
     expect(screen.getByText('College')).toBeInTheDocument()
   })
 
-  it('shows the security section with password and session controls', async () => {
+  it('no longer shows a Security section', async () => {
     renderPage()
-    expect(await screen.findByRole('heading', { name: 'Security' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /sign out all devices/i })).toBeInTheDocument()
+    await screen.findByText('Full-time')
+    expect(screen.queryByRole('heading', { name: 'Security' })).toBeNull()
+    expect(screen.queryByRole('button', { name: /sign out all devices/i })).toBeNull()
   })
 
   it('shows a permission notice and disables add controls for tagged admins', async () => {

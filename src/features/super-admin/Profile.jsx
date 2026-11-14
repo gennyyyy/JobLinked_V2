@@ -1,19 +1,55 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Save, ShieldCheck } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import useAuth from '@/shared/hooks/useAuth'
 import { updateProfile } from '@/shared/services/auth'
+import { revokeAllSessions, deactivateAccount } from '@/shared/services/account'
 import ChangePassword from '@/shared/components/ChangePassword'
 import { LinkButton, PageHeading, Panel, TextField } from '@/shared/components/design'
 import { ROLE_LABELS } from '@/shared/constants'
 
 export default function Profile() {
+  const navigate = useNavigate()
   const { user, refreshUser } = useAuth()
   const [name, setName] = useState(user?.full_name || user?.name || '')
   const [email] = useState(user?.email || '')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [saved, setSaved] = useState(false)
+  const [revokeMessage, setRevokeMessage] = useState('')
+  const [revokeError, setRevokeError] = useState('')
+  const [revoking, setRevoking] = useState(false)
+  const [confirmDeactivate, setConfirmDeactivate] = useState(false)
+  const [deactivating, setDeactivating] = useState(false)
+  const [deactivateError, setDeactivateError] = useState('')
+
+  async function handleSignOutAll() {
+    setRevoking(true)
+    setRevokeMessage('')
+    setRevokeError('')
+    try {
+      await revokeAllSessions()
+      setRevokeMessage('Signed out of all devices.')
+    } catch (err) {
+      setRevokeError(err?.message || 'Failed to sign out all devices.')
+    } finally {
+      setRevoking(false)
+    }
+  }
+
+  async function handleDeactivate() {
+    setDeactivating(true)
+    setDeactivateError('')
+    try {
+      await deactivateAccount()
+      navigate('/login')
+    } catch (err) {
+      setDeactivateError(err?.message || 'Failed to deactivate account.')
+    } finally {
+      setDeactivating(false)
+    }
+  }
 
   async function handleSubmit(event) {
     event.preventDefault()
@@ -73,6 +109,28 @@ export default function Profile() {
       </div>
       <div className="mt-6">
         <ChangePassword />
+      </div>
+      <div className="mt-6 grid items-start gap-6 md:grid-cols-2">
+        <Panel id="sessions" title="Sessions" description="Sign out every active device.">
+          <p className="text-xs text-muted-foreground">If you think your account is compromised, revoke all sessions and sign back in.</p>
+          <Button type="button" variant="outline" className="mt-4" disabled={revoking} onClick={handleSignOutAll}>
+            {revoking ? 'Signing out…' : 'Sign out all devices'}
+          </Button>
+          {revokeMessage && <p role="status" className="mt-3 text-xs text-success">{revokeMessage}</p>}
+          {revokeError && <p role="alert" className="mt-3 text-xs text-destructive">{revokeError}</p>}
+        </Panel>
+        <Panel id="danger-zone" title="Danger zone" description="Deactivate your account. An administrator can reactivate it later." action={<ShieldCheck className="size-5 text-teal" />}>
+          <p className="text-xs text-muted-foreground">Deactivating signs you out of all devices and disables login until an administrator reactivates the account.</p>
+          {!confirmDeactivate ? (
+            <Button type="button" variant="destructive" className="mt-4" onClick={() => setConfirmDeactivate(true)}>Deactivate account</Button>
+          ) : (
+            <div className="mt-4 flex flex-wrap gap-3">
+              <Button type="button" variant="destructive" disabled={deactivating} onClick={handleDeactivate}>{deactivating ? 'Deactivating…' : 'Confirm deactivation'}</Button>
+              <Button type="button" variant="outline" disabled={deactivating} onClick={() => setConfirmDeactivate(false)}>Cancel</Button>
+            </div>
+          )}
+          {deactivateError && <p role="alert" className="mt-3 text-xs text-destructive">{deactivateError}</p>}
+        </Panel>
       </div>
     </>
   )
