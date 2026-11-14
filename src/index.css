@@ -765,8 +765,8 @@
    deliberately separate from the scroll-driven parallax (ADR-045): no shared
    keyframes; .parallax-* and scroll-fade utilities untouched. */
 [data-letter-reveal][data-state='hidden'] .ltr { opacity: 0; }
-[data-letter-reveal] { --lr-duration: 400ms; --lr-fade-duration: 325ms; }
-[data-letter-reveal][data-tier='display'] { --lr-duration: 320ms; --lr-fade-duration: 260ms; }
+[data-letter-reveal] { --lr-duration: 300ms; --lr-fade-duration: 244ms; }
+[data-letter-reveal][data-tier='display'] { --lr-duration: 240ms; --lr-fade-duration: 195ms; }
 [data-letter-reveal][data-state='run'] .ltr {
   animation: letter-reveal var(--lr-duration, 500ms) cubic-bezier(0.22, 1, 0.36, 1) both;
 }

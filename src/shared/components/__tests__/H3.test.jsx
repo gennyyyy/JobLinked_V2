@@ -40,13 +40,13 @@ describe('H3', () => {
     const letters = split.querySelectorAll('.ltr')
     expect(letters.length).toBe('Apply today'.replace(' ', '').length)
     expect(letters[0].style.animationDelay).toBe('0ms')
-    expect(letters[1].style.animationDelay).toBe('25ms')
+    expect(letters[1].style.animationDelay).toBe('18.75ms')
   })
 
   it('caps the stagger delay at 600ms', () => {
     const { container } = render(<H3>{'a'.repeat(40)}</H3>)
     const letters = container.querySelectorAll('.ltr')
-    expect(letters[29].style.animationDelay).toBe('600ms')
+    expect(letters[29].style.animationDelay).toBe('450ms')
   })
 
   it('renders unsplit for strings over 160 characters', () => {
@@ -112,7 +112,7 @@ describe('H1', () => {
     expect(span.querySelectorAll('.ltr').length).toBe(19)
     const letters = h1.querySelectorAll('.ltr')
     expect(letters[0].style.animationDelay).toBe('0ms')
-    expect(letters[15].style.animationDelay).toBe('300ms')
+    expect(letters[15].style.animationDelay).toBe('225ms')
   })
 
   it('H1 static path (animated=false) renders the hero text unsplit', () => {
@@ -132,7 +132,7 @@ describe('RevealText', () => {
     expect(p.querySelectorAll('.ltr').length).toBe('Good questions. Clear answers.'.replace(/ /g, '').length)
     expect(p.textContent).toBe('Good questions. Clear answers.')
     expect(p.querySelectorAll('.ltr')[0].style.animationDelay).toBe('0ms')
-    expect(p.querySelectorAll('.ltr')[1].style.animationDelay).toBe('25ms')
+    expect(p.querySelectorAll('.ltr')[1].style.animationDelay).toBe('18.75ms')
   })
 
   it('RevealText renders a span by default and respects the static guards', () => {
@@ -146,12 +146,12 @@ describe('RevealText', () => {
     const { container: slow } = render(<RevealText>Slow</RevealText>)
     expect(fast.querySelector('[data-letter-reveal]')).toHaveAttribute('data-tier', 'display')
     expect(slow.querySelector('[data-letter-reveal]')).toHaveAttribute('data-tier', 'body')
-    expect(fast.querySelectorAll('.ltr')[1].style.animationDelay).toBe('20ms')
-    expect(slow.querySelectorAll('.ltr')[1].style.animationDelay).toBe('25ms')
+    expect(fast.querySelectorAll('.ltr')[1].style.animationDelay).toBe('15ms')
+    expect(slow.querySelectorAll('.ltr')[1].style.animationDelay).toBe('18.75ms')
   })
 
-  it('display tier caps the stagger at 480ms', () => {
+  it('display tier caps the stagger at 360ms', () => {
     const { container } = render(<RevealText tier="display">{'a'.repeat(40)}</RevealText>)
-    expect(container.querySelectorAll('.ltr')[29].style.animationDelay).toBe('480ms')
+    expect(container.querySelectorAll('.ltr')[29].style.animationDelay).toBe('360ms')
   })
 })

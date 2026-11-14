@@ -58,9 +58,9 @@ describe('CountUp', () => {
     expect(p.textContent).toBe('0') // auto-fired in view, but not the final value
     expect(frames.size).toBe(1)
     runFrame(0)
-    runFrame(400)
+    runFrame(300)
     expect(p.textContent).toBe(String(Math.round(101 * 0.875)))
-    runFrame(800)
+    runFrame(600)
     expect(p.textContent).toBe((101).toLocaleString())
     expect(frames.size).toBe(0)
   })
@@ -77,9 +77,9 @@ describe('CountUp', () => {
 
     runFrame(0)
     expect(p.textContent).toBe('0')
-    runFrame(400) // halfway: eased 0.875
+    runFrame(300) // halfway: eased 0.875
     expect(p.textContent).toBe(String(Math.round(101 * 0.875)))
-    runFrame(800)
+    runFrame(600)
     expect(p.textContent).toBe((101).toLocaleString())
     expect(frames.size).toBe(0) // no interval or frame left running
   })
@@ -93,7 +93,7 @@ describe('CountUp', () => {
     rerender(<CountUp value={55} />)
     expect(p.textContent).toBe('0')
     runFrame(0)
-    runFrame(800)
+    runFrame(600)
     expect(p.textContent).toBe((55).toLocaleString())
   })
 
@@ -101,7 +101,7 @@ describe('CountUp', () => {
     const { container, rerender } = render(<CountUp value={101} />)
     const p = container.querySelector('p')
     runFrame(0)
-    runFrame(800)
+    runFrame(600)
     expect(p.textContent).toBe((101).toLocaleString())
 
     rerender(<CountUp value={200} />)

@@ -81,3 +81,6 @@ dropping blur/translate variables).
   value is not vestibular motion), and only environments without
   IntersectionObserver render the final value immediately; the 30 s data
   refresh updates the number without re-counting.
+- **Amendment (2026-11-15):** every timing was scaled ×0.75 — display 240 ms /
+  15 ms per letter / 360 ms cap; body 300 ms / 18.75 ms / 450 ms cap (still
+  exactly 1.25× display); count-up 600 ms; reduced-motion fades 195 ms / 244 ms.

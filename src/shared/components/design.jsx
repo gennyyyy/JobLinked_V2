@@ -227,8 +227,8 @@ const HEADING_SPLIT_LIMIT = 160;
 // Two speeds: big text reads fast, small text gets a touch more time so the
 // cascade stays legible (body = display + 25%).
 const HEADING_TIMING = {
-    display: { stagger: 20, cap: 480 },
-    body: { stagger: 25, cap: 600 },
+    display: { stagger: 15, cap: 360 },
+    body: { stagger: 18.75, cap: 450 },
 };
 const HEADING_WORD_STYLE = { display: "inline-block", whiteSpace: "nowrap" };
 function headingText(node) {
@@ -370,7 +370,7 @@ export function RevealText({ as: Tag = "span", children, className, animated = t
       {children}
     </Heading>);
 }
-export function CountUp({ value, duration = 800, className, ...props }) {
+export function CountUp({ value, duration = 600, className, ...props }) {
     // Stat numbers count 0 → value instead of revealing by letter (ADR-051
     // amendment): the same one-shot in-view trigger, but the number itself
     // animates. It runs under prefers-reduced-motion too — a changing value is
