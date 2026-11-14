@@ -137,6 +137,8 @@ function AuthProvider({ children }) {
   const value = {
     user,
     role: user?.role || null,
+    permissions: user?.permissions ?? null,
+    custom_role_id: user?.custom_role_id ?? null,
     loading,
     logout,
     refreshUser: loadProfile,

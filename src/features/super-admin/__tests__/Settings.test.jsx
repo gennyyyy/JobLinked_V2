@@ -8,10 +8,10 @@ vi.mock('../../../shared/services/admin', () => ({
   removeReferenceData: vi.fn(),
 }))
 
+let mockUser = { id: 'a1', role: 'super-admin', full_name: 'peso admin', email: 'admin@example.com', permissions: null }
+
 vi.mock('../../../shared/hooks/useAuth', () => ({
-  default: () => ({
-    user: { id: 'a1', role: 'super-admin', full_name: 'peso admin', email: 'admin@example.com' },
-  }),
+  default: () => ({ user: mockUser }),
 }))
 
 import { listReferenceData, addReferenceData, removeReferenceData } from '../../../shared/services/admin'
@@ -29,6 +29,7 @@ const renderPage = () => render(<MemoryRouter><Settings /></MemoryRouter>)
 
 beforeEach(() => {
   vi.clearAllMocks()
+  mockUser = { id: 'a1', role: 'super-admin', full_name: 'peso admin', email: 'admin@example.com', permissions: null }
   listReferenceData.mockImplementation((category) => Promise.resolve(
     category === 'employment_type' ? EMPLOYMENT : EDUCATION,
   ))
@@ -113,5 +114,12 @@ describe('super-admin Settings', () => {
     expect(await screen.findByRole('heading', { name: 'Security' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /sign out all devices/i })).toBeInTheDocument()
     expect(screen.getByLabelText(/current password/i)).toBeInTheDocument()
+  })
+
+  it('shows a permission notice and disables add controls for tagged admins', async () => {
+    mockUser = { id: 'a2', role: 'super-admin', full_name: 'tagged', email: 'tagged@example.com', permissions: [] }
+    renderPage()
+    expect(await screen.findByText(/You don't have permission to manage system settings\./)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Add employment type' })).toBeDisabled()
   })
 })

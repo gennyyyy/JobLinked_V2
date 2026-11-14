@@ -5,9 +5,11 @@ import AccountSettings from '@/shared/components/AccountSettings'
 import ChangePassword from '@/shared/components/ChangePassword'
 import ConfirmationModal from '@/shared/components/ConfirmationModal'
 import { PanelSkeleton } from '@/shared/components/Skeletons'
-import { EmptyState, Panel, TextField } from '@/shared/components/design'
+import { EmptyState, Notice, Panel, TextField } from '@/shared/components/design'
 import { addReferenceData, listReferenceData, removeReferenceData } from '@/shared/services/admin'
 import { revokeAllSessions } from '@/shared/services/account'
+import useAuth from '@/shared/hooks/useAuth'
+import { hasPermission } from '@/shared/lib/permissions'
 
 // Only the two categories this page owns. `custom_role` rows belong to the
 // Roles page; skills, barangays, and application statuses are code constants,
@@ -29,7 +31,7 @@ const CATEGORIES = [
   },
 ]
 
-function ReferenceCategory({ id, category, title, description, label }) {
+function ReferenceCategory({ id, category, title, description, label, disabled = false }) {
   const [rows, setRows] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -100,6 +102,7 @@ function ReferenceCategory({ id, category, title, description, label }) {
                   size="sm"
                   className="shrink-0 text-destructive"
                   aria-label={`Remove ${row.value}`}
+                  disabled={disabled}
                   onClick={() => setConfirmRow(row)}
                 >
                   <Trash2 data-icon="inline-start" aria-hidden="true" />
@@ -116,12 +119,13 @@ function ReferenceCategory({ id, category, title, description, label }) {
           id={inputId}
           label={`New ${label}`}
           value={value}
+          disabled={disabled}
           onChange={(event) => { setValue(event.target.value); if (formError) setFormError('') }}
           error={formError}
           placeholder={`e.g. ${rows[0]?.value || label}`}
         />
         <div>
-          <Button type="submit" disabled={saving}>
+          <Button type="submit" disabled={saving || disabled}>
             <Plus data-icon="inline-start" aria-hidden="true" />
             {saving ? 'Adding…' : `Add ${label}`}
           </Button>
@@ -143,6 +147,8 @@ function ReferenceCategory({ id, category, title, description, label }) {
 }
 
 export default function Settings() {
+  const { user } = useAuth() || {}
+  const canManage = hasPermission(user, 'settings.manage')
   const [revokeMessage, setRevokeMessage] = useState('')
   const [revokeError, setRevokeError] = useState('')
   const [revoking, setRevoking] = useState(false)
@@ -162,14 +168,16 @@ export default function Settings() {
   }
 
   return (
-    <AccountSettings childrenBelow uniform>
+    <>
+      {!canManage && <Notice warning className="mb-6">You don't have permission to manage system settings.</Notice>}
+      <AccountSettings childrenBelow uniform>
       <section id="reference-data" aria-labelledby="reference-data-heading">
         <div className="mb-4">
           <h2 id="reference-data-heading" className="text-lg font-semibold tracking-tight text-navy">Reference data</h2>
           <p className="mt-1 text-xs text-muted-foreground">Values offered when recording employment types and education levels.</p>
         </div>
         <div className="grid items-start gap-6 md:grid-cols-2">
-          {CATEGORIES.map((item) => <ReferenceCategory key={item.category} {...item} />)}
+          {CATEGORIES.map((item) => <ReferenceCategory key={item.category} {...item} disabled={!canManage} />)}
         </div>
       </section>
       <section id="security" className="mt-8" aria-labelledby="security-heading">
@@ -190,5 +198,6 @@ export default function Settings() {
         </div>
       </section>
     </AccountSettings>
+    </>
   )
 }
