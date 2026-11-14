@@ -8,6 +8,9 @@ describe('hasPermission', () => {
   it('returns true for any key when permissions is null (full admin)', () => {
     expect(hasPermission({ permissions: null }, 'anything')).toBe(true)
   })
+  it('treats a missing permissions field as a full admin (older API response)', () => {
+    expect(hasPermission({ role: 'super-admin' }, 'settings.manage')).toBe(true)
+  })
   it('returns true only for listed keys when tagged', () => {
     expect(hasPermission({ permissions: ['reports.view'] }, 'reports.view')).toBe(true)
     expect(hasPermission({ permissions: ['reports.view'] }, 'settings.manage')).toBe(false)

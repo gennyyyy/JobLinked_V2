@@ -269,7 +269,9 @@ export default function TopNavLayout({ role, navItems, profileTo, roleLabel, hom
                 <span className="hidden text-left sm:block">
                   <span className="block text-[11px] font-medium text-navy">{name.includes('@') ? name : titleCase(name)}</span>
                   <span className="mt-0.5 block text-[9px] text-muted-foreground">{label}</span>
-                  <span className="block text-[9px] text-muted-foreground">{user?.permissions === null ? 'Full administrator' : 'Custom role'}</span>
+                  {isAdmin && (
+                    <span className="block text-[9px] text-muted-foreground">{user?.permissions == null ? 'Full administrator' : 'Custom role'}</span>
+                  )}
                 </span>
                 <ChevronDown className="hidden sm:block" />
               </DropdownMenuTrigger>
