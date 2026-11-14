@@ -33,4 +33,9 @@ describe('super-admin Profile email', () => {
     expect(updateProfile).toHaveBeenCalledWith('a1', { full_name: 'New Name' })
     expect(updateProfile.mock.calls[0][1]).not.toHaveProperty('email')
   })
+
+  it('renders a link to settings security', () => {
+    render(<MemoryRouter><Profile /></MemoryRouter>)
+    expect(screen.getByText(/manage security & preferences in settings/i)).toBeInTheDocument()
+  })
 })

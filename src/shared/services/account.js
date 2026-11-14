@@ -14,3 +14,9 @@ export async function revokeAllSessions() {
   try { await supabase.auth.signOut({ scope: 'global' }) } catch { /* best-effort */ }
   clearApiCache()
 }
+
+export async function deactivateAccount() {
+  await api.post('account/deactivate', { confirm: 'DEACTIVATE' })
+  try { await supabase.auth.signOut({ scope: 'global' }) } catch { /* best-effort */ }
+  clearApiCache()
+}

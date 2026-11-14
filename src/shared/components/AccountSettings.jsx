@@ -9,7 +9,7 @@ import { LinkButton } from './design'
 import useAuth from '../hooks/useAuth'
 import { ROLE_LABELS } from '../constants'
 import { titleCase } from '../utils/titleCase'
-import { getPreferences, updatePreferences } from '../services/account'
+import { deactivateAccount, getPreferences, updatePreferences } from '../services/account'
 import { changeEmail } from '../services/auth'
 import * as authService from '../services/auth'
 
@@ -53,6 +53,8 @@ export default function AccountSettings({ embedded = false, children, childrenBe
   const [verifyingMfa, setVerifyingMfa] = useState(false)
   const [disablingMfaId, setDisablingMfaId] = useState(null)
   const [disableCode, setDisableCode] = useState('')
+  const [deactivating, setDeactivating] = useState(false)
+  const [deactivateError, setDeactivateError] = useState('')
 
   useEffect(() => {
     let cancelled = false
@@ -232,8 +234,22 @@ export default function AccountSettings({ embedded = false, children, childrenBe
     }
   }
 
+  async function handleDeactivate() {
+    setDeactivateError('')
+    if (!window.confirm('Deactivate your account? An administrator can reactivate it later.')) return
+    setDeactivating(true)
+    try {
+      await deactivateAccount()
+      window.location.assign('/login')
+    } catch (err) {
+      setDeactivateError(err?.message || 'Failed to deactivate account.')
+    } finally {
+      setDeactivating(false)
+    }
+  }
+
   const isAdmin = user?.role === 'super-admin'
-  const profilePath = user?.role === 'employer' ? '/employer/company' : '/job-seeker/profile'
+  const profilePath = user?.role === 'employer' ? '/employer/company' : user?.role === 'super-admin' ? '/super-admin/profile' : '/job-seeker/profile'
   const PreferencesForm = embedded ? 'div' : 'form'
   const accountOverviewPanel = (panelProps) => (
     <Panel id="account-overview" title="Account overview" description="Your JobLinked account details." {...panelProps}>
@@ -294,6 +310,7 @@ export default function AccountSettings({ embedded = false, children, childrenBe
           {emailSaving ? 'Updating…' : 'Update email'}
         </Button>
       </form>
+      <Link className="text-link text-xs" to={profilePath}>Edit profile details</Link>
     </Panel>
   )
 
@@ -355,6 +372,18 @@ export default function AccountSettings({ embedded = false, children, childrenBe
     </Panel>
   )
 
+  const dangerZonePanel = (panelProps) => (
+    <Panel id="danger-zone" title="Danger zone" description="Deactivate your account. An administrator can reactivate it later." {...panelProps}>
+      <p className="text-xs text-muted-foreground">
+        Deactivating hides your account from JobLinked. An administrator can reactivate it later.
+      </p>
+      {deactivateError && <p role="alert" className="mt-3 text-xs text-destructive">{deactivateError}</p>}
+      <Button type="button" variant="destructive" disabled={deactivating} onClick={handleDeactivate} className="mt-4">
+        {deactivating ? 'Deactivating…' : 'Deactivate account'}
+      </Button>
+    </Panel>
+  )
+
   return (
     <>
       {!embedded && (
@@ -374,6 +403,7 @@ export default function AccountSettings({ embedded = false, children, childrenBe
             {!embedded && notificationsPanel(UNIFORM_PANEL)}
             {!embedded && emailPanel(UNIFORM_PANEL)}
             {!embedded && mfaPanel(UNIFORM_PANEL)}
+             {!embedded && dangerZonePanel(UNIFORM_PANEL)}
             {!embedded && showPrivacy && <PrivacyPanel {...UNIFORM_PANEL} />}
           </div>
         </section>
@@ -387,7 +417,8 @@ export default function AccountSettings({ embedded = false, children, childrenBe
             {!embedded && emailPanel()}
             {!embedded && mfaPanel()}
             {!embedded && notificationsPanel()}
-            {!childrenBelow && children}
+            {dangerZonePanel()}
+             {!childrenBelow && children}
           </div>
         </div>
       )}

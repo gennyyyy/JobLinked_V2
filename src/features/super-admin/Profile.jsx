@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button'
 import useAuth from '@/shared/hooks/useAuth'
 import { updateProfile } from '@/shared/services/auth'
 import ChangePassword from '@/shared/components/ChangePassword'
-import { PageHeading, Panel, TextField } from '@/shared/components/design'
+import { LinkButton, PageHeading, Panel, TextField } from '@/shared/components/design'
 import { ROLE_LABELS } from '@/shared/constants'
 
 export default function Profile() {
@@ -53,6 +53,7 @@ export default function Profile() {
               {saving ? 'Saving...' : 'Save profile'}
             </Button>
           </form>
+          <LinkButton href="/super-admin/settings#security" variant="outline" className="mt-5">Manage security & preferences in Settings</LinkButton>
         </Panel>
         <Panel
           id="administrator-access"
