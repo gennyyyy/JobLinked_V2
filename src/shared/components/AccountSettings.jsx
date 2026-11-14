@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Save, ShieldCheck } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -9,6 +9,7 @@ import { LinkButton } from './design'
 import useAuth from '../hooks/useAuth'
 import { ROLE_LABELS } from '../constants'
 import { titleCase } from '../utils/titleCase'
+import { getPreferences, updatePreferences } from '../services/account'
 
 // Equal-height settings cards: the fixed height keeps the grid rows level and
 // the body scrolls instead of stretching the card.
@@ -30,9 +31,72 @@ export function PrivacyPanel({ className, contentClassName }) {
 
 export default function AccountSettings({ embedded = false, children, childrenBelow = false, showPrivacy = true, uniform = false }) {
   const { user } = useAuth() || {}
-  const [updates, setUpdates] = useState(true)
-  const [announcements, setAnnouncements] = useState(true)
-  const [saved, setSaved] = useState(false)
+  const [prefs, setPrefs] = useState(null)
+  const [loadingPrefs, setLoadingPrefs] = useState(true)
+  const [prefsError, setPrefsError] = useState('')
+  const [savedPrefs, setSavedPrefs] = useState(null)
+  const [savingPrefs, setSavingPrefs] = useState(false)
+  const [prefsMessage, setPrefsMessage] = useState('')
+  const [prefsSaveError, setPrefsSaveError] = useState('')
+
+  useEffect(() => {
+    let cancelled = false
+    queueMicrotask(() => {
+      if (!cancelled) {
+        setLoadingPrefs(true)
+        setPrefsError('')
+      }
+    })
+    getPreferences()
+      .then((data) => {
+        if (cancelled) return
+        const next = {
+          application_updates: data?.application_updates ?? true,
+          community_announcements: data?.community_announcements ?? true,
+        }
+        setPrefs(next)
+        setSavedPrefs(next)
+      })
+      .catch((err) => {
+        if (cancelled) return
+        setPrefsError(err?.message || 'Failed to load notification preferences.')
+      })
+      .finally(() => { if (!cancelled) setLoadingPrefs(false) })
+    return () => { cancelled = true }
+  }, [user])
+
+  const updates = prefs?.application_updates ?? true
+  const announcements = prefs?.community_announcements ?? true
+  const dirty = !!prefs && !!savedPrefs
+    && (prefs.application_updates !== savedPrefs.application_updates
+      || prefs.community_announcements !== savedPrefs.community_announcements)
+
+  async function handleSavePrefs(event) {
+    if (event) event.preventDefault()
+    if (!prefs || !dirty || savingPrefs) return
+    setSavingPrefs(true)
+    setPrefsSaveError('')
+    setPrefsMessage('')
+    const patch = {}
+    if (prefs.application_updates !== savedPrefs.application_updates) patch.application_updates = prefs.application_updates
+    if (prefs.community_announcements !== savedPrefs.community_announcements) patch.community_announcements = prefs.community_announcements
+    try {
+      await updatePreferences(patch)
+      setSavedPrefs({ ...prefs })
+      setPrefsMessage('Your notification preferences were saved.')
+    } catch (err) {
+      setPrefsSaveError(err?.message || 'Failed to save notification preferences.')
+    } finally {
+      setSavingPrefs(false)
+    }
+  }
+
+  function togglePref(key, value) {
+    setPrefs((prev) => ({ ...(prev || {}), [key]: value }))
+    setPrefsMessage('')
+    setPrefsSaveError('')
+  }
+
   const isAdmin = user?.role === 'super-admin'
   const profilePath = user?.role === 'employer' ? '/employer/company' : '/job-seeker/profile'
   const PreferencesForm = embedded ? 'div' : 'form'
@@ -55,27 +119,30 @@ export default function AccountSettings({ embedded = false, children, childrenBe
   )
   const notificationsPanel = (panelProps) => (
     <Panel id="notification-preferences" title="Notifications" description="Preferences apply to your JobLinked account." {...panelProps}>
-      <PreferencesForm onSubmit={embedded ? undefined : (event) => { event.preventDefault(); setSaved(true) }}>
+      <PreferencesForm onSubmit={embedded ? undefined : handleSavePrefs}>
         <FieldGroup>
+          {loadingPrefs && <p className="text-xs text-muted-foreground">Loading…</p>}
+          {prefsError && <p role="alert" className="text-xs text-destructive">{prefsError}</p>}
           <Field orientation="horizontal">
             <Field>
               <FieldLabel htmlFor="application-updates">Application & recruitment updates</FieldLabel>
               <FieldDescription>Application, interview, and accreditation notices.</FieldDescription>
             </Field>
-            <Switch id="application-updates" checked={updates} onCheckedChange={setUpdates} />
+            <Switch id="application-updates" checked={updates} disabled={loadingPrefs} onCheckedChange={(v) => togglePref('application_updates', v)} />
           </Field>
           <Field orientation="horizontal">
             <Field>
               <FieldLabel htmlFor="community-notices">Community announcements</FieldLabel>
               <FieldDescription>PESO programs and employment notices.</FieldDescription>
             </Field>
-            <Switch id="community-notices" checked={announcements} onCheckedChange={setAnnouncements} />
+            <Switch id="community-notices" checked={announcements} disabled={loadingPrefs} onCheckedChange={(v) => togglePref('community_announcements', v)} />
           </Field>
-          <Button type={embedded ? 'button' : 'submit'} onClick={embedded ? () => setSaved(true) : undefined}>
+          <Button type={embedded ? 'button' : 'submit'} disabled={!dirty || savingPrefs || loadingPrefs} onClick={embedded ? handleSavePrefs : undefined}>
             <Save data-icon="inline-start" />
-            Save preferences
+            {savingPrefs ? 'Saving…' : 'Save preferences'}
           </Button>
-          {saved && <p role="status" className="text-xs text-success">Your session notification preferences were saved.</p>}
+          {prefsMessage && <p role="status" className="text-xs text-success">{prefsMessage}</p>}
+          {prefsSaveError && <p role="alert" className="text-xs text-destructive">{prefsSaveError}</p>}
         </FieldGroup>
       </PreferencesForm>
     </Panel>
