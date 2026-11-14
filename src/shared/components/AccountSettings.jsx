@@ -156,8 +156,8 @@ export default function AccountSettings({ embedded = false, children, childrenBe
       {!embedded && (
         <PageHeading
           eyebrow="Make yourself at home"
-          title={isAdmin ? 'Workspace & system settings' : 'Your account, your preferences.'}
-          description="Manage your account, notification preferences, privacy, and the reference values used across JobLinked."
+          title={isAdmin ? 'System settings' : 'Your account, your preferences.'}
+          description="Manage the reference values and legal documents used across JobLinked."
         />
       )}
       {uniform ? (
