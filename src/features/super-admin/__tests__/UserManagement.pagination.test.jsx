@@ -105,4 +105,25 @@ describe('UserManagement pagination (C2)', () => {
     // …and the page-2 account now renders in the table.
     expect(await screen.findByText('Zephyrina Quimby')).toBeInTheDocument()
   })
+
+  it('shows the seeker filters only for the job-seeker role and sends the terms', async () => {
+    render(<UserManagement />)
+    expect(await screen.findByRole('table')).toBeInTheDocument()
+    expect(screen.queryByLabelText('Skills')).toBeNull()
+
+    fireEvent.change(screen.getByLabelText(/assigned role/i), { target: { value: 'job-seeker' } })
+    fireEvent.change(await screen.findByLabelText('Skills'), { target: { value: '  weld  ' } })
+    fireEvent.change(screen.getByLabelText('Education'), { target: { value: 'BSIT' } })
+    // Blank input is not sent at all.
+    fireEvent.change(screen.getByLabelText('Experience'), { target: { value: '   ' } })
+
+    await waitFor(() => expect(listUsers).toHaveBeenCalledWith(expect.objectContaining({
+      role: 'job-seeker', skills: 'weld', education: 'BSIT',
+    })))
+    expect(listUsers.mock.calls.at(-1)[0]).not.toHaveProperty('experience')
+
+    // Leaving the seeker role drops the terms from the request too.
+    fireEvent.change(screen.getByLabelText(/assigned role/i), { target: { value: 'employer' } })
+    await waitFor(() => expect(listUsers.mock.calls.at(-1)[0]).toEqual({ page: 1, role: 'employer' }))
+  })
 })

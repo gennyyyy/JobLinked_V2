@@ -4,8 +4,10 @@ export async function getStats() {
   return api.get('admin/stats');
 }
 
-export async function listUsers({ role = null, search = '', status = null, page = 1, pageSize = 25 } = {}) {
-  return api.get('admin/users', { role, search, status, page, pageSize });
+export async function listUsers({
+  role = null, search = '', status = null, skills = '', education = '', experience = '', page = 1, pageSize = 25,
+} = {}) {
+  return api.get('admin/users', { role, search, status, skills, education, experience, page, pageSize });
 }
 
 export async function updateUser(userId, patch) {
@@ -40,8 +42,8 @@ export async function listEmployees() {
   return api.get('admin/employees');
 }
 
-export async function listAllJobs({ status = null, page = 1, pageSize = 25 } = {}) {
-  return api.get('admin/jobs', { status, page, pageSize });
+export async function listAllJobs({ companyId = null, status = null, page = 1, pageSize = 25 } = {}) {
+  return api.get('admin/jobs', { status, company_id: companyId, page, pageSize });
 }
 
 // Default pageSize 100: the newest-first accreditation list doubles as the
@@ -107,6 +109,17 @@ export async function assignCustomRole(id, customRoleId) {
 // is created by POST /auth/provision when they accept.
 export async function inviteUser(payload) {
   return api.post('admin/users/invite', payload);
+}
+
+// Admin-initiated account actions (Tasks 5/6). The reset email is sent by
+// Supabase; the response never says whether the address exists.
+export async function resetUserPassword(id) {
+  return api.post(`admin/users/${id}/reset-password`);
+}
+
+// Drops every refresh token for the account (all devices signed out).
+export async function forceSignOut(id) {
+  return api.post(`admin/users/${id}/sign-out`);
 }
 
 export async function sendSystemNotification({ title, message, link = null, expires_at = null }) {

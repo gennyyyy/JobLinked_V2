@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react'
 
 vi.mock('../../../shared/services/admin', () => ({
   listUsers: vi.fn(),
@@ -68,6 +68,36 @@ beforeEach(() => {
 })
 
 afterEach(() => vi.restoreAllMocks())
+
+describe('UserManagement seeker table columns', () => {
+  it('shows barangay, employment status, and preferred position for seekers only', async () => {
+    const detailedSeeker = {
+      ...seeker,
+      barangay_district: 'Barangay San Jose',
+      employment_status: 'Underemployed',
+      preferred_position: 'Welder',
+    }
+    // Employers carry their own barangay_district; it must not leak into the
+    // seeker columns.
+    const employerWithAddress = { ...employer, barangay_district: 'Poblacion' }
+    await renderUsers([employerWithAddress, detailedSeeker])
+
+    expect(screen.getByRole('columnheader', { name: 'Barangay / district' })).toBeInTheDocument()
+    expect(screen.getByRole('columnheader', { name: 'Employment status' })).toBeInTheDocument()
+    expect(screen.getByRole('columnheader', { name: 'Preferred position' })).toBeInTheDocument()
+    expect(screen.getByText('Barangay San Jose')).toBeInTheDocument()
+    expect(screen.getByText('Underemployed')).toBeInTheDocument()
+    expect(screen.getByText('Welder')).toBeInTheDocument()
+    expect(screen.queryByText('Poblacion')).toBeNull()
+  })
+
+  it('renders a dash for every empty seeker field', async () => {
+    const blankSeeker = { ...seeker, id: 'u-3', full_name: 'Nora Diaz' }
+    await renderUsers([blankSeeker])
+    const row = screen.getByText('Nora Diaz').closest('tr')
+    expect(within(row).getAllByText('—')).toHaveLength(3)
+  })
+})
 
 describe('UserManagement seeker detail dialog', () => {
   it('shows the View action only for job-seeker rows', async () => {

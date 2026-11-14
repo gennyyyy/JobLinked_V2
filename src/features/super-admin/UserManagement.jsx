@@ -9,7 +9,7 @@ import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { X } from 'lucide-react'
-import { listUsers, updateUser, listRoles, assignRole, assignCustomRole, inviteUser, listAuditLogs, listSeekerEducation, listSeekerExperience, listSeekerEmployment, listSeekerResumes } from '@/shared/services/admin'
+import { listUsers, updateUser, listRoles, assignRole, assignCustomRole, inviteUser, resetUserPassword, forceSignOut, listAuditLogs, listSeekerEducation, listSeekerExperience, listSeekerEmployment, listSeekerResumes } from '@/shared/services/admin'
 import { signedUrl } from '@/shared/services/documents'
 import useAuth from '@/shared/hooks/useAuth'
 import { PageSkeleton } from '@/shared/components/Skeletons'
@@ -24,6 +24,21 @@ const EMPTY_INVITE = {
   email: '', role: '', first_name: '', middle_name: '', last_name: '',
   suffix: '', phone: '', company_name: '',
 }
+
+// Seeker-only profile filters (Task 2) and the columns they feed (Task 1).
+// Both are server-side: the list is one page at a time, so a client filter
+// would only hide rows.
+const EMPTY_SEEKER = { skills: '', education: '', experience: '' }
+const SEEKER_FILTERS = [
+  ['skills', 'Skills', 'e.g. welding'],
+  ['education', 'Education', 'e.g. BS Information Technology'],
+  ['experience', 'Experience', 'e.g. cashier'],
+]
+const SEEKER_COLUMNS = [
+  ['barangay_district', 'Barangay / district'],
+  ['employment_status', 'Employment status'],
+  ['preferred_position', 'Preferred position'],
+]
 
 const formatDetailDate = (value) => (value
   ? new Date(value).toLocaleDateString('en-PH', { year: 'numeric', month: 'short', day: 'numeric' })
@@ -64,6 +79,8 @@ function UserManagement() {
   const [allUsers, setAllUsers] = useState([])
   const [searchTerm, setSearchTerm] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
+  const [seekerFilter, setSeekerFilter] = useState(EMPTY_SEEKER)
+  const [seekerTerms, setSeekerTerms] = useState(EMPTY_SEEKER)
   const [showInvite, setShowInvite] = useState(false)
   const [inviteForm, setInviteForm] = useState(EMPTY_INVITE)
   const [inviting, setInviting] = useState(false)
@@ -75,6 +92,10 @@ function UserManagement() {
   const [accessError, setAccessError] = useState('')
   const [accessBusy, setAccessBusy] = useState(false)
   const [accessConfirmed, setAccessConfirmed] = useState(false)
+  const [accountAction, setAccountAction] = useState(null)
+  const [accountBusy, setAccountBusy] = useState(false)
+  const [accountNotice, setAccountNotice] = useState('')
+  const [accountError, setAccountError] = useState('')
   const [detailUser, setDetailUser] = useState(null)
   const [detail, setDetail] = useState(null)
   const [detailError, setDetailError] = useState('')
@@ -91,6 +112,14 @@ function UserManagement() {
     if (filterRole !== 'all') params.role = filterRole
     if (statusFilter) params.status = statusFilter.toLowerCase()
     if (debouncedSearch) params.search = debouncedSearch
+    // The server ignores these outside the job_seekers table; sending them
+    // only for that filter keeps the request honest either way.
+    if (filterRole === 'job-seeker') {
+      for (const [key] of SEEKER_FILTERS) {
+        const term = seekerTerms[key].trim()
+        if (term) params[key] = term
+      }
+    }
     const req = ++loadReqRef.current
     return listUsers(params).then((res) => {
       if (req !== loadReqRef.current) return // drop a superseded fetch
@@ -98,7 +127,7 @@ function UserManagement() {
       setTotal(res.total)
       setPageSize(res.pageSize)
     })
-  }, [filterRole, statusFilter, debouncedSearch])
+  }, [filterRole, statusFilter, debouncedSearch, seekerTerms])
 
   useEffect(() => { loadUsers(page).catch((err) => setError(err.message || 'Failed to load users')) }, [loadUsers, page])
 
@@ -107,6 +136,12 @@ function UserManagement() {
     const t = setTimeout(() => setDebouncedSearch(searchTerm), 350)
     return () => clearTimeout(t)
   }, [searchTerm])
+
+  // Same debounce for the three seeker terms: one keystroke, one request.
+  useEffect(() => {
+    const t = setTimeout(() => setSeekerTerms(seekerFilter), 350)
+    return () => clearTimeout(t)
+  }, [seekerFilter])
 
   useEffect(() => {
     const loadAll = async () => {
@@ -160,6 +195,33 @@ function UserManagement() {
     setAccessReason('')
     setAccessError('')
     setAccessConfirmed(false)
+    setAccountAction(null)
+    setAccountNotice('')
+    setAccountError('')
+  }
+
+  // Tasks 5/6: one confirmation step, one inline result. Admin password reset
+  // only sends Supabase's recovery email; force sign-out drops every refresh
+  // token. Neither can be undone from here, hence the confirm.
+  async function runAccountAction(kind) {
+    if (!accessTarget) return
+    setAccountBusy(true)
+    setAccountError('')
+    setAccountNotice('')
+    try {
+      if (kind === 'reset-password') {
+        await resetUserPassword(accessTarget.id)
+        setAccountNotice('Password reset email sent.')
+      } else {
+        await forceSignOut(accessTarget.id)
+        setAccountNotice('All sessions signed out.')
+      }
+      setAccountAction(null)
+    } catch (err) {
+      setAccountError(err.message || 'The account action failed')
+    } finally {
+      setAccountBusy(false)
+    }
   }
 
   async function confirmAccess(event) {
@@ -340,6 +402,27 @@ function UserManagement() {
           </div>
         </div>
 
+        {/* Seeker profile filters: only meaningful for job_seekers, so they
+            appear only while that role filter is selected. */}
+        {filterRole === 'job-seeker' && (
+          <div className="mb-5 grid gap-3 sm:grid-cols-3">
+            {SEEKER_FILTERS.map(([key, label, placeholder]) => (
+              <TextField
+                key={key}
+                id={`seeker-${key}-filter`}
+                label={label}
+                placeholder={placeholder}
+                maxLength={80}
+                value={seekerFilter[key]}
+                onChange={(event) => {
+                  setSeekerFilter((prev) => ({ ...prev, [key]: event.target.value }))
+                  setPage(1)
+                }}
+              />
+            ))}
+          </div>
+        )}
+
         {/* Table */}
         <div className="overflow-x-auto">
           {users.length === 0 ? (
@@ -353,6 +436,9 @@ function UserManagement() {
                   <TableHead>Email address</TableHead>
                   <TableHead>Assigned role</TableHead>
                   <TableHead>Account status</TableHead>
+                  {SEEKER_COLUMNS.map(([, label]) => (
+                    <TableHead key={label}>{label}</TableHead>
+                  ))}
                   <TableHead>Registered</TableHead>
                   <TableHead>Last updated</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
@@ -378,6 +464,14 @@ function UserManagement() {
                       </div>
                     </TableCell>
                     <TableCell><StatusBadge status={user.status} /></TableCell>
+                    {/* Task 1: seeker profile columns. Only job_seekers owns
+                        them (employers carry a barangay too, but not the seeker
+                        meaning), so any other role reads as "—". */}
+                    {SEEKER_COLUMNS.map(([field]) => (
+                      <TableCell key={field} className="whitespace-normal text-[11px] text-muted-foreground">
+                        {user.role === 'job-seeker' ? (user[field] || '—') : '—'}
+                      </TableCell>
+                    ))}
                     <TableCell className="text-[11px] text-muted-foreground">
                       {new Date(user.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
                     </TableCell>
@@ -577,6 +671,52 @@ function UserManagement() {
               <Button type="submit" disabled={accessBusy || !accessConfirmed}>{accessBusy ? 'Saving…' : 'Confirm access change'}</Button>
             </div>
           </form>
+
+          {/* Tasks 5/6: account actions live beside the role form. Each one
+              confirms first and reports inline; both are audited server-side. */}
+          <section className="border-t pt-4">
+            <H3 className="text-xs font-semibold text-navy" animated={false}>Account actions</H3>
+            {accountAction ? (
+              <div className="mt-3 rounded-xl border p-3">
+                <p className="text-xs text-navy">
+                  {accountAction === 'reset-password'
+                    ? 'Send a password reset email to this account?'
+                    : 'Sign this account out of every device?'}
+                </p>
+                <div className="mt-3 flex justify-end gap-2">
+                  <Button type="button" variant="outline" onClick={() => setAccountAction(null)} disabled={accountBusy}>
+                    Cancel
+                  </Button>
+                  <Button type="button" onClick={() => runAccountAction(accountAction)} disabled={accountBusy}>
+                    {accountBusy
+                      ? 'Working…'
+                      : accountAction === 'reset-password' ? 'Confirm password reset' : 'Confirm sign-out'}
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="mt-3 flex flex-wrap gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => { setAccountNotice(''); setAccountError(''); setAccountAction('reset-password') }}
+                >
+                  Send password reset
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => { setAccountNotice(''); setAccountError(''); setAccountAction('sign-out') }}
+                >
+                  Sign out all sessions
+                </Button>
+              </div>
+            )}
+            {accountNotice && (
+              <p role="status" className="mt-3 rounded-xl border border-success/20 bg-success-soft px-4 py-3 text-xs text-success">{accountNotice}</p>
+            )}
+            {accountError && <p role="alert" className="mt-3 text-xs text-destructive">{accountError}</p>}
+          </section>
         </DialogContent>
       </Dialog>
 

@@ -16,6 +16,18 @@ const ROLE_BY_TABLE = Object.fromEntries(Object.entries(USER_TABLES).map(([role,
 // /admin/users union below.
 const TABLE_ORD = { super_admins: 1, employers: 2, job_seekers: 3 };
 
+// Seeker profile filters (Task 2). Only job_seekers owns these columns, so the
+// terms are ignored unless the role filter has narrowed the scan to that table.
+const SEEKER_TERM_MAX = 80;
+const SEEKER_FILTERS = [
+  ['skills', "array_to_string(x.skills, ' ')"],
+  ['education', 'x.education_summary'],
+  ['experience', 'x.experience_summary'],
+];
+
+// First CORS_ORIGIN entry: the app origin an emailed link must return to.
+const appOrigin = () => String(process.env.CORS_ORIGIN || '').split(',')[0].trim();
+
 router.get('/admin/users', ...admin, ah(async (req, res) => {
   const { role = null, search = '', status = null } = req.query;
   const tables = role ? [USER_TABLES[role] || null] : Object.values(USER_TABLES);
@@ -32,6 +44,22 @@ router.get('/admin/users', ...admin, ah(async (req, res) => {
     vals.push(likeFilter(search), likeFilter(search));
     conds.push(`(t.profile->>'full_name' ilike $${vals.length - 1} or t.profile->>'email' ilike $${vals.length})`);
   }
+  // Task 2: skills/education/experience narrow the job_seekers branch only.
+  // They are read AFTER status/search so the existing params keep their order,
+  // and are ignored (not rejected) on any other role range — those tables have
+  // no such columns, and the UI only shows the inputs for job-seeker.
+  const seekerConds = [];
+  if (role === 'job-seeker') {
+    for (const [key, column] of SEEKER_FILTERS) {
+      const term = String(req.query[key] ?? '').trim();
+      if (term.length > SEEKER_TERM_MAX) {
+        return err(res, 400, 'BAD_REQUEST', `${key} must be ${SEEKER_TERM_MAX} characters or fewer`);
+      }
+      if (!term) continue;
+      vals.push(likeFilter(term));
+      seekerConds.push(`${column} ilike $${vals.length}`);
+    }
+  }
   const where = conds.length ? ` where ${conds.join(' and ')}` : '';
   // M2: one UNION ALL with ORDER BY/LIMIT/OFFSET in SQL — the old code looped
   // the three tables and sorted every row in JS before slicing. to_jsonb keeps
@@ -39,7 +67,8 @@ router.get('/admin/users', ...admin, ah(async (req, res) => {
   // same mapping resolveRole uses). x.id breaks created_at ties so page N and
   // page N+1 can never skip or repeat a row.
   const union = tables
-    .map((t) => `select '${ROLE_BY_TABLE[t]}' as role, to_jsonb(x) as profile, x.created_at, x.id, ${TABLE_ORD[t]} as ord from ${t} x`)
+    .map((t) => `select '${ROLE_BY_TABLE[t]}' as role, to_jsonb(x) as profile, x.created_at, x.id, ${TABLE_ORD[t]} as ord from ${t} x${
+      t === 'job_seekers' && seekerConds.length ? ` where ${seekerConds.join(' and ')}` : ''}`)
     .join(' union all ');
   // One row per id, chosen exactly like resolveRole: an active row wins, then
   // table precedence. A role move deactivates the old row instead of deleting
@@ -222,7 +251,7 @@ router.post('/admin/users/invite', ...admin, ah(async (req, res) => {
      union all select 1 from super_admins where lower(email) = lower($1) limit 1`, [email]);
   if (dupe[0]) return err(res, 409, 'CONFLICT', 'Email is already registered');
 
-  const appOrigin = String(process.env.CORS_ORIGIN || '').split(',')[0].trim();
+  const appUrl = appOrigin();
   const metadata = {
     role, custom_role_id: customRoleId,
     first_name: b.first_name, middle_name: b.middle_name || '', last_name: b.last_name,
@@ -231,7 +260,7 @@ router.post('/admin/users/invite', ...admin, ah(async (req, res) => {
     company_name: b.company_name || null,
   };
   const { data, error } = await supa().auth.admin.inviteUserByEmail(email, {
-    data: metadata, redirectTo: `${appOrigin}/accept-invite`,
+    data: metadata, redirectTo: `${appUrl}/accept-invite`,
   });
   if (error) {
     // Never collapse every upstream failure into "already registered": an SMTP
@@ -266,6 +295,62 @@ router.post('/admin/users/invite', ...admin, ah(async (req, res) => {
 
   void audit(req.user.id, 'user.invite', null, null, { email, role, custom_role_id: customRoleId });
   res.status(201).json({ invited: true, email, role });
+}));
+
+// Admin-initiated password reset (Task 5): Supabase emails its recovery link,
+// so the admin never chooses or sees a password. The response is identical
+// whether or not the address exists upstream, and no email is echoed or
+// logged — only the audit row records the acting admin and the target id.
+router.post('/admin/users/:id/reset-password', ...admin, ah(async (req, res) => {
+  const { table, profile } = await findUserTable(req.params.id);
+  if (!profile) return err(res, 404, 'NOT_FOUND', 'User account not found');
+  const { error } = await supa().auth.resetPasswordForEmail(profile.email, {
+    redirectTo: `${appOrigin()}/reset-password`,
+  });
+  if (error) {
+    // Same mapping as the invite route: a retryable rate limit must not look
+    // like a permanent failure, and the upstream message is never forwarded
+    // (it can name the address).
+    const message = String(error.message || '');
+    if (error.status === 429 || /rate limit/i.test(message)) {
+      return err(res, 429, 'RATE_LIMITED', 'Password reset rate limit reached. Please try again later.');
+    }
+    logger.error('password_reset_failed', { status: error.status });
+    return err(res, 502, 'UPSTREAM_ERROR', 'The password reset email could not be sent. Please try again later.');
+  }
+  void audit(req.user.id, 'user.password.reset', table, req.params.id);
+  res.json({ sent: true });
+}));
+
+// Force sign-out (Task 6): GoTrue's admin endpoint revokes every refresh token
+// for the auth user, so every device is signed out. Impersonation is NOT
+// offered — an admin acting as a user defeats the audit trail, which is why
+// no route, UI, or token exchange exists for it.
+router.post('/admin/users/:id/sign-out', ...admin, ah(async (req, res) => {
+  const { table, profile } = await findUserTable(req.params.id);
+  if (!profile) return err(res, 404, 'NOT_FOUND', 'User account not found');
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const url = `${String(process.env.SUPABASE_URL || '').replace(/\/+$/, '')}/auth/v1/admin/users/${encodeURIComponent(req.params.id)}/logout`;
+  let upstream;
+  try {
+    upstream = await fetch(url, {
+      method: 'POST',
+      headers: { apikey: key, Authorization: `Bearer ${key}` },
+      signal: AbortSignal.timeout(10_000),
+    });
+  } catch (e) {
+    // Log the failure class only — never the URL (it carries the user id) and
+    // never the service key.
+    logger.error('force_sign_out_failed', { reason: e?.name === 'TimeoutError' ? 'timeout' : 'network' });
+    return err(res, 502, 'UPSTREAM_ERROR', 'The sessions could not be revoked. Please try again later.');
+  }
+  if (!upstream.ok) {
+    try { await upstream.body?.cancel?.(); } catch { /* already gone */ }
+    logger.error('force_sign_out_failed', { status: upstream.status });
+    return err(res, 502, 'UPSTREAM_ERROR', 'The sessions could not be revoked. Please try again later.');
+  }
+  void audit(req.user.id, 'user.sessions.revoke', table, req.params.id);
+  res.json({ signedOut: true });
 }));
 
 // Tag a user with a custom role (assignment lives on the Users page only).
