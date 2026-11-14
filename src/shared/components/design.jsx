@@ -224,8 +224,12 @@ const HEADING_BASE = "font-semibold text-navy tracking-[-0.03em] transition-colo
 // unpaired sm: variant, growing every small portal heading.
 const HEADING_SIZES = { plain: "", display: "text-xl sm:text-2xl" };
 const HEADING_SPLIT_LIMIT = 160;
-const HEADING_STAGGER_MS = 25;
-const HEADING_STAGGER_CAP_MS = 600;
+// Two speeds: big text reads fast, small text gets a touch more time so the
+// cascade stays legible (body = display + 25%).
+const HEADING_TIMING = {
+    display: { stagger: 20, cap: 480 },
+    body: { stagger: 25, cap: 600 },
+};
 const HEADING_WORD_STYLE = { display: "inline-block", whiteSpace: "nowrap" };
 function headingText(node) {
     // Flattened accessible name: numbers and strings concatenate, <br> reads as
@@ -260,7 +264,7 @@ function renderHeadingText(text, cursor) {
             return part;
         return (<span key={`w${cursor.key++}`} style={HEADING_WORD_STYLE}>
           {[...part].map((letter) => {
-            const delay = `${Math.min(cursor.index++ * HEADING_STAGGER_MS, HEADING_STAGGER_CAP_MS)}ms`;
+            const delay = `${Math.min(cursor.index++ * cursor.timing.stagger, cursor.timing.cap)}ms`;
             return (<span key={`l${cursor.key++}`} className="ltr" style={{ display: "inline-block", animationDelay: delay, "--ltr-delay": delay }}>
                 {letter}
               </span>);
@@ -285,9 +289,10 @@ function renderHeadingChildren(node, cursor) {
         return cloneElement(node, { key }, renderHeadingChildren(node.props.children, cursor));
     return cloneElement(node, { key });
 }
-function Heading({ tag: Tag = "h3", rich = false, children, className, animated = true, size = "plain", base = HEADING_BASE, sizes = HEADING_SIZES, labeled = true, ...props }) {
+function Heading({ tag: Tag = "h3", rich = false, children, className, animated = true, size = "plain", base = HEADING_BASE, sizes = HEADING_SIZES, labeled = true, tier = "body", ...props }) {
     const ref = useRef(null);
     const [state, setState] = useState("hidden");
+    const timing = HEADING_TIMING[tier] ?? HEADING_TIMING.body;
     const text = headingText(children).replace(/\s+/g, " ").trim();
     // Static path: anything we cannot or should not animate renders plain, so
     // the heading text is never trapped invisible. H3 keeps its string-only
@@ -344,21 +349,21 @@ function Heading({ tag: Tag = "h3", rich = false, children, className, animated 
         {children}
       </Tag>);
     }
-    return (<Tag ref={ref} aria-label={labeled ? text : undefined} data-letter-reveal data-state={state} className={classes} {...props}>
-      <span aria-hidden={labeled ? "true" : undefined}>{renderHeadingChildren(children, { index: 0, key: 0 })}</span>
+    return (<Tag ref={ref} aria-label={labeled ? text : undefined} data-letter-reveal data-state={state} data-tier={tier} className={classes} {...props}>
+      <span aria-hidden={labeled ? "true" : undefined}>{renderHeadingChildren(children, { index: 0, key: 0, timing })}</span>
     </Tag>);
 }
-export function H3(props) {
-    return <Heading {...props}/>;
+export function H3({ tier = "body", ...props }) {
+    return <Heading {...props} tier={tier}/>;
 }
-export function H1(props) {
-    return <Heading {...props} tag="h1" rich/>;
+export function H1({ tier = "display", ...props }) {
+    return <Heading {...props} tier={tier} tag="h1" rich/>;
 }
-export function RevealText({ as: Tag = "span", children, className, animated = true, ...props }) {
+export function RevealText({ as: Tag = "span", children, className, animated = true, tier = "body", ...props }) {
     // Landing-copy variant: no typography defaults and no aria overrides, so
     // the letters stay the element's real text content and parents (links,
     // accordion buttons) keep their accessible names.
-    return (<Heading tag={Tag} rich labeled={false} base="" sizes={null} className={className} animated={animated} {...props}>
+    return (<Heading tag={Tag} rich labeled={false} base="" sizes={null} className={className} animated={animated} tier={tier} {...props}>
       {children}
     </Heading>);
 }

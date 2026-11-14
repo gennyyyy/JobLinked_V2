@@ -68,3 +68,10 @@ dropping blur/translate variables).
   descriptions, FAQ questions, the "Explore all FAQs" label, and the community
   stat numbers (labels excluded). The footer group headings are explicitly
   excluded per product direction.
+- **Amendment (2026-11-14):** timing is now two-tier — display (hero H1, h2
+  headings, eyebrows, stat numbers) at 320 ms / 20 ms per letter / 480 ms cap,
+  and body (card titles, paragraphs, card descriptions, FAQ questions, link
+  labels) at 400 ms / 25 ms / 600 ms — body is exactly 25% slower. All five
+  landing eyebrows are display tier; the About section's "One platform. A
+  stronger community." eyebrow and "Built around people, not paperwork."
+  heading joined the reveal. Footer remains excluded.

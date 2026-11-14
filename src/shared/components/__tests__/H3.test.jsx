@@ -112,7 +112,7 @@ describe('H1', () => {
     expect(span.querySelectorAll('.ltr').length).toBe(19)
     const letters = h1.querySelectorAll('.ltr')
     expect(letters[0].style.animationDelay).toBe('0ms')
-    expect(letters[15].style.animationDelay).toBe('375ms')
+    expect(letters[15].style.animationDelay).toBe('300ms')
   })
 
   it('H1 static path (animated=false) renders the hero text unsplit', () => {
@@ -139,5 +139,19 @@ describe('RevealText', () => {
     const { container } = render(<RevealText>{'word '.repeat(40)}</RevealText>)
     expect(container.querySelector('span')).not.toHaveAttribute('data-letter-reveal')
     expect(container.querySelectorAll('.ltr')).toHaveLength(0)
+  })
+
+  it('display tier is fast and body tier is 25% slower', () => {
+    const { container: fast } = render(<RevealText tier="display">Head</RevealText>)
+    const { container: slow } = render(<RevealText>Slow</RevealText>)
+    expect(fast.querySelector('[data-letter-reveal]')).toHaveAttribute('data-tier', 'display')
+    expect(slow.querySelector('[data-letter-reveal]')).toHaveAttribute('data-tier', 'body')
+    expect(fast.querySelectorAll('.ltr')[1].style.animationDelay).toBe('20ms')
+    expect(slow.querySelectorAll('.ltr')[1].style.animationDelay).toBe('25ms')
+  })
+
+  it('display tier caps the stagger at 480ms', () => {
+    const { container } = render(<RevealText tier="display">{'a'.repeat(40)}</RevealText>)
+    expect(container.querySelectorAll('.ltr')[29].style.animationDelay).toBe('480ms')
   })
 })
