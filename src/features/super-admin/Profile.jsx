@@ -7,7 +7,6 @@ import { updateProfile } from '@/shared/services/auth'
 import { revokeAllSessions } from '@/shared/services/account'
 import ChangePassword from '@/shared/components/ChangePassword'
 import { PrivacyPanel } from '@/shared/components/AccountSettings'
-import EmailChangePanel from '@/shared/components/EmailChangePanel'
 import MfaPanel from '@/shared/components/MfaPanel'
 import DangerZonePanel from '@/shared/components/DangerZonePanel'
 import TabbedProfileLayout from '@/shared/components/TabbedProfileLayout'
@@ -102,7 +101,6 @@ export default function Profile() {
         <div className="flex flex-col gap-5">
           <ChangePassword embedded />
           <div className="grid items-start gap-6 md:grid-cols-2">
-            <EmailChangePanel />
             <MfaPanel />
             <Panel id="sessions" title="Sessions" description="Sign out every active device.">
               <p className="text-xs text-muted-foreground">If you think your account is compromised, revoke all sessions and sign back in.</p>
