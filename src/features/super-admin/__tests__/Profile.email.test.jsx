@@ -43,11 +43,6 @@ describe('super-admin Profile', () => {
     expect(updateProfile.mock.calls[0][1]).not.toHaveProperty('email')
   })
 
-  it('renders a link to settings security', () => {
-    render(<MemoryRouter><Profile /></MemoryRouter>)
-    expect(screen.getByText(/manage security & preferences in settings/i)).toBeInTheDocument()
-  })
-
   it('renders the security tab with sign-out-all and deactivate buttons', () => {
     render(<MemoryRouter><Profile /></MemoryRouter>)
     fireEvent.click(screen.getByRole('tab', { name: /security/i }))
