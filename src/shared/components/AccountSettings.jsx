@@ -24,7 +24,7 @@ export function PrivacyPanel() {
   )
 }
 
-export default function AccountSettings({ embedded = false, children, showPrivacy = true }) {
+export default function AccountSettings({ embedded = false, children, childrenBelow = false, showPrivacy = true }) {
   const { user } = useAuth() || {}
   const [updates, setUpdates] = useState(true)
   const [announcements, setAnnouncements] = useState(true)
@@ -90,9 +90,10 @@ export default function AccountSettings({ embedded = false, children, showPrivac
         </div>
         <div className="flex min-w-0 flex-col gap-6">
           {!embedded && notificationsPanel}
-          {children}
+          {!childrenBelow && children}
         </div>
       </div>
+      {childrenBelow && <div className="mt-6">{children}</div>}
     </>
   )
 }

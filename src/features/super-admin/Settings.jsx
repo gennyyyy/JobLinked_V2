@@ -83,7 +83,7 @@ function ReferenceCategory({ category, title, description, label }) {
     <Panel title={title} description={description}>
       {error && <p role="alert" className="mb-4 text-xs text-destructive">{error}</p>}
       {rows.length === 0 ? (
-        !error && <EmptyState title={`No ${title.toLowerCase()} yet`} description={`Add the first ${label} below.`} />
+        !error && <EmptyState title={`No ${title.toLowerCase()} yet`} description={`Add the first ${label} below.`} className="min-h-0 py-8" />
       ) : (
         <ul className="divide-y">
           {rows.map((row) => (
@@ -138,8 +138,10 @@ function ReferenceCategory({ category, title, description, label }) {
 
 export default function Settings() {
   return (
-    <AccountSettings>
-      {CATEGORIES.map((item) => <ReferenceCategory key={item.category} {...item} />)}
+    <AccountSettings childrenBelow>
+      <div className="grid items-start gap-6 md:grid-cols-2">
+        {CATEGORIES.map((item) => <ReferenceCategory key={item.category} {...item} />)}
+      </div>
     </AccountSettings>
   )
 }

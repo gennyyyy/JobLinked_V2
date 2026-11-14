@@ -93,8 +93,8 @@ export function Notice({ title = "Information", children, warning = false, }) {
       </AlertDescription>
     </Alert>);
 }
-export function EmptyState({ title = "No results found", description = "Try another search or adjust your filters.", href, label = "Browse jobs", action, }) {
-    return (<Empty className="min-h-56 rounded-xl border bg-card">
+export function EmptyState({ title = "No results found", description = "Try another search or adjust your filters.", href, label = "Browse jobs", action, className, }) {
+    return (<Empty className={cn("min-h-56 rounded-xl border bg-card", className)}>
       <EmptyHeader>
         <EmptyMedia variant="icon">
           <Search />
