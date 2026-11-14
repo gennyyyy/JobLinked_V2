@@ -87,51 +87,54 @@ function ReferenceCategory({ id, category, title, description, label, disabled =
   if (loading) return <PanelSkeleton lines={2} label={`Loading ${title.toLowerCase()}…`} />
 
   return (
-    <Panel id={id} title={title} description={description} size="sm" className="h-[34rem]" contentClassName="flex min-h-0 flex-1 flex-col overflow-hidden">
-      <div className="min-h-0 flex-1 overflow-y-auto pr-1">
-        {error && <p role="alert" className="mb-4 text-xs text-destructive">{error}</p>}
-        {rows.length === 0 ? (
-          !error && <EmptyState title={`No ${title.toLowerCase()} yet`} description={`Add the first ${label} below.`} className="min-h-0 py-6" />
-        ) : (
-          <ul className="divide-y">
-            {rows.map((row) => (
-              <li key={row.id} className="flex items-center justify-between gap-3 py-2.5">
-                <span className="min-w-0 break-words text-xs">{row.value}</span>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="shrink-0 text-destructive"
-                  aria-label={`Remove ${row.value}`}
-                  disabled={disabled}
-                  onClick={() => setConfirmRow(row)}
-                >
-                  <Trash2 data-icon="inline-start" aria-hidden="true" />
-                  Remove
-                </Button>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
-
-      <form onSubmit={handleAdd} className="mt-3 flex shrink-0 flex-col gap-3 border-t pt-3">
-        <TextField
-          id={inputId}
-          label={`New ${label}`}
-          value={value}
-          disabled={disabled}
-          onChange={(event) => { setValue(event.target.value); if (formError) setFormError('') }}
-          error={formError}
-          placeholder={`e.g. ${rows[0]?.value || label}`}
-        />
-        <div>
-          <Button type="submit" size="sm" disabled={saving || disabled}>
-            <Plus data-icon="inline-start" aria-hidden="true" />
-            {saving ? 'Adding…' : `Add ${label}`}
-          </Button>
+    <Panel id={id} title={title} description={description} size="sm" className="max-h-[34rem]" contentClassName="flex min-h-0 flex-1 flex-col overflow-hidden">
+      <details className="flex min-h-0 flex-1 flex-col overflow-hidden">
+        <summary className="shrink-0 cursor-pointer select-none text-xs text-muted-foreground hover:text-foreground">Edit values</summary>
+        <div className="mt-2 min-h-0 flex-1 overflow-y-auto pr-1">
+          {error && <p role="alert" className="mb-4 text-xs text-destructive">{error}</p>}
+          {rows.length === 0 ? (
+            !error && <EmptyState title={`No ${title.toLowerCase()} yet`} description={`Add the first ${label} below.`} className="min-h-0 py-6" />
+          ) : (
+            <ul className="divide-y">
+              {rows.map((row) => (
+                <li key={row.id} className="flex items-center justify-between gap-3 py-2.5">
+                  <span className="min-w-0 break-words text-xs">{row.value}</span>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="shrink-0 text-destructive"
+                    aria-label={`Remove ${row.value}`}
+                    disabled={disabled}
+                    onClick={() => setConfirmRow(row)}
+                  >
+                    <Trash2 data-icon="inline-start" aria-hidden="true" />
+                    Remove
+                  </Button>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
-      </form>
+
+        <form onSubmit={handleAdd} className="mt-3 flex shrink-0 flex-col gap-3 border-t pt-3">
+          <TextField
+            id={inputId}
+            label={`New ${label}`}
+            value={value}
+            disabled={disabled}
+            onChange={(event) => { setValue(event.target.value); if (formError) setFormError('') }}
+            error={formError}
+            placeholder={`e.g. ${rows[0]?.value || label}`}
+          />
+          <div>
+            <Button type="submit" size="sm" disabled={saving || disabled}>
+              <Plus data-icon="inline-start" aria-hidden="true" />
+              {saving ? 'Adding…' : `Add ${label}`}
+            </Button>
+          </div>
+        </form>
+      </details>
 
       {confirmRow && (
         <ConfirmationModal
@@ -195,21 +198,26 @@ function LegalDocumentsSection({ disabled }) {
         const dirty = drafts[key] !== docs[key]
         return (
           <Panel key={key} id={`legal-${key}`} title={title} description="Published text shown on the public site and in the registration consent modal." className="mb-6">
-            <Textarea
-              className="min-h-[20rem] font-mono text-xs"
-              value={drafts[key]}
-              onChange={(e) => setDrafts((d) => ({ ...d, [key]: e.target.value }))}
-              disabled={disabled}
-              aria-label={`${title} body`}
-            />
-            <div className="mt-4 flex flex-wrap items-center gap-3">
-              <Button type="button" size="sm" disabled={disabled || saving === key || !dirty} onClick={() => handleSave(key)}>
-                {saving === key ? 'Saving…' : 'Save'}
-              </Button>
-              <Link to={key === 'privacy' ? '/privacy' : '/terms'} className="text-link text-xs">View published</Link>
-              {messages[key] && <p role="status" className="text-xs text-success">{messages[key]}</p>}
-              {errors[key] && <p role="alert" className="text-xs text-destructive">{errors[key]}</p>}
-            </div>
+            <details className="group">
+              <summary className="cursor-pointer select-none text-xs text-muted-foreground hover:text-foreground">Edit document</summary>
+              <div className="mt-4">
+                <Textarea
+                  className="min-h-[20rem] font-mono text-xs"
+                  value={drafts[key]}
+                  onChange={(e) => setDrafts((d) => ({ ...d, [key]: e.target.value }))}
+                  disabled={disabled}
+                  aria-label={`${title} body`}
+                />
+                <div className="mt-4 flex flex-wrap items-center gap-3">
+                  <Button type="button" size="sm" disabled={disabled || saving === key || !dirty} onClick={() => handleSave(key)}>
+                    {saving === key ? 'Saving…' : 'Save'}
+                  </Button>
+                  <Link to={key === 'privacy' ? '/privacy' : '/terms'} className="text-link text-xs">View published</Link>
+                  {messages[key] && <p role="status" className="text-xs text-success">{messages[key]}</p>}
+                  {errors[key] && <p role="alert" className="text-xs text-destructive">{errors[key]}</p>}
+                </div>
+              </div>
+            </details>
           </Panel>
         )
       })}
@@ -230,7 +238,7 @@ export default function Settings() {
           <h2 id="reference-data-heading" className="text-lg font-semibold tracking-tight text-navy">Reference data</h2>
           <p className="mt-1 text-xs text-muted-foreground">Values offered when recording employment types and education levels.</p>
         </div>
-        <div className="grid items-start gap-6 md:grid-cols-2">
+        <div className="flex flex-col gap-6">
           {CATEGORIES.map((item) => <ReferenceCategory key={item.category} {...item} disabled={!canManage} />)}
         </div>
       </section>
