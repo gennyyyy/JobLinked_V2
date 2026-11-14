@@ -1,11 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent, act, waitFor } from '@testing-library/react'
 import Accreditation from '../Accreditation'
-import { listAllAccreditations } from '../../../shared/services/admin'
+import { listAllAccreditations, listAllJobs } from '../../../shared/services/admin'
 import { updateAccreditation, updateDocumentStatus, signedUrl, listCompanyDocuments } from '../../../shared/services/documents'
 
 vi.mock('../../../shared/services/admin', () => ({
   listAllAccreditations: vi.fn(),
+  listAllJobs: vi.fn(),
 }))
 
 vi.mock('../../../shared/services/documents', () => ({
@@ -49,6 +50,7 @@ describe('Accreditation management', () => {
     updateAccreditation.mockResolvedValue({})
     updateDocumentStatus.mockResolvedValue({})
     listCompanyDocuments.mockResolvedValue([])
+    listAllJobs.mockResolvedValue({ data: [], total: 0, page: 1, pageSize: 500 })
     mockList()
   })
 
@@ -112,6 +114,32 @@ describe('Accreditation management', () => {
         remarks: 'Submit updated business permit',
       })
     )
+  })
+
+  it('shows per-status vacancy counts for the employer', async () => {
+    listAllJobs.mockResolvedValue({
+      data: [
+        { id: 'j1', status: 'published' },
+        { id: 'j2', status: 'published' },
+        { id: 'j3', status: 'draft' },
+      ],
+      total: 3,
+      page: 1,
+      pageSize: 500,
+    })
+    await openReview()
+
+    expect(await screen.findByText('3 vacancies posted')).toBeInTheDocument()
+    expect(screen.getByText('2 Published')).toBeInTheDocument()
+    expect(screen.getByText('1 Draft')).toBeInTheDocument()
+    expect(listAllJobs).toHaveBeenCalledWith({ companyId: 'c1', pageSize: 500 })
+  })
+
+  it('shows the vacancy empty state when the employer has no jobs', async () => {
+    await openReview()
+
+    expect(await screen.findByText('No vacancies posted yet.')).toBeInTheDocument()
+    expect(listAllJobs).toHaveBeenCalledWith({ companyId: 'c1', pageSize: 500 })
   })
 
   it('shows an error message when loading fails', async () => {

@@ -15,8 +15,13 @@ router.get('/admin/jobs', ...admin, ah(async (req, res) => {
   if (req.query.status && !ADMIN_JOB_STATUSES.includes(req.query.status)) {
     return err(res, 400, 'BAD_REQUEST', `status must be one of ${ADMIN_JOB_STATUSES.join(', ')}`);
   }
-  const cond = req.query.status ? (vals.push(req.query.status), `where j.status = $1`) : '';
-  const base = `from job_vacancies j left join employers e on e.id = j.company_id ${cond}`;
+  if (req.query.company_id && !isUuid(req.query.company_id)) {
+    return err(res, 400, 'BAD_REQUEST', 'company_id must be a valid UUID');
+  }
+  const conds = [];
+  if (req.query.status) conds.push(`j.status = $${vals.push(req.query.status)}`);
+  if (req.query.company_id) conds.push(`j.company_id = $${vals.push(req.query.company_id)}`);
+  const base = `from job_vacancies j left join employers e on e.id = j.company_id${conds.length ? ` where ${conds.join(' and ')}` : ''}`;
   const total = (await pool.query(`select count(*)::int c ${base}`, vals)).rows[0].c;
   const { rows } = await pool.query(
     `select j.*, json_build_object('id', e.id, 'company_name', e.company_name, 'accreditation_status', e.accreditation_status) as employers ${base}

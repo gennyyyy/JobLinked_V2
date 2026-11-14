@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
-import { listAllAccreditations } from '@/shared/services/admin'
+import { listAllAccreditations, listAllJobs } from '@/shared/services/admin'
 import { listCompanyDocuments, signedUrl, updateAccreditation, updateDocumentStatus } from '@/shared/services/documents'
 import { PageSkeleton } from '@/shared/components/Skeletons'
 import { InlineError, Pager } from '@/shared/components/dashboard'
@@ -29,6 +29,16 @@ const STATUS_LABELS = {
   resubmission: 'Resubmission Requested',
   revoked: 'Revoked',
 }
+// Same labels as the Job Posts review table (job_vacancies.status enum).
+const JOB_STATUS_LABELS = {
+  draft: 'Draft',
+  pending: 'Pending',
+  approved: 'Approved',
+  rejected: 'Rejected',
+  published: 'Published',
+  closed: 'Closed',
+  archived: 'Archived',
+}
 
 function InfoRow({ label, value }) {
   return (
@@ -42,6 +52,9 @@ function InfoRow({ label, value }) {
 function ReviewModal({ accreditation, onClose, onDecided }) {
   const [docs, setDocs] = useState([])
   const [loading, setLoading] = useState(true)
+  const [jobs, setJobs] = useState([])
+  const [jobsLoading, setJobsLoading] = useState(true)
+  const [jobsError, setJobsError] = useState('')
   const [reason, setReason] = useState('')
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
@@ -54,6 +67,20 @@ function ReviewModal({ accreditation, onClose, onDecided }) {
       .catch(() => setDocs([]))
       .finally(() => setLoading(false))
   }, [accreditation])
+
+  // Aggregate vacancy counts only — no applicant rows or seeker names here.
+  useEffect(() => {
+    if (!accreditation) return
+    listAllJobs({ companyId: accreditation.company_id, pageSize: 500 })
+      .then((result) => setJobs(result.data || []))
+      .catch(() => setJobsError('Could not load this employer\u2019s vacancies.'))
+      .finally(() => setJobsLoading(false))
+  }, [accreditation])
+
+  const jobCounts = useMemo(() => jobs.reduce((counts, job) => {
+    counts[job.status] = (counts[job.status] || 0) + 1
+    return counts
+  }, {}), [jobs])
 
   async function viewDoc(doc) {
     setError('')
@@ -139,6 +166,34 @@ function ReviewModal({ accreditation, onClose, onDecided }) {
                     </li>
                   ))}
                 </ul>
+              )}
+            </div>
+          </section>
+
+          <section>
+            <H3 className="text-sm font-semibold text-navy" animated={false}>Vacancies</H3>
+            <div className="mt-3 rounded-xl border bg-muted/50 p-4">
+              {jobsLoading ? (
+                <p className="text-xs text-muted-foreground">Loading vacancies…</p>
+              ) : jobsError ? (
+                <p className="text-xs text-destructive">{jobsError}</p>
+              ) : jobs.length === 0 ? (
+                <p className="text-xs text-muted-foreground">No vacancies posted yet.</p>
+              ) : (
+                <>
+                  <p className="text-xs font-medium text-navy">
+                    {`${jobs.length} ${jobs.length === 1 ? 'vacancy' : 'vacancies'} posted`}
+                  </p>
+                  <ul className="mt-2 flex flex-wrap gap-x-4 gap-y-1">
+                    {Object.entries(JOB_STATUS_LABELS)
+                      .filter(([status]) => jobCounts[status])
+                      .map(([status, label]) => (
+                        <li key={status} className="text-[11px] text-muted-foreground">
+                          {`${jobCounts[status]} ${label}`}
+                        </li>
+                      ))}
+                  </ul>
+                </>
               )}
             </div>
           </section>
