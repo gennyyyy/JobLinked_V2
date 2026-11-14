@@ -1,6 +1,9 @@
-import { describe, it, expect, vi } from 'vitest'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import TermsModal from '../TermsModal'
+import { getLegal } from '../../services/legal'
+
+vi.mock('../../services/legal', () => ({ getLegal: vi.fn() }))
 
 function renderModal(props = {}) {
   return render(<TermsModal open onClose={vi.fn()} title="Terms & Privacy" body="Some policy body text" {...props} />)
@@ -49,5 +52,23 @@ describe('TermsModal acceptance gate', () => {
     // jsdom has no layout, so the content can't scroll → auto counts as read.
     expect(onRead).toHaveBeenCalled()
     expect(document.body.style.overflow).toBe('hidden')
+  })
+})
+
+describe('TermsModal published privacy notice', () => {
+  beforeEach(() => vi.clearAllMocks())
+
+  it('renders the API body when available', async () => {
+    getLegal.mockResolvedValue('API body')
+    render(<TermsModal open onClose={vi.fn()} title="Terms & Privacy" />)
+    expect(await screen.findByText('API body')).toBeInTheDocument()
+  })
+
+  it('renders the bundled fallback when getLegal rejects', async () => {
+    getLegal.mockRejectedValue(new Error('boom'))
+    render(<TermsModal open onClose={vi.fn()} title="Terms & Privacy" />)
+    await waitFor(() =>
+      expect(screen.getByText(/Data Privacy Act of 2012, RA 10173/)).toBeInTheDocument(),
+    )
   })
 })
