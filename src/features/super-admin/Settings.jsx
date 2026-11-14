@@ -2,10 +2,12 @@ import { useEffect, useState } from 'react'
 import { Plus, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import AccountSettings from '@/shared/components/AccountSettings'
+import ChangePassword from '@/shared/components/ChangePassword'
 import ConfirmationModal from '@/shared/components/ConfirmationModal'
 import { PanelSkeleton } from '@/shared/components/Skeletons'
 import { EmptyState, Panel, TextField } from '@/shared/components/design'
 import { addReferenceData, listReferenceData, removeReferenceData } from '@/shared/services/admin'
+import { revokeAllSessions } from '@/shared/services/account'
 
 // Only the two categories this page owns. `custom_role` rows belong to the
 // Roles page; skills, barangays, and application statuses are code constants,
@@ -141,6 +143,24 @@ function ReferenceCategory({ id, category, title, description, label }) {
 }
 
 export default function Settings() {
+  const [revokeMessage, setRevokeMessage] = useState('')
+  const [revokeError, setRevokeError] = useState('')
+  const [revoking, setRevoking] = useState(false)
+
+  async function handleSignOutAll() {
+    setRevoking(true)
+    setRevokeMessage('')
+    setRevokeError('')
+    try {
+      await revokeAllSessions()
+      setRevokeMessage('Signed out of all devices.')
+    } catch (err) {
+      setRevokeError(err?.message || 'Failed to sign out all devices.')
+    } finally {
+      setRevoking(false)
+    }
+  }
+
   return (
     <AccountSettings childrenBelow uniform>
       <section id="reference-data" aria-labelledby="reference-data-heading">
@@ -152,12 +172,23 @@ export default function Settings() {
           {CATEGORIES.map((item) => <ReferenceCategory key={item.category} {...item} />)}
         </div>
       </section>
-    <section id="security" aria-labelledby="security-heading" className="mt-8">
-      <div className="mb-4">
-        <h2 id="security-heading" className="text-lg font-semibold tracking-tight text-navy">Security</h2>
-        <p className="mt-1 text-xs text-muted-foreground">Password, sessions, and account security settings.</p>
-      </div>
-    </section>
+      <section id="security" className="mt-8" aria-labelledby="security-heading">
+        <div className="mb-4">
+          <h2 id="security-heading" className="text-lg font-semibold tracking-tight text-navy">Security</h2>
+          <p className="mt-1 text-xs text-muted-foreground">Password, sessions, and account access.</p>
+        </div>
+        <div className="grid items-start gap-6 md:grid-cols-2">
+          <ChangePassword />
+          <Panel id="sessions" title="Sessions" description="Sign out every active device.">
+            <p className="text-xs text-muted-foreground">If you think your account is compromised, revoke all sessions and sign back in.</p>
+            <Button type="button" variant="outline" className="mt-4" disabled={revoking} onClick={handleSignOutAll}>
+              {revoking ? 'Signing out…' : 'Sign out all devices'}
+            </Button>
+            {revokeMessage && <p role="status" className="mt-3 text-xs text-success">{revokeMessage}</p>}
+            {revokeError && <p role="alert" className="mt-3 text-xs text-destructive">{revokeError}</p>}
+          </Panel>
+        </div>
+      </section>
     </AccountSettings>
   )
 }

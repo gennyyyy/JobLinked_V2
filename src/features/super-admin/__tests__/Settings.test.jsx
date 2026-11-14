@@ -107,4 +107,11 @@ describe('super-admin Settings', () => {
     expect(await screen.findByText('load failed')).toBeInTheDocument()
     expect(screen.getByText('College')).toBeInTheDocument()
   })
+
+  it('shows the security section with password and session controls', async () => {
+    renderPage()
+    expect(await screen.findByRole('heading', { name: 'Security' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /sign out all devices/i })).toBeInTheDocument()
+    expect(screen.getByLabelText(/current password/i)).toBeInTheDocument()
+  })
 })
