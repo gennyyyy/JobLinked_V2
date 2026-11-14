@@ -6,7 +6,7 @@ import { PageSkeleton } from '@/shared/components/Skeletons'
 import { InlineError } from '@/shared/components/dashboard'
 import { EmploymentActivityChart } from '@/shared/components/lazyCharts'
 import useAuth from '@/shared/hooks/useAuth'
-import { CompanyMark, EmptyState, LinkButton, PageHeading, Panel, StatCards, StatusBadge } from '@/shared/components/design'
+import { CompanyMark, CountUp, EmptyState, LinkButton, PageHeading, Panel, StatCards, StatusBadge } from '@/shared/components/design'
 import { titleCase } from '@/shared/utils/titleCase'
 
 export default function Dashboard() {
@@ -64,6 +64,7 @@ export default function Dashboard() {
         action={<LinkButton href="/super-admin/reports" variant="outline"><ChartNoAxesCombined data-icon="inline-start" />View reports</LinkButton>}
       />
       <StatCards
+        countUp
         stats={[
           { label: 'Registered job seekers', value: stats.seekers ?? 0, icon: Users },
           { label: 'Local employers', value: stats.employers ?? 0, icon: Building2 },
@@ -83,7 +84,7 @@ export default function Dashboard() {
           <div key={label} className="flex items-center gap-4 rounded-xl border bg-card px-5 py-4">
             <span className="teal-icon"><Icon className="size-5" /></span>
             <div>
-              <p className="text-xl font-semibold text-navy">{value}</p>
+              <CountUp value={value} className="text-xl font-semibold text-navy" />
               <p className="mt-1 text-[11px] text-muted-foreground">{label}</p>
             </div>
           </div>
