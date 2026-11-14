@@ -66,7 +66,8 @@ export default function Applications() {
       ]),
     ]
     const csv = rows.map((row) => row.map((cell) => `"${String(cell).replaceAll('"', '""')}"`).join(',')).join('\n')
-    const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }))
+    // BOM keeps Excel from mangling accented text in the downloaded file.
+    const url = URL.createObjectURL(new Blob(['\uFEFF' + csv], { type: 'text/csv' }))
     const link = document.createElement('a')
     link.href = url
     link.download = 'joblinked-DEMO-applications.csv'
