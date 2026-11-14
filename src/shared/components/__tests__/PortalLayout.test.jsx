@@ -14,7 +14,7 @@ import useAuth from '../../hooks/useAuth'
 import TopNavLayout from '../TopNavLayout'
 
 function renderLayout(path, props = {}) {
-  useAuth.mockReturnValue({ user: { id: 'u1', full_name: 'Gabriel Mendoza' }, logout: vi.fn() })
+  useAuth.mockReturnValue({ user: { id: 'u1', full_name: 'Gabriel Mendoza', permissions: null }, logout: vi.fn() })
   return render(
     <MemoryRouter initialEntries={[path]}>
       <TopNavLayout role="super-admin" profileTo="/super-admin/profile" roleLabel="PESO Admin" homeTo="/super-admin" {...props} />
