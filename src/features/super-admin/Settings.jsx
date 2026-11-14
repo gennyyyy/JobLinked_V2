@@ -80,7 +80,7 @@ function ReferenceCategory({ category, title, description, label }) {
   if (loading) return <PanelSkeleton lines={2} label={`Loading ${title.toLowerCase()}…`} />
 
   return (
-    <Panel title={title} description={description} className="h-[26rem]" contentClassName="flex min-h-0 flex-1 flex-col overflow-hidden">
+    <Panel title={title} description={description} className="h-[34rem]" contentClassName="flex min-h-0 flex-1 flex-col overflow-hidden">
       <div className="min-h-0 flex-1 overflow-y-auto pr-1">
         {error && <p role="alert" className="mb-4 text-xs text-destructive">{error}</p>}
         {rows.length === 0 ? (
