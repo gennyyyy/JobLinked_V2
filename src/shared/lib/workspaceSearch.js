@@ -12,7 +12,7 @@ const WORKSPACE_SECTIONS = [
   { title: 'Education', path: '/job-seeker/profile', sectionId: 'education', keywords: ['school', 'course', 'training', 'vocational'], roles: ['job-seeker'] },
   { title: 'My resumes', path: '/job-seeker/profile', sectionId: 'resumes', keywords: ['resume', 'cv', 'upload', 'pdf', 'docx'], roles: ['job-seeker'] },
   { title: 'Account overview', path: '/job-seeker/profile', sectionId: 'account-overview', keywords: ['account', 'email', 'name', 'workspace'], roles: ['job-seeker'] },
-  { title: 'Notification preferences', path: '/job-seeker/profile', sectionId: 'notification-preferences', keywords: ['notifications', 'alerts', 'updates', 'announcements'], roles: ['job-seeker'] },
+  { title: 'Notification preferences', path: '/job-seeker/profile', sectionId: 'notification-preferences', keywords: ['notifications', 'alerts', 'updates', 'announcements', 'preferences'], roles: ['job-seeker'] },
   { title: 'Privacy', path: '/job-seeker/profile', sectionId: 'privacy', keywords: ['privacy', 'data', 'terms'], roles: ['job-seeker'] },
 
   { title: 'Password settings', path: '/employer/company', sectionId: 'password-settings', keywords: PASSWORD_KEYWORDS, roles: ['employer'] },
@@ -23,8 +23,11 @@ const WORKSPACE_SECTIONS = [
   { title: 'Password settings', path: '/super-admin/profile', sectionId: 'password-settings', keywords: PASSWORD_KEYWORDS, roles: ['super-admin'] },
   { title: 'Personal details', path: '/super-admin/profile', sectionId: 'personal-details', keywords: ['name', 'email', 'profile'], roles: ['super-admin'] },
   { title: 'Administrator access', path: '/super-admin/profile', sectionId: 'administrator-access', keywords: ['role', 'access', 'permissions'], roles: ['super-admin'] },
-  { title: 'Account overview', path: '/super-admin/settings', sectionId: 'account-overview', keywords: ['account', 'email', 'workspace'], roles: ['super-admin'] },
-  { title: 'Notification preferences', path: '/super-admin/settings', sectionId: 'notification-preferences', keywords: ['notifications', 'alerts', 'updates'], roles: ['super-admin'] },
+  { title: 'Reference data', path: '/super-admin/settings', sectionId: 'reference-data', keywords: ['reference', 'data', 'values'], roles: ['super-admin'] },
+  { title: 'Employment types', path: '/super-admin/settings', sectionId: 'employment-types', keywords: ['employment', 'type', 'job'], roles: ['super-admin'] },
+  { title: 'Education levels', path: '/super-admin/settings', sectionId: 'education-levels', keywords: ['education', 'level', 'school'], roles: ['super-admin'] },
+  { title: 'Security', path: '/super-admin/settings', sectionId: 'security', keywords: ['security', 'password', 'mfa', 'sessions'], roles: ['super-admin'] },
+  { title: 'Notification preferences', path: '/super-admin/settings', sectionId: 'notification-preferences', keywords: ['notifications', 'alerts', 'updates', 'preferences'], roles: ['super-admin'] },
   { title: 'Privacy', path: '/super-admin/settings', sectionId: 'privacy', keywords: ['privacy', 'data', 'terms'], roles: ['super-admin'] },
 ]
 
