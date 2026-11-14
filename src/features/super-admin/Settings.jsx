@@ -1,11 +1,14 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { Plus, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Textarea } from '@/components/ui/textarea'
 import AccountSettings from '@/shared/components/AccountSettings'
 import ConfirmationModal from '@/shared/components/ConfirmationModal'
 import { PanelSkeleton } from '@/shared/components/Skeletons'
 import { EmptyState, Notice, Panel, TextField } from '@/shared/components/design'
 import { addReferenceData, listReferenceData, removeReferenceData } from '@/shared/services/admin'
+import { getLegal, updateLegal } from '@/shared/services/legal'
 import useAuth from '@/shared/hooks/useAuth'
 import { hasPermission } from '@/shared/lib/permissions'
 
@@ -144,6 +147,76 @@ function ReferenceCategory({ id, category, title, description, label, disabled =
   )
 }
 
+function LegalDocumentsSection({ disabled }) {
+  const [docs, setDocs] = useState({ privacy: '', terms: '' })
+  const [drafts, setDrafts] = useState({ privacy: '', terms: '' })
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(null)
+  const [messages, setMessages] = useState({ privacy: '', terms: '' })
+  const [errors, setErrors] = useState({ privacy: '', terms: '' })
+
+  useEffect(() => {
+    let cancelled = false
+    Promise.all([getLegal('privacy'), getLegal('terms')])
+      .then(([privacy, terms]) => {
+        if (cancelled) return
+        setDocs({ privacy, terms })
+        setDrafts({ privacy, terms })
+        setLoading(false)
+      })
+      .catch(() => { if (!cancelled) setLoading(false) })
+    return () => { cancelled = true }
+  }, [])
+
+  async function handleSave(key) {
+    setSaving(key)
+    setMessages((m) => ({ ...m, [key]: '' }))
+    setErrors((e) => ({ ...e, [key]: '' }))
+    try {
+      const updated = await updateLegal(key, drafts[key])
+      const next = (updated && typeof updated.body === 'string') ? updated.body : drafts[key]
+      setDocs((d) => ({ ...d, [key]: next }))
+      setDrafts((d) => ({ ...d, [key]: next }))
+      setMessages((m) => ({ ...m, [key]: 'Saved.' }))
+    } catch (err) {
+      setErrors((e) => ({ ...e, [key]: err?.message || 'Failed to save.' }))
+    } finally {
+      setSaving(null)
+    }
+  }
+
+  if (loading) return <PanelSkeleton lines={8} label="Loading legal documents…" />
+
+  return (
+    <>
+      {disabled && <Notice warning className="mb-4">You don't have permission to edit legal documents.</Notice>}
+      {['privacy', 'terms'].map((key) => {
+        const title = key === 'privacy' ? 'Privacy notice' : 'Terms of use'
+        const dirty = drafts[key] !== docs[key]
+        return (
+          <Panel key={key} id={`legal-${key}`} title={title} description="Published text shown on the public site and in the registration consent modal." className="mb-6">
+            <Textarea
+              className="min-h-[20rem] font-mono text-xs"
+              value={drafts[key]}
+              onChange={(e) => setDrafts((d) => ({ ...d, [key]: e.target.value }))}
+              disabled={disabled}
+              aria-label={`${title} body`}
+            />
+            <div className="mt-4 flex flex-wrap items-center gap-3">
+              <Button type="button" size="sm" disabled={disabled || saving === key || !dirty} onClick={() => handleSave(key)}>
+                {saving === key ? 'Saving…' : 'Save'}
+              </Button>
+              <Link to={key === 'privacy' ? '/privacy' : '/terms'} className="text-link text-xs">View published</Link>
+              {messages[key] && <p role="status" className="text-xs text-success">{messages[key]}</p>}
+              {errors[key] && <p role="alert" className="text-xs text-destructive">{errors[key]}</p>}
+            </div>
+          </Panel>
+        )
+      })}
+    </>
+  )
+}
+
 export default function Settings() {
   const { user } = useAuth() || {}
   const canManage = hasPermission(user, 'settings.manage')
@@ -160,6 +233,13 @@ export default function Settings() {
         <div className="grid items-start gap-6 md:grid-cols-2">
           {CATEGORIES.map((item) => <ReferenceCategory key={item.category} {...item} disabled={!canManage} />)}
         </div>
+      </section>
+      <section id="legal-documents" aria-labelledby="legal-documents-heading" className="mt-8">
+        <div className="mb-3">
+          <h2 id="legal-documents-heading" className="text-lg font-semibold tracking-tight text-navy">Legal documents</h2>
+          <p className="mt-1 text-xs text-muted-foreground">Privacy notice and terms of use shown on the public site and in registration.</p>
+        </div>
+        <LegalDocumentsSection disabled={!canManage} />
       </section>
     </AccountSettings>
     </>
