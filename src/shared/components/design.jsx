@@ -127,7 +127,7 @@ export function SearchInput({ value, onChange, placeholder = "Search records…"
       </InputGroup>
     </div>);
 }
-export function StatCards({ stats, }) {
+export function StatCards({ stats, countUp = false, }) {
     return (<div className="mb-6 grid grid-cols-2 gap-4 xl:grid-cols-4">
       {stats.map(({ label, value, icon: Icon, note, tone }) => (<div className="surface flex flex-col gap-4" key={label}>
           <div className="flex items-center justify-between gap-2">
@@ -135,9 +135,9 @@ export function StatCards({ stats, }) {
             <Icon className={cn("size-[18px] text-primary", tone === "teal" && "text-teal")}/>
           </div>
           <div>
-            <p className="text-[29px] font-semibold leading-none tracking-tight text-navy">
+            {countUp && typeof value === "number" && Number.isFinite(value) ? (<CountUp value={value} className="text-[29px] font-semibold leading-none tracking-tight text-navy"/>) : (<p className="text-[29px] font-semibold leading-none tracking-tight text-navy">
               {value}
-            </p>
+            </p>)}
             <p className="mt-2 text-[10px] text-muted-foreground">
               {note ?? "Current records"}
             </p>
