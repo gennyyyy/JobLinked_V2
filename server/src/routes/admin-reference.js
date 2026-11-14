@@ -176,4 +176,57 @@ router.delete('/admin/reference/:id', ...settingsAdmin, ah(async (req, res) => {
   res.json({ deleted: true });
 }));
 
+router.patch('/admin/reference/:id', ...settingsAdmin, ah(async (req, res) => {
+  if (!isNumericId(req.params.id)) return err(res, 400, 'BAD_REQUEST', 'Invalid id');
+
+  const { rows: found } = await pool.query(
+    'select id, category, value, sort_order from reference_data where id = $1', [req.params.id]);
+  if (!found[0]) return err(res, 404, 'NOT_FOUND', 'Reference not found');
+  const existing = found[0];
+  if (existing.category === 'custom_role') {
+    return err(res, 400, 'BAD_REQUEST', 'custom_role is managed via /admin/roles');
+  }
+
+  const body = req.body || {};
+  const hasValue = body.value !== undefined;
+  const hasSort = body.sort_order !== undefined;
+  if (!hasValue && !hasSort) return err(res, 400, 'BAD_REQUEST', 'Nothing to update');
+
+  let trimmedValue;
+  if (hasValue) {
+    trimmedValue = String(body.value).trim();
+    if (trimmedValue.length < 1 || trimmedValue.length > 80) {
+      return err(res, 400, 'BAD_REQUEST', 'value must be 1-80 characters');
+    }
+    const { rows: dup } = await pool.query(
+      'select id from reference_data where category = $1 and lower(value) = lower($2) and id <> $3',
+      [existing.category, trimmedValue, req.params.id]);
+    if (dup.length) return err(res, 409, 'CONFLICT', 'Reference value already exists');
+  }
+
+  let sortOrder;
+  if (hasSort) {
+    if (typeof body.sort_order !== 'number' || !Number.isInteger(body.sort_order) ||
+        body.sort_order < 0 || body.sort_order > 9999) {
+      return err(res, 400, 'BAD_REQUEST', 'sort_order must be an integer 0-9999');
+    }
+    sortOrder = body.sort_order;
+  }
+
+  const setClauses = [];
+  const params = [];
+  if (hasValue) { setClauses.push(`value = $${params.length + 1}`); params.push(trimmedValue); }
+  if (hasSort) { setClauses.push(`sort_order = $${params.length + 1}`); params.push(sortOrder); }
+  params.push(req.params.id);
+
+  const { rows } = await pool.query(
+    `update reference_data set ${setClauses.join(', ')} where id = $${params.length} returning *`,
+    params);
+  if (!rows[0]) return err(res, 404, 'NOT_FOUND', 'Reference not found');
+
+  void audit(req.user.id, 'settings.reference.update', 'reference_data', req.params.id,
+    { category: rows[0].category, value: rows[0].value, sort_order: rows[0].sort_order });
+  res.status(200).json(rows[0]);
+}));
+
 export default router;
