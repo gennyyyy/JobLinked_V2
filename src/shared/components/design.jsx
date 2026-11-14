@@ -318,9 +318,8 @@ function Heading({ tag: Tag = "h3", rich = false, children, className, animated 
         let observer;
         let observing = false;
         try {
-            // Negative bottom margin holds the reveal until the text is ~25% of
-            // the viewport inside the screen, so short items (stat numbers) animate
-            // where the user is looking instead of firing at the viewport edge.
+            // No inset margin: the reveal starts as soon as any part of the
+            // element is visible in the viewport.
             observer = new window.IntersectionObserver(([entry], obs) => {
                 if (!entry.isIntersecting)
                     return;
@@ -332,7 +331,7 @@ function Heading({ tag: Tag = "h3", rich = false, children, className, animated 
                     setState("run");
                 else
                     flushSync(() => setState("run"));
-            }, { rootMargin: "0px 0px -25% 0px" });
+            }, { rootMargin: "0px" });
             observing = true;
             observer.observe(ref.current);
         }
@@ -392,7 +391,7 @@ export function CountUp({ value, duration = 600, className, ...props }) {
                 return;
             obs.disconnect();
             setInView(true);
-        }, { rootMargin: "0px 0px -25% 0px" });
+        }, { rootMargin: "0px" });
         observer.observe(ref.current);
         return () => observer.disconnect();
     }, [canAnimate]);
