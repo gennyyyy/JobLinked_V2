@@ -51,10 +51,17 @@ describe('CountUp', () => {
     expect(frames.size).toBe(0)
   })
 
-  it('renders the final value immediately under reduced motion', () => {
+  it('still counts under reduced motion (a value change is not vestibular motion)', () => {
     reduced = true
     const { container } = render(<CountUp value={101} />)
-    expect(container.querySelector('p')).toHaveTextContent((101).toLocaleString())
+    const p = container.querySelector('p')
+    expect(p.textContent).toBe('0') // auto-fired in view, but not the final value
+    expect(frames.size).toBe(1)
+    runFrame(0)
+    runFrame(400)
+    expect(p.textContent).toBe(String(Math.round(101 * 0.875)))
+    runFrame(800)
+    expect(p.textContent).toBe((101).toLocaleString())
     expect(frames.size).toBe(0)
   })
 

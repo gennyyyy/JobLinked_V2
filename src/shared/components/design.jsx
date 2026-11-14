@@ -373,12 +373,13 @@ export function RevealText({ as: Tag = "span", children, className, animated = t
 export function CountUp({ value, duration = 800, className, ...props }) {
     // Stat numbers count 0 → value instead of revealing by letter (ADR-051
     // amendment): the same one-shot in-view trigger, but the number itself
-    // animates. Reduced motion and non-IO environments get the final value at
-    // once, and the 30 s refresh updates the number without re-counting.
+    // animates. It runs under prefers-reduced-motion too — a changing value is
+    // not vestibular motion — so only a missing IntersectionObserver
+    // (jsdom/legacy) gets the final value at once. The 30 s refresh updates
+    // the number without re-counting.
     const numeric = typeof value === "number" && Number.isFinite(value) ? value : null;
     const [canAnimate] = useState(() => typeof window !== "undefined"
-        && typeof window.IntersectionObserver === "function"
-        && !window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches);
+        && typeof window.IntersectionObserver === "function");
     const ref = useRef(null);
     const [inView, setInView] = useState(false);
     const [count, setCount] = useState(0);
