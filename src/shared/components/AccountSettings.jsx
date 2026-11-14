@@ -161,15 +161,17 @@ export default function AccountSettings({ embedded = false, children, childrenBe
         />
       )}
       {uniform ? (
-        <section aria-labelledby="account-preferences-heading">
-          <div className="mb-3">
-            <h2 id="account-preferences-heading" className="text-lg font-semibold tracking-tight text-navy">Account &amp; preferences</h2>
-            <p className="mt-1 text-xs text-muted-foreground">Your details, notification preferences, and privacy information.</p>
-          </div>
-          <div className="max-w-md">
-            {!embedded && showPrivacy && <PrivacyPanel {...UNIFORM_PANEL} />}
-          </div>
-        </section>
+        showPrivacy ? (
+          <section aria-labelledby="account-preferences-heading">
+            <div className="mb-3">
+              <h2 id="account-preferences-heading" className="text-lg font-semibold tracking-tight text-navy">Account &amp; preferences</h2>
+              <p className="mt-1 text-xs text-muted-foreground">Your details, notification preferences, and privacy information.</p>
+            </div>
+            <div className="max-w-md">
+              <PrivacyPanel {...UNIFORM_PANEL} />
+            </div>
+          </section>
+        ) : null
       ) : (
         <div className="grid items-start gap-6 xl:grid-cols-[1.25fr_1fr]">
           <div className="flex min-w-0 flex-col gap-6">

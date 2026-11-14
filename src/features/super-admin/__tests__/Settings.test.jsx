@@ -46,8 +46,8 @@ describe('super-admin Settings', () => {
     expect(screen.getByText('Employment types')).toBeInTheDocument()
     expect(screen.getByText('Education levels')).toBeInTheDocument()
     expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1)
-    expect(screen.getByRole('heading', { name: 'Account & preferences' })).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Reference data' })).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Account & preferences' })).toBeNull()
     expect(screen.queryByText('Account overview')).toBeNull()
   })
 
