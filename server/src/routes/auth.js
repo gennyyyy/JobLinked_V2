@@ -171,6 +171,19 @@ router.get('/auth/me', tokenAuth, ah(async (req, res) => {
   const found = await resolveRole(req.user.id);
   if (!found) return err(res, 404, 'NOT_FOUND', 'Profile not found for this account');
   if (found.profile.status !== 'active') return err(res, 403, 'FORBIDDEN', 'This account has been suspended or deactivated. Contact PESO.');
+  // Role-table email sync (Phase 2, Task 2.2): Supabase is identity; the role
+  // row's email lags until the next /auth/me. Sync idempotently on a mismatch.
+  const tokenEmail = req.user.email;
+  if (typeof tokenEmail === 'string' && tokenEmail.length > 0 && tokenEmail !== found.profile.email) {
+    const table = found.role === 'job-seeker' ? 'job_seekers'
+      : found.role === 'employer' ? 'employers'
+      : found.role === 'super-admin' ? 'super_admins' : null;
+    if (table) {
+      await pool.query(`update ${table} set email = $2 where id = $1`, [found.profile.id, tokenEmail]);
+      void audit(req.user.id, 'account.email.sync', table, found.profile.id, { from: found.profile.email, to: tokenEmail });
+      found.profile.email = tokenEmail;
+    }
+  }
   // ADR-040: tell the client whether an avatar exists so a photo-less profile
   // makes no image request at all (and a removed photo does not 404 on reload).
   if (found.role === 'job-seeker') {

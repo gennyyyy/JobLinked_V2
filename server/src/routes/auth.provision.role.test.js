@@ -243,13 +243,16 @@ describe('auth/me status gate', () => {
     const r = await me();
     expect(r.status).toBe(200);
     expect(await r.json()).toEqual({
-      id: 'user-1', status: 'active', role: 'job-seeker', has_avatar: false, avatar_updated_at: null,
+      id: 'user-1', status: 'active', role: 'job-seeker', has_avatar: false, avatar_updated_at: null, email: 'u@x.com',
     });
   });
 
   it('reports has_avatar for a seeker with a photo, never the bytes', async () => {
     mocks.resolveRole.mockResolvedValue({ role: 'job-seeker', profile: { id: 'user-1', status: 'active' } });
-    mocks.poolQuery.mockResolvedValueOnce({ rows: [{ updated_at: '2026-01-01T00:00:00.000Z' }] });
+    // sync update + audit run before the avatar lookup under the new flow
+    mocks.poolQuery.mockResolvedValueOnce({ rows: [], rowCount: 1 }); // update
+    mocks.poolQuery.mockResolvedValueOnce({ rows: [], rowCount: 1 }); // audit
+    mocks.poolQuery.mockResolvedValueOnce({ rows: [{ updated_at: '2026-01-01T00:00:00.000Z' }] }); // avatar
     const r = await me();
     expect(r.status).toBe(200);
     const body = await r.json();
