@@ -1,8 +1,10 @@
 import { Router } from 'express';
 import { pool } from '../db.js';
-import { tokenAuth } from '../auth.js';
+import { tokenAuth, resolveRole } from '../auth.js';
 import { ah, err, audit } from '../util.js';
 import logger from '../logger.js';
+
+const ROLE_TABLE = { 'super-admin': 'super_admins', employer: 'employers', 'job-seeker': 'job_seekers' };
 
 const router = Router();
 
@@ -65,6 +67,45 @@ router.post('/account/sessions/revoke-all', tokenAuth, ah(async (req, res) => {
   }
   void audit(req.user.id, 'account.sessions.revoke', 'user_preferences', req.user.id);
   res.json({ revoked: true });
+}));
+
+router.post('/account/deactivate', tokenAuth, ah(async (req, res) => {
+  if ((req.body || {}).confirm !== 'DEACTIVATE') {
+    return err(res, 400, 'CONFIRM_REQUIRED', 'Confirmation required');
+  }
+  const found = await resolveRole(req.user.id);
+  if (!found) return err(res, 404, 'NOT_FOUND', 'Account not found');
+  const role = found.role;
+  const table = ROLE_TABLE[role];
+  if (!table) return err(res, 404, 'NOT_FOUND', 'Account not found');
+
+  if (role === 'super-admin') {
+    const { rows } = await pool.query(
+      `select count(*)::int c from super_admins where status = 'active' and custom_role_id is null and id <> $1`,
+      [req.user.id]);
+    if ((rows[0]?.c ?? 0) === 0) {
+      return err(res, 409, 'LAST_ADMIN', 'Cannot deactivate the last full admin');
+    }
+  }
+
+  await pool.query(`update ${table} set status = 'inactive' where id = $1`, [req.user.id]);
+  void audit(req.user.id, 'account.deactivate', table, req.user.id);
+
+  // Best-effort: revoke sessions via GoTrue admin logout, swallowing errors.
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const url = `${String(process.env.SUPABASE_URL || '').replace(/\/+$/, '')}/auth/v1/admin/users/${encodeURIComponent(req.user.id)}/logout`;
+  try {
+    const upstream = await fetch(url, {
+      method: 'POST',
+      headers: { apikey: key, Authorization: `Bearer ${key}` },
+      signal: AbortSignal.timeout(10_000),
+    });
+    if (upstream && !upstream.ok) {
+      try { await upstream.body?.cancel?.(); } catch { /* already gone */ }
+    }
+  } catch { /* best-effort */ }
+
+  res.json({ deactivated: true });
 }));
 
 export default router;
