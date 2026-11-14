@@ -11,7 +11,7 @@ import EmailChangePanel from '@/shared/components/EmailChangePanel'
 import MfaPanel from '@/shared/components/MfaPanel'
 import DangerZonePanel from '@/shared/components/DangerZonePanel'
 import TabbedProfileLayout from '@/shared/components/TabbedProfileLayout'
-import { LinkButton, Panel, TextField } from '@/shared/components/design'
+import { Panel, TextField } from '@/shared/components/design'
 import { ROLE_LABELS } from '@/shared/constants'
 
 const PROFILE_TABS = [
@@ -95,9 +95,7 @@ export default function Profile() {
               <dd className="break-all">{user?.id}</dd>
             </dl>
           </Panel>
-          <LinkButton href="/super-admin/settings" variant="outline" className="mt-5">
-            Manage security & preferences in Settings
-          </LinkButton>
+
         </div>
       </TabsContent>
       <TabsContent value="security" id="security" keepMounted>
