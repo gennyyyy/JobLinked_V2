@@ -207,6 +207,19 @@ export async function changePassword(currentPassword, newPassword, captchaToken)
   if (error) throw friendlyAuthError(error);
 }
 
+export async function changeEmail(newEmail, currentPassword, captchaToken) {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user?.email) throw new Error('No active account found.');
+  const { error: verifyError } = await supabase.auth.signInWithPassword({
+    email: user.email,
+    password: currentPassword,
+    ...(captchaToken ? { options: { captchaToken } } : {}),
+  });
+  if (verifyError) throw new Error('Current password is incorrect.');
+  const { error } = await supabase.auth.updateUser({ email: newEmail }, { emailRedirectTo: `${window.location.origin}/auth/callback` });
+  if (error) throw friendlyAuthError(error);
+}
+
 export async function resetPassword(email, captchaToken) {
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
     redirectTo: `${window.location.origin}/reset-password`,

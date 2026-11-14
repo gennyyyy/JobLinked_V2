@@ -10,7 +10,7 @@ import { ROLE_LABELS } from '@/shared/constants'
 export default function Profile() {
   const { user, refreshUser } = useAuth()
   const [name, setName] = useState(user?.full_name || user?.name || '')
-  const [email, setEmail] = useState(user?.email || '')
+  const [email] = useState(user?.email || '')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [saved, setSaved] = useState(false)
@@ -46,10 +46,9 @@ export default function Profile() {
         >
           <form onSubmit={handleSubmit} className="flex flex-col gap-5">
             <TextField label="Full name" value={name} onChange={(event) => setName(event.target.value)} required />
-            <TextField label="Email address" type="email" value={email} onChange={(event) => setEmail(event.target.value)} required />
-            {error && <p role="alert" className="text-xs text-destructive">{error}</p>}
+            <TextField label="Email address" type="email" value={email} readOnly help="Login email is managed by Supabase. Use Settings → Security to change it." />            {error && <p role="alert" className="text-xs text-destructive">{error}</p>}
             {saved && <p className="text-xs text-success">Profile saved.</p>}
-            <Button type="submit" disabled={saving || !name.trim() || !email.trim()}>
+            <Button type="submit" disabled={saving || !name.trim()}>
               <Save data-icon="inline-start" />
               {saving ? 'Saving...' : 'Save profile'}
             </Button>

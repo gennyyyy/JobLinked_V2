@@ -4,12 +4,13 @@ import { Save, ShieldCheck } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
 import { Field, FieldDescription, FieldGroup, FieldLabel } from '@/components/ui/field'
-import { PageHeading, Panel } from './design'
+import { PageHeading, Panel, TextField } from './design'
 import { LinkButton } from './design'
 import useAuth from '../hooks/useAuth'
 import { ROLE_LABELS } from '../constants'
 import { titleCase } from '../utils/titleCase'
 import { getPreferences, updatePreferences } from '../services/account'
+import { changeEmail } from '../services/auth'
 
 // Equal-height settings cards: the fixed height keeps the grid rows level and
 // the body scrolls instead of stretching the card.
@@ -38,6 +39,10 @@ export default function AccountSettings({ embedded = false, children, childrenBe
   const [savingPrefs, setSavingPrefs] = useState(false)
   const [prefsMessage, setPrefsMessage] = useState('')
   const [prefsSaveError, setPrefsSaveError] = useState('')
+  const [emailForm, setEmailForm] = useState({ current: '', newEmail: '' })
+  const [emailSaving, setEmailSaving] = useState(false)
+  const [emailMessage, setEmailMessage] = useState('')
+  const [emailError, setEmailError] = useState('')
 
   useEffect(() => {
     let cancelled = false
@@ -97,6 +102,30 @@ export default function AccountSettings({ embedded = false, children, childrenBe
     setPrefsSaveError('')
   }
 
+  async function handleChangeEmail(event) {
+    event?.preventDefault?.()
+    setEmailMessage('')
+    setEmailError('')
+    if (!emailForm.current) {
+      setEmailError('Enter your current password.')
+      return
+    }
+    if (!emailForm.newEmail) {
+      setEmailError('Enter a new email address.')
+      return
+    }
+    setEmailSaving(true)
+    try {
+      await changeEmail(emailForm.newEmail, emailForm.current)
+      setEmailForm({ current: '', newEmail: '' })
+      setEmailMessage('Check your inbox to confirm the new address.')
+    } catch (err) {
+      setEmailError(err?.message || 'Failed to update email.')
+    } finally {
+      setEmailSaving(false)
+    }
+  }
+
   const isAdmin = user?.role === 'super-admin'
   const profilePath = user?.role === 'employer' ? '/employer/company' : '/job-seeker/profile'
   const PreferencesForm = embedded ? 'div' : 'form'
@@ -148,6 +177,20 @@ export default function AccountSettings({ embedded = false, children, childrenBe
     </Panel>
   )
 
+  const emailPanel = (panelProps) => (
+    <Panel id="email-change" title="Change email" description="Update the email address used to sign in." {...panelProps}>
+      <form onSubmit={handleChangeEmail} className="flex flex-col gap-5">
+        <TextField label="Current password" type="password" autoComplete="current-password" required value={emailForm.current} onChange={(e) => setEmailForm((prev) => ({ ...prev, current: e.target.value }))} />
+        <TextField label="New email" type="email" autoComplete="email" required value={emailForm.newEmail} onChange={(e) => setEmailForm((prev) => ({ ...prev, newEmail: e.target.value }))} />
+        {emailMessage && <p role="status" className="text-xs text-success">{emailMessage}</p>}
+        {emailError && <p role="alert" className="text-xs text-destructive">{emailError}</p>}
+        <Button type="submit" disabled={emailSaving}>
+          {emailSaving ? 'Updating…' : 'Update email'}
+        </Button>
+      </form>
+    </Panel>
+  )
+
   return (
     <>
       {!embedded && (
@@ -165,6 +208,7 @@ export default function AccountSettings({ embedded = false, children, childrenBe
           </div>
           <div className="grid items-stretch gap-6 sm:grid-cols-2">
             {!embedded && notificationsPanel(UNIFORM_PANEL)}
+            {!embedded && emailPanel(UNIFORM_PANEL)}
             {!embedded && showPrivacy && <PrivacyPanel {...UNIFORM_PANEL} />}
           </div>
         </section>
@@ -175,6 +219,7 @@ export default function AccountSettings({ embedded = false, children, childrenBe
             {embedded ? notificationsPanel() : showPrivacy && <PrivacyPanel />}
           </div>
           <div className="flex min-w-0 flex-col gap-6">
+            {!embedded && emailPanel()}
             {!embedded && notificationsPanel()}
             {!childrenBelow && children}
           </div>
