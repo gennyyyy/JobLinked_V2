@@ -47,6 +47,7 @@ describe('super-admin Settings', () => {
     expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1)
     expect(screen.getByRole('heading', { name: 'Account & preferences' })).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Reference data' })).toBeInTheDocument()
+    expect(screen.queryByText('Account overview')).toBeNull()
   })
 
   it('adds a value to a category', async () => {
