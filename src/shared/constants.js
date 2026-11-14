@@ -141,11 +141,6 @@ export const JOB_EDUCATION_LEVELS = [
   'Post-Graduate',
 ];
 
-// Interview instruction presets (ADR-014) — composed into
-// job_applications.interview_instructions at send time.
-export const INTERVIEW_ATTIRE = ['Business Attire', 'Formal / Corporate', 'Office Attire', 'Casual'];
-export const INTERVIEW_BRING = ['Updated Resume / CV', 'Valid Government ID', '2×2 ID Picture', 'NBI Clearance', 'Application Letter', 'Ballpen', 'Certificate of Employment', 'Transcript of Records'];
-
 // Work-experience presets for job postings; 0 = no experience required.
 // Employers can pick "Custom…" to type any number of years.
 export const JOB_EXPERIENCE_PRESETS = [0, 1, 2, 3, 5];
@@ -179,14 +174,6 @@ export const DOC_TYPES = [
   'PhilHealth Registration',
   'Fire Safety Inspection Certificate',
 ];
-
-export const NOTIFICATION_TYPES = {
-  APPLICATION: 'application',
-  JOB: 'job',
-  ACCREDITATION: 'accreditation',
-  DOCUMENT: 'document',
-  SYSTEM: 'system',
-};
 
 // Single sign-in entry for every role: the portal is resolved from the account,
 // so there is no portal chooser and no per-portal login page.

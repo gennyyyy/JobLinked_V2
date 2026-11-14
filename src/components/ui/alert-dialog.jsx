@@ -5,9 +5,6 @@ import { Button } from "@/components/ui/button";
 function AlertDialog({ ...props }) {
     return <AlertDialogPrimitive.Root data-slot="alert-dialog" {...props}/>;
 }
-function AlertDialogTrigger({ ...props }) {
-    return (<AlertDialogPrimitive.Trigger data-slot="alert-dialog-trigger" {...props}/>);
-}
 function AlertDialogPortal({ ...props }) {
     return (<AlertDialogPrimitive.Portal data-slot="alert-dialog-portal" {...props}/>);
 }
@@ -26,9 +23,6 @@ function AlertDialogHeader({ className, ...props }) {
 function AlertDialogFooter({ className, ...props }) {
     return (<div data-slot="alert-dialog-footer" className={cn("-mx-4 -mb-4 flex flex-col-reverse gap-2 rounded-b-xl border-t bg-muted/50 p-4 group-data-[size=sm]/alert-dialog-content:grid group-data-[size=sm]/alert-dialog-content:grid-cols-2 sm:flex-row sm:justify-end", className)} {...props}/>);
 }
-function AlertDialogMedia({ className, ...props }) {
-    return (<div data-slot="alert-dialog-media" className={cn("mb-2 inline-flex size-10 items-center justify-center rounded-md bg-muted sm:group-data-[size=default]/alert-dialog-content:row-span-2 *:[svg:not([class*='size-'])]:size-6", className)} {...props}/>);
-}
 function AlertDialogTitle({ className, ...props }) {
     return (<AlertDialogPrimitive.Title data-slot="alert-dialog-title" className={cn("text-base font-medium sm:group-data-[size=default]/alert-dialog-content:group-has-data-[slot=alert-dialog-media]/alert-dialog-content:col-start-2", className)} {...props}/>);
 }
@@ -41,4 +35,4 @@ function AlertDialogAction({ className, ...props }) {
 function AlertDialogCancel({ className, variant = "outline", size = "default", ...props }) {
     return (<AlertDialogPrimitive.Close data-slot="alert-dialog-cancel" className={cn(className)} render={<Button variant={variant} size={size}/>} {...props}/>);
 }
-export { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogMedia, AlertDialogOverlay, AlertDialogPortal, AlertDialogTitle, AlertDialogTrigger, };
+export { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, };

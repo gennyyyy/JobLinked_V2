@@ -2,12 +2,11 @@
 import { Link } from "react-router-dom";
 import { cloneElement, isValidElement, useEffect, useId, useRef, useState } from "react";
 import { flushSync } from "react-dom";
-import { ArrowRight, CheckCircle2, ChevronDown, Search, ShieldCheck, Loader2, } from "lucide-react";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { ArrowRight, CheckCircle2, ChevronDown, Search, ShieldCheck, } from "lucide-react";
+import { buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter, CardAction, } from "@/components/ui/card";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
-import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction, } from "@/components/ui/alert-dialog";
 import { Empty, EmptyHeader, EmptyMedia, EmptyTitle, EmptyDescription, EmptyContent, } from "@/components/ui/empty";
 import { Field, FieldLabel, FieldError, FieldDescription, } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
@@ -144,39 +143,6 @@ export function StatCards({ stats, countUp = false, }) {
           </div>
         </div>))}
     </div>);
-}
-export function ConfirmButton({ children, title, description, onConfirm, variant = "destructive", className, }) {
-    const [open, setOpen] = useState(false);
-    const [busy, setBusy] = useState(false);
-    return (<>
-      <Button variant={variant} className={className} onClick={() => setOpen(true)}>
-        {children}
-      </Button>
-      <AlertDialog open={open} onOpenChange={setOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{title}</AlertDialogTitle>
-            <AlertDialogDescription>{description}</AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={busy}>Cancel</AlertDialogCancel>
-            <AlertDialogAction variant={variant} disabled={busy} onClick={async () => {
-            setBusy(true);
-            try {
-                await onConfirm();
-                setOpen(false);
-            }
-            finally {
-                setBusy(false);
-            }
-        }}>
-              {busy && (<Loader2 data-icon="inline-start" className="animate-spin"/>)}
-              Confirm
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </>);
 }
 export function TextField({ label, error, help, multiline, ...props }) {
     const fieldId = props.id ?? props.name ?? label.toLowerCase().replaceAll(" ", "-");

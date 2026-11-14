@@ -30,4 +30,4 @@ function Badge({ className, variant = "default", render, ...props }) {
         },
     });
 }
-export { Badge, badgeVariants };
+export { Badge };

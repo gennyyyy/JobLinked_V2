@@ -6,7 +6,7 @@ import { PRIVACY_NOTICE } from "../content/legal";
 
 // The registration consent is the privacy notice verbatim (G2): one source of
 // truth with /privacy and /terms, which live in shared/content/legal.js.
-export const TERMS_PLACEHOLDER = PRIVACY_NOTICE;
+const TERMS_PLACEHOLDER = PRIVACY_NOTICE;
 
 function TermsModal({ open, onClose, onRead, title = "Data Collection Terms & Privacy Policy", body = TERMS_PLACEHOLDER }) {
   const bodyRef = useRef(null);

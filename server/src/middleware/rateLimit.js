@@ -52,7 +52,7 @@ export const aiLimiter = rateLimit({
 // shared proxy IP. Auth + uploads keep their own stricter buckets: the skip
 // mirrors exactly what authLimiter/uploadLimiter already cover, so those
 // paths are never double-counted.
-export const stricterLimiterPaths = (req) =>
+const stricterLimiterPaths = (req) =>
   req.path.startsWith('/auth') ||
   (req.method === 'POST' && (req.path === '/documents' || req.path.startsWith('/files/')));
 

@@ -20,7 +20,4 @@ function AlertTitle({ className, ...props }) {
 function AlertDescription({ className, ...props }) {
     return (<div data-slot="alert-description" className={cn("text-sm text-balance text-muted-foreground md:text-pretty [&_a]:underline [&_a]:underline-offset-3 [&_a]:hover:text-foreground [&_p:not(:last-child)]:mb-4", className)} {...props}/>);
 }
-function AlertAction({ className, ...props }) {
-    return (<div data-slot="alert-action" className={cn("absolute top-2 right-2", className)} {...props}/>);
-}
-export { Alert, AlertTitle, AlertDescription, AlertAction };
+export { Alert, AlertTitle, AlertDescription, };

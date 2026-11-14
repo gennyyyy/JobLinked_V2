@@ -3,8 +3,7 @@ import { Input } from "../../components/ui/input";
 import { useState, useRef } from "react";
 
 // TagInput + its splitTags helper move together from Profile.
-// eslint-disable-next-line react-refresh/only-export-components
-export function splitTags(value) {
+function splitTags(value) {
   const list = Array.isArray(value) ? value : String(value || "").split(",");
   return list.map((t) => String(t).trim()).filter(Boolean);
 }

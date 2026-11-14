@@ -67,7 +67,7 @@ function principalOf(user, found) {
 // userFromToken memo below still sits on top of it: within one request the
 // principal is resolved once and shared by attachPrincipal and the route's own
 // auth middleware, so no request ever pays two round-trips.
-export const roleFrom = (req, id) => (req._role ??= resolveRole(id));
+const roleFrom = (req, id) => (req._role ??= resolveRole(id));
 
 // Per-request memo of the JWT -> user resolution, layered over the cross-request
 // memo in tokenCache.js: within one request attachPrincipal + the route's own

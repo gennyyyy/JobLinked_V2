@@ -4,7 +4,7 @@ const PASSWORD_KEYWORDS = ['password', 'change password', 'security', 'credentia
 
 // ponytail: hand-maintained index — a new settings section needs one line here.
 // Upgrade path: generate these from the rendered section headings if it ever drifts.
-export const WORKSPACE_SECTIONS = [
+const WORKSPACE_SECTIONS = [
   { title: 'Password settings', path: '/job-seeker/profile', sectionId: 'password-settings', keywords: PASSWORD_KEYWORDS, roles: ['job-seeker'] },
   { title: 'Personal & contact details', path: '/job-seeker/profile', sectionId: 'personal-details', keywords: ['name', 'phone', 'address', 'birthdate', 'contact', 'email'], roles: ['job-seeker'] },
   { title: 'Skills & competencies', path: '/job-seeker/profile', sectionId: 'skills', keywords: ['skills', 'competencies', 'tags'], roles: ['job-seeker'] },

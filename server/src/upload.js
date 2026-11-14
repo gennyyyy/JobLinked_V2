@@ -10,7 +10,7 @@ const DISK_EXTS = ['pdf', 'doc', 'docx', 'png', 'jpg', 'jpeg', 'webp'];
 export const IMAGE_EXTS = ['png', 'jpg', 'jpeg', 'webp'];
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
 const MAX_PDF_SIZE = 2 * 1024 * 1024;
-export const MAX_IMAGE_SIZE = 2 * 1024 * 1024;
+const MAX_IMAGE_SIZE = 2 * 1024 * 1024;
 
 // Deterministic root: a relative UPLOAD_DIR resolves against the server package
 // (server/), never process.cwd(). Starting the API from the repo root, a

@@ -2,23 +2,6 @@ import { Button } from "../../components/ui/button";
 // Shared building blocks for the three portal dashboards so headers, stat
 // cards, and section cards stay visually identical everywhere.
 import { AlertTriangle, ChevronLeft, ChevronRight } from "lucide-react";
-import { displayName, initialsOf } from "../utils/accountName";
-
-export function PageHeader({ eyebrow, title, subtitle, action, logo, className = "" }) {
-  return (
-    <header className={`flex flex-col justify-between gap-4 sm:flex-row sm:items-end ${className}`}>
-      <div className="flex min-w-0 items-center gap-4">
-        {logo ? <div className="shrink-0">{logo}</div> : null}
-        <div className="min-w-0">
-          {eyebrow ? <p className="eyebrow mb-2">{eyebrow}</p> : null}
-          <h1 className="text-2xl font-semibold tracking-[-.035em] text-navy md:text-[30px]">{title}</h1>
-          {subtitle ? <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">{subtitle}</p> : null}
-        </div>
-      </div>
-      {action}
-    </header>
-  );
-}
 
 // The one load-error treatment (role=alert + danger token); replaces three
 // different variants across the portals.
@@ -37,52 +20,6 @@ export function InlineError({ message, onRetry }) {
         </Button>
       ) : null}
     </div>
-  );
-}
-
-// Optional semantic tone (ADR-033 §1). Leaving `tone` unset renders the plain
-// white card exactly as before, so the employer and super-admin portals are
-// unaffected.
-const STAT_TONES = {
-  info: { card: "bg-blue-soft border-border", text: "text-primary" },
-  success: { card: "bg-success-soft border-border", text: "text-success" },
-  danger: { card: "bg-danger-soft border-border", text: "text-destructive" },
-  warn: { card: "bg-warning-soft border-border", text: "text-warning" },
-};
-
-export function StatCard({ label, value, highlight, icon, valueClassName = "text-navy", tone }) {
-  const themed = STAT_TONES[tone];
-  const valueText = themed ? themed.text : valueClassName;
-  const iconText = themed ? themed.text : "text-primary";
-  return (
-    <div className={`${themed ? themed.card : "surface"} rounded-xl border p-4`}>
-      <div className="flex items-center justify-between gap-2">
-        <span className="text-xs text-muted-foreground">{label}</span>
-        {icon ? <span className={`grid place-items-center ${iconText}`}>{icon}</span> : null}
-      </div>
-      <p className={`mt-3 text-[29px] font-semibold leading-none tracking-tight ${valueText}`}>{value}</p>
-      {highlight ? <span className="mt-3 inline-block size-2 rounded-full bg-warning" /> : null}
-    </div>
-  );
-}
-
-// Time-based greeting banner with an initials avatar (ADR-033 §2, ADR-032 §5:
-// the avatar is initials because no avatar column exists and browser-side
-// storage is prohibited).
-export function DashboardHero({ user, fallback = "Job Seeker", initialsFallback = "U", subtitle }) {
-  const hour = new Date().getHours();
-  const greeting = hour < 12 ? "Good Morning!" : hour < 18 ? "Good Afternoon!" : "Good Evening!";
-  return (
-    <section className="flex items-center gap-4 rounded-xl bg-navy p-5 md:p-6 shadow-md">
-      <div className="grid h-16 w-16 shrink-0 place-items-center rounded-full border-4 border-white bg-card shadow-md md:h-20 md:w-20">
-        <span className="text-2xl font-bold text-primary">{initialsOf(user, initialsFallback)}</span>
-      </div>
-      <div className="min-w-0">
-        <p className="text-sm md:text-base font-semibold text-white/85">{greeting}</p>
-        <h2 className="truncate text-xl md:text-2xl font-bold text-white uppercase">{displayName(user, fallback).toUpperCase()}</h2>
-        {subtitle ? <p className="mt-1 text-xs text-white/70">{subtitle}</p> : null}
-      </div>
-    </section>
   );
 }
 

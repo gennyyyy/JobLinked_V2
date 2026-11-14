@@ -2,12 +2,6 @@ import { pool } from './db.js';
 
 // ADR-040: small images only (avatars, company logos). Bytes never touch the
 // role rows, so `select *` profile/admin queries cannot serialize them.
-export const IMAGE_KINDS = {
-  'seeker-avatar': 'seeker-avatar',
-  'employer-logo': 'employer-logo',
-};
-
-export const isImageKind = (kind) => Object.hasOwn(IMAGE_KINDS, kind);
 
 export async function putImage(ownerId, kind, mime, bytes) {
   const { rows } = await pool.query(
