@@ -91,6 +91,7 @@ export default function Applications() {
         )}
       />
       <StatCards
+        countUp
         stats={[
           { label: 'Applications in view', value: records.length, icon: Clock3 },
           { label: 'Recorded referrals', value: records.filter((application) => application.referred_by).length, icon: Handshake },

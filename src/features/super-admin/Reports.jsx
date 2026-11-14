@@ -144,6 +144,7 @@ export default function Reports() {
         {new Date(from).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' })} – {new Date(to).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' })} · Current records only
       </p>
       <StatCards
+        countUp
         stats={[
           { label: 'Published vacancy records', value: report.vacancies, icon: BriefcaseBusiness, note: `${report.openings} openings in these postings` },
           { label: 'applications', value: report.applications, icon: ClipboardCheck },
