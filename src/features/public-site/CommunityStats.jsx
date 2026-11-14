@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { getPublicStats } from '@/shared/services/jobs'
 import { SANTA_MARIA_BARANGAYS } from '@/shared/constants'
-import { RevealText } from '@/shared/components/design'
+import { CountUp, RevealText } from '@/shared/components/design'
 
 const REFRESH_INTERVAL = 30_000
 const TOTAL_BARANGAYS = SANTA_MARIA_BARANGAYS.length
@@ -67,9 +67,11 @@ export default function CommunityStats() {
         <div className="grid grid-cols-2 gap-x-10 gap-y-8 sm:flex sm:items-end sm:gap-12">
           {STAT_ITEMS.map(({ key, label, format }) => (
             <div key={key}>
-              <RevealText as="p" className="text-[38px] font-semibold leading-none tracking-[-0.04em] text-white tabular-nums md:text-[46px]" aria-label={`${label} count`} tier="display">
-                {format ? format(stats?.[key]) : (stats ? stats[key].toLocaleString() : '—')}
-              </RevealText>
+              <CountUp
+                className="text-[38px] font-semibold leading-none tracking-[-0.04em] text-white tabular-nums md:text-[46px]"
+                aria-label={`${label} count`}
+                value={format ? format() : (stats?.[key] ?? null)}
+              />
               <p className="mt-2.5 text-xs text-white/70">{label}</p>
             </div>
           ))}

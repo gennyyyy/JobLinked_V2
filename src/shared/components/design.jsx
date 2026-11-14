@@ -370,3 +370,58 @@ export function RevealText({ as: Tag = "span", children, className, animated = t
       {children}
     </Heading>);
 }
+export function CountUp({ value, duration = 800, className, ...props }) {
+    // Stat numbers count 0 → value instead of revealing by letter (ADR-051
+    // amendment): the same one-shot in-view trigger, but the number itself
+    // animates. Reduced motion and non-IO environments get the final value at
+    // once, and the 30 s refresh updates the number without re-counting.
+    const numeric = typeof value === "number" && Number.isFinite(value) ? value : null;
+    const [canAnimate] = useState(() => typeof window !== "undefined"
+        && typeof window.IntersectionObserver === "function"
+        && !window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches);
+    const ref = useRef(null);
+    const [inView, setInView] = useState(false);
+    const [count, setCount] = useState(0);
+    const [done, setDone] = useState(false);
+    useEffect(() => {
+        if (!canAnimate || !ref.current)
+            return undefined;
+        const observer = new window.IntersectionObserver(([entry], obs) => {
+            if (!entry.isIntersecting)
+                return;
+            obs.disconnect();
+            setInView(true);
+        }, { rootMargin: "0px 0px -35% 0px" });
+        observer.observe(ref.current);
+        return () => observer.disconnect();
+    }, [canAnimate]);
+    // Starts once in view with a real number to count to; a value that arrives
+    // after the trigger (the stats API) starts the count from where it is.
+    const active = canAnimate && inView && numeric !== null && !done;
+    useEffect(() => {
+        if (!active)
+            return undefined;
+        let frame = 0;
+        let start = null;
+        const step = (now) => {
+            if (start === null)
+                start = now;
+            const progress = duration > 0 ? Math.min((now - start) / duration, 1) : 1;
+            if (progress < 1) {
+                setCount(Math.round(numeric * (1 - Math.pow(1 - progress, 3))));
+                frame = window.requestAnimationFrame(step);
+                return;
+            }
+            setCount(numeric);
+            setDone(true);
+        };
+        frame = window.requestAnimationFrame(step);
+        return () => window.cancelAnimationFrame(frame);
+    }, [active, numeric, duration]);
+    const text = numeric === null
+        ? "—"
+        : (!canAnimate || done ? numeric : inView ? count : 0).toLocaleString();
+    return (<p ref={ref} className={className} {...props}>
+      {text}
+    </p>);
+}

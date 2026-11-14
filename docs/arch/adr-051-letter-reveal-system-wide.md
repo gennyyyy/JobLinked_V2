@@ -75,3 +75,8 @@ dropping blur/translate variables).
   landing eyebrows are display tier; the About section's "One platform. A
   stronger community." eyebrow and "Built around people, not paperwork."
   heading joined the reveal. Footer remains excluded.
+- **Amendment (2026-11-15):** community stat numbers use a count-up (0 → value,
+  800 ms ease-out) instead of the letter reveal, triggered by the same one-shot
+  in-view observer; reduced motion and non-IO environments render the final
+  value immediately; the 30 s data refresh updates the number without
+  re-counting.
