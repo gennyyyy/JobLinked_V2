@@ -166,8 +166,7 @@ export default function AccountSettings({ embedded = false, children, childrenBe
             <h2 id="account-preferences-heading" className="text-lg font-semibold tracking-tight text-navy">Account &amp; preferences</h2>
             <p className="mt-1 text-xs text-muted-foreground">Your details, notification preferences, and privacy information.</p>
           </div>
-          <div className="grid items-stretch gap-6 sm:grid-cols-2">
-            {!embedded && notificationsPanel(UNIFORM_PANEL)}
+          <div className="max-w-md">
             {!embedded && showPrivacy && <PrivacyPanel {...UNIFORM_PANEL} />}
           </div>
         </section>

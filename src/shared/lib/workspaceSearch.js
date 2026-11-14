@@ -27,7 +27,6 @@ const WORKSPACE_SECTIONS = [
   { title: 'Employment types', path: '/super-admin/settings', sectionId: 'employment-types', keywords: ['employment', 'type', 'job'], roles: ['super-admin'] },
   { title: 'Education levels', path: '/super-admin/settings', sectionId: 'education-levels', keywords: ['education', 'level', 'school'], roles: ['super-admin'] },
   { title: 'Security', path: '/super-admin/settings', sectionId: 'security', keywords: ['security', 'password', 'mfa', 'sessions'], roles: ['super-admin'] },
-  { title: 'Notification preferences', path: '/super-admin/settings', sectionId: 'notification-preferences', keywords: ['notifications', 'alerts', 'updates', 'preferences'], roles: ['super-admin'] },
   { title: 'Privacy', path: '/super-admin/settings', sectionId: 'privacy', keywords: ['privacy', 'data', 'terms'], roles: ['super-admin'] },
 ]
 
