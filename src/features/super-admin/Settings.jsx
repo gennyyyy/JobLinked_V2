@@ -224,7 +224,7 @@ export default function Settings() {
   return (
     <>
       {!canManage && <Notice warning className="mb-6">You don't have permission to manage system settings.</Notice>}
-      <AccountSettings childrenBelow uniform>
+      <AccountSettings childrenBelow uniform showPrivacy={false}>
       <section id="reference-data" aria-labelledby="reference-data-heading">
         <div className="mb-3">
           <h2 id="reference-data-heading" className="text-lg font-semibold tracking-tight text-navy">Reference data</h2>
