@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react'
 import { Plus, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import AccountSettings from '@/shared/components/AccountSettings'
-import ChangePassword from '@/shared/components/ChangePassword'
 import ConfirmationModal from '@/shared/components/ConfirmationModal'
 import { PanelSkeleton } from '@/shared/components/Skeletons'
 import { EmptyState, Notice, Panel, TextField } from '@/shared/components/design'
@@ -183,10 +182,9 @@ export default function Settings() {
       <section id="security" className="mt-8" aria-labelledby="security-heading">
         <div className="mb-4">
           <h2 id="security-heading" className="text-lg font-semibold tracking-tight text-navy">Security</h2>
-          <p className="mt-1 text-xs text-muted-foreground">Password, sessions, and account access.</p>
+          <p className="mt-1 text-xs text-muted-foreground">Sessions and account access.</p>
         </div>
         <div className="grid items-start gap-6 md:grid-cols-2">
-          <ChangePassword />
           <Panel id="sessions" title="Sessions" description="Sign out every active device.">
             <p className="text-xs text-muted-foreground">If you think your account is compromised, revoke all sessions and sign back in.</p>
             <Button type="button" variant="outline" className="mt-4" disabled={revoking} onClick={handleSignOutAll}>

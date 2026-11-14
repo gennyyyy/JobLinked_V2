@@ -113,7 +113,6 @@ describe('super-admin Settings', () => {
     renderPage()
     expect(await screen.findByRole('heading', { name: 'Security' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /sign out all devices/i })).toBeInTheDocument()
-    expect(screen.getByLabelText(/current password/i)).toBeInTheDocument()
   })
 
   it('shows a permission notice and disables add controls for tagged admins', async () => {
