@@ -75,7 +75,7 @@ export default function AccountSettings({ embedded = false, children, childrenBe
             <Save data-icon="inline-start" />
             Save preferences
           </Button>
-          {saved && <p className="text-xs text-success">Your session notification preferences were saved.</p>}
+          {saved && <p role="status" className="text-xs text-success">Your session notification preferences were saved.</p>}
         </FieldGroup>
       </PreferencesForm>
     </Panel>
@@ -91,9 +91,9 @@ export default function AccountSettings({ embedded = false, children, childrenBe
         />
       )}
       {uniform ? (
-        <section>
+        <section aria-labelledby="account-preferences-heading">
           <div className="mb-4">
-            <h2 className="text-lg font-semibold tracking-tight text-navy">Account &amp; preferences</h2>
+            <h2 id="account-preferences-heading" className="text-lg font-semibold tracking-tight text-navy">Account &amp; preferences</h2>
             <p className="mt-1 text-xs text-muted-foreground">Your details, notification preferences, and privacy information.</p>
           </div>
           <div className="grid items-stretch gap-6 sm:grid-cols-2">

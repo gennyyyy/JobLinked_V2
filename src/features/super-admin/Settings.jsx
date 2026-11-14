@@ -12,12 +12,14 @@ import { addReferenceData, listReferenceData, removeReferenceData } from '@/shar
 // not reference rows, so they are not listed here.
 const CATEGORIES = [
   {
+    id: 'employment-types',
     category: 'employment_type',
     title: 'Employment types',
     description: 'Values offered when recording an employment type.',
     label: 'employment type',
   },
   {
+    id: 'education-levels',
     category: 'education_level',
     title: 'Education levels',
     description: 'Values offered when recording an education level.',
@@ -25,7 +27,7 @@ const CATEGORIES = [
   },
 ]
 
-function ReferenceCategory({ category, title, description, label }) {
+function ReferenceCategory({ id, category, title, description, label }) {
   const [rows, setRows] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -80,7 +82,7 @@ function ReferenceCategory({ category, title, description, label }) {
   if (loading) return <PanelSkeleton lines={2} label={`Loading ${title.toLowerCase()}…`} />
 
   return (
-    <Panel title={title} description={description} className="h-[34rem]" contentClassName="flex min-h-0 flex-1 flex-col overflow-hidden">
+    <Panel id={id} title={title} description={description} className="h-[34rem]" contentClassName="flex min-h-0 flex-1 flex-col overflow-hidden">
       <div className="min-h-0 flex-1 overflow-y-auto pr-1">
         {error && <p role="alert" className="mb-4 text-xs text-destructive">{error}</p>}
         {rows.length === 0 ? (
@@ -141,15 +143,21 @@ function ReferenceCategory({ category, title, description, label }) {
 export default function Settings() {
   return (
     <AccountSettings childrenBelow uniform>
-      <section>
+      <section id="reference-data" aria-labelledby="reference-data-heading">
         <div className="mb-4">
-          <h2 className="text-lg font-semibold tracking-tight text-navy">Reference data</h2>
+          <h2 id="reference-data-heading" className="text-lg font-semibold tracking-tight text-navy">Reference data</h2>
           <p className="mt-1 text-xs text-muted-foreground">Values offered when recording employment types and education levels.</p>
         </div>
         <div className="grid items-start gap-6 md:grid-cols-2">
           {CATEGORIES.map((item) => <ReferenceCategory key={item.category} {...item} />)}
         </div>
       </section>
+    <section id="security" aria-labelledby="security-heading" className="mt-8">
+      <div className="mb-4">
+        <h2 id="security-heading" className="text-lg font-semibold tracking-tight text-navy">Security</h2>
+        <p className="mt-1 text-xs text-muted-foreground">Password, sessions, and account security settings.</p>
+      </div>
+    </section>
     </AccountSettings>
   )
 }
