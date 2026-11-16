@@ -506,4 +506,58 @@ router.get('/employers/:id', ah(async (req, res) => {
   res.json(rows[0]);
 }));
 
+// ─── Document petitions (ADR-054) ─────────────────────────────────────────────
+router.post('/petitions', auth, requireRole('employer'), ah(async (req, res) => {
+  const { doc_type, reason, accreditation_id = null } = req.body || {};
+  if (!doc_type || !DOC_TYPES.has(doc_type)) return err(res, 400, 'BAD_REQUEST', `doc_type must be one of: ${[...DOC_TYPES].join(', ')}`);
+  const trimmed = String(reason || '').trim();
+  if (trimmed.length < 10) return err(res, 400, 'BAD_REQUEST', 'reason must be at least 10 characters');
+  let accreditation = accreditation_id && isUuid(accreditation_id) ? accreditation_id : null;
+  if (accreditation) {
+    const { rows: owned } = await pool.query('select 1 from employer_accreditations where id=$1 and company_id=$2', [accreditation, req.user.id]);
+    if (!owned[0]) return err(res, 403, 'FORBIDDEN', 'Not your accreditation');
+  }
+  try {
+    const { rows } = await pool.query(
+      `insert into employer_document_petitions (company_id, accreditation_id, doc_type, reason)
+       values ($1,$2,$3,$4) returning *`, [req.user.id, accreditation, doc_type, trimmed]);
+    void audit(req.user.id, 'petition.create', 'employer_document_petitions', rows[0].id, { doc_type });
+    void notifyAdmins({ type: 'petition', title: 'Document petition awaiting review',
+      message: `An employer filed a petition for a missing ${doc_type}.`, link: '/super-admin/accreditation' });
+    res.status(201).json(rows[0]);
+  } catch (e) {
+    if (e.code === '23505') return err(res, 409, 'CONFLICT', 'A pending petition for this document already exists');
+    throw e;
+  }
+}));
+
+router.get('/petitions/company/:companyId', auth, ah(async (req, res) => {
+  if (!isUuid(req.params.companyId)) return err(res, 400, 'BAD_REQUEST', 'Invalid id');
+  if (req.user.role !== 'super-admin' && req.params.companyId !== req.user.id) {
+    return err(res, 403, 'FORBIDDEN', 'Not your company');
+  }
+  const { rows } = await pool.query(
+    `select * from employer_document_petitions where company_id=$1 order by created_at desc`,
+    [req.params.companyId]);
+  res.json(rows);
+}));
+
+router.patch('/petitions/:id', auth, requireRole('super-admin'), ah(async (req, res) => {
+  if (!isUuid(req.params.id)) return err(res, 404, 'NOT_FOUND', 'Petition not found');
+  const { status, remarks = null } = req.body || {};
+  if (!['approved', 'rejected'].includes(status)) return err(res, 400, 'BAD_REQUEST', 'status must be approved or rejected');
+  const { rows } = await pool.query(
+    `update employer_document_petitions set status=$2, remarks=$3, decided_by=$4, decided_at=now()
+     where id=$1 returning *`, [req.params.id, status, remarks, req.user.id]);
+  if (!rows[0]) return err(res, 404, 'NOT_FOUND', 'Petition not found');
+  void audit(req.user.id, `petition.${status}`, 'employer_document_petitions', rows[0].id);
+  const { rows: crows } = await pool.query('select id, company_name from employers where id=$1', [rows[0].company_id]);
+  if (crows[0]) {
+    void notifyUser(crows[0].id, { type: 'petition', title: `Petition ${status}`,
+      message: `Your petition for ${rows[0].doc_type} was ${status}.${remarks ? ` PESO remarks: ${remarks}` : ''}`,
+      link: '/employer/accreditation' });
+  }
+  res.json(rows[0]);
+}));
+
 export default router;

@@ -77,3 +77,15 @@ export async function signedUrl(bucket, path, expiresIn) {
   const rel = String(path || '').replace(new RegExp(`^${bucket}/`), '');
   return URL.createObjectURL(await api.blob(`files/${bucket}/${rel}`));
 }
+
+export async function createPetition({ docType, reason, accreditationId }) {
+  return api.post('petitions', { doc_type: docType, reason, accreditation_id: accreditationId });
+}
+
+export async function listCompanyPetitions(companyId) {
+  return api.get(`petitions/company/${companyId}`);
+}
+
+export async function updatePetition(id, status, remarks) {
+  return api.patch(`petitions/${id}`, { status, remarks });
+}

@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent, act, waitFor } from '@testing-library/react'
 import Accreditation from '../Accreditation'
 import { listAllAccreditations, listAllJobs } from '../../../shared/services/admin'
-import { updateAccreditation, updateDocumentStatus, signedUrl, listCompanyDocuments } from '../../../shared/services/documents'
+import { updateAccreditation, updateDocumentStatus, signedUrl, listCompanyDocuments, listCompanyPetitions, updatePetition } from '../../../shared/services/documents'
 
 vi.mock('../../../shared/services/admin', () => ({
   listAllAccreditations: vi.fn(),
@@ -14,6 +14,8 @@ vi.mock('../../../shared/services/documents', () => ({
   updateDocumentStatus: vi.fn(),
   listCompanyDocuments: vi.fn(),
   signedUrl: vi.fn(),
+  listCompanyPetitions: vi.fn(),
+  updatePetition: vi.fn(),
 }))
 
 vi.mock('../../../shared/hooks/useAuth', () => ({
@@ -50,6 +52,8 @@ describe('Accreditation management', () => {
     updateAccreditation.mockResolvedValue({})
     updateDocumentStatus.mockResolvedValue({})
     listCompanyDocuments.mockResolvedValue([])
+    listCompanyPetitions.mockResolvedValue([])
+    updatePetition.mockResolvedValue({})
     listAllJobs.mockResolvedValue({ data: [], total: 0, page: 1, pageSize: 500 })
     mockList()
   })

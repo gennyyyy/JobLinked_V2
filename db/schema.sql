@@ -178,6 +178,20 @@ create table if not exists public.employer_documents (
   reviewed_at      timestamptz
 );
 
+create table if not exists public.employer_document_petitions (
+  id               uuid        primary key default gen_random_uuid(),
+  company_id       uuid        not null references public.employers(id) on delete cascade,
+  accreditation_id uuid        references public.employer_accreditations(id) on delete set null,
+  doc_type         text        not null,
+  reason           text        not null,
+  status           text        not null default 'pending'
+    check (status in ('pending','approved','rejected')),
+  remarks          text,
+  decided_by       uuid        references public.super_admins(id) on delete set null,
+  created_at       timestamptz not null default now(),
+  decided_at       timestamptz
+);
+
 -- ---------------------------------------------------------------------------
 -- Jobs
 -- ---------------------------------------------------------------------------
@@ -451,6 +465,10 @@ create index if not exists employer_accreditations_status_idx on public.employer
 create unique index if not exists employer_accreditations_one_pending_uidx on public.employer_accreditations(company_id) where status = 'pending';
 create index if not exists employer_documents_company_idx on public.employer_documents(company_id);
 create index if not exists employer_documents_path_idx on public.employer_documents(file_path);
+create index if not exists employer_document_petitions_company_idx
+  on public.employer_document_petitions(company_id);
+create unique index if not exists employer_document_petitions_one_pending_uidx
+  on public.employer_document_petitions(company_id, doc_type) where status = 'pending';
 create index if not exists notifications_user_created_idx on public.notifications(user_id, created_at desc);
 
 -- Search-pattern indexes (db/migrations/007_query_indexes.sql upgrades

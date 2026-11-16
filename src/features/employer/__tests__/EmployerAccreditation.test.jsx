@@ -6,6 +6,7 @@ import {
   listAccreditations,
   createAccreditation,
   listCompanyDocuments,
+  listCompanyPetitions,
 } from '../../../shared/services/documents'
 
 vi.mock('../../../shared/hooks/useAuth', () => ({
@@ -23,6 +24,8 @@ vi.mock('../../../shared/services/documents', () => ({
   uploadDocument: vi.fn(),
   validateFile: vi.fn(),
   signedUrl: vi.fn(),
+  createPetition: vi.fn(),
+  listCompanyPetitions: vi.fn(),
 }))
 
 import useAuth from '../../../shared/hooks/useAuth'
@@ -34,6 +37,7 @@ describe('EmployerAccreditation', () => {
     vi.clearAllMocks()
     useAuth.mockReturnValue({ user: { id: 'employer-1' }, refreshUser: vi.fn() })
     listCompanyDocuments.mockResolvedValue([])
+    listCompanyPetitions.mockResolvedValue([])
   })
 
   it('shows a layout skeleton while fetching accreditation data', () => {

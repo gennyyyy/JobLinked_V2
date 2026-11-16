@@ -1,11 +1,13 @@
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
+import { Textarea } from "../../components/ui/textarea";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "../../components/ui/dialog";
 import { useState, useEffect } from "react";
 import { FileCheck2 } from "lucide-react";
 import useAuth from "../../shared/hooks/useAuth";
 import { getEmployer } from "../../shared/services/auth";
-import { listAccreditations, createAccreditation, listCompanyDocuments, uploadDocument, validateFile, signedUrl } from "../../shared/services/documents";
+import { listAccreditations, createAccreditation, listCompanyDocuments, uploadDocument, validateFile, signedUrl, createPetition, listCompanyPetitions } from "../../shared/services/documents";
 import { DOC_TYPES } from "../../shared/constants";
 import { PageSkeleton } from '../../shared/components/Skeletons'
 import { InlineError } from "../../shared/components/dashboard";
@@ -30,6 +32,11 @@ function EmployerAccreditation() {
   const [company, setCompany] = useState(null);
   const [accreditations, setAccreditations] = useState([]);
   const [documents, setDocuments] = useState([]);
+  const [petitions, setPetitions] = useState([]);
+  const [petitioningDoc, setPetitioningDoc] = useState(null);
+  const [petitionReason, setPetitionReason] = useState("");
+  const [petitionBusy, setPetitionBusy] = useState(false);
+  const [petitionError, setPetitionError] = useState("");
   const [files, setFiles] = useState({});
   const [fileErrors, setFileErrors] = useState({});
   const [uploading, setUploading] = useState("");
@@ -42,17 +49,19 @@ function EmployerAccreditation() {
       .then(async (data) => {
         setCompany(data);
         if (data) {
-          const [accs, docs] = await Promise.all([
+          const [accs, docs, pets] = await Promise.all([
             listAccreditations(data.id),
             listCompanyDocuments(data.id),
+            listCompanyPetitions(data.id),
           ]);
-          return [accs, docs];
+          return [accs, docs, pets];
         }
-        return [[], []];
+        return [[], [], []];
       })
-      .then(([accs, docs]) => {
+      .then(([accs, docs, pets]) => {
         setAccreditations(accs);
         setDocuments(docs);
+        setPetitions(pets || []);
       })
       .catch((err) => setError(err.message || "Failed to load accreditation"))
       .finally(() => setLoading(false));
@@ -106,6 +115,29 @@ function EmployerAccreditation() {
       setError(err.message || "Upload failed");
     } finally {
       setUploading("");
+    }
+  }
+
+  async function handlePetitionSubmit(e) {
+    e.preventDefault();
+    if (!petitioningDoc || !company) return;
+    const trimmed = petitionReason.trim();
+    if (trimmed.length < 10) {
+      setPetitionError("Reason must be at least 10 characters.");
+      return;
+    }
+    setPetitionBusy(true);
+    setPetitionError("");
+    try {
+      await createPetition({ docType: petitioningDoc, reason: trimmed, accreditationId: latest?.id });
+      const pets = await listCompanyPetitions(company.id);
+      setPetitions(pets || []);
+      setPetitioningDoc(null);
+      setPetitionReason("");
+    } catch (err) {
+      setPetitionError(err.message || "Failed to file petition");
+    } finally {
+      setPetitionBusy(false);
     }
   }
 
@@ -178,6 +210,8 @@ function EmployerAccreditation() {
             <ul className="flex flex-col gap-3">
               {DOC_TYPES.map((docType) => {
                 const doc = documents.find((d) => d.doc_type === docType);
+                const petition = petitions.find((p) => p.doc_type === docType);
+                const hasPendingPetition = petition?.status === 'pending';
                 return (
                   <li key={docType} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border p-4">
                     <div className="flex min-w-0 items-center gap-3">
@@ -187,6 +221,7 @@ function EmployerAccreditation() {
                         <p className="mt-1 max-w-[240px] truncate text-[10px] text-muted-foreground">
                           {doc ? `${doc.file_name} · ${doc.status}` : "Not uploaded"}
                         </p>
+                        {petition && <StatusBadge status={statusLabel(petition.status)} className="mt-1" />}
                         {fileErrors[docType] && <p className="mt-1 text-[10px] text-destructive">{fileErrors[docType]}</p>}
                       </div>
                     </div>
@@ -205,6 +240,11 @@ function EmployerAccreditation() {
                       {files[docType] && (
                         <Button onClick={() => handleUpload(docType)} disabled={uploading === docType} className="text-xs">
                           {uploading === docType ? "…" : "Save"}
+                        </Button>
+                      )}
+                      {!doc && !hasPendingPetition && (
+                        <Button variant="outline" onClick={() => { setPetitioningDoc(docType); setPetitionReason(""); setPetitionError(""); }} className="text-xs">
+                          File petition
                         </Button>
                       )}
                     </div>
@@ -233,6 +273,30 @@ function EmployerAccreditation() {
           )}
         </Panel>
       </div>
+
+      <Dialog open={!!petitioningDoc} onOpenChange={(open) => { if (!open) { setPetitioningDoc(null); setPetitionReason(""); setPetitionError(""); } }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>File petition</DialogTitle>
+            <DialogDescription>
+              Request an exception for a missing {petitioningDoc}. Explain why it is unavailable.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handlePetitionSubmit} className="flex flex-col gap-3">
+            <Textarea
+              value={petitionReason}
+              onChange={(e) => setPetitionReason(e.target.value)}
+              rows={4}
+              placeholder="Reason (at least 10 characters)"
+            />
+            {petitionError && <p role="alert" className="text-xs text-destructive">{petitionError}</p>}
+            <div className="flex justify-end gap-2">
+              <Button type="button" variant="outline" onClick={() => { setPetitioningDoc(null); setPetitionReason(""); setPetitionError(""); }}>Cancel</Button>
+              <Button type="submit" disabled={petitionBusy}>{petitionBusy ? "…" : "Submit"}</Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

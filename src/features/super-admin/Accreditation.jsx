@@ -7,7 +7,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
 import { listAllAccreditations, listAllJobs } from '@/shared/services/admin'
-import { listCompanyDocuments, signedUrl, updateAccreditation, updateDocumentStatus } from '@/shared/services/documents'
+import { listCompanyDocuments, signedUrl, updateAccreditation, updateDocumentStatus, listCompanyPetitions, updatePetition } from '@/shared/services/documents'
 import { PageSkeleton } from '@/shared/components/Skeletons'
 import { InlineError, Pager } from '@/shared/components/dashboard'
 import { CompanyMark, EmptyState, H3, PageHeading, Panel, SelectField, StatusBadge } from '@/shared/components/design'
@@ -58,6 +58,9 @@ function ReviewModal({ accreditation, onClose, onDecided }) {
   const [reason, setReason] = useState('')
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
+  const [petitions, setPetitions] = useState([])
+  const [petitionsLoading, setPetitionsLoading] = useState(true)
+  const [petitionBusy, setPetitionBusy] = useState(false)
   const company = accreditation.employers
 
   useEffect(() => {
@@ -66,6 +69,14 @@ function ReviewModal({ accreditation, onClose, onDecided }) {
       .then(setDocs)
       .catch(() => setDocs([]))
       .finally(() => setLoading(false))
+  }, [accreditation])
+
+  useEffect(() => {
+    if (!accreditation) return
+    listCompanyPetitions(accreditation.company_id)
+      .then(setPetitions)
+      .catch(() => setPetitions([]))
+      .finally(() => setPetitionsLoading(false))
   }, [accreditation])
 
   // Aggregate vacancy counts only — no applicant rows or seeker names here.
@@ -99,6 +110,19 @@ function ReviewModal({ accreditation, onClose, onDecided }) {
       setDocs(await listCompanyDocuments(accreditation.company_id))
     } catch (err) {
       setError(err.message || 'Failed to update the document status.')
+    }
+  }
+
+  async function decidePetition(petitionId, status) {
+    setError('')
+    setPetitionBusy(true)
+    try {
+      await updatePetition(petitionId, status)
+      setPetitions(await listCompanyPetitions(accreditation.company_id))
+    } catch (err) {
+      setError(err.message || 'Failed to update the petition.')
+    } finally {
+      setPetitionBusy(false)
     }
   }
 
@@ -162,6 +186,37 @@ function ReviewModal({ accreditation, onClose, onDecided }) {
                         <Button type="button" variant="link" size="sm" onClick={() => viewDoc(doc)} className="h-auto p-0 text-xs">View</Button>
                         <Button type="button" variant="link" size="sm" onClick={() => setDocStatus(doc.id, 'verified')} className="h-auto p-0 text-xs">Verify</Button>
                         <Button type="button" variant="link" size="sm" onClick={() => setDocStatus(doc.id, 'rejected')} className="h-auto p-0 text-xs text-destructive">Reject</Button>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </section>
+
+          <section>
+            <H3 className="text-sm font-semibold text-navy" animated={false}>Document petitions</H3>
+            <div className="mt-3 rounded-xl border bg-muted/50 p-4">
+              {petitionsLoading ? (
+                <p className="text-xs text-muted-foreground">Loading petitions…</p>
+              ) : petitions.length === 0 ? (
+                <p className="text-xs text-muted-foreground">No document petitions.</p>
+              ) : (
+                <ul className="flex flex-col divide-y">
+                  {petitions.map((p) => (
+                    <li key={p.id} className="flex flex-wrap items-start justify-between gap-3 py-3 first:pt-0 last:pb-0">
+                      <div className="min-w-0">
+                        <p className="truncate text-xs font-medium text-navy">{p.doc_type}</p>
+                        <p className="mt-0.5 text-[11px] text-muted-foreground">{p.reason}</p>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <StatusBadge status={p.status === 'approved' ? 'Approved' : p.status === 'rejected' ? 'Rejected' : 'Pending Review'} />
+                        {p.status === 'pending' && (
+                          <>
+                            <Button type="button" variant="link" size="sm" disabled={petitionBusy} onClick={() => decidePetition(p.id, 'approved')} className="h-auto p-0 text-xs">Approve</Button>
+                            <Button type="button" variant="link" size="sm" disabled={petitionBusy} onClick={() => decidePetition(p.id, 'rejected')} className="h-auto p-0 text-xs text-destructive">Reject</Button>
+                          </>
+                        )}
                       </div>
                     </li>
                   ))}
