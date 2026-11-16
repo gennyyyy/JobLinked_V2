@@ -46,6 +46,27 @@ describe('TermsModal acceptance gate', () => {
     expect(onClose).toHaveBeenCalledTimes(1)
   })
 
+  it('hides Close until the reader reaches the bottom of a scrollable body', () => {
+    Object.defineProperty(HTMLElement.prototype, 'scrollHeight', { configurable: true, get: () => 1000 })
+    Object.defineProperty(HTMLElement.prototype, 'clientHeight', { configurable: true, get: () => 300 })
+    try {
+      renderModal()
+      const body = screen.getByRole('document')
+      const bar = screen.getByRole('progressbar')
+      expect(screen.queryByRole('button', { name: /close/i })).toBeNull()
+      expect(bar).toHaveAttribute('aria-valuenow', '0')
+
+      Object.defineProperty(body, 'scrollTop', { configurable: true, value: 700 })
+      fireEvent.scroll(body)
+
+      expect(screen.getByRole('button', { name: /close/i })).toBeInTheDocument()
+      expect(bar).toHaveAttribute('aria-valuenow', '100')
+    } finally {
+      delete HTMLElement.prototype.scrollHeight
+      delete HTMLElement.prototype.clientHeight
+    }
+  })
+
   it('marks non-scrollable content as read and locks body scroll', () => {
     const onRead = vi.fn()
     renderModal({ onRead })

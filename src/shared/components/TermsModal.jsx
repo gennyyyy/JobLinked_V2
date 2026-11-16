@@ -15,6 +15,7 @@ function TermsModal({ open, onClose, onRead, title = "Data Collection Terms & Pr
   const bodyRef = useRef(null);
   const readRef = useRef(false);
   const [read, setRead] = useState(false);
+  const [progress, setProgress] = useState(0);
   const [fetched, setFetched] = useState(null);
 
   const markRead = useCallback(() => {
@@ -28,7 +29,13 @@ function TermsModal({ open, onClose, onRead, title = "Data Collection Terms & Pr
   // doesn't scroll counts as read as soon as it's shown.
   function handleScroll(e) {
     const el = e.currentTarget;
-    if (el.scrollHeight - el.scrollTop - el.clientHeight < 24) markRead();
+    const max = el.scrollHeight - el.clientHeight;
+    if (max <= 0 || max - el.scrollTop < 24) {
+      setProgress(100);
+      markRead();
+      return;
+    }
+    setProgress(Math.min(99, (el.scrollTop / max) * 100));
   }
 
   const panelRef = useDialog(onClose, open);
@@ -57,7 +64,15 @@ function TermsModal({ open, onClose, onRead, title = "Data Collection Terms & Pr
   useEffect(() => {
     if (!open) return;
     const el = bodyRef.current;
-    if (el && el.scrollHeight - el.clientHeight < 24) markRead();
+    if (!el) return;
+    // Already read in this session, or content short enough not to scroll:
+    // the bar starts full and the Close button is available at once.
+    if (readRef.current || el.scrollHeight - el.clientHeight < 24) {
+      setProgress(100);
+      markRead();
+      return;
+    }
+    setProgress(0);
   }, [open, body, markRead]);
 
   if (!open) return null;
@@ -80,20 +95,32 @@ function TermsModal({ open, onClose, onRead, title = "Data Collection Terms & Pr
         <h2 id="terms-title" className="text-base font-bold text-dark-blue mb-3">
           {title}
         </h2>
-        <div ref={bodyRef} onScroll={handleScroll} tabIndex={0} role="document" aria-labelledby="terms-title" className="text-sm text-muted-foreground whitespace-pre-line overflow-y-auto flex-1 mb-6">
+        <div ref={bodyRef} onScroll={handleScroll} tabIndex={0} role="document" aria-labelledby="terms-title" className="text-sm text-muted-foreground whitespace-pre-line overflow-y-auto flex-1 mb-4">
           {showSkeleton ? <Skeleton className="h-4 w-full" /> : body}
+        </div>
+        <div
+          className="mb-4 h-1.5 w-full overflow-hidden rounded-full bg-muted"
+          role="progressbar"
+          aria-label="Reading progress"
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-valuenow={Math.round(progress)}
+        >
+          <div className="h-full rounded-full bg-primary transition-[width] duration-150" style={{ width: `${progress}%` }} />
         </div>
         <div className="flex gap-3 items-center justify-end">
           {onRead && !read && (
             <span className="mr-auto text-xs text-muted-foreground">Scroll to the bottom to enable agreement.</span>
           )}
-          <Button
-            type="button"
-            onClick={onClose}
-            className="px-4 py-2 text-sm font-medium text-white rounded-xl bg-primary hover:bg-primary-hover transition-colors cursor-pointer"
-          >
-            Close
-          </Button>
+          {read && (
+            <Button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 text-sm font-medium text-white rounded-xl bg-primary hover:bg-primary-hover transition-colors cursor-pointer"
+            >
+              Close
+            </Button>
+          )}
         </div>
       </div>
     </div>,
