@@ -774,6 +774,13 @@
   from { opacity: 0; transform: translateY(0.35em); filter: blur(6px); }
   to { opacity: 1; transform: none; filter: none; }
 }
+/* Each revealed letter is an inline-block, so a parent's hover:underline
+   paints only the whitespace between words. Re-apply the decoration on the
+   letters so the whole link/question underlines. */
+.text-link:hover .ltr,
+[data-slot='accordion-trigger']:hover .ltr {
+  text-decoration: underline;
+}
 /* Print never runs IntersectionObserver: show all text, unanimated. */
 @media print {
   [data-letter-reveal] .ltr {
