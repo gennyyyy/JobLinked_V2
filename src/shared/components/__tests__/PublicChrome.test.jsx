@@ -85,6 +85,7 @@ describe('PublicShell footer', () => {
 
     for (const [name, href] of [
       ['Career resources', '/peso-services'],
+      ['Employer registration', '/register/employer'],
       ['Accreditation process', '/how-it-works'],
       ['About the platform', '/about'],
       ['PESO services', '/peso-services'],
