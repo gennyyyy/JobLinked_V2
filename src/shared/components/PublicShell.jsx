@@ -70,9 +70,9 @@ export function PublicShell({ children }) {
               <p className="mt-3 inline-flex items-center gap-1.5 text-[11px] text-navy"><MapPin className="size-3.5 text-teal" />Made for our community.</p>
             </div>
             {[
-              { title: 'For job seekers', items: [['Browse jobs', '/jobs'], ['Create an account', '/register/job-seeker'], ['Application tracking', '/job-seeker/applications'], ['Career resources', '/#peso-services']] },
-              { title: 'For employers', items: [['Post a job', '/register/employer'], ['Employer registration', '/register'], ['Accreditation process', '/#how-it-works'], ['Employer portal', '/login']] },
-              { title: 'JobLinked', items: [['About the platform', '/#about'], ['PESO services', '/#peso-services'], ['Frequently asked questions', '/#faq']] },
+              { title: 'For job seekers', items: [['Browse jobs', '/jobs'], ['Create an account', '/register/job-seeker'], ['Application tracking', '/job-seeker/applications'], ['Career resources', '/peso-services']] },
+              { title: 'For employers', items: [['Post a job', '/register/employer'], ['Employer registration', '/register'], ['Accreditation process', '/how-it-works'], ['Employer portal', '/login']] },
+              { title: 'JobLinked', items: [['About the platform', '/about'], ['PESO services', '/peso-services'], ['Frequently asked questions', '/faq']] },
             ].map(group => (
               <div key={group.title}>
                 <h3 className="mb-2 text-xs font-semibold">{group.title}</h3>

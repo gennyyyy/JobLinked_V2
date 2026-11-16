@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import PublicHeader from '../PublicHeader'
 import PublicFooter from '../PublicFooter'
+import PublicShell from '../PublicShell'
 
 describe('PublicHeader', () => {
   it('renders LOG IN and SIGN UP links with the right destinations', () => {
@@ -71,6 +72,26 @@ describe('PublicHeader', () => {
     await user.click(document.body)
 
     expect(trigger).toHaveAttribute('aria-expanded', 'false')
+  })
+})
+
+describe('PublicShell footer', () => {
+  it('points every footer link at its dedicated page', () => {
+    render(
+      <MemoryRouter>
+        <PublicShell><p>content</p></PublicShell>
+      </MemoryRouter>,
+    )
+
+    for (const [name, href] of [
+      ['Career resources', '/peso-services'],
+      ['Accreditation process', '/how-it-works'],
+      ['About the platform', '/about'],
+      ['PESO services', '/peso-services'],
+      ['Frequently asked questions', '/faq'],
+    ]) {
+      expect(screen.getByRole('link', { name })).toHaveAttribute('href', href)
+    }
   })
 })
 

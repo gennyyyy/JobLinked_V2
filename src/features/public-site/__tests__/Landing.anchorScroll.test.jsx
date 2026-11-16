@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, fireEvent } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import Landing from '../Landing'
 
@@ -26,10 +26,14 @@ function renderLanding(path = '/') {
 }
 
 describe('Landing anchor scrolling', () => {
-  it('scrolls to #faq on every click of the FAQ link', () => {
+  it('scrolls to #faq on every click of an in-page hash link', () => {
     renderLanding()
 
-    const faqLink = screen.getByRole('link', { name: /frequently asked questions/i })
+    // The public footer now points at dedicated pages, so the handler is
+    // exercised with an in-page anchor directly.
+    const faqLink = document.createElement('a')
+    faqLink.href = '#faq'
+    document.body.appendChild(faqLink)
     const faq = document.getElementById('faq')
 
     fireEvent.click(faqLink)
@@ -42,6 +46,7 @@ describe('Landing anchor scrolling', () => {
     fireEvent.click(faqLink)
     expect(scrolls).toHaveLength(2)
     expect(scrolls[1].target).toBe(faq)
+    faqLink.remove()
   })
 
   it('scrolls to the anchor when the page mounts at /#faq', () => {
