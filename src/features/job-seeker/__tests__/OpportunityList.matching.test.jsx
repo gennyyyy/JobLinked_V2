@@ -181,9 +181,9 @@ describe('OpportunityList AI matching', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Close' }))
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
 
-    // The disclosure outlives the closable dialog, so the per-card reasons are
-    // never mistaken for AI output.
-    expect(screen.getByText('Skills-based ranking')).toBeInTheDocument()
+    // The non-compact panel and the results status line both disclose the mode,
+    // and the results line outlives the closable dialog.
+    expect(screen.getAllByText('Skills-based ranking')).toHaveLength(2)
     await waitFor(() => expect(cardTitles()).toEqual(['Junior Web Developer', 'Administrative Assistant', 'Warehouse Helper']))
 
     matchJobs.mockResolvedValue({ mode: 'ai', ranking: ['j3', 'j1', 'j2'], reasons: [] })
@@ -191,7 +191,7 @@ describe('OpportunityList AI matching', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Close' }))
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
 
-    expect(screen.getByText('AI-assisted ranking active')).toBeInTheDocument()
+    expect(screen.getAllByText('AI-assisted ranking active')).toHaveLength(2)
     expect(screen.queryByText('Skills-based ranking')).toBeNull()
   })
 })

@@ -75,7 +75,7 @@ describe('Jobs accessibility', () => {
     expect(screen.getByText('Cashier')).toBeInTheDocument()
   })
 
-  it('filters the grid from the sidebar filters', async () => {
+  it('filters the grid from the refine controls', async () => {
     listJobs.mockResolvedValue({
       jobs: [
         job({ id: 'job-1', location: 'Poblacion', requirements: 'Experience: 1 year\nCommunication' }),
@@ -85,13 +85,14 @@ describe('Jobs accessibility', () => {
     })
     await renderJobs()
 
+    fireEvent.click(screen.getByRole('button', { name: /refine results/i }))
     fireEvent.change(screen.getByLabelText('Barangay'), { target: { value: 'Bagbaguin' } })
 
     expect(screen.queryByText('Barangay Health Worker')).not.toBeInTheDocument()
     expect(screen.getByText('Cashier')).toBeInTheDocument()
   })
 
-  it('clears every sidebar filter and the search with Reset all filters', async () => {
+  it('clears every refine filter and the search with Reset all filters', async () => {
     listJobs.mockResolvedValue({
       jobs: [
         job({ id: 'job-1', location: 'Poblacion', requirements: 'Experience: 1 year\nCommunication' }),
@@ -101,6 +102,7 @@ describe('Jobs accessibility', () => {
     })
     await renderJobs()
 
+    fireEvent.click(screen.getByRole('button', { name: /refine results/i }))
     fireEvent.change(screen.getByLabelText('Barangay'), { target: { value: 'Bagbaguin' } })
     fireEvent.change(screen.getByLabelText('Search your recommendations'), { target: { value: 'cashier' } })
     expect(screen.queryByText('Barangay Health Worker')).not.toBeInTheDocument()

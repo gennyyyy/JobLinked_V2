@@ -50,6 +50,13 @@ function renderBrowser() {
   )
 }
 
+// jsdom has no matchMedia, so the refinement panel starts collapsed.
+function openRefine() {
+  const toggle = screen.getByRole('button', { name: /refine results/i })
+  if (toggle.getAttribute('aria-expanded') === 'false') fireEvent.click(toggle)
+  return toggle
+}
+
 describe('JobsBrowser (public mode)', () => {
   beforeEach(() => {
     window.localStorage.clear()
@@ -75,6 +82,7 @@ describe('JobsBrowser (public mode)', () => {
   it('filters the cards from the search input', async () => {
     renderBrowser()
     await screen.findByText('Barangay Health Worker')
+    openRefine()
 
     fireEvent.change(screen.getByLabelText('Search your recommendations'), { target: { value: 'developer' } })
 
@@ -85,6 +93,7 @@ describe('JobsBrowser (public mode)', () => {
   it('filters the cards from the Barangay select', async () => {
     renderBrowser()
     await screen.findByText('Barangay Health Worker')
+    openRefine()
 
     fireEvent.change(screen.getByLabelText('Barangay'), { target: { value: 'Guyong' } })
 
@@ -103,6 +112,7 @@ describe('JobsBrowser (public mode)', () => {
     })
     renderBrowser()
     await screen.findByText('Barangay Health Worker')
+    openRefine()
 
     const fieldSelect = screen.getByLabelText('Job field')
     const options = within(fieldSelect).getAllByRole('option').map((option) => option.textContent)
