@@ -4,6 +4,7 @@ import { MemoryRouter } from 'react-router-dom'
 import JobPosts from '../JobPosts'
 import { getEmployer } from '../../../shared/services/auth'
 import { listEmployerJobs, createJob, updateJob } from '../../../shared/services/jobs'
+import { getReferenceValues } from '../../../shared/services/reference'
 
 vi.mock('../../../shared/hooks/useAuth', () => ({
   default: () => ({ user: { id: 'employer-user-1' } }),
@@ -19,6 +20,10 @@ vi.mock('../../../shared/services/jobs', () => ({
   updateJob: vi.fn(),
   changeJobStatus: vi.fn(),
   duplicateJob: vi.fn(),
+}))
+
+vi.mock('../../../shared/services/reference', () => ({
+  getReferenceValues: vi.fn(),
 }))
 
 const APPROVED_EMPLOYER = { id: 'emp-1', name: 'Santa Maria Trading', accreditation_status: 'approved' }
@@ -66,7 +71,7 @@ async function openEditForm() {
   fireEvent.click(editBtn)
 }
 
-// The create flow requires title, description, and barangay location before it will save.
+// The create flow requires title, description, barangay location, and a field before it will save.
 async function fillRequiredCreateFields() {
   fireEvent.change(await screen.findByPlaceholderText(/Administrative Officer, Welder/), {
     target: { value: 'Welder' },
@@ -76,12 +81,20 @@ async function fillRequiredCreateFields() {
   })
   fireEvent.click(screen.getByRole('button', { name: /select barangay/i }))
   fireEvent.click(await screen.findByRole('option', { name: 'Poblacion' }))
+  const field = screen.getByLabelText(/^field/i)
+  await waitFor(() => expect(field).toBeEnabled())
+  fireEvent.change(field, { target: { value: 'Construction' } })
 }
 
 const educationSelect = () => screen.getByLabelText(/education requirement/i)
 
 describe('JobPosts education requirement dropdown', () => {
-  beforeEach(() => vi.clearAllMocks())
+  beforeEach(() => {
+    vi.clearAllMocks()
+    getReferenceValues.mockImplementation((category) =>
+      Promise.resolve(category === 'job_field' ? ['Construction'] : [])
+    )
+  })
 
   it('sends the chosen level in the saved requirements', async () => {
     await openCreateForm()

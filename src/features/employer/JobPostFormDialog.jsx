@@ -7,6 +7,7 @@ import { Briefcase, Send, X } from "lucide-react";
 import { JOB_TAGS, JOB_BENEFITS, JOB_EDUCATION_LEVELS, JOB_EXPERIENCE_PRESETS, SANTA_MARIA_BARANGAYS } from "../../shared/constants";
 import useDialog from "../../shared/hooks/useDialog";
 import { TextField, SelectField } from "../../shared/components/design";
+import VocabularyPicker from "../../shared/components/VocabularyPicker";
 import { EXPERIENCE_OPTIONS, applyEducation, applyExperience, parseEducation, parseExperience } from "./jobPostFields";
 import { getFeeTerms } from "../../shared/services/feeFilter";
 import { findFeeMatches } from "../../shared/utils/feeTerms";
@@ -96,6 +97,44 @@ export default function JobPostFormDialog({ form, setForm, setErrors, errors, sa
             placeholder="e.g. Administrative Officer, Welder, Accountant..."
             error={errors.title}
           />
+
+          {/* Controlled matching vocabulary. Highlights (form.tags) below are
+              posting attributes and never feed matching. */}
+          <section aria-labelledby="job-matching-label" className="space-y-4">
+            <div>
+              <h3 id="job-matching-label" className="text-sm font-semibold text-navy">Matching</h3>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Job seekers are matched to this vacancy by field and skills.
+              </p>
+            </div>
+            <VocabularyPicker
+              id="job-field"
+              label="Field"
+              category="job_field"
+              multiple={false}
+              required={!editingId}
+              value={form.field ?? null}
+              onChange={(value) => {
+                setForm((f) => ({ ...f, field: value }));
+                if (errors.field) setErrors((prev) => ({ ...prev, field: undefined }));
+              }}
+              error={errors.field}
+              help={editingId && !form.field ? "Existing postings may keep 'Not set'." : undefined}
+            />
+            <VocabularyPicker
+              id="job-skills"
+              label="Skills required"
+              category="skill"
+              max={20}
+              value={form.skills}
+              onChange={(value) => {
+                setForm((f) => ({ ...f, skills: value }));
+                if (errors.skills) setErrors((prev) => ({ ...prev, skills: undefined }));
+              }}
+              error={errors.skills}
+              help="Only these skills count towards matching."
+            />
+          </section>
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <TextField
@@ -345,10 +384,13 @@ export default function JobPostFormDialog({ form, setForm, setErrors, errors, sa
             </div>
           </div>
 
-          {/* Job Tags */}
+          {/* Job Tags — posting attributes, not skills */}
           <div role="group" aria-labelledby="job-tags-label">
-            <p id="job-tags-label" className="mb-2 text-sm font-medium">
-              Tags <span className="font-normal text-muted-foreground">(optional, click to toggle)</span>
+            <p id="job-tags-label" className="mb-1 text-sm font-medium">
+              Highlights <span className="font-normal text-muted-foreground">(optional, click to toggle)</span>
+            </p>
+            <p className="mb-2 text-xs text-muted-foreground">
+              Attributes shown on the job card — these are not skills.
             </p>
             <div className="flex flex-wrap gap-2">
               {JOB_TAGS.map((tag) => {

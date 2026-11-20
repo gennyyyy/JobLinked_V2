@@ -25,6 +25,8 @@ export const formatDate = (value) => (value
 export const initialForm = {
   title: "",
   office: "",
+  field: null,
+  skills: [],
   description: "",
   requirements: "",
   salary_min: "",

@@ -4,6 +4,7 @@ import { MemoryRouter } from 'react-router-dom'
 import JobPosts from '../JobPosts'
 import { getEmployer } from '../../../shared/services/auth'
 import { listEmployerJobs, createJob } from '../../../shared/services/jobs'
+import { getReferenceValues } from '../../../shared/services/reference'
 
 vi.mock('../../../shared/hooks/useAuth', () => ({
   default: () => ({ user: { id: 'employer-user-1' } }),
@@ -19,6 +20,10 @@ vi.mock('../../../shared/services/jobs', () => ({
   updateJob: vi.fn(),
   changeJobStatus: vi.fn(),
   duplicateJob: vi.fn(),
+}))
+
+vi.mock('../../../shared/services/reference', () => ({
+  getReferenceValues: vi.fn(),
 }))
 
 const APPROVED_EMPLOYER = { id: 'emp-1', name: 'Santa Maria Trading', accreditation_status: 'approved' }
@@ -44,10 +49,18 @@ async function fillRequiredFields() {
   fireEvent.change(screen.getByPlaceholderText(/Outline key duties/), { target: { value: 'Weld metal parts.' } })
   fireEvent.click(screen.getByRole('button', { name: /select barangay/i }))
   fireEvent.click(screen.getByRole('option', { name: 'Bulac' }))
+  const field = screen.getByLabelText(/^field/i)
+  await waitFor(() => expect(field).toBeEnabled())
+  fireEvent.change(field, { target: { value: 'Construction' } })
 }
 
 describe('JobPosts benefits chip toggler', () => {
-  beforeEach(() => vi.clearAllMocks())
+  beforeEach(() => {
+    vi.clearAllMocks()
+    getReferenceValues.mockImplementation((category) =>
+      Promise.resolve(category === 'job_field' ? ['Construction'] : [])
+    )
+  })
 
   it('selects a benefit chip on click and deselects it on the second click', async () => {
     await openCreateForm()

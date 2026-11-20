@@ -146,6 +146,8 @@ export default function JobPosts() {
     const next = {
       title: job.title || "",
       office: job.office || "",
+      field: job.field ?? null,
+      skills: Array.isArray(job.skills) ? job.skills : [],
       description: job.description || "",
       requirements: job.requirements || "",
       salary_min: job.salary_min !== null && job.salary_min !== undefined ? job.salary_min : "",
@@ -184,6 +186,9 @@ export default function JobPosts() {
     if (!form.title.trim()) errs.title = "Job title is required";
     if (!form.description.trim()) errs.description = "Job description is required";
     if (!form.location) errs.location = "Barangay location is required";
+    // New postings must name a field; legacy rows edited later may keep "Not set".
+    if (!editingId && !form.field) errs.field = "Select the job field for this posting";
+    if ((form.skills || []).length > 20) errs.skills = "Select up to 20 skills";
 
     const vac = Number(form.vacancies);
     if (!vac || vac < 1) errs.vacancies = "Must specify at least 1 vacancy";
@@ -215,6 +220,8 @@ export default function JobPosts() {
       const payload = {
         title: form.title.trim(),
         office: form.office.trim() || null,
+        field: form.field ?? null,
+        skills: form.skills ?? [],
         description: form.description.trim(),
         requirements: form.requirements.trim() || null,
         salary_min: form.salary_min !== "" ? Number(form.salary_min) : null,

@@ -5,6 +5,7 @@ import JobPosts from '../JobPosts'
 import { getEmployer } from '../../../shared/services/auth'
 import { listEmployerJobs, createJob } from '../../../shared/services/jobs'
 import { getFeeTerms } from '../../../shared/services/feeFilter'
+import { getReferenceValues } from '../../../shared/services/reference'
 
 vi.mock('../../../shared/hooks/useAuth', () => ({
   default: () => ({ user: { id: 'employer-user-1' } }),
@@ -25,6 +26,10 @@ vi.mock('../../../shared/services/jobs', () => ({
 
 vi.mock('../../../shared/services/feeFilter', () => ({
   getFeeTerms: vi.fn(),
+}))
+
+vi.mock('../../../shared/services/reference', () => ({
+  getReferenceValues: vi.fn(),
 }))
 
 const APPROVED_EMPLOYER = { id: 'emp-1', name: 'Santa Maria Trading', accreditation_status: 'approved' }
@@ -73,10 +78,18 @@ async function fillRequiredFields() {
   fireEvent.change(screen.getByPlaceholderText(/Outline key duties/), { target: { value: 'Weld metal parts.' } })
   fireEvent.click(screen.getByRole('button', { name: /select barangay/i }))
   fireEvent.click(screen.getByRole('option', { name: 'Bulac' }))
+  const field = screen.getByLabelText(/^field/i)
+  await waitFor(() => expect(field).toBeEnabled())
+  fireEvent.change(field, { target: { value: 'Construction' } })
 }
 
 describe('JobPosts fee filter', () => {
-  beforeEach(() => vi.clearAllMocks())
+  beforeEach(() => {
+    vi.clearAllMocks()
+    getReferenceValues.mockImplementation((category) =>
+      Promise.resolve(category === 'job_field' ? ['Construction'] : [])
+    )
+  })
 
   it('shows the server message on a 422 FEE_POLICY_BLOCKED response', async () => {
     createJob.mockRejectedValue({

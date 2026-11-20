@@ -1,0 +1,210 @@
+import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { MemoryRouter } from 'react-router-dom'
+import JobPosts from '../JobPosts'
+import { getEmployer } from '../../../shared/services/auth'
+import { listEmployerJobs, createJob, updateJob } from '../../../shared/services/jobs'
+import { getReferenceValues } from '../../../shared/services/reference'
+
+vi.mock('../../../shared/hooks/useAuth', () => ({
+  default: () => ({ user: { id: 'employer-user-1' } }),
+}))
+
+vi.mock('../../../shared/services/auth', () => ({
+  getEmployer: vi.fn(),
+}))
+
+vi.mock('../../../shared/services/jobs', () => ({
+  listEmployerJobs: vi.fn(),
+  createJob: vi.fn(),
+  updateJob: vi.fn(),
+  changeJobStatus: vi.fn(),
+  duplicateJob: vi.fn(),
+}))
+
+// Keep the pickers offline; the shared hook's module cache owns the promise.
+vi.mock('../../../shared/services/reference', () => ({
+  getReferenceValues: vi.fn(),
+}))
+
+const APPROVED_EMPLOYER = { id: 'emp-1', name: 'Santa Maria Trading', accreditation_status: 'approved' }
+const FIELDS = ['Construction', 'Customer Service', 'Information Technology']
+const SKILLS = [
+  'Cashiering', 'Communication', 'Cooking', 'Customer Service', 'Data Entry', 'Driving',
+  'Electrical Wiring', 'Food Preparation', 'Forklift Operation', 'Housekeeping', 'Inventory',
+  'Masonry', 'MS Excel', 'Painting', 'Plumbing', 'Sales', 'Sewing', 'Teamwork', 'Welding',
+  'Cleaning', 'Carpentry',
+]
+
+function renderJobPosts() {
+  return render(
+    <MemoryRouter>
+      <JobPosts />
+    </MemoryRouter>
+  )
+}
+
+async function openCreateForm() {
+  listEmployerJobs.mockResolvedValue({ data: [], total: 0, page: 1, pageSize: 25 })
+  renderJobPosts()
+  const openBtn = (await screen.findAllByRole('button', { name: /create a vacancy/i }))[0]
+  await waitFor(() => expect(openBtn).toBeEnabled())
+  fireEvent.click(openBtn)
+}
+
+async function openEditForm(job) {
+  listEmployerJobs.mockResolvedValue({ data: [job], total: 1, page: 1, pageSize: 25 })
+  renderJobPosts()
+  fireEvent.click(await screen.findByRole('button', { name: /^edit /i }))
+}
+
+async function fieldSelect() {
+  const select = await screen.findByLabelText(/^field/i)
+  await waitFor(() => expect(select).toBeEnabled())
+  return select
+}
+
+// Title, description, and barangay are the pre-existing required fields.
+function fillRequiredFields() {
+  fireEvent.change(screen.getByPlaceholderText(/Administrative Officer, Welder/), {
+    target: { value: 'Welder' },
+  })
+  fireEvent.change(screen.getByPlaceholderText(/Outline key duties/), {
+    target: { value: 'Weld metal parts.' },
+  })
+  fireEvent.click(screen.getByRole('button', { name: /select barangay/i }))
+  fireEvent.click(screen.getByRole('option', { name: 'Bulac' }))
+}
+
+const JOB = {
+  id: 'job-1',
+  title: 'Customer Service Associate',
+  office: 'Main Branch',
+  field: 'Customer Service',
+  skills: ['Cashiering', 'Customer Service'],
+  description: 'Handle customer concerns.',
+  requirements: '',
+  salary_min: 15000,
+  salary_max: 18000,
+  employment_type: 'Full-time',
+  work_arrangement: 'On-site',
+  location: 'Poblacion',
+  vacancies: 2,
+  deadline: null,
+  instructions: '',
+  benefits: null,
+  tags: ['Day Shift'],
+  status: 'published',
+}
+
+describe('JobPostFormDialog field and skills', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    getEmployer.mockResolvedValue(APPROVED_EMPLOYER)
+    getReferenceValues.mockImplementation((category) =>
+      Promise.resolve(category === 'job_field' ? FIELDS : SKILLS)
+    )
+    createJob.mockResolvedValue({})
+    updateJob.mockResolvedValue({})
+  })
+
+  it('saves the chosen field and skills in the create payload', async () => {
+    await openCreateForm()
+    fillRequiredFields()
+    fireEvent.change(await fieldSelect(), { target: { value: 'Construction' } })
+    fireEvent.click(await screen.findByRole('checkbox', { name: 'Welding' }))
+    fireEvent.click(screen.getByRole('checkbox', { name: 'MS Excel' }))
+
+    fireEvent.click(screen.getByRole('button', { name: /publish job/i }))
+
+    await waitFor(() =>
+      expect(createJob).toHaveBeenCalledWith(
+        'emp-1',
+        expect.objectContaining({ field: 'Construction', skills: ['MS Excel', 'Welding'] })
+      )
+    )
+  })
+
+  it('keeps Highlights in tags and never in skills', async () => {
+    await openCreateForm()
+    fillRequiredFields()
+    fireEvent.change(await fieldSelect(), { target: { value: 'Construction' } })
+
+    expect(screen.getByText(/attributes shown on the job card/i)).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Urgent Hiring' }))
+    fireEvent.click(screen.getByRole('button', { name: /save as draft/i }))
+
+    await waitFor(() => expect(createJob).toHaveBeenCalled())
+    const payload = createJob.mock.calls[0][1]
+    expect(payload.tags).toEqual(['Urgent Hiring'])
+    expect(payload.skills).toEqual([])
+  })
+
+  it('pre-fills field and skills when editing', async () => {
+    await openEditForm(JOB)
+
+    expect(await fieldSelect()).toHaveValue('Customer Service')
+    expect(await screen.findByRole('checkbox', { name: 'Cashiering' })).toBeChecked()
+    expect(screen.getByRole('checkbox', { name: 'Customer Service' })).toBeChecked()
+    expect(screen.getByRole('checkbox', { name: 'Welding' })).not.toBeChecked()
+
+    fireEvent.click(screen.getByRole('button', { name: /save changes as draft/i }))
+
+    await waitFor(() =>
+      expect(updateJob).toHaveBeenCalledWith(
+        'job-1',
+        expect.objectContaining({
+          field: 'Customer Service',
+          skills: ['Cashiering', 'Customer Service'],
+        })
+      )
+    )
+  })
+
+  it('blocks a new posting without a Field and shows the message', async () => {
+    await openCreateForm()
+    fillRequiredFields()
+
+    fireEvent.click(screen.getByRole('button', { name: /publish job/i }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(/select the job field/i)
+    expect(createJob).not.toHaveBeenCalled()
+
+    fireEvent.change(await fieldSelect(), { target: { value: 'Information Technology' } })
+    fireEvent.click(screen.getByRole('button', { name: /publish job/i }))
+
+    await waitFor(() =>
+      expect(createJob).toHaveBeenCalledWith(
+        'emp-1',
+        expect.objectContaining({ field: 'Information Technology' })
+      )
+    )
+  })
+
+  it('keeps a legacy posting editable with Field "Not set"', async () => {
+    await openEditForm({ ...JOB, field: null, skills: [] })
+
+    expect(await fieldSelect()).toHaveValue('')
+    fireEvent.click(screen.getByRole('button', { name: /save changes as draft/i }))
+
+    await waitFor(() =>
+      expect(updateJob).toHaveBeenCalledWith(
+        'job-1',
+        expect.objectContaining({ field: null, skills: [] })
+      )
+    )
+  })
+
+  it('shows the 20-skill limit and disables further choices at the cap', async () => {
+    await openCreateForm()
+
+    expect(await screen.findByText(/select up to 20/i)).toBeInTheDocument()
+
+    for (const skill of SKILLS.slice(0, 20)) {
+      fireEvent.click(await screen.findByRole('checkbox', { name: skill }))
+    }
+
+    expect(screen.getByRole('checkbox', { name: 'Carpentry' })).toBeDisabled()
+    expect(screen.getAllByRole('checkbox').filter((box) => box.checked)).toHaveLength(20)
+  })
+})
