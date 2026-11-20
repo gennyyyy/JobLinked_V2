@@ -4,21 +4,28 @@ import { ArrowRight } from 'lucide-react';
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from '@/components/ui/accordion';
 import { H3, LinkButton, RevealText } from '../../shared/components/design';
 import { FAQS, PESO_SERVICES } from '../../shared/constants';
+import { MATCHING_NAME, MATCHING_NOTICE } from '../../shared/content/matching';
 import CommunityStats from './CommunityStats';
 import { AudienceCards } from './AudienceCards';
 
-const STEPS = [
+const PILLARS = [
   {
-    title: 'Create your profile',
-    description: 'Tell your story. Add your skills, experience, and resume so the right opportunities can find you.',
+    title: MATCHING_NAME,
+    description: MATCHING_NOTICE,
+    href: '/jobs',
+    linkLabel: 'See matched jobs',
   },
   {
-    title: 'Explore opportunities',
-    description: 'Discover verified local vacancies that fit your skills, goals, and life close to home.',
+    title: 'PESO-accredited employers',
+    description: 'Employers submit their requirements for PESO review. PESO approves, rejects, or asks for resubmission, and only accredited employers can publish — so every listing you see has passed that review.',
+    href: '/how-it-works',
+    linkLabel: 'How accreditation works',
   },
   {
-    title: 'Apply and stay in the loop',
-    description: 'Send your application and follow every update. Know where you stand, every step of the way.',
+    title: 'Application & employment tracking',
+    description: 'Follow each application from Applied to Under Review, Interview, and Accepted or Rejected. A hire is recorded as Placed, and employment history — including Terminated — stays tracked in your portal.',
+    href: '/how-it-works',
+    linkLabel: 'How tracking works',
   },
 ]
 
@@ -27,21 +34,21 @@ export function CommunitySections() {
     <>
       <section id="how-it-works" className="page-container py-20 parallax-reveal">
         <div className="max-w-xl">
-          <RevealText as="p" className="eyebrow text-primary mb-3" tier="display">Simple steps. Meaningful possibilities.</RevealText>
+          <RevealText as="p" className="eyebrow text-primary mb-3" tier="display">Matching, accreditation, and tracking.</RevealText>
           <RevealText as="h2" className="section-heading" tier="display">Your next chapter starts here.</RevealText>
           <RevealText as="p" className="section-copy mt-3">Less searching, more possibility. We make finding local work a little easier.</RevealText>
         </div>
-        <ol className="mt-12 grid gap-x-10 gap-y-10 md:grid-cols-3">
-          {STEPS.map(({ title, description }, index) => (
+        <ul className="mt-12 grid gap-x-10 gap-y-10 md:grid-cols-3">
+          {PILLARS.map(({ title, description, href, linkLabel }) => (
             <li className="border-t border-border pt-6" key={title}>
-              <p className="text-xs font-semibold tracking-[0.16em] text-primary tabular-nums">
-                {String(index + 1).padStart(2, '0')}
-              </p>
-              <H3 className="mt-3 text-base font-semibold">{title}</H3>
+              <H3 className="text-base font-semibold">{title}</H3>
               <p className="mt-2 text-sm leading-7 text-muted-foreground">{description}</p>
+              <Link to={href} className="text-link mt-3">
+                {linkLabel}<ArrowRight aria-hidden="true" className="size-4" />
+              </Link>
             </li>
           ))}
-        </ol>
+        </ul>
         <div className="mt-10">
           <LinkButton href="/signup" variant="outline">
             Let&apos;s get started<ArrowRight aria-hidden="true" className="size-4" />

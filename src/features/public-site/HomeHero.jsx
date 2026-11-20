@@ -38,7 +38,7 @@ export function HomeHero() {
                 </p>
                 <div className="mt-7 flex flex-wrap gap-3">
                   <LinkButton href="/jobs" className="gap-3 px-6">
-                    Find your next job<ArrowRight aria-hidden="true" className="size-4" />
+                    Find jobs matched to my skills<ArrowRight aria-hidden="true" className="size-4" />
                   </LinkButton>
                   <LinkButton href="/register/employer" variant="outline" className="gap-2 px-5">
                     <BriefcaseBusiness aria-hidden="true" className="size-4" />Post a job
@@ -80,9 +80,12 @@ export function HomeHero() {
                 </div>
               </div>
             </div>
+            <p id="home-search-label" className="mt-10 text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+              Search all jobs
+            </p>
             <form
-              aria-label="Search local jobs"
-              className="relative mt-10 flex flex-col gap-2 rounded-md border border-border bg-card p-2 sm:flex-row sm:items-center sm:gap-0"
+              aria-labelledby="home-search-label"
+              className="relative mt-2 flex flex-col gap-2 rounded-md border border-border bg-card p-2 sm:flex-row sm:items-center sm:gap-0"
               onSubmit={(e) => {
                 e.preventDefault();
                 navigate(`/jobs?${new URLSearchParams({ keyword, location: barangay })}`);
@@ -117,7 +120,7 @@ export function HomeHero() {
                 </select>
               </div>
               <Button type="submit" className="min-h-11 gap-2 px-6">
-                <Search aria-hidden="true" />Search jobs
+                <Search aria-hidden="true" />Search all jobs
               </Button>
             </form>
             <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">

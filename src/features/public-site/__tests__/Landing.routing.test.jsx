@@ -15,7 +15,7 @@ vi.mock('../../../shared/services/jobs', () => ({
 // /signup*, /login, /about, /faq, /peso-services, /jobs/job-1 were all dead
 // (the catch-all sent them back to "/").
 const expected = [
-  ['Find your next job', '/jobs'],
+  ['Find jobs matched to my skills', '/jobs'],
   ['Post a job', '/register/employer'],
   ["Let's get started", '/signup'],
   ['Sign up', '/signup'],
