@@ -7,10 +7,11 @@ vi.mock('@supabase/supabase-js', async () => { const h = await import('./helpers
 import { on, reset, callsOf } from './helpers/db.js';
 import { loginAs, tokenOnly, resetAuth } from './helpers/auth.js';
 import { makeApp } from './helpers/app.js';
+import { resetVocabularyCache } from '../vocabulary.js';
 
 const SEEKER = '11111111-1111-1111-1111-111111111111';
 const app = makeApp();
-beforeEach(() => { reset(); resetAuth(); });
+beforeEach(() => { reset(); resetAuth(); resetVocabularyCache(); });
 
 describe('POST /api/auth/provision', () => {
   it('creates a job-seeker profile on first call', async () => {
@@ -23,6 +24,23 @@ describe('POST /api/auth/provision', () => {
     expect(res.status).toBe(201);
     expect(res.body.role).toBe('job-seeker');
     expect(res.body.full_name).toBe('ana cruz');
+  });
+
+  it('stores a listed skill in the vocabulary casing and keeps an unlisted one as typed', async () => {
+    const token = tokenOnly({ id: SEEKER });
+    on(/from reference_data where category = \$1/, () => ({ rows: [{ value: 'MS Excel' }, { value: 'Teamwork' }] }));
+    on((sql) => /insert into job_seekers/.test(sql) && /returning \*/.test(sql),
+      () => ({ rows: [{ id: SEEKER }] }));
+
+    const res = await request(app).post('/api/auth/provision')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ role: 'job-seeker', first_name: 'Ana', last_name: 'Cruz',
+        skills: ['ms excel', 'Excel Macros', 'TEAMWORK', 'MS Excel', ''] });
+
+    expect(res.status).toBe(201);
+    // $21 in the INSERT: canonical casing for a listed skill, free text kept
+    // until the picker lands, case-insensitive dedupe.
+    expect(callsOf(/insert into job_seekers/)[0].params[20]).toEqual(['MS Excel', 'Excel Macros', 'Teamwork']);
   });
 
   it('is idempotent — 200 with the existing row, no new insert', async () => {

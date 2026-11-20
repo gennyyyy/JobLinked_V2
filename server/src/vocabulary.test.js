@@ -79,6 +79,19 @@ describe('canonicalizeSkills', () => {
     });
   });
 
+  it('keeps a backfilled legacy skill valid under the vocabulary casing', async () => {
+    // Migration 016 inserts legacy free text as-is (lowercased), so the list can
+    // hold "arc welding". A seeker row still carrying "Arc Welding" must save.
+    mocks.query.mockImplementation(async (_sql, [category]) => ({
+      rows: (category === 'job_field' ? FIELDS : ['arc welding', 'MS Excel']).map((value) => ({ value })),
+    }));
+
+    expect(await canonicalizeSkills(['Arc Welding', 'ms excel'])).toEqual({
+      ok: true,
+      value: ['arc welding', 'MS Excel'],
+    });
+  });
+
   it('returns an empty list without reading the vocabulary', async () => {
     expect(await canonicalizeSkills([])).toEqual({ ok: true, value: [] });
     expect(mocks.query).not.toHaveBeenCalled();

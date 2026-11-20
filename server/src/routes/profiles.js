@@ -6,6 +6,7 @@ import { auth, requireRole } from '../auth.js';
 import { ah, err, audit, notifyUser, notifyAdmins, buildFullName, isUuid, isNumericId, withTransaction } from '../util.js';
 import { uploadSingle, uploadImage, uploadDir, relPath, mimeForExt } from '../upload.js';
 import { putImage, getImage, deleteImage } from '../profileImages.js';
+import { MAX_SKILLS, canonicalizeField, canonicalizeSkills } from '../vocabulary.js';
 
 const router = Router();
 
@@ -13,7 +14,7 @@ const SEEKER_ALLOW = ['first_name', 'middle_name', 'last_name', 'suffix', 'full_
   'lot', 'block', 'house_number_unit', 'street_address', 'subdivision_building', 'barangay_district',
   'city_municipality', 'province_state', 'postal_code', 'country', 'birthdate', 'headline',
   'education_summary', 'experience_summary',
-  'skills', 'employment_status', 'preferred_position', 'preferred_location'];
+  'skills', 'field', 'employment_status', 'preferred_position', 'preferred_location'];
 const EMPLOYER_ALLOW = ['first_name', 'middle_name', 'last_name', 'suffix', 'full_name', 'phone',
   'company_name', 'company_email', 'industry', 'house_number_unit', 'street_address',
   'subdivision_building', 'barangay_district', 'city_municipality', 'province_state',
@@ -52,10 +53,25 @@ const meRoutes = (path, table, role, allow) => {
     const patch = {};
     for (const c of allow) if (req.body?.[c] !== undefined) {
       const value = req.body[c];
-      patch[c] = value === '' ? (REQUIRED_TEXT.has(c) ? '' : null)
-        : c === 'skills' ? (value === null ? [] : value.map((skill) => String(skill).trim().toLowerCase()).filter(Boolean))
+      if (c === 'skills') {
+        // Stored in the vocabulary's casing (ADR-042), compared case-insensitively:
+        // "ms excel" saves as "MS Excel" and legacy backfilled rows stay valid.
+        const skills = await canonicalizeSkills(value ?? []);
+        if (!skills.ok) {
+          return err(res, 400, 'BAD_REQUEST', skills.tooMany
+            ? `skills must contain at most ${MAX_SKILLS} values`
+            : `skills contains an unknown value: ${skills.invalid}`);
+        }
+        patch[c] = skills.value;
+      } else if (c === 'field') {
+        const field = await canonicalizeField(value);
+        if (!field.ok) return err(res, 400, 'BAD_REQUEST', 'field must be a listed job field');
+        patch[c] = field.value;
+      } else {
+        patch[c] = value === '' ? (REQUIRED_TEXT.has(c) ? '' : null)
           : LOWERCASE_FIELDS.has(c) && typeof value === 'string' ? value.trim().toLowerCase()
             : value;
+      }
     }
     // full_name is derived, not independently writable (ADR-046): when a name
     // component is patched, rebuild it from the patched (already normalized)

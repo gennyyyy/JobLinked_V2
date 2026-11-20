@@ -145,6 +145,21 @@ describe('signUp employment_status', () => {
   })
 })
 
+describe('signUp skills casing', () => {
+  it('passes skills through without lowercasing (the server stores canonical casing)', async () => {
+    supabase.auth.signUp.mockResolvedValue({ data: { user: { id: 'u1' } }, error: null })
+
+    await signUp({
+      email: 's@test.com', password: 'pw123456', role: 'job-seeker', firstName: 'A', lastName: 'B',
+      extra: { skills: ['MS Excel', ' data entry '] },
+    })
+
+    expect(supabase.auth.signUp).toHaveBeenCalledWith(expect.objectContaining({
+      options: expect.objectContaining({ data: expect.objectContaining({ skills: ['MS Excel', 'data entry'] }) }),
+    }))
+  })
+})
+
 describe('changePassword', () => {
   it('verifies the current password then updates', async () => {
     supabase.auth.getUser.mockResolvedValue({ data: { user: { id: 'u1', email: 'a@b.com' } } })

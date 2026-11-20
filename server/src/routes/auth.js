@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { pool } from '../db.js';
 import { resolveRole, tokenAuth } from '../auth.js';
 import { ah, err, audit, buildFullName, isNumericId, withTransaction } from '../util.js';
+import { loadVocabulary } from '../vocabulary.js';
 
 const router = Router();
 
@@ -62,9 +63,25 @@ router.post('/auth/provision', tokenAuth, ah(async (req, res) => {
     return err(res, 400, 'BAD_REQUEST', 'employment_status must be Employed, Unemployed, Underemployed, Fresh Graduate, or Student');
   }
   person.employment_status = employmentStatus || null;
-  const skills = Array.isArray(b.skills)
-    ? [...new Set(b.skills.filter((skill) => typeof skill === 'string').map((skill) => skill.trim().toLowerCase()).filter(Boolean))]
-    : [];
+  // A listed skill is stored in the vocabulary's canonical casing, so signup and
+  // the profile PATCH agree ("MS Excel", never "ms excel"). The registration UI
+  // still takes free text until the shared picker lands (Task 8), so an unlisted
+  // skill is kept exactly as typed rather than rejecting the signup — no value
+  // is dropped, and matching compares case-insensitively.
+  // ponytail: free text at signup; reject unknowns once the picker ships.
+  let skills = [];
+  if (role === 'job-seeker' && Array.isArray(b.skills) && b.skills.length) {
+    const vocab = await loadVocabulary();
+    const seen = new Set();
+    for (const raw of b.skills) {
+      if (typeof raw !== 'string') continue;
+      const typed = raw.trim();
+      const key = typed.toLowerCase();
+      if (!key || seen.has(key)) continue;
+      seen.add(key);
+      skills.push(vocab.skill.get(key) ?? typed);
+    }
+  }
   const education = role === 'job-seeker' ? b.education : null;
   if (education && (
     typeof education.level !== 'string' || !education.level.trim() ||
