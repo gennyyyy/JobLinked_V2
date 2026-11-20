@@ -8,7 +8,7 @@ import { notifyMatchingSeekers } from '../routes/jobs.js';
 beforeEach(() => reset());
 
 describe('notifyMatchingSeekers — duplicate guard', () => {
-  const job = { id: 'job-1', title: 'Dev', location: 'Manila', tags: ['react'] };
+  const job = { id: 'job-1', title: 'Dev', location: 'Manila', skills: ['React'] };
 
   it('emits SQL that guards against duplicate notifications for the same seeker+link', async () => {
     // No matching seekers — the insert runs but inserts zero rows.
@@ -26,7 +26,7 @@ describe('notifyMatchingSeekers — duplicate guard', () => {
     }
   });
 
-  it('skips the insert entirely when neither tags nor location are set', async () => {
+  it('skips the insert entirely when no skills, field, or location is set', async () => {
     await notifyMatchingSeekers({ id: 'job-2', title: 'No Match' });
     expect(callsOf(/insert into notifications/)).toHaveLength(0);
   });

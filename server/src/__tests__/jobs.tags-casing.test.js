@@ -1,9 +1,8 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import request from 'supertest';
 
-// P1 (ADR-046): job tags share the seeker-skills case domain. The publish
-// fan-out compares tags with `skills && $n::text[]` (case-sensitive) against
-// lowercased seeker skills, so every job write path must lowercase + dedupe.
+// Tags are posting "highlights", not skills: matching reads job_vacancies.skills
+// (Task 3), so this only guarantees one stable lowercase/deduped display value.
 vi.mock('../db.js', async () => { const h = await import('./helpers/db.js'); return { pool: h.pool, query: h.query, clientQuery: h.clientQuery, connect: h.connect }; });
 vi.mock('@supabase/supabase-js', async () => { const h = await import('./helpers/auth.js'); return { createClient: () => ({ auth: h.supabaseAuth }) }; });
 

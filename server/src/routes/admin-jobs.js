@@ -4,6 +4,7 @@ import { auth, requireRole } from '../auth.js';
 import { requirePermission } from '../middleware/permissions.js';
 import { ah, err, audit, notifyUser, isUuid, pageParams, withTransaction, normalizeTags } from '../util.js';
 import { notifyMatchingSeekers, EMPLOYMENT_TYPES } from './jobs.js';
+import { validateJobVocabulary } from '../vocabulary.js';
 
 const router = Router();
 const admin = [auth, requireRole('super-admin'), requirePermission('jobs.manage')];
@@ -33,7 +34,7 @@ router.get('/admin/jobs', ...admin, ah(async (req, res) => {
 // Same JOB_COLS allowlist as employer PATCH /jobs/:id in jobs.js
 // (replicated so all edits stay in this file); status goes through the same
 // single-transaction job + history write as jobs.js writeStatus.
-const ADMIN_JOB_COLS = ['title', 'office', 'location', 'employment_type', 'work_arrangement', 'salary_min', 'salary_max',
+const ADMIN_JOB_COLS = ['title', 'office', 'field', 'skills', 'location', 'employment_type', 'work_arrangement', 'salary_min', 'salary_max',
   'description', 'requirements', 'benefits', 'vacancies', 'deadline', 'instructions', 'tags', 'status', 'remarks'];
 const ADMIN_JOB_STATUSES = ['draft', 'pending', 'approved', 'rejected', 'published', 'closed', 'archived'];
 const ADMIN_JOB_ARRANGEMENTS = ['On-site', 'Remote / Work from home', 'Hybrid'];
@@ -53,8 +54,14 @@ router.patch('/admin/jobs/:id', ...admin, ah(async (req, res) => {
   const { rows: jrows } = await pool.query('select * from job_vacancies where id = $1', [req.params.id]);
   if (!jrows[0]) return err(res, 404, 'NOT_FOUND', 'Job not found');
   const job = jrows[0];
+  const vocabulary = await validateJobVocabulary(req.body || {});
+  if (!vocabulary.ok) return err(res, 400, 'BAD_REQUEST', vocabulary.message);
   const patch = {};
-  for (const c of ADMIN_JOB_COLS) if (req.body?.[c] !== undefined) patch[c] = c === 'tags' ? normalizeTags(req.body[c]) : (req.body[c] === '' && c !== 'title' ? null : req.body[c]);
+  for (const c of ADMIN_JOB_COLS) {
+    if (c === 'field' || c === 'skills') continue;
+    if (req.body?.[c] !== undefined) patch[c] = c === 'tags' ? normalizeTags(req.body[c]) : (req.body[c] === '' && c !== 'title' ? null : req.body[c]);
+  }
+  Object.assign(patch, vocabulary.values);
   if (patch.status !== undefined && !ADMIN_JOB_STATUSES.includes(patch.status)) {
     return err(res, 400, 'BAD_REQUEST', `status must be one of ${ADMIN_JOB_STATUSES.join(', ')}`);
   }

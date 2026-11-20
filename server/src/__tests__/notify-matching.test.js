@@ -20,50 +20,66 @@ const capture = () => {
   };
 };
 
-// Phase 2 (docs/plan/2026-11-04-05-testing-plan.md): matching by skills /
-// preferred location — and the deliberate non-broadcast when neither is set.
-// (The duplicate-guard and daily-cap angles live in the existing suites.)
+// Matching by structured skills overlap, same field, or preferred location —
+// and the deliberate non-broadcast when none is set. (The duplicate-guard and
+// daily-cap angles live in the existing suites.)
 describe('notifyMatchingSeekers — who gets matched, not broadcast', () => {
-  it('does nothing when the job has neither tags nor a location', async () => {
-    await notifyMatchingSeekers({ id: 'job-0', title: 'Untitled', tags: [], location: '   ' });
+  it('does nothing when the job has no skills, field, or location', async () => {
+    await notifyMatchingSeekers({ id: 'job-0', title: 'Untitled', skills: [], field: null, location: '   ' });
     expect(callsOf(/insert into notifications/)).toHaveLength(0);
   });
 
-  it('matches by skills overlap when only tags are set', async () => {
+  it('matches by case-insensitive skills overlap when only skills are set', async () => {
     const seen = capture();
-    await notifyMatchingSeekers({ id: 'job-1', title: 'Cook', tags: ['Cooking', 'Food Safety'] });
+    await notifyMatchingSeekers({ id: 'job-1', title: 'Cook', skills: ['Cooking', 'Food Safety'] });
     const { sql, params } = seen();
-    expect(sql).toContain('skills && $1::text[]');
+    // Seekers may still carry the lowercase profile form, so both sides lower().
+    expect(sql).toContain('exists (select 1 from unnest(skills) sk where lower(sk) = any($1::text[]))');
     expect(sql).not.toContain('preferred_location');
+    expect(sql).not.toContain('field =');
     expect(sql).toContain("status = 'active'");
     expect(sql).toContain('limit 100');
-    expect(params[0]).toEqual(['Cooking', 'Food Safety']);
+    expect(params[0]).toEqual(['cooking', 'food safety']);
+  });
+
+  it('matches a same-field seeker even with no skill overlap', async () => {
+    const seen = capture();
+    await notifyMatchingSeekers({ id: 'job-2', title: 'IT Support', field: 'Information Technology' });
+    const { sql, params } = seen();
+    expect(sql).not.toContain('unnest');
+    expect(sql).toContain('field = $1');
+    expect(sql).not.toContain('preferred_location');
+    expect(params[0]).toBe('Information Technology');
   });
 
   it('matches by preferred_location when only a location is set', async () => {
     const seen = capture();
-    await notifyMatchingSeekers({ id: 'job-2', title: 'Driver', tags: [], location: 'Cebu City' });
+    await notifyMatchingSeekers({ id: 'job-3', title: 'Driver', skills: [], field: null, location: 'Cebu City' });
     const { sql, params } = seen();
     expect(sql).toContain('preferred_location ilike $1');
-    expect(sql).not.toContain('skills &&');
+    expect(sql).not.toContain('unnest');
+    expect(sql).not.toContain('field =');
     expect(params[0]).toBe('%Cebu City%');
   });
 
-  it('ORs skills and location, escaping LIKE metacharacters in the location', async () => {
+  it('ORs skills, field, and location, escaping LIKE metacharacters in the location', async () => {
     const seen = capture();
-    await notifyMatchingSeekers({ id: 'job-3', title: 'Dev', tags: ['react'], location: '100% WFH' });
+    await notifyMatchingSeekers({
+      id: 'job-4', title: 'Dev', field: 'Information Technology', skills: ['React'], location: '100% WFH',
+    });
     const { sql, params } = seen();
-    expect(sql).toMatch(/skills && \$1::text\[\] or preferred_location ilike \$2/);
+    expect(sql).toMatch(/lower\(sk\) = any\(\$1::text\[\]\)\) or field = \$2 or preferred_location ilike \$3/);
     expect(params[0]).toEqual(['react']);
-    expect(params[1]).toBe('%100\\% WFH%');
+    expect(params[1]).toBe('Information Technology');
+    expect(params[2]).toBe('%100\\% WFH%');
     // Link is bound before title/message and shared with the dedupe guard.
-    expect(params[2]).toBe('/job-seeker/jobs/job-3');
-    expect(params[3]).toBe('New job for you');
+    expect(params[3]).toBe('/job-seeker/jobs/job-4');
+    expect(params[4]).toBe('New job for you');
   });
 
-  it('filters blank tags instead of matching on them', async () => {
+  it('filters blank skills instead of matching on them', async () => {
     const seen = capture();
-    await notifyMatchingSeekers({ id: 'job-4', title: 'Cook', tags: ['', null, 'Cooking'], location: '' });
-    expect(seen().params[0]).toEqual(['Cooking']);
+    await notifyMatchingSeekers({ id: 'job-5', title: 'Cook', skills: ['', null, 'Cooking'], location: '' });
+    expect(seen().params[0]).toEqual(['cooking']);
   });
 });

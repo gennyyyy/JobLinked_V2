@@ -2,7 +2,10 @@ import { Router } from 'express';
 import { pool } from '../db.js';
 import { auth, optionalAuth, requireRole } from '../auth.js';
 import { ah, err, audit, notifyAdmins, notifyUser, isUuid, likeEscape, normalizeTags, pageParams, withTransaction } from '../util.js';
-import { scanJob, FEE_BLOCK_TERMS, FEE_HOLD_TERMS } from '../services/jobFeeFilter.js';const router = Router();
+import { scanJob, FEE_BLOCK_TERMS, FEE_HOLD_TERMS } from '../services/jobFeeFilter.js';
+import { validateJobVocabulary } from '../vocabulary.js';
+
+const router = Router();
 const JOB_STATUSES = ['draft', 'pending', 'approved', 'rejected', 'published', 'closed', 'archived'];
 // Employer writes must not set the PESO review statuses — pending/approved/
 // rejected belong to the admin review flow (audit noise + a job that can jump
@@ -193,22 +196,30 @@ router.get('/employers/:employerId/jobs', optionalAuth, ah(async (req, res) => {
   res.json({ data: rows.map(embed), total, page: pg.page, pageSize: pg.pageSize, counts });
 }));
 
-const JOB_COLS = ['title', 'office', 'location', 'employment_type', 'work_arrangement', 'salary_min', 'salary_max',
+const JOB_COLS = ['title', 'office', 'field', 'skills', 'location', 'employment_type', 'work_arrangement', 'salary_min', 'salary_max',
   'description', 'requirements', 'benefits', 'vacancies', 'deadline', 'instructions', 'tags', 'status', 'remarks'];
 
-// Best-effort seeker matching on publish (skills overlap or location match).
+// Best-effort seeker matching on publish (skills overlap, same field, or
+// location match).
 // Exported so the admin review-approve path (admin.js, sibling-owned) can call it too.
 // ponytail: naive fan-out, no queue/dedup — proper matcher/queue if publish gets noisy.
 // ponytail: defensive anti-burst cap; digest/queue is the real long-term fix.
 const DAILY_JOB_NOTIFICATION_CAP = 25;
 export async function notifyMatchingSeekers(job) {
   try {
-    const tags = Array.isArray(job?.tags) ? job.tags.filter(Boolean) : [];
+    const skills = Array.isArray(job?.skills) ? job.skills.filter(Boolean).map((s) => String(s).toLowerCase()) : [];
+    const field = (job?.field || '').trim();
     const loc = (job?.location || '').trim();
-    if (!tags.length && !loc) return;
+    if (!skills.length && !field && !loc) return;
     const conds = [];
     const vals = [];
-    if (tags.length) { vals.push(tags); conds.push(`skills && $${vals.length}::text[]`); }
+    if (skills.length) {
+      // Seeker skills written before Task 4 are lowercased; compare both sides
+      // case-insensitively so a canonical "MS Excel" still matches "ms excel".
+      vals.push(skills);
+      conds.push(`exists (select 1 from unnest(skills) sk where lower(sk) = any($${vals.length}::text[]))`);
+    }
+    if (field) { vals.push(field); conds.push(`field = $${vals.length}`); }
     if (loc) { vals.push(`%${likeEscape(loc)}%`); conds.push(`preferred_location ilike $${vals.length}`); }
     const title = 'New job for you';
     const message = `"${job.title}" matches your profile.`;
@@ -273,6 +284,10 @@ async function canPublish(req, res, companyId) {
 router.post('/jobs', auth, requireRole('employer'), ah(async (req, res) => {
   const b = req.body || {};
   if (!b.title) return err(res, 400, 'BAD_REQUEST', 'title is required');
+  // Controlled vocabularies (field/skill): 400 on a value the admin list lacks,
+  // stored in the canonical casing. Absent keys are left out entirely.
+  const vocabulary = await validateJobVocabulary(b);
+  if (!vocabulary.ok) return err(res, 400, 'BAD_REQUEST', vocabulary.message);
   if (b.work_arrangement !== undefined && !JOB_ARRANGEMENTS.includes(b.work_arrangement)) {
     return err(res, 400, 'BAD_REQUEST', `work_arrangement must be one of ${JOB_ARRANGEMENTS.join(', ')}`);
   }
@@ -304,6 +319,10 @@ router.post('/jobs', auth, requireRole('employer'), ah(async (req, res) => {
   const vals = [req.user.id];
   for (const c of JOB_COLS) {
     if (c === 'status') continue; // client status ignored except draft — see below
+    if (c === 'field' || c === 'skills') {
+      if (vocabulary.values[c] !== undefined) { cols.push(c); vals.push(vocabulary.values[c]); }
+      continue;
+    }
     if (b[c] !== undefined) { cols.push(c); vals.push(c === 'tags' ? normalizeTags(b[c]) : (b[c] === '' ? null : b[c])); }
   }
   // Fee filter (ADR-047): scan before any write.
@@ -347,8 +366,14 @@ router.post('/jobs', auth, requireRole('employer'), ah(async (req, res) => {
 router.patch('/jobs/:id', auth, ah(async (req, res) => {
   const job = await ownOrAdmin(req, res, await loadJob(req.params.id));
   if (!job) return;
+  const vocabulary = await validateJobVocabulary(req.body || {});
+  if (!vocabulary.ok) return err(res, 400, 'BAD_REQUEST', vocabulary.message);
   const patch = {};
-  for (const c of JOB_COLS) if (req.body?.[c] !== undefined) patch[c] = c === 'tags' ? normalizeTags(req.body[c]) : (req.body[c] === '' && c !== 'title' ? null : req.body[c]);
+  for (const c of JOB_COLS) {
+    if (c === 'field' || c === 'skills') continue;
+    if (req.body?.[c] !== undefined) patch[c] = c === 'tags' ? normalizeTags(req.body[c]) : (req.body[c] === '' && c !== 'title' ? null : req.body[c]);
+  }
+  Object.assign(patch, vocabulary.values);
   if (patch.work_arrangement !== undefined && !JOB_ARRANGEMENTS.includes(patch.work_arrangement)) {
     return err(res, 400, 'BAD_REQUEST', `work_arrangement must be one of ${JOB_ARRANGEMENTS.join(', ')}`);
   }

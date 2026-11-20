@@ -11,7 +11,7 @@ import { notifyMatchingSeekers } from '../routes/jobs.js';
 beforeEach(() => reset());
 
 describe('notifyMatchingSeekers — daily cap', () => {
-  const job = { id: 'job-1', title: 'Dev', location: 'Manila', tags: ['react'] };
+  const job = { id: 'job-1', title: 'Dev', location: 'Manila', skills: ['React'] };
 
   it('includes the daily cap subquery with date_trunc in the emitted SQL', async () => {
     on(/insert into notifications/, async () => ({ rows: [], rowCount: 0 }));
@@ -36,7 +36,7 @@ describe('notifyMatchingSeekers — daily cap', () => {
   it('binds title, message, link in the correct order (link shared by select list and dedupe)', async () => {
     on(/insert into notifications/, async (params) => {
       // vals built in notifyMatchingSeekers:
-      //   [0] tags (text[]), [1] location ilike, [2] link, [3] title, [4] message
+      //   [0] skills (text[]), [1] location ilike, [2] link, [3] title, [4] message
       const linkIdx = params.indexOf(`/job-seeker/jobs/${job.id}`);
       const titleIdx = params.indexOf('New job for you');
       const messageIdx = params.findIndex((p) => typeof p === 'string' && p.includes('matches your profile'));
