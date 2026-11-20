@@ -28,8 +28,6 @@ const uniqueSkills = (skills) => [
   ...new Set((Array.isArray(skills) ? skills : []).map((s) => normalize(s).toLowerCase()).filter(Boolean)),
 ];
 
-const tagSet = (tags) => new Set((Array.isArray(tags) ? tags : []).map((t) => normalize(t).toLowerCase()).filter(Boolean));
-
 const timeOf = (value) => (value == null ? NaN : new Date(value).getTime());
 
 // Score first, then newest created_at, then id: a total order with no clock.
@@ -66,8 +64,9 @@ export function rankPool(jobs = [], profile = {}) {
 
     if (skills.length) {
       active += WEIGHTS.skills;
-      const tags = tagSet(job.tags);
-      const matched = skills.filter((skill) => tags.has(skill)).length;
+      // Structured skills only: posting tags are highlights, not skills.
+      const listed = new Set(uniqueSkills(job.skills));
+      const matched = skills.filter((skill) => listed.has(skill)).length;
       points += WEIGHTS.skills * (matched / skills.length);
       if (matched) clauses.push(`Skills match ${matched} of ${skills.length}`);
     }

@@ -41,8 +41,9 @@ export function experienceLevel(job) {
   return '3+ years'
 }
 
-// Closest analogue of the reference's "category" badge.
-export const categoryLabel = (job) => (Array.isArray(job.tags) && job.tags.length ? job.tags[0] : job.office || job.employment_type || '')
+// Closest analogue of the reference's "category" badge. Tags are posting
+// highlights ("Urgent Hiring"), never a category.
+export const categoryLabel = (job) => job.field || job.office || job.employment_type || ''
 
 export function isJobOpen(job) {
   if (job.status && job.status !== 'published' && job.status !== 'Published') return false
@@ -51,10 +52,18 @@ export function isJobOpen(job) {
   return Number.isFinite(deadline) ? deadline >= Date.now() : true
 }
 
-// Skills listed on the vacancy are not structured in this API, so the overlap is
-// measured against the seeker's own skills appearing in the vacancy text.
+// The seeker's skills against the vacancy's structured skills list. Legacy
+// vacancies without one keep the old text heuristic over the posting body.
 export function matchJob(job, user) {
   const skills = (Array.isArray(user?.skills) ? user.skills : []).filter(Boolean)
+  const listed = (Array.isArray(job.skills) ? job.skills : []).filter(Boolean)
+
+  if (listed.length) {
+    const wanted = new Set(skills.map((skill) => String(skill).toLowerCase().trim()))
+    const matched = listed.filter((skill) => wanted.has(String(skill).toLowerCase().trim()))
+    return { score: Math.round((matched.length / listed.length) * 100), matched, total: listed.length }
+  }
+
   const text = `${job.title || ''} ${job.description || ''} ${job.requirements || ''} ${(job.tags || []).join(' ')}`.toLowerCase()
   const matched = skills.filter((skill) => text.includes(String(skill).toLowerCase().trim()))
   const total = skills.length
@@ -64,9 +73,11 @@ export function matchJob(job, user) {
 const IGNORED_PREFERENCE_WORDS = ['the', 'and', 'for', 'with', 'want', 'looking', 'job', 'prefer', 'would', 'like']
 
 // Keyword overlap between a free-text preference prompt and the vacancy.
+// categoryLabel carries the structured field (or legacy office/type) and the
+// structured skills are part of the searchable text.
 export function preferenceScore(job, prompt) {
   const tokens = [...new Set(prompt.toLowerCase().match(/[\p{L}\p{N}]+/gu) ?? [])]
     .filter((token) => token.length > 2 && !IGNORED_PREFERENCE_WORDS.includes(token))
-  const text = `${job.title} ${categoryLabel(job)} ${jobType(job)} ${job.work_arrangement || ''} ${jobLocation(job)} ${experienceLabel(job)} ${(job.tags || []).join(' ')} ${job.description || ''}`.toLowerCase()
+  const text = `${job.title} ${categoryLabel(job)} ${jobType(job)} ${job.work_arrangement || ''} ${jobLocation(job)} ${experienceLabel(job)} ${(job.skills || []).join(' ')} ${(job.tags || []).join(' ')} ${job.description || ''}`.toLowerCase()
   return tokens.filter((token) => text.includes(token)).length
 }

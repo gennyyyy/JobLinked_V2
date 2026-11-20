@@ -8,6 +8,7 @@ const job = (overrides = {}) => ({
   title: 'Welder',
   description: 'Tig welding',
   tags: [],
+  skills: [],
   location: 'Poblacion',
   created_at: '2026-01-01T00:00:00.000Z',
   ...overrides,
@@ -24,9 +25,9 @@ describe('rankPool', () => {
     };
     const jobs = [
       // Full skills overlap but old, different barangay, unrelated title.
-      job({ id: 'skills', title: 'Factory Helper', tags: ['welding', 'fabrication', 'blueprint'], location: 'Mabini', created_at: '2026-01-01T00:00:00.000Z' }),
+      job({ id: 'skills', title: 'Factory Helper', skills: ['welding', 'fabrication', 'blueprint'], location: 'Mabini', created_at: '2026-01-01T00:00:00.000Z' }),
       // Everything except skills: newest, same barangay, title affinity.
-      job({ id: 'signals', title: 'Senior Welder', tags: [], location: 'Poblacion', created_at: '2026-02-01T00:00:00.000Z' }),
+      job({ id: 'signals', title: 'Senior Welder', tags: [], skills: [], location: 'Poblacion', created_at: '2026-02-01T00:00:00.000Z' }),
     ];
 
     const result = rankPool(jobs, profile);
@@ -90,7 +91,7 @@ describe('rankPool', () => {
 
   it('builds explainable reasons with counts and matching', () => {
     const profile = { skills: ['welding', 'tig', 'blueprint'], barangay_district: 'Poblacion' };
-    const jobs = [job({ id: 'j', tags: ['Welding', 'TIG'], location: 'Poblacion' })];
+    const jobs = [job({ id: 'j', skills: ['Welding', 'TIG'], location: 'Poblacion' })];
 
     expect(reasonFor(rankPool(jobs, profile), 'j')).toBe('Skills match 2 of 3 · Same barangay');
   });
@@ -110,9 +111,33 @@ describe('rankPool', () => {
 
   it('counts duplicate profile skills once', () => {
     const profile = { skills: ['welding', 'Welding', 'tig'] };
-    const jobs = [job({ id: 'j', tags: ['welding', 'tig'] })];
+    const jobs = [job({ id: 'j', skills: ['welding', 'tig'] })];
 
     expect(reasonFor(rankPool(jobs, profile), 'j')).toBe('Skills match 2 of 2');
+  });
+
+  it('does not score posting tags as skills', () => {
+    const profile = { skills: ['welding'] };
+    const jobs = [
+      job({ id: 'tagged', tags: ['Welding'], skills: [] }),
+      job({ id: 'listed', skills: ['Welding'], tags: [] }),
+    ];
+
+    const result = rankPool(jobs, profile);
+
+    expect(result.order).toEqual(['listed', 'tagged']);
+    expect(reasonFor(result, 'tagged')).toBe('No profile signals matched');
+    expect(reasonFor(result, 'listed')).toBe('Skills match 1 of 1');
+  });
+
+  it('scores a legacy vacancy without a skills column as zero skill match', () => {
+    const profile = { skills: ['welding', 'tig'] };
+    const jobs = [job({ id: 'legacy', skills: undefined, tags: [] })];
+
+    const result = rankPool(jobs, profile);
+
+    expect(result.order).toEqual(['legacy']);
+    expect(reasonFor(result, 'legacy')).toBe('No profile signals matched');
   });
 
   it('caps reasons at 30 while ordering every job', () => {

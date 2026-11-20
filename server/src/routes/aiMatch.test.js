@@ -48,6 +48,8 @@ const job = (n, overrides = {}) => ({
   salary_min: '15000',
   salary_max: '20000',
   tags: ['welding'],
+  field: 'Construction',
+  skills: ['Welding'],
   description: `TIG welding and fabrication for job ${n}`,
   created_at: new Date(Date.UTC(2026, 0, 1) + n * 86_400_000).toISOString(),
   logo_path: null,
@@ -367,6 +369,10 @@ describe('POST /api/ai/job-match', () => {
     expect(payload.messages).toHaveLength(2);
     expect(payload.messages[0].role).toBe('system');
     expect(payload.messages[1]).toEqual({ role: 'user', content: 'welder near poblacion' });
+    // Structured field and skills travel; tags keep their own slot.
+    expect(payload.messages[0].content).toContain('"field":"Construction"');
+    expect(payload.messages[0].content).toContain('"skills":["Welding"]');
+    expect(payload.messages[0].content).toContain('"tags":["welding"]');
   });
 
   it('empty profile works', async () => {

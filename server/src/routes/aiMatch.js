@@ -37,8 +37,10 @@ const publicJob = (job) => ({
   company: normalize(job.company_name),
   location: normalize(job.location),
   employmentType: normalize(job.employment_type),
+  field: normalize(job.field),
   salary: { min: job.salary_min ?? null, max: job.salary_max ?? null },
   tags: Array.isArray(job.tags) ? job.tags : [],
+  skills: Array.isArray(job.skills) ? job.skills.map(normalize) : [],
   description: normalize(job.description).slice(0, DESCRIPTION_EXCERPT_CHARS),
 });
 
