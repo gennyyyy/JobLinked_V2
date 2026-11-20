@@ -67,11 +67,12 @@ on conflict (id) do nothing;
 -- The one published vacancy: browsed, applied to and deep-linked by the smoke.
 insert into public.job_vacancies
   (id, company_id, title, office, location, employment_type, work_arrangement, salary_min, salary_max,
-   description, requirements, benefits, vacancies, deadline, instructions, tags, status, published_at)
+   description, requirements, benefits, vacancies, deadline, instructions, tags, field, skills, status, published_at)
 values
   ('5eed0000-0000-4000-8000-000000000011', '5eed0000-0000-4000-8000-000000000002', 'Smoke Test Service Crew',
    'smoke test company', 'Poblacion', 'Full-time', 'On-site', 15000, 18000,
    'Fixture vacancy driven by scripts/system-check.mjs. Safe to close or delete on a real deployment.',
    'No experience required; willing to learn.', 'SSS, PhilHealth, Pag-IBIG', 1, current_date + 30,
-   'Apply through JobLinked and attach your resume.', '{customer service}', 'published', now())
+   'Apply through JobLinked and attach your resume.', '{customer service}', 'Customer Service',
+   '{Customer Service,Communication,Teamwork}', 'published', now())
 on conflict (id) do nothing;

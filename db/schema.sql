@@ -49,6 +49,7 @@ create table if not exists public.job_seekers (
   skills               text[]      not null default '{}',
   employment_status    text,
   preferred_position   text,
+  field                text,
   preferred_location   text,
   status               account_status not null default 'active',
   referral_opt_in      boolean not null default false,
@@ -64,6 +65,7 @@ alter table public.job_seekers add column if not exists block text;
 alter table public.job_seekers add column if not exists headline text;
 alter table public.job_seekers add column if not exists education_summary text;
 alter table public.job_seekers add column if not exists experience_summary text;
+alter table public.job_seekers add column if not exists field text;
 
 create table if not exists public.employers (
   id                     uuid        primary key,
@@ -117,7 +119,8 @@ create table if not exists public.super_admins (
 );
 
 -- ---------------------------------------------------------------------------
--- Reference data (rows live in db/seed.sql)
+-- Reference data (rows live in db/seed.sql — including the 'job_field' and
+-- 'skill' controlled vocabularies added by migration 016)
 -- ---------------------------------------------------------------------------
 create table if not exists public.reference_data (
   id         bigint generated always as identity primary key,
@@ -199,6 +202,7 @@ create table if not exists public.job_vacancies (
   id              uuid        primary key default gen_random_uuid(),
   company_id      uuid        not null references public.employers(id) on delete cascade,
   title           text        not null,
+  field           text,
   office          text,
   location        text,
   employment_type text
@@ -217,6 +221,9 @@ create table if not exists public.job_vacancies (
   deadline        date,
   instructions    text,
   tags            text[]      not null default '{}',
+  -- Skills this vacancy asks for, from the 'skill' vocabulary (016).
+  -- `tags` above stays what it is: posting highlights, not skills.
+  skills          text[]      not null default '{}',
   status          job_status  not null default 'draft',
   remarks         text,
   created_at      timestamptz not null default now(),
@@ -477,6 +484,10 @@ create index if not exists notifications_user_created_idx on public.notification
 -- to serve ILIKE '%…%', which btree cannot. Guarded on pg_trgm so a host
 -- without the extension still applies everything else.
 create index if not exists job_seekers_skills_gin on public.job_seekers using gin (skills);
+-- Structured vacancy skills/field (016): the GIN backs array overlap, the
+-- btree serves the Browse Jobs field filter.
+create index if not exists job_vacancies_skills_gin on public.job_vacancies using gin (skills);
+create index if not exists job_vacancies_field_idx on public.job_vacancies (field);
 do $$
 begin
   create extension if not exists pg_trgm;
