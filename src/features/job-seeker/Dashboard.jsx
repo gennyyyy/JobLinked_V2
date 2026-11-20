@@ -13,6 +13,7 @@ import { PageSkeleton } from '@/shared/components/Skeletons'
 import { InlineError } from '@/shared/components/dashboard'
 import { CompanyMark, EmptyState, LinkButton, PageHeading, Panel, StatCards, StatusBadge } from '@/shared/components/design'
 import { titleCase } from '@/shared/utils/titleCase'
+import { matchJob } from '@/shared/utils/jobDisplay'
 
 function splitPref(value) {
   const list = Array.isArray(value) ? value : String(value || '').split(',')
@@ -49,15 +50,6 @@ const postedLabel = (value) => {
   if (!value) return 'Recently posted'
   const days = Math.max(0, Math.round((Date.now() - new Date(value).getTime()) / 86400000))
   return days === 0 ? 'Posted today' : `${days} day${days === 1 ? '' : 's'} ago`
-}
-
-function skillMatch(job, user) {
-  const skills = (Array.isArray(user?.skills) ? user.skills : []).filter(Boolean)
-  const haystack = `${job.title || ''} ${job.description || ''} ${job.requirements || ''} ${(job.tags || []).join(' ')}`.toLowerCase()
-  const matched = skills.filter((skill) => haystack.includes(String(skill).toLowerCase()))
-  const total = skills.length || matched.length
-  const pct = total ? Math.round((matched.length / total) * 100) : 0
-  return { matched, total, pct }
 }
 
 export default function Dashboard() {
@@ -179,7 +171,8 @@ export default function Dashboard() {
             </div>
             <div className="grid gap-4 md:grid-cols-2">
               {recommended.length ? recommended.map((job) => {
-                const match = skillMatch(job, user)
+                const match = matchJob(job, user)
+                const hasListedSkills = Array.isArray(job.skills) && job.skills.length > 0
                 const company = job.employers?.company_name || 'Verified employer'
                 const saved = savedIds.includes(job.id)
                 const tags = (Array.isArray(job.tags) ? job.tags : []).slice(0, 2)
@@ -213,15 +206,17 @@ export default function Dashboard() {
                     <CardContent className="flex flex-1 flex-col gap-4">
                       <div className="flex flex-wrap gap-1.5">
                         {tags.map((tag) => <Badge key={tag} variant="secondary">{tag}</Badge>)}
-                        {match.pct > 0 && <Badge variant="secondary" className="bg-teal-soft text-teal">{match.pct}% skills overlap</Badge>}
+                        {hasListedSkills && match.score > 0 && <Badge variant="secondary" className="bg-teal-soft text-teal">{match.score}% skills overlap</Badge>}
                       </div>
                       <p className="text-[15px] font-semibold text-navy">
                         {salaryLabel(job)}
                         {job.salary_min ? <span className="ml-1 text-[10px] font-normal text-muted-foreground">/ month</span> : null}
                       </p>
-                      <p className="text-[11px] leading-5 text-muted-foreground">
-                        {match.matched.length} of {match.total} listed skills match: {match.matched.join(', ') || 'no exact matches yet'}.
-                      </p>
+                      {hasListedSkills && match.total > 0 && (
+                        <p className="text-[11px] leading-5 text-muted-foreground">
+                          {match.matched.length} of {match.total} listed skills match: {match.matched.join(', ') || 'no exact matches yet'}.
+                        </p>
+                      )}
                     </CardContent>
                     <CardFooter className="justify-between bg-white py-3">
                       <span className="flex items-center gap-1.5 text-[10px] text-muted-foreground"><Clock3 className="size-3" />{postedLabel(job.created_at)}</span>

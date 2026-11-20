@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, Navigate, useParams } from 'react-router-dom'
-import { ArrowLeft, Banknote, BriefcaseBusiness, CalendarDays, MapPin, Users } from 'lucide-react'
+import { ArrowLeft, Banknote, BriefcaseBusiness, Building2, CalendarDays, Layers, MapPin, Users } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { getJob } from '@/shared/services/jobs'
@@ -53,7 +53,8 @@ export default function PublicJobDetail() {
 
   const requirements = job.requirements ? job.requirements.split('\n').filter(Boolean) : []
   const benefits = job.benefits ? job.benefits.split('\n').filter(Boolean) : []
-  const tags = Array.isArray(job.tags) ? job.tags.filter(Boolean) : []
+  const skills = Array.isArray(job.skills) ? job.skills.filter(Boolean) : []
+  const highlights = Array.isArray(job.tags) ? job.tags.filter(Boolean) : []
   const company = titleCase(job.employers?.company_name) || 'Verified employer'
 
   return (
@@ -120,12 +121,29 @@ export default function PublicJobDetail() {
                     </ul>
                   </section>
                 )}
-                {tags.length > 0 && (
-                  <div className="mt-7 flex flex-wrap gap-2">
-                    {tags.map((tag) => (
-                      <Badge key={tag} variant="secondary" className="bg-muted text-muted-foreground">{tag}</Badge>
-                    ))}
-                  </div>
+                {skills.length > 0 && (
+                  <section className="mt-7" aria-labelledby="public-job-skills">
+                    <h2 id="public-job-skills" className="mb-3 text-sm font-semibold">Skills required</h2>
+                    <ul className="flex flex-wrap gap-2">
+                      {skills.map((skill) => (
+                        <li key={skill}>
+                          <Badge variant="secondary">{skill}</Badge>
+                        </li>
+                      ))}
+                    </ul>
+                  </section>
+                )}
+                {highlights.length > 0 && (
+                  <section className="mt-7" aria-labelledby="public-job-highlights">
+                    <h2 id="public-job-highlights" className="mb-3 text-sm font-semibold">Job highlights</h2>
+                    <ul className="flex flex-wrap gap-2">
+                      {highlights.map((tag) => (
+                        <li key={tag}>
+                          <Badge variant="secondary" className="bg-muted text-muted-foreground">{tag}</Badge>
+                        </li>
+                      ))}
+                    </ul>
+                  </section>
                 )}
               </Panel>
             </div>
@@ -140,6 +158,22 @@ export default function PublicJobDetail() {
                   <div>
                     <p className="text-[10px] font-medium uppercase tracking-[.14em] text-muted-foreground">Compensation</p>
                     <p className="mt-1 text-sm font-medium text-navy">{money(job.salary_min)}{job.salary_max ? ` – ${money(job.salary_max)}` : job.salary_min ? '+' : ''}</p>
+                  </div>
+                </div>
+                {job.field && (
+                  <div className="flex items-start gap-3">
+                    <Layers className="mt-0.5 size-4 text-teal" />
+                    <div>
+                      <p className="text-[10px] font-medium uppercase tracking-[.14em] text-muted-foreground">Field</p>
+                      <p className="mt-1 text-sm font-medium text-navy">{job.field}</p>
+                    </div>
+                  </div>
+                )}
+                <div className="flex items-start gap-3">
+                  <Building2 className="mt-0.5 size-4 text-teal" />
+                  <div>
+                    <p className="text-[10px] font-medium uppercase tracking-[.14em] text-muted-foreground">Work arrangement</p>
+                    <p className="mt-1 text-sm font-medium text-navy">{job.work_arrangement || 'On-site'}</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-3">

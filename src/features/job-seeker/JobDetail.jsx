@@ -3,7 +3,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { useState, useEffect } from "react";
 import { Link, Navigate, useParams } from "react-router-dom";
-import { ArrowLeft, ArrowRight, Banknote, BriefcaseBusiness, CalendarDays, Check, CheckCircle2, MapPin, Users } from "lucide-react";
+import { ArrowLeft, ArrowRight, Banknote, BriefcaseBusiness, CalendarDays, Check, CheckCircle2, Layers, MapPin, Users } from "lucide-react";
 import useAuth from "@/shared/hooks/useAuth";
 import { getJob } from "@/shared/services/jobs";
 import { applyToJob, listBySeeker } from "@/shared/services/applications";
@@ -67,7 +67,8 @@ function JobDetail() {
   }
 
   const requirements = job.requirements ? job.requirements.split("\n").filter(Boolean) : [];
-  const tags = Array.isArray(job.tags) ? job.tags.filter(Boolean) : [];
+  const skills = Array.isArray(job.skills) ? job.skills.filter(Boolean) : [];
+  const highlights = Array.isArray(job.tags) ? job.tags.filter(Boolean) : [];
 
   // Same cutoff convention as the employer list: the deadline day itself still
   // accepts applications; only a fully elapsed day closes the listing.
@@ -139,12 +140,21 @@ function JobDetail() {
               </section>
             )}
 
-            {tags.length > 0 && (
-              <section className="mt-7">
-                <h2 className="mb-3 text-sm font-semibold">Skills that make a difference</h2>
-                <div className="flex flex-wrap gap-2">
-                  {tags.map((tag) => <Badge key={tag} variant="secondary">{tag}</Badge>)}
-                </div>
+            {skills.length > 0 && (
+              <section className="mt-7" aria-labelledby="job-detail-skills">
+                <h2 id="job-detail-skills" className="mb-3 text-sm font-semibold">Skills required</h2>
+                <ul className="flex flex-wrap gap-2">
+                  {skills.map((skill) => <li key={skill}><Badge variant="secondary">{skill}</Badge></li>)}
+                </ul>
+              </section>
+            )}
+
+            {highlights.length > 0 && (
+              <section className="mt-7" aria-labelledby="job-detail-highlights">
+                <h2 id="job-detail-highlights" className="mb-3 text-sm font-semibold">Job highlights</h2>
+                <ul className="flex flex-wrap gap-2">
+                  {highlights.map((tag) => <li key={tag}><Badge variant="outline">{tag}</Badge></li>)}
+                </ul>
               </section>
             )}
           </Panel>
@@ -156,6 +166,7 @@ function JobDetail() {
               {[
                 { icon: Banknote, label: "Monthly salary", value: salary },
                 { icon: MapPin, label: "Work location", value: `Brgy. ${titleCase(job.location)}, Santa Maria` },
+                ...(job.field ? [{ icon: Layers, label: "Field", value: job.field }] : []),
                 { icon: BriefcaseBusiness, label: "Work arrangement", value: job.work_arrangement || "On-site" },
                 { icon: Users, label: "Openings", value: job.vacancies ?? "—" },
                 { icon: CalendarDays, label: "Apply by", value: job.deadline ? new Date(job.deadline).toLocaleDateString() : "No deadline" },

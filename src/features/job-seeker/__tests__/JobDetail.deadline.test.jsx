@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen, fireEvent, within } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import JobDetail from '../JobDetail'
 import { getJob } from '../../../shared/services/jobs'
@@ -89,5 +89,37 @@ describe('JobDetail deadline handling', () => {
   it('does not offer resume upload on the job detail page', async () => {
     await renderDetail(job({ deadline: null }))
     expect(screen.queryByLabelText(/upload new resume/i)).not.toBeInTheDocument()
+  })
+
+  it('shows field, skills, and highlights under their own labelled rows and sections', async () => {
+    await renderDetail(job({
+      field: 'Healthcare',
+      work_arrangement: 'On-site',
+      skills: ['Communication', 'First Aid'],
+      tags: ['Urgent Hiring'],
+    }))
+
+    const fieldRow = screen.getByText('Field').closest('div')
+    expect(within(fieldRow).getByText('Healthcare')).toBeInTheDocument()
+
+    const skillsSection = screen.getByRole('heading', { name: 'Skills required' }).closest('section')
+    expect(within(skillsSection).getByText('Communication')).toBeInTheDocument()
+    expect(within(skillsSection).getByText('First Aid')).toBeInTheDocument()
+
+    const highlightsSection = screen.getByRole('heading', { name: 'Job highlights' }).closest('section')
+    expect(within(highlightsSection).getByText('Urgent Hiring')).toBeInTheDocument()
+    // The arrangement is a detail row, not a skill or a highlight.
+    expect(within(skillsSection).queryByText('On-site')).toBeNull()
+    expect(within(highlightsSection).queryByText('On-site')).toBeNull()
+    expect(within(screen.getByText('Work arrangement').closest('div')).getByText('On-site')).toBeInTheDocument()
+  })
+
+  it('omits the field, skills, and highlight sections for a legacy vacancy', async () => {
+    await renderDetail(job())
+
+    expect(screen.queryByText('Field')).toBeNull()
+    expect(screen.queryByRole('heading', { name: 'Skills required' })).toBeNull()
+    expect(screen.queryByRole('heading', { name: 'Job highlights' })).toBeNull()
+    expect(screen.getByText('Work arrangement')).toBeInTheDocument()
   })
 })

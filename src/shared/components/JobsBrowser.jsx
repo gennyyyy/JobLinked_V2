@@ -10,11 +10,11 @@ import PreferenceMatching from './PreferenceMatching'
 import { JobListSkeleton } from '@/shared/components/Skeletons'
 import { InlineError, Pager } from '@/shared/components/dashboard'
 import { SANTA_MARIA_BARANGAYS } from '@/shared/constants'
-import { categoryLabel, experienceLevel, isJobOpen, jobType, matchJob, preferenceScore } from '@/shared/utils/jobDisplay'
+import { experienceLevel, isJobOpen, jobType, matchJob, preferenceScore } from '@/shared/utils/jobDisplay'
 import { MATCH_UNAVAILABLE, MATCHING_NOTICE, matchModeLabel } from '@/shared/content/matching'
 
 const PAGE_SIZE = 15
-const EMPTY_FILTERS = { barangay: '', category: '', type: '', salary: '', experience: '' }
+const EMPTY_FILTERS = { barangay: '', field: '', type: '', salary: '', experience: '' }
 const SALARY_OPTIONS = [
   { label: 'Below ₱15,000', value: '0-15000' },
   { label: '₱15,000 – ₱25,000', value: '15000-25000' },
@@ -64,8 +64,10 @@ export default function JobsBrowser({
     return () => { cancelled = true }
   }, [])
 
-  const categoryOptions = useMemo(
-    () => [...new Set(jobs.map(categoryLabel).filter(Boolean))].sort(),
+  // Only the structured field is a field; legacy rows without one stay under
+  // "All fields" instead of inventing a category out of their tags.
+  const fieldOptions = useMemo(
+    () => [...new Set(jobs.map((job) => job.field).filter(Boolean))].sort(),
     [jobs],
   )
   const typeOptions = useMemo(
@@ -138,7 +140,7 @@ export default function JobsBrowser({
     return candidates
       .filter((job) => `${job.title} ${job.employers?.company_name || ''}`.toLowerCase().includes(text))
       .filter((job) => (!filters.barangay || job.location === filters.barangay))
-      .filter((job) => (!filters.category || categoryLabel(job) === filters.category))
+      .filter((job) => (!filters.field || job.field === filters.field))
       .filter((job) => (!filters.type || jobType(job) === filters.type))
       .filter((job) => (!filters.experience || experienceLevel(job) === filters.experience))
       .filter((job) => {
@@ -181,12 +183,12 @@ export default function JobsBrowser({
         onChange={(event) => updateFilter('barangay', event.target.value)}
       />
       <SelectField
-        id={`${prefix}-category`}
-        label="Job category"
-        placeholder="All categories"
-        options={categoryOptions}
-        value={filters.category}
-        onChange={(event) => updateFilter('category', event.target.value)}
+        id={`${prefix}-field`}
+        label="Job field"
+        placeholder="All fields"
+        options={fieldOptions}
+        value={filters.field}
+        onChange={(event) => updateFilter('field', event.target.value)}
       />
       <SelectField
         id={`${prefix}-type`}

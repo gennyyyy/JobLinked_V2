@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
 import { titleCase } from '../utils/titleCase'
-import { Bookmark, BookmarkCheck, BriefcaseBusiness, Check, Clock3, MapPin } from 'lucide-react'
+import { Bookmark, BookmarkCheck, BriefcaseBusiness, Check, Clock3, Laptop, MapPin } from 'lucide-react'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { CompanyMark } from './design'
@@ -18,6 +18,13 @@ import {
 
 // 1:1 port of the reference job card (components/jobs/job-card.tsx).
 export default function JobCard({ job, href, showMatch = false, match, matchReason, saved = false, canSave = false, onToggleSave }) {
+  const field = job.field || categoryLabel(job)
+  const skills = (Array.isArray(job.skills) ? job.skills : []).filter(Boolean)
+  const highlights = (Array.isArray(job.tags) ? job.tags : []).filter(Boolean)
+  // Structured skills are the only thing "skills overlap" may be measured
+  // against; a legacy vacancy with no skills list shows no match at all.
+  const hasMatch = showMatch && match && skills.length > 0
+
   return (
     <Card className="job-card relative h-full gap-5 [--card-spacing:--spacing(5)]">
       <CardHeader>
@@ -25,7 +32,9 @@ export default function JobCard({ job, href, showMatch = false, match, matchReas
           <CompanyMark initials={companyInitial(job)} />
           <div className="min-w-0 flex-1 pt-0.5">
             <p className="truncate text-[11px] font-medium text-muted-foreground">{companyName(job)}</p>
-            <span className="mt-1 flex items-center gap-1 text-[10px] text-teal"><Check className="size-3" />Verified employer</span>
+            {job.employers?.accreditation_status === 'approved' && (
+              <span className="mt-1 flex items-center gap-1 text-[10px] text-teal"><Check className="size-3" />Verified employer</span>
+            )}
           </div>
           {canSave && (
             <button
@@ -45,19 +54,32 @@ export default function JobCard({ job, href, showMatch = false, match, matchReas
         <CardDescription className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-2 text-[11px]">
           <span className="flex items-center gap-1"><MapPin className="size-3" />{jobLocation(job)}</span>
           <span className="flex items-center gap-1"><BriefcaseBusiness className="size-3" />{jobType(job)}</span>
+          {job.work_arrangement && (
+            <span className="flex items-center gap-1"><Laptop className="size-3" />{job.work_arrangement}</span>
+          )}
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-1 flex-col gap-4">
         <div className="flex flex-wrap gap-1.5">
-          {categoryLabel(job) && <Badge variant="secondary">{categoryLabel(job)}</Badge>}
+          {field && <Badge variant="secondary">{field}</Badge>}
           {experienceLabel(job) && <Badge variant="outline">{experienceLabel(job)}</Badge>}
-          {showMatch && match && <Badge variant="secondary" className="bg-teal-soft text-teal">{match.score}% skills overlap</Badge>}
+          {hasMatch && <Badge variant="secondary" className="bg-teal-soft text-teal">{match.score}% skills overlap</Badge>}
         </div>
+        {skills.length > 0 && (
+          <div role="group" aria-label="Skills required" className="flex flex-wrap gap-1.5">
+            {skills.map((skill) => <Badge key={skill} variant="secondary">{skill}</Badge>)}
+          </div>
+        )}
+        {highlights.length > 0 && (
+          <div role="group" aria-label="Job highlights" className="flex flex-wrap gap-1.5">
+            {highlights.map((tag) => <Badge key={tag} variant="outline">{tag}</Badge>)}
+          </div>
+        )}
         <p className="text-[15px] font-semibold text-navy">
           {salaryLabel(job)}
           {job.salary_min ? <span className="ml-1 text-[10px] font-normal text-muted-foreground">/ month</span> : null}
         </p>
-        {showMatch && match && (
+        {hasMatch && (
           <p className="text-[11px] leading-5 text-muted-foreground">
             {match.matched.length} of {match.total} listed skills match: {match.matched.join(', ') || 'no exact matches yet'}.
           </p>

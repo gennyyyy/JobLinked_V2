@@ -67,7 +67,8 @@ describe('JobsBrowser (public mode)', () => {
     const card = within(link.closest('.job-card'))
     expect(card.getByText(/₱12,000/)).toBeInTheDocument()
     expect(card.getByText('Poblacion')).toBeInTheDocument()
-    // The type shows in the metadata line and again as the category badge.
+    // The type shows in the metadata line and again as the legacy field badge
+    // (these fixtures predate structured fields).
     expect(card.getAllByText('Full-time').length).toBeGreaterThan(0)
   })
 
@@ -89,6 +90,30 @@ describe('JobsBrowser (public mode)', () => {
 
     await waitFor(() => expect(screen.queryByText('Barangay Health Worker')).toBeNull())
     expect(screen.getByText('Junior Web Developer')).toBeInTheDocument()
+  })
+
+  it('offers only structured fields and leaves legacy rows under All fields', async () => {
+    listJobs.mockResolvedValue({
+      jobs: [
+        { ...JOBS[0], field: 'Healthcare' },
+        { ...JOBS[1], field: 'Information Technology' },
+        { ...JOBS[0], id: 'job-3', title: 'Warehouse Helper', field: null, tags: ['Urgent Hiring'] },
+      ],
+      total: 3,
+    })
+    renderBrowser()
+    await screen.findByText('Barangay Health Worker')
+
+    const fieldSelect = screen.getByLabelText('Job field')
+    const options = within(fieldSelect).getAllByRole('option').map((option) => option.textContent)
+    expect(options).toEqual(['All fields', 'Healthcare', 'Information Technology'])
+
+    fireEvent.change(fieldSelect, { target: { value: 'Healthcare' } })
+
+    await waitFor(() => expect(screen.queryByText('Junior Web Developer')).toBeNull())
+    expect(screen.queryByText('Warehouse Helper')).toBeNull()
+    expect(screen.getByText('Barangay Health Worker')).toBeInTheDocument()
+    expect(screen.getByText('1 matching vacancies')).toBeInTheDocument()
   })
 
   it('shows the empty state instead of crashing on a malformed payload', async () => {

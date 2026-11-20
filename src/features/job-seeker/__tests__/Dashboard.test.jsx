@@ -65,4 +65,33 @@ describe('Job-seeker Dashboard', () => {
     render(<MemoryRouter><Dashboard /></MemoryRouter>)
     expect(await screen.findByRole('alert')).toHaveTextContent('Network down')
   })
+
+  it('scores recommendations from the same structured skills rule as the job cards', async () => {
+    useAuth.mockReturnValue({ user: { id: 'seeker-1', first_name: 'Juan', skills: ['MS Excel'] } })
+    listJobs.mockResolvedValue({
+      jobs: [{
+        id: 'j1',
+        title: 'Office Clerk',
+        location: 'Poblacion',
+        employment_type: 'Full-time',
+        skills: ['MS Excel', 'Cashiering'],
+        employers: { company_name: 'sm groceries' },
+      }],
+    })
+    await renderDashboard()
+
+    expect(screen.getByText('50% skills overlap')).toBeInTheDocument()
+    expect(screen.getByText('1 of 2 listed skills match: MS Excel.')).toBeInTheDocument()
+  })
+
+  it('does not invent a skills score for a legacy vacancy with no skills list', async () => {
+    useAuth.mockReturnValue({ user: { id: 'seeker-1', first_name: 'Juan', skills: ['Truck Driver'] } })
+    listJobs.mockResolvedValue({
+      jobs: [{ id: 'j1', title: 'Truck Driver', location: 'Poblacion', employers: { company_name: 'sm logistics' } }],
+    })
+    await renderDashboard()
+
+    expect(screen.queryByText(/% skills overlap/)).toBeNull()
+    expect(screen.queryByText(/listed skills match/)).toBeNull()
+  })
 })

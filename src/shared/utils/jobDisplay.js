@@ -26,7 +26,9 @@ export const jobType = (job) => job.employment_type || 'Full-time'
 // The employer form stores education/experience as prefixed lines inside the
 // free-text requirements blob.
 const EXPERIENCE_LINE = /^\s*Experience:\s*(.*)$/im
-export const experienceLabel = (job) => (String(job.requirements || '').match(EXPERIENCE_LINE)?.[1] || job.work_arrangement || '').trim()
+// Work arrangement is its own fact, never an experience badge: it used to leak
+// into the card's tag row as "On-site"/"Hybrid".
+export const experienceLabel = (job) => (String(job.requirements || '').match(EXPERIENCE_LINE)?.[1] || '').trim()
 
 // Bucket the recorded years into the reference's experience-level filter.
 export function experienceLevel(job) {

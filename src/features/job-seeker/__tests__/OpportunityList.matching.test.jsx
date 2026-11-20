@@ -21,6 +21,7 @@ function job(overrides = {}) {
     status: 'published',
     location: 'Poblacion',
     employment_type: 'Full-time',
+    field: 'Administrative & Office',
     salary_min: 18000,
     salary_max: 22000,
     created_at: '2026-10-18T00:00:00.000Z',
@@ -167,7 +168,7 @@ describe('OpportunityList AI matching', () => {
 
     // Task 13: page/filters are deliberately absent from the match effect deps,
     // so refining the list must not burn another AI request.
-    fireEvent.change(screen.getByLabelText('Job category'), { target: { value: 'Full-time' } })
+    fireEvent.change(screen.getByLabelText('Job field'), { target: { value: 'Administrative & Office' } })
     await waitFor(() => expect(matchJobs).toHaveBeenCalledTimes(1))
   })
 
