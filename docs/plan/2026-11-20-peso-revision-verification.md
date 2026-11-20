@@ -86,4 +86,4 @@ Evidence: academic paper/defense artifact, not in repo. Flag for the paper and d
 - EXTERNAL (human): 2 (paper/defense wording), 6 (PESO needs analysis citation)
 - Regression check: no new failures attributable to this work (see Implementation result).
 
-Action items (for implementation): resolve item 2 terminology decision; build shared controlled tag list (item 3) and separate it from work arrangement (item 4); restructure homepage + Browse Jobs to center matching/accreditation/tracking and drop standard filter prominence (item 5); update paper/defense (items 2, 6).
+Remaining actions (external, no code): adopt the canonical matching sentences in the paper/defense (item 2) and cite the PESO needs analysis (item 6). Every code item is implemented and verified above.
