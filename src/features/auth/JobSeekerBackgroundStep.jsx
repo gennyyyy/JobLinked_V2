@@ -1,10 +1,10 @@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { TagInput } from "@/shared/components/TagInput";
+import VocabularyPicker from "@/shared/components/VocabularyPicker";
 import { EDUCATION_LEVELS } from "./jobSeekerRegistration";
 import FormSelect from "@/shared/components/FormSelect";
 
-function JobSeekerBackgroundStep({ form, errors, set, education, setEducation, eduError, setTermsOpen, termsRead, labelClass, reqMark }) {
+function JobSeekerBackgroundStep({ form, errors, set, education, setEducation, eduError, setTermsOpen, termsRead, reqMark, unrecognizedSkills = [] }) {
   return (
             <section className="surface p-5">
               <p className="font-mono text-[11px] tracking-[0.2em] text-primary uppercase mb-4 font-semibold">Step 3 — Background & Consent</p>
@@ -30,8 +30,31 @@ function JobSeekerBackgroundStep({ form, errors, set, education, setEducation, e
               </div>
 
               <div>
-              <Label htmlFor="skills" className={labelClass}>Skills <span className="text-muted-foreground font-normal">(optional)</span></Label>
-              <TagInput id="skills" value={form.skills} onChange={(v) => set("skills", v)} placeholder="Type a skill and press Enter" />
+              <VocabularyPicker
+                id="job-field"
+                label="Field"
+                category="job_field"
+                multiple={false}
+                value={form.field}
+                onChange={(v) => set("field", v)}
+                help="Your main line of work. Optional."
+              />
+              </div>
+
+              <div>
+              <VocabularyPicker
+                id="skills"
+                label="Skills"
+                category="skill"
+                value={form.skills}
+                onChange={(v) => set("skills", v)}
+                help="Pick the skills employers should match you on. Optional."
+              />
+              {unrecognizedSkills.length > 0 && (
+                <p className="mt-2 text-xs text-muted-foreground">
+                  Unrecognized skills: {unrecognizedSkills.join(", ")}. They are not in PESO’s list, so they are not saved.
+                </p>
+              )}
               </div>
 
               <div>

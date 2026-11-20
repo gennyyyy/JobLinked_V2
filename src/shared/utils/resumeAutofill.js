@@ -419,6 +419,29 @@ function mapEducation(lines) {
   return { level: EDU_ORDER[bestRank], school: rest.replace(/^[-–,\s]+|[-–,\s]+$/g, "").trim(), field, year };
 }
 
+// Resume skills are free text; the profile/signup skills pickers only accept
+// vocabulary values. Split a detected list into canonical listed values and the
+// leftovers, so the caller can select the former and show the latter instead of
+// silently dropping them.
+export function matchSkills(skills, vocabulary) {
+  const byLower = new Map(
+    (Array.isArray(vocabulary) ? vocabulary : []).map((value) => [String(value).trim().toLowerCase(), value]),
+  );
+  const matched = [];
+  const unrecognized = [];
+  for (const raw of Array.isArray(skills) ? skills : []) {
+    const text = String(raw ?? "").trim();
+    if (!text) continue;
+    const canonical = byLower.get(text.toLowerCase());
+    if (canonical === undefined) {
+      if (!unrecognized.some((entry) => entry.toLowerCase() === text.toLowerCase())) unrecognized.push(text);
+    } else if (!matched.some((entry) => entry.toLowerCase() === canonical.toLowerCase())) {
+      matched.push(canonical);
+    }
+  }
+  return { matched, unrecognized };
+}
+
 export function mapResumeText(input) {
   const out = blank();
   const text = String(input || "");

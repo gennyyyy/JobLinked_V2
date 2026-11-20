@@ -2,8 +2,6 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import JobSeekerRegister from '../JobSeekerRegister'
-import { signUp } from '../../../shared/services/auth'
-import { extractResumeText } from '../../../shared/lib/resumeText'
 
 vi.mock('../../../shared/services/auth', () => ({
   signUp: vi.fn(),
@@ -12,6 +10,14 @@ vi.mock('../../../shared/services/auth', () => ({
 vi.mock('../../../shared/lib/resumeText', () => ({
   extractResumeText: vi.fn(),
 }))
+
+vi.mock('../../../shared/services/reference', () => ({
+  getReferenceValues: vi.fn(),
+}))
+
+import { signUp } from '../../../shared/services/auth'
+import { extractResumeText } from '../../../shared/lib/resumeText'
+import { getReferenceValues } from '../../../shared/services/reference'
 
 // Mutable site key: '' (the default) keeps every non-captcha test on today's
 // behavior; 'site-key' makes useCaptcha().required true. The widget itself is
@@ -39,6 +45,9 @@ vi.mock('../../../shared/components/Turnstile', async () => {
 
 beforeEach(() => {
   captcha.siteKey = ''
+  getReferenceValues.mockImplementation(async (category) => (
+    category === 'job_field' ? ['Construction', 'Information Technology'] : ['Communication', 'Data Entry', 'Welding']
+  ))
 })
 
 const TEXT = `Juan Dela Cruz
@@ -123,39 +132,25 @@ describe('JobSeekerRegister autofill', () => {
     expect(screen.getByLabelText(/^first name/i)).toHaveValue('')
   })
 
-  it('wires autofilled skills into the tag box and reports the count', async () => {
+  it('selects autofilled skills in the vocabulary picker and reports the count', async () => {
     extractResumeText.mockResolvedValue(SKILLED)
     renderPage()
     pickFile()
 
     await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent(/Autofill done — please check:/i))
-    expect(screen.getByText('Data Entry')).toBeInTheDocument()
-    expect(screen.getByText('Communication')).toBeInTheDocument()
+    expect(await screen.findByRole('checkbox', { name: 'Data Entry' })).toBeChecked()
+    expect(screen.getByRole('checkbox', { name: 'Communication' })).toBeChecked()
+    expect(screen.getByRole('checkbox', { name: 'Welding' })).not.toBeChecked()
   })
 
-  it('keeps hand-typed email and typed skills when autofilling', async () => {
-    extractResumeText.mockResolvedValue(SKILLED)
-    renderPage()
-
-    fireEvent.change(screen.getByLabelText(/email address/i), { target: { value: 'me@typed.com' } })
-    const tagInput = screen.getByLabelText(/^skills/i)
-    fireEvent.change(tagInput, { target: { value: 'Typed Skill,' } })
-
-    pickFile()
-    await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent(/Autofill done — please check:/i))
-
-    expect(screen.getByLabelText(/email address/i)).toHaveValue('me@typed.com')
-    expect(screen.getByText('Typed Skill')).toBeInTheDocument()
-    expect(screen.getByText('Data Entry')).toBeInTheDocument()
-    expect(screen.getByText('Communication')).toBeInTheDocument()
-  })
-
-  it('sends edited skills as an array via signUp extra', async () => {
-    extractResumeText.mockResolvedValue(SKILLED)
+  it('lists a resume skill outside the vocabulary without sending it', async () => {
+    extractResumeText.mockResolvedValue(`${SKILLED}, Underwater Basket Weaving`)
     signUp.mockResolvedValue({ id: 'seeker-1', emailConfirmationRequired: false })
     renderPage()
     pickFile()
-    await waitFor(() => expect(screen.getByText('Data Entry')).toBeInTheDocument())
+
+    expect(await screen.findByText(/Unrecognized skills: Underwater Basket Weaving/i)).toBeInTheDocument()
+    await screen.findByRole('checkbox', { name: 'Data Entry' })
 
     fireEvent.change(screen.getByLabelText(/^password/i), { target: { value: 'password123' } })
     fireEvent.change(screen.getByLabelText(/confirm password/i), { target: { value: 'password123' } })
@@ -170,7 +165,39 @@ describe('JobSeekerRegister autofill', () => {
     fireEvent.click(screen.getByRole('button', { name: /create account/i }))
 
     await waitFor(() => expect(signUp).toHaveBeenCalled())
-    expect(signUp.mock.calls[0][0].extra).toMatchObject({ skills: ['Data Entry', 'Communication'] })
+    expect(signUp.mock.calls[0][0].extra.skills).toEqual(['Data Entry', 'Communication'])
+  })
+
+  it('keeps the skills already picked when autofilling', async () => {
+    extractResumeText.mockResolvedValue(SKILLED)
+    renderPage()
+
+    fireEvent.change(screen.getByLabelText(/email address/i), { target: { value: 'me@typed.com' } })
+    fireEvent.click(await screen.findByRole('checkbox', { name: 'Welding' }))
+
+    pickFile()
+    await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent(/Autofill done — please check:/i))
+
+    expect(screen.getByLabelText(/email address/i)).toHaveValue('me@typed.com')
+    expect(screen.getByRole('checkbox', { name: 'Welding' })).toBeChecked()
+    expect(screen.getByRole('checkbox', { name: 'Data Entry' })).toBeChecked()
+    expect(screen.getByRole('checkbox', { name: 'Communication' })).toBeChecked()
+  })
+
+  it('sends the picked skills and field via signUp extra', async () => {
+    signUp.mockResolvedValue({ id: 'seeker-1', emailConfirmationRequired: false })
+    renderPage()
+    fillRequired()
+    fireEvent.click(await screen.findByRole('checkbox', { name: 'Welding' }))
+    await waitFor(() => expect(screen.getByRole('option', { name: 'Information Technology' })).toBeInTheDocument())
+    fireEvent.change(screen.getByLabelText('Field'), { target: { value: 'Information Technology' } })
+    fireEvent.click(screen.getByRole('button', { name: /create account/i }))
+
+    await waitFor(() => expect(signUp).toHaveBeenCalled())
+    expect(signUp.mock.calls[0][0].extra).toMatchObject({
+      field: 'Information Technology',
+      skills: ['Welding'],
+    })
   })
 
   it('prefills the education row from the resume and sends it via signUp extra', async () => {

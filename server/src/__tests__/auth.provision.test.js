@@ -38,9 +38,45 @@ describe('POST /api/auth/provision', () => {
         skills: ['ms excel', 'Excel Macros', 'TEAMWORK', 'MS Excel', ''] });
 
     expect(res.status).toBe(201);
-    // $21 in the INSERT: canonical casing for a listed skill, free text kept
+    // $22 in the INSERT: canonical casing for a listed skill, free text kept
     // until the picker lands, case-insensitive dedupe.
-    expect(callsOf(/insert into job_seekers/)[0].params[20]).toEqual(['MS Excel', 'Excel Macros', 'Teamwork']);
+    expect(callsOf(/insert into job_seekers/)[0].params[21]).toEqual(['MS Excel', 'Excel Macros', 'Teamwork']);
+  });
+
+  it('stores a listed field canonically and clears an empty one', async () => {
+    const token = tokenOnly({ id: SEEKER });
+    on(/from reference_data where category = \$1/, ([category]) => ({
+      rows: category === 'job_field' ? [{ value: 'Information Technology' }] : [],
+    }));
+    on((sql) => /insert into job_seekers/.test(sql) && /returning \*/.test(sql),
+      () => ({ rows: [{ id: SEEKER }] }));
+
+    const created = await request(app).post('/api/auth/provision')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ role: 'job-seeker', first_name: 'Ana', last_name: 'Cruz', field: 'information technology' });
+
+    expect(created.status).toBe(201);
+    expect(callsOf(/insert into job_seekers/)[0].params[20]).toBe('Information Technology');
+
+    const cleared = await request(app).post('/api/auth/provision')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ role: 'job-seeker', first_name: 'Ana', last_name: 'Cruz', field: '' });
+
+    expect(cleared.status).toBe(201);
+    expect(callsOf(/insert into job_seekers/)[1].params[20]).toBeNull();
+  });
+
+  it('400s a field that is not in the job_field vocabulary', async () => {
+    const token = tokenOnly({ id: SEEKER });
+    on(/from reference_data where category = \$1/, () => ({ rows: [{ value: 'Information Technology' }] }));
+
+    const res = await request(app).post('/api/auth/provision')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ role: 'job-seeker', first_name: 'Ana', last_name: 'Cruz', field: 'Astrology' });
+
+    expect(res.status).toBe(400);
+    expect(res.body).toEqual({ error: { code: 'BAD_REQUEST', message: 'field must be a listed job field' } });
+    expect(callsOf(/insert into job_seekers/)).toHaveLength(0);
   });
 
   it('is idempotent — 200 with the existing row, no new insert', async () => {

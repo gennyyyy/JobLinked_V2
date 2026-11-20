@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { pool } from '../db.js';
 import { resolveRole, tokenAuth } from '../auth.js';
 import { ah, err, audit, buildFullName, isNumericId, withTransaction } from '../util.js';
-import { loadVocabulary } from '../vocabulary.js';
+import { loadVocabulary, canonicalizeField } from '../vocabulary.js';
 
 const router = Router();
 
@@ -63,12 +63,19 @@ router.post('/auth/provision', tokenAuth, ah(async (req, res) => {
     return err(res, 400, 'BAD_REQUEST', 'employment_status must be Employed, Unemployed, Underemployed, Fresh Graduate, or Student');
   }
   person.employment_status = employmentStatus || null;
+  // `field` mirrors the profile PATCH: optional, null clears it, and a value
+  // outside job_field is a 400 rather than a silent blank.
+  let field = null;
+  if (role === 'job-seeker' && b.field != null) {
+    const resolved = await canonicalizeField(b.field);
+    if (!resolved.ok) return err(res, 400, 'BAD_REQUEST', 'field must be a listed job field');
+    field = resolved.value;
+  }
   // A listed skill is stored in the vocabulary's canonical casing, so signup and
-  // the profile PATCH agree ("MS Excel", never "ms excel"). The registration UI
-  // still takes free text until the shared picker lands (Task 8), so an unlisted
-  // skill is kept exactly as typed rather than rejecting the signup — no value
-  // is dropped, and matching compares case-insensitively.
-  // ponytail: free text at signup; reject unknowns once the picker ships.
+  // the profile PATCH agree ("MS Excel", never "ms excel"). A skill outside the
+  // vocabulary is kept exactly as typed rather than rejecting the signup — no
+  // value is dropped, and matching compares case-insensitively.
+  // ponytail: keep legacy free text at signup; reject unknowns once no legacy rows exist.
   let skills = [];
   if (role === 'job-seeker' && Array.isArray(b.skills) && b.skills.length) {
     const vocab = await loadVocabulary();
@@ -120,15 +127,16 @@ router.post('/auth/provision', tokenAuth, ah(async (req, res) => {
         const r = await client.query(
           `insert into job_seekers (id, email, first_name, middle_name, last_name, suffix, full_name, phone,
             lot, block, street_address, house_number_unit, subdivision_building, barangay_district, city_municipality,
-            province_state, postal_code, country, birthdate, employment_status, skills, custom_role_id)
-           values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22) returning *`,
+            province_state, postal_code, country, birthdate, employment_status, field, skills, custom_role_id)
+           values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23) returning *`,
           [req.user.id, email, person.first_name, person.middle_name, person.last_name, person.suffix,
             person.full_name, person.phone,
             typeof b.lot === 'string' ? b.lot.trim().toLowerCase() : null,
             typeof b.block === 'string' ? b.block.trim().toLowerCase() : null, person.street_address,
             person.house_number_unit, person.subdivision_building, person.barangay_district,
             person.city_municipality, person.province_state, person.postal_code,
-            person.country ?? 'Philippines', person.birthdate, person.employment_status, skills, customRoleId]
+            person.country ?? 'Philippines', person.birthdate, person.employment_status,
+            field, skills, customRoleId]
         );
         const created = r.rows[0];
         if (education) {

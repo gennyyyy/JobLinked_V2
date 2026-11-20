@@ -56,7 +56,7 @@ describe('Profile accessibility', () => {
     fireEvent.click(screen.getByRole('tab', { name: /education/i }))
     await screen.findByRole('combobox', { name: /level/i })
     expect(screen.getByRole('combobox', { name: /level/i })).toBeInTheDocument()
-    for (const name of ['Work experience', 'Your skills']) {
+    for (const name of ['Work experience', /your skills/i]) {
       expect(screen.getByLabelText(name)).toBeInTheDocument()
     }
 

@@ -12,6 +12,7 @@ vi.mock('../../../shared/services/seekers', () => ({
   removeEducation: vi.fn(),
 }))
 vi.mock('../../../shared/lib/resumeText', () => ({ extractResumeText: vi.fn() }))
+vi.mock('../../../shared/services/reference', () => ({ getReferenceValues: vi.fn() }))
 vi.mock('../../../shared/services/documents', () => ({
   listResumes: vi.fn(),
   uploadResume: vi.fn(),
@@ -25,6 +26,7 @@ import { getPreferences, updatePreferences } from '../../../shared/services/acco
 import { updateProfile } from '../../../shared/services/auth'
 import { listEducation, addEducation, removeEducation } from '../../../shared/services/seekers'
 import { listResumes } from '../../../shared/services/documents'
+import { getReferenceValues } from '../../../shared/services/reference'
 
 const STORED = {
   id: 'u1',
@@ -60,6 +62,9 @@ describe('Profile fields and save', () => {
     addEducation.mockResolvedValue({})
     removeEducation.mockResolvedValue({})
     updateProfile.mockResolvedValue({})
+    getReferenceValues.mockImplementation(async (category) => (
+      category === 'job_field' ? ['Construction', 'Information Technology'] : ['Data Entry', 'Customer Service']
+    ))
     useAuth.mockReturnValue({ user: STORED, refreshUser: vi.fn() })
   })
 
@@ -96,9 +101,8 @@ describe('Profile fields and save', () => {
     fireEvent.change(screen.getByLabelText(/street or local address/i), { target: { value: '48 Rizal Street' } })
 
     fireEvent.click(screen.getByRole('tab', { name: /education/i }))
-    await screen.findByLabelText('Your skills')
-    fireEvent.change(screen.getByLabelText('Your skills'), { target: { value: 'Customer Service' } })
-    fireEvent.keyDown(screen.getByLabelText('Your skills'), { key: 'Enter' })
+    await screen.findByRole('checkbox', { name: 'Customer Service' })
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Customer Service' }))
 
     fireEvent.click(screen.getByRole('button', { name: /save my profile/i }))
 
@@ -203,7 +207,7 @@ describe('Profile fields and save', () => {
     await screen.findByText('Choose your barangay.')
 
     fireEvent.click(screen.getByRole('tab', { name: /education/i }))
-    await screen.findByText('Add at least one skill, separated by commas.')
+    await screen.findByText('Add at least one skill.')
     expect(screen.getByText('Add your education history.')).toBeInTheDocument()
 
     expect(updateProfile).not.toHaveBeenCalled()

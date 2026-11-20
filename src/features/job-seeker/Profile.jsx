@@ -19,6 +19,9 @@ import ChangePassword from '@/shared/components/ChangePassword'
 import { TabsContent } from '@/components/ui/tabs'
 import { SANTA_MARIA_BARANGAYS } from '@/shared/constants'
 import { EDUCATION_LEVELS } from '../auth/jobSeekerRegistration'
+import { getReferenceValues } from '@/shared/services/reference'
+import { matchSkills } from '@/shared/utils/resumeAutofill'
+import VocabularyPicker from '@/shared/components/VocabularyPicker'
 import TagField from './TagField'
 import ResumeAutofill from './ResumeAutofill'
 
@@ -30,7 +33,7 @@ const EMPTY_FORM = {
   phone: '', headline: '', birthdate: '', employmentStatus: '',
   lot: '', block: '', barangay: '', address: '', subdivisionBuilding: '',
   cityMunicipality: '', provinceState: '', postalCode: '',
-  experience: '', skills: '',
+  experience: '', skills: [], field: '',
 }
 
 const PROFILE_TABS = [
@@ -49,7 +52,7 @@ const ACCOUNT_SETTINGS_SECTIONS = new Set([
 ])
 
 function formFromUser(user) {
-  if (!user) return EMPTY_FORM
+  if (!user) return { ...EMPTY_FORM, skills: [] }
   return {
     name: titleCase(user.full_name || buildFullName(user.first_name, user.middle_name, user.last_name, user.suffix)),
     firstName: titleCase(user.first_name),
@@ -69,7 +72,8 @@ function formFromUser(user) {
     provinceState: titleCase(user.province_state),
     postalCode: user.postal_code || '',
     experience: user.experience_summary || '',
-    skills: (user.skills || []).join(', '),
+    skills: Array.isArray(user.skills) ? [...user.skills] : splitList(user.skills),
+    field: user.field || '',
   }
 }
 
@@ -147,6 +151,7 @@ function Profile() {
   const [resumeReviewConfirmed, setResumeReviewConfirmed] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [pendingDelete, setPendingDelete] = useState(null)
+  const [unrecognizedSkills, setUnrecognizedSkills] = useState([])
 
   useEffect(() => {
     if (!userId) return
@@ -201,7 +206,7 @@ function Profile() {
   if (loading) return <PageSkeleton stats={0} panels={2} />
   if (error) return <InlineError message={error} />
 
-  const skills = splitList(form.skills)
+  const skills = form.skills
   // Edit-view capitalization: show names/addresses title-cased while the form
   // state (and the submitted lowercase value) stays raw.
   const show = (key) => titleCase(form[key])
@@ -229,7 +234,7 @@ function Profile() {
     if (!form.barangay) next.barangay = 'Choose your barangay.'
     if (form.address.trim().length < 5) next.address = 'Enter your address.'
     if (!educationLoading && !educationLoadError && !educationList.length) next.education = 'Add your education history.'
-    if (!skills.length) next.skills = 'Add at least one skill, separated by commas.'
+    if (!skills.length) next.skills = 'Add at least one skill.'
     setErrors(next)
     return Object.keys(next).length === 0
   }
@@ -255,6 +260,7 @@ function Profile() {
         province_state: form.provinceState.trim() || null,
         postal_code: form.postalCode.trim() || null,
         experience_summary: form.experience.trim(),
+        field: form.field || null,
         skills,
       }
       if (hasComponents) {
@@ -309,7 +315,7 @@ function Profile() {
     }
   }
 
-  function applyAutofill(details) {
+  async function applyAutofill(details) {
     const educationValue = details.education
     const [educationLevel, educationSchool] = String(educationValue || '').split('—').map((part) => part.trim())
     const educationDetails = EDUCATION_LEVELS.includes(educationLevel)
@@ -319,11 +325,17 @@ function Profile() {
       const next = { ...previous }
       for (const [key, value] of Object.entries(details)) {
         if (!value) continue
-        if (key === 'education') continue
+        if (key === 'education' || key === 'skills') continue
         if (key in next) next[key] = value
       }
       return next
     })
+    // Resume skills are free text and the profile API only accepts listed
+    // vocabulary values: select the ones the vocabulary knows, and name the
+    // rest visibly instead of dropping them. The other fields (and the tab
+    // switch) are applied before this await, so a slow vocabulary read cannot
+    // undo a tab the user already opened.
+    const detectedSkills = splitList(details.skills)
     if (educationDetails) {
       setEduForm((previous) => ({
         ...previous,
@@ -332,6 +344,22 @@ function Profile() {
       }))
     }
     setTab(educationDetails ? 'education' : 'personal')
+    if (detectedSkills.length) {
+      const vocabulary = await getReferenceValues('skill').catch(() => [])
+      const { matched, unrecognized } = matchSkills(detectedSkills, vocabulary)
+      setUnrecognizedSkills(unrecognized)
+      if (matched.length) {
+        setForm((previous) => {
+          const next = [...previous.skills]
+          for (const skill of matched) {
+            if (!next.some((entry) => entry.toLowerCase() === skill.toLowerCase())) next.push(skill)
+          }
+          return { ...previous, skills: next }
+        })
+      }
+    } else {
+      setUnrecognizedSkills([])
+    }
   }
 
   function handleTabChange(nextTab) {
@@ -538,8 +566,30 @@ function Profile() {
             </TabsContent>
             <TabsContent value="education">
             <div className="flex flex-col gap-5">
+              <VocabularyPicker
+                id="profile-field"
+                label="Field"
+                category="job_field"
+                multiple={false}
+                value={form.field}
+                onChange={(value) => setField('field', value)}
+                help="Your main line of work. Optional — pick “Not set” to leave it blank."
+              />
+              <VocabularyPicker
+                label="Your skills"
+                category="skill"
+                value={form.skills}
+                onChange={(value) => setField('skills', value)}
+                required
+                help="Pick the skills employers should match you on."
+                error={errors.skills}
+              />
+              {unrecognizedSkills.length > 0 && (
+                <p className="text-xs leading-5 text-muted-foreground">
+                  Unrecognized skills: {unrecognizedSkills.join(', ')}. They are not in PESO’s list, so they are not saved.
+                </p>
+              )}
               <TagField label="Work experience" value={form.experience} onChange={(value) => setField('experience', value)} placeholder="Type a role or experience and press Enter" help="Add internships, volunteer work, or previous roles as separate tags." />
-              <TagField label="Your skills" required value={form.skills} onChange={(value) => setField('skills', value)} placeholder="Type a skill and press Enter" help="Add each skill as a separate tag." error={errors.skills} />
             </div>
           <div className="border-t border-border pt-5">
             <h2 className="mb-4 text-sm font-semibold text-foreground">Education history</h2>

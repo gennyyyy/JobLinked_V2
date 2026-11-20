@@ -142,6 +142,7 @@ export async function signUp({ email, password, role, firstName, middleName = ''
     country: lower(extra.country) || 'philippines',
     birthdate: extra.birthdate || null,
     employment_status: extra.employmentStatus || null,
+    field: extra.field || null,
     // No client-side lowercasing: the server stores a listed skill in the
     // vocabulary's canonical casing and keeps an unlisted one as typed.
     skills: Array.isArray(extra.skills) ? extra.skills.map((skill) => String(skill).trim()).filter(Boolean) : [],

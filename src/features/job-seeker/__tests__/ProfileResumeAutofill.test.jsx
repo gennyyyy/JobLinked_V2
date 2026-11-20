@@ -6,6 +6,7 @@ import Profile from '../Profile'
 vi.mock('../../../shared/hooks/useAuth', () => ({ default: vi.fn() }))
 vi.mock('../../../shared/services/auth', () => ({ updateProfile: vi.fn() }))
 vi.mock('../../../shared/lib/resumeText', () => ({ extractResumeText: vi.fn() }))
+vi.mock('../../../shared/services/reference', () => ({ getReferenceValues: vi.fn() }))
 vi.mock('../../../shared/services/documents', () => ({
   listResumes: vi.fn(),
   uploadResume: vi.fn(),
@@ -17,6 +18,7 @@ vi.mock('../../../shared/services/documents', () => ({
 import useAuth from '../../../shared/hooks/useAuth'
 import { extractResumeText } from '../../../shared/lib/resumeText'
 import { listResumes } from '../../../shared/services/documents'
+import { getReferenceValues } from '../../../shared/services/reference'
 
 const TEXT = `Juan Dela Cruz
 Email: juan.delacruz@example.com
@@ -47,6 +49,9 @@ describe('Profile resume autofill', () => {
       refreshUser: vi.fn(),
     })
     listResumes.mockResolvedValue([])
+    getReferenceValues.mockImplementation(async (category) => (
+      category === 'job_field' ? ['Construction'] : ['Data Entry', 'Communication']
+    ))
   })
 
   it('previews the details it found without touching the form yet', async () => {
@@ -86,8 +91,8 @@ describe('Profile resume autofill', () => {
     fireEvent.click(screen.getByRole('tab', { name: /education/i }))
     await screen.findByRole('combobox', { name: /level/i })
     expect(screen.getByRole('combobox', { name: /level/i })).toHaveValue('College')
-    expect(screen.getAllByText('Data Entry').length).toBeGreaterThan(0)
-    expect(screen.getAllByText('Communication').length).toBeGreaterThan(0)
+    expect(await screen.findByRole('checkbox', { name: 'Data Entry' })).toBeChecked()
+    expect(screen.getByRole('checkbox', { name: 'Communication' })).toBeChecked()
   })
 
   it('explains when the resume has nothing it can read', async () => {

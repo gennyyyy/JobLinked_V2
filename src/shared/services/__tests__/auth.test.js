@@ -151,11 +151,13 @@ describe('signUp skills casing', () => {
 
     await signUp({
       email: 's@test.com', password: 'pw123456', role: 'job-seeker', firstName: 'A', lastName: 'B',
-      extra: { skills: ['MS Excel', ' data entry '] },
+      extra: { skills: ['MS Excel', ' data entry '], field: 'Information Technology' },
     })
 
     expect(supabase.auth.signUp).toHaveBeenCalledWith(expect.objectContaining({
-      options: expect.objectContaining({ data: expect.objectContaining({ skills: ['MS Excel', 'data entry'] }) }),
+      options: expect.objectContaining({ data: expect.objectContaining({
+        skills: ['MS Excel', 'data entry'], field: 'Information Technology',
+      }) }),
     }))
   })
 })

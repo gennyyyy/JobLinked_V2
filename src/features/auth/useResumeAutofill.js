@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { mapResumeText } from "@/shared/utils/resumeAutofill";
+import { getReferenceValues } from "@/shared/services/reference";
+import { mapResumeText, matchSkills } from "@/shared/utils/resumeAutofill";
 import { MAX_PDF_SIZE, MAX_RESUME_SIZE } from "./jobSeekerRegistration";
 
 const FIELD_LABELS = {
@@ -22,6 +23,7 @@ const FIELD_LABELS = {
 
 export function useResumeAutofill({ form, setForm, setEducation }) {
   const [autofillStatus, setAutofillStatus] = useState("");
+  const [unrecognizedSkills, setUnrecognizedSkills] = useState([]);
   const [touched, setTouched] = useState([]);
   async function handleResumeChange(event) {
     const file = event.target.files?.[0];
@@ -51,6 +53,18 @@ export function useResumeAutofill({ form, setForm, setEducation }) {
 
       const skills = Array.isArray(mapped.skills) ? mapped.skills : [];
 
+      // The signup picker only accepts listed vocabulary skills. Select the
+      // ones the vocabulary knows; name the rest so nothing is lost silently.
+      let matchedSkills = [];
+      if (skills.length) {
+        const vocabulary = await getReferenceValues("skill").catch(() => []);
+        const result = matchSkills(skills, vocabulary);
+        matchedSkills = result.matched;
+        setUnrecognizedSkills(result.unrecognized);
+      } else {
+        setUnrecognizedSkills([]);
+      }
+
       const filled = {};
       const touchedKeys = [];
       for (const [key, value] of Object.entries(mapped)) {
@@ -64,18 +78,13 @@ export function useResumeAutofill({ form, setForm, setEducation }) {
         }
       }
 
-      const prevSkills = String(form?.skills || "")
-        .split(",")
-        .map((s) => s.trim())
-        .filter(Boolean);
-      const combined = [...prevSkills];
-      let skillsAdded = false;
-      for (const s of skills) {
-        if (!combined.some((t) => t.toLowerCase() === s.toLowerCase())) {
-          combined.push(s);
-          skillsAdded = true;
-        }
-      }
+      const asList = (value) => (Array.isArray(value)
+        ? [...value]
+        : String(value || "").split(",").map((s) => s.trim()).filter(Boolean));
+      const prevSkills = asList(form?.skills);
+      const skillsAdded = matchedSkills.some(
+        (s) => !prevSkills.some((t) => t.toLowerCase() === s.toLowerCase()),
+      );
 
       const edu = Object.fromEntries(
         Object.entries(mapped.education || {}).filter(([, v]) => String(v || "").trim()),
@@ -91,14 +100,14 @@ export function useResumeAutofill({ form, setForm, setEducation }) {
         return {
           ...prev,
           ...merged,
-          ...(skills.length
+          ...(matchedSkills.length
             ? {
                 skills: (() => {
-                  const c = String(prev.skills || "").split(",").map((s) => s.trim()).filter(Boolean);
-                  for (const s of skills) {
-                    if (!c.some((t) => t.toLowerCase() === s.toLowerCase())) c.push(s);
+                  const current = asList(prev.skills);
+                  for (const s of matchedSkills) {
+                    if (!current.some((t) => t.toLowerCase() === s.toLowerCase())) current.push(s);
                   }
-                  return c.join(", ");
+                  return current;
                 })(),
               }
             : {}),
@@ -118,7 +127,7 @@ export function useResumeAutofill({ form, setForm, setEducation }) {
         });
       }
 
-      if (skills.length && skillsAdded) touchedKeys.push("skills");
+      if (matchedSkills.length && skillsAdded) touchedKeys.push("skills");
       if (eduAdded) touchedKeys.push("education");
 
       setTouched(touchedKeys);
@@ -134,5 +143,5 @@ export function useResumeAutofill({ form, setForm, setEducation }) {
     }
   }
 
-  return { autofillStatus, touched, handleResumeChange };
+  return { autofillStatus, unrecognizedSkills, touched, handleResumeChange };
 }
