@@ -12,7 +12,7 @@ vi.mock('@/shared/hooks/useAuth', () => ({
   default: () => ({ user: { id: 'seeker-1', role: 'job-seeker', skills: [] } }),
 }))
 
-const NOTICE = 'AI matching is unavailable right now — showing standard results.'
+const NOTICE = 'AI assistance is unavailable — showing skills-based ranking.'
 
 function job(overrides = {}) {
   return {
@@ -55,7 +55,7 @@ function renderList() {
 
 async function submitPrompt(text) {
   if (!screen.queryByRole('dialog')) {
-    fireEvent.click(screen.getByRole('button', { name: 'AI job matching' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Skills-based matching' }))
   }
   fireEvent.change(screen.getByLabelText('Your job preferences'), { target: { value: text } })
   fireEvent.click(screen.getByRole('button', { name: /send preferences/i }))
@@ -92,7 +92,7 @@ describe('OpportunityList AI matching', () => {
     expect(matchJobs).toHaveBeenCalledWith('night shift', ['j1', 'j2', 'j3'])
     expect(within(cardFor('Warehouse Helper')).getByText('Same barangay and warehouse experience')).toBeInTheDocument()
     // The dialog and the results area both disclose the mode.
-    expect(screen.getAllByText('AI ranking active')).toHaveLength(2)
+    expect(screen.getAllByText('AI-assisted ranking active')).toHaveLength(2)
   })
 
   it('falls back to the standard order with one discreet notice when the request fails', async () => {
@@ -104,7 +104,7 @@ describe('OpportunityList AI matching', () => {
 
     expect(await screen.findByText(NOTICE)).toBeInTheDocument()
     await waitFor(() => expect(cardTitles()).toEqual(STANDARD))
-    expect(screen.queryByText('AI ranking active')).toBeNull()
+    expect(screen.queryByText('AI-assisted ranking active')).toBeNull()
   })
 
   it('dispatches a new request when the same prompt is submitted again', async () => {
@@ -182,7 +182,7 @@ describe('OpportunityList AI matching', () => {
 
     // The disclosure outlives the closable dialog, so the per-card reasons are
     // never mistaken for AI output.
-    expect(screen.getByText('Standard matching · no AI')).toBeInTheDocument()
+    expect(screen.getByText('Skills-based ranking')).toBeInTheDocument()
     await waitFor(() => expect(cardTitles()).toEqual(['Junior Web Developer', 'Administrative Assistant', 'Warehouse Helper']))
 
     matchJobs.mockResolvedValue({ mode: 'ai', ranking: ['j3', 'j1', 'j2'], reasons: [] })
@@ -190,7 +190,7 @@ describe('OpportunityList AI matching', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Close' }))
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
 
-    expect(screen.getByText('AI ranking active')).toBeInTheDocument()
-    expect(screen.queryByText('Standard matching · no AI')).toBeNull()
+    expect(screen.getByText('AI-assisted ranking active')).toBeInTheDocument()
+    expect(screen.queryByText('Skills-based ranking')).toBeNull()
   })
 })

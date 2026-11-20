@@ -5,16 +5,15 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Field, FieldLabel } from '@/components/ui/field'
 import { Textarea } from '@/components/ui/textarea'
 import { cn } from '@/lib/utils'
+import { DIALOG_AI_NOTICE, MATCHING_NAME, matchModeLabel } from '@/shared/content/matching'
 
 // 1:1 port of the reference preference-matching panel and its dialog. `compact`
 // drops the full-width banner and renders just the trigger + state line, so the
-// sidebar can host the AI affordance under the search field.
+// sidebar can host the matching affordance under the search field.
 export default function PreferenceMatching({ prompt, onSubmit, compact = false, mode = null, busy = false }) {
   const [open, setOpen] = useState(false)
   const [draft, setDraft] = useState('')
-  // `mode` is the server's last ranking verdict: null until a request settles,
-  // then 'ai' when the model ranked or 'deterministic' on the fallback path.
-  const modeLabel = mode === 'ai' ? 'AI ranking active' : 'Standard matching · no AI'
+  const modeLabel = matchModeLabel(mode)
 
   const dialog = (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -26,7 +25,7 @@ export default function PreferenceMatching({ prompt, onSubmit, compact = false, 
           </DialogDescription>
         </DialogHeader>
         <p className="text-xs leading-5 text-muted-foreground">
-          Your request is processed by an AI provider to rank vacancies. Never include personal details; your name and resume are never sent.
+          {DIALOG_AI_NOTICE}
         </p>
         {/* The compact trigger has no header line, so the dialog carries the mode. */}
         {compact && (
@@ -68,9 +67,9 @@ export default function PreferenceMatching({ prompt, onSubmit, compact = false, 
       <>
         <button
           type="button"
-          aria-label="AI job matching"
+          aria-label={MATCHING_NAME}
           aria-pressed={Boolean(prompt)}
-          title={prompt ? 'Preference matching is on' : 'AI job matching'}
+          title={prompt ? 'Preference matching is on' : MATCHING_NAME}
           onClick={() => setOpen(true)}
           className={cn(
             'inline-flex size-8 shrink-0 items-center justify-center rounded-lg transition-colors lg:size-7',
@@ -98,7 +97,7 @@ export default function PreferenceMatching({ prompt, onSubmit, compact = false, 
         )}
         <Button variant="outline" onClick={() => setOpen(true)}>
           <MessageCircle data-icon="inline-start" />
-          AI job matching
+          {MATCHING_NAME}
         </Button>
       </div>
       {dialog}

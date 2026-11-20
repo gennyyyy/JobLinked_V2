@@ -11,6 +11,7 @@ import { JobListSkeleton } from '@/shared/components/Skeletons'
 import { InlineError, Pager } from '@/shared/components/dashboard'
 import { SANTA_MARIA_BARANGAYS } from '@/shared/constants'
 import { categoryLabel, experienceLevel, isJobOpen, jobType, matchJob, preferenceScore } from '@/shared/utils/jobDisplay'
+import { MATCH_UNAVAILABLE, MATCHING_NOTICE, matchModeLabel } from '@/shared/content/matching'
 
 const PAGE_SIZE = 15
 const EMPTY_FILTERS = { barangay: '', category: '', type: '', salary: '', experience: '' }
@@ -21,10 +22,6 @@ const SALARY_OPTIONS = [
   { label: '₱40,000 and above', value: '40000-10000000' },
 ]
 const EXPERIENCE_OPTIONS = ['No experience', 'Entry level', '1–3 years', '3+ years']
-const MATCH_UNAVAILABLE = 'AI matching is unavailable right now — showing standard results.'
-// Same wording the matching dialog carries, restated next to the results so the
-// disclosure survives closing that dialog (compact mode hides it in there).
-const matchModeLabel = (mode) => (mode === 'ai' ? 'AI ranking active' : 'Standard matching · no AI')
 // The only jobs that may enter the AI candidate pool, same rule as the list.
 const isBrowsable = (job) => isJobOpen(job) && (!job.employers?.accreditation_status || job.employers.accreditation_status === 'approved')
 
@@ -261,7 +258,7 @@ export default function JobsBrowser({
           {!saved && (
             <div className="mb-6">
               <Notice title="A match you can understand">
-                Skills overlap is the number of your exact, case-insensitive skill matches divided by the skills listed in the vacancy. It is not AI, a hiring score, or a guarantee. Add skills in My Profile to update your recommendations.
+                {MATCHING_NOTICE}
               </Notice>
             </div>
           )}

@@ -1,15 +1,15 @@
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
-import PreferenceMatching from '../PreferenceMatching'
+import PreferenceMatching from '@/shared/components/PreferenceMatching'
 
-const PRIVACY = 'Your request is processed by an AI provider to rank vacancies. Never include personal details; your name and resume are never sent.'
+const PRIVACY = 'Your request may be processed by an AI provider to re-rank vacancies. Never include personal details; your name and resume are never sent.'
 
 function renderPanel(props = {}) {
   return render(<PreferenceMatching prompt="" onSubmit={vi.fn()} {...props} />)
 }
 
 function openDialog() {
-  fireEvent.click(screen.getByRole('button', { name: 'AI job matching' }))
+  fireEvent.click(screen.getByRole('button', { name: 'Skills-based matching' }))
 }
 
 describe('PreferenceMatching dialog copy', () => {
@@ -27,12 +27,12 @@ describe('PreferenceMatching dialog copy', () => {
 
   it('shows the model ranking state in the header', () => {
     renderPanel({ mode: 'ai' })
-    expect(screen.getByText('AI ranking active')).toBeInTheDocument()
+    expect(screen.getByText('AI-assisted ranking active')).toBeInTheDocument()
   })
 
   it('shows the standard matching state when no model ranking is active', () => {
     renderPanel({ mode: 'deterministic' })
-    expect(screen.getByText('Standard matching · no AI')).toBeInTheDocument()
+    expect(screen.getByText('Skills-based ranking')).toBeInTheDocument()
   })
 
   it('disables Send while a ranking request is in flight', () => {
