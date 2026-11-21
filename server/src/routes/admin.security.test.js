@@ -2,24 +2,28 @@ import express from 'express';
 import { describe, it, expect, vi, beforeAll, afterAll, beforeEach } from 'vitest';
 
 // Runtime tests for the security fixes on the admin routes: the invite must
-// write the role into app_metadata (service-role only), PATCH /admin/users/:id
-// must refuse self status/custom_role edits and never pass a body updated_at
-// into the SET list, and the unread-notification badge must be per-user.
+// pin the provider-side role in auth.user and the pending grant in
+// admin_invites (server-only), PATCH /admin/users/:id must refuse self
+// status/custom_role edits and never pass a body updated_at into the SET list,
+// and the unread-notification badge must be per-user.
 const mocks = vi.hoisted(() => ({
   poolQuery: vi.fn(),
-  invite: vi.fn(),
-  updateUser: vi.fn(),
+  txQuery: vi.fn(),
+  connect: vi.fn(),
+  reset: vi.fn(),
+  supabase: vi.fn(),
   role: 'super-admin',
   userId: 'admin-1',
 }));
-vi.mock('../db.js', () => ({ pool: { query: mocks.poolQuery } }));
+vi.mock('../db.js', () => ({ pool: { query: mocks.poolQuery, connect: mocks.connect } }));
+vi.mock('../ba.js', () => ({ auth: { api: { requestPasswordReset: mocks.reset } } }));
 vi.mock('../auth.js', () => ({
   auth: (req, _res, next) => { req.user = { id: mocks.userId, email: 'a@x.com', role: mocks.role }; next(); },
   optionalAuth: (_req, _res, next) => next(),
   requireRole: (...roles) => (req, res, next) =>
     roles.includes(req.user?.role) ? next() : res.status(403).json({ error: { code: 'FORBIDDEN', message: 'Insufficient role' } }),
-  // S7: supa is a lazy getter, not a module-scope client.
-  supa: () => ({ auth: { admin: { inviteUserByEmail: mocks.invite, updateUserById: mocks.updateUser } } }),
+  // Supabase is gone from these routes (ADR-056); any call fails the test.
+  supa: mocks.supabase,
 }));
 process.env.RETENTION_DISABLE = '1';
 process.env.CORS_ORIGIN = 'https://app.test';
@@ -39,8 +43,11 @@ beforeEach(() => {
   mocks.role = 'super-admin';
   mocks.userId = 'admin-1';
   mocks.poolQuery.mockReset();
-  mocks.invite.mockReset();
-  mocks.updateUser.mockReset().mockResolvedValue({ data: { user: {} }, error: null });
+  mocks.txQuery.mockReset().mockImplementation(async (sql) => (
+    /insert into auth\."user"/.test(String(sql)) ? { rows: [{ id: 'auth-uuid-1' }] } : { rows: [] }));
+  mocks.connect.mockReset().mockResolvedValue({ query: mocks.txQuery, release: vi.fn() });
+  mocks.reset.mockReset().mockResolvedValue({ status: true });
+  mocks.supabase.mockReset();
 });
 
 // Real uuid: a malformed :id now answers 404 from findUserTable (S1).
@@ -51,35 +58,36 @@ const invitePost = (body) => fetch(`${base}/admin/users/invite`, {
 const patchUser = (id, body) => fetch(`${base}/admin/users/${id}`, {
   method: 'PATCH', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
 
-describe('invite writes the role into app_metadata', () => {
-  it('201 and updateUserById is called with the role and tag', async () => {
+describe('invite pins the role grant server-side', () => {
+  const authInsert = () => mocks.txQuery.mock.calls.find(([sql]) => /insert into auth\."user"/.test(String(sql)));
+  const inviteInsert = () => mocks.txQuery.mock.calls.find(([sql]) => /insert into public\.admin_invites/.test(String(sql)));
+
+  it('201 and the admin_invites row carries the role and tag', async () => {
     mocks.poolQuery.mockResolvedValue({ rows: [] });
-    mocks.invite.mockResolvedValue({ data: { user: { id: 'auth-uuid-1' } }, error: null });
     const r = await invitePost({ email: 'new@x.com', role: 'job-seeker', first_name: 'Ana', last_name: 'Cruz' });
     expect(r.status).toBe(201);
-    expect(mocks.invite).toHaveBeenCalledWith('new@x.com', expect.objectContaining({
-      redirectTo: 'https://app.test/accept-invite',
-      data: expect.objectContaining({ role: 'job-seeker' }),
-    }));
-    expect(mocks.updateUser).toHaveBeenCalledWith('auth-uuid-1', { app_metadata: { role: 'job-seeker', custom_role_id: 0 } });
+    expect(inviteInsert()[1].slice(0, 3)).toEqual(['auth-uuid-1', 'job-seeker', null]);
+    expect(mocks.reset).toHaveBeenCalledWith({
+      body: { email: 'new@x.com', redirectTo: 'https://app.test/reset-password' },
+    });
+    expect(mocks.supabase).not.toHaveBeenCalled();
   });
 
-  it('super-admin invites are pinned into app_metadata too', async () => {
+  it('super-admin invites are pinned into auth.user.role too', async () => {
     mocks.poolQuery.mockResolvedValue({ rows: [] });
-    mocks.invite.mockResolvedValue({ data: { user: { id: 'auth-uuid-2' } }, error: null });
     const r = await invitePost({ email: 'boss@x.com', role: 'super-admin', first_name: 'Cid', last_name: 'Reyes' });
     expect(r.status).toBe(201);
-    expect(mocks.updateUser).toHaveBeenCalledWith('auth-uuid-2', { app_metadata: { role: 'super-admin', custom_role_id: 0 } });
+    expect(authInsert()[1]).toEqual(['Cid Reyes', 'boss@x.com', 'super-admin']);
+    expect(inviteInsert()[1].slice(0, 3)).toEqual(['auth-uuid-1', 'super-admin', null]);
   });
 
-  it('500 when the app_metadata write fails (invite already sent)', async () => {
+  it('502 when the reset email fails, and the half-created auth.user row is deleted', async () => {
     mocks.poolQuery.mockResolvedValue({ rows: [] });
-    mocks.invite.mockResolvedValue({ data: { user: { id: 'auth-uuid-3' } }, error: null });
-    mocks.updateUser.mockResolvedValue({ data: { user: null }, error: { message: 'boom' } });
+    mocks.reset.mockRejectedValue(Object.assign(new Error('boom'), { statusCode: 500 }));
     const r = await invitePost({ email: 'f@x.com', role: 'job-seeker', first_name: 'A', last_name: 'B' });
-    expect(r.status).toBe(500);
-    expect((await r.json()).error.code).toBe('INTERNAL');
-    expect(mocks.invite).toHaveBeenCalled();
+    expect(r.status).toBe(502);
+    expect((await r.json()).error.code).toBe('UPSTREAM_ERROR');
+    expect(mocks.poolQuery.mock.calls.some(([sql]) => /delete from auth\."user" where "id" = \$1/.test(String(sql)))).toBe(true);
   });
 });
 

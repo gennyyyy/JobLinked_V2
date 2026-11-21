@@ -1,6 +1,8 @@
 import { Router } from 'express';
 import { pool } from '../db.js';
-import { auth, requireRole, supa } from '../auth.js';
+import { auth, requireRole } from '../auth.js';
+// Aliased: `auth` is the middleware from ../auth.js.
+import { auth as baAuth } from '../ba.js';
 import { requirePermission, unheldKey } from '../middleware/permissions.js';
 import { ah, err, audit, buildFullName, isUuid, pageParams, withTransaction } from '../util.js';
 import { USER_TABLES, ACCOUNT_STATUSES, likeFilter } from './admin-shared.js';
@@ -206,8 +208,11 @@ router.patch('/admin/users/:id', ...admin, ah(async (req, res) => {
   }
 }));
 
-// Admin-initiated invite (ADR-024). No DB row here — the invitee's role row is
-// created lazily by POST /auth/provision when they accept (see AcceptInvite.jsx).
+// Admin-initiated invite (ADR-024, ADR-056). The invitee's identity lands in
+// auth."user" now (so the reset link works immediately) and the pending app
+// profile + grant wait in public.admin_invites for POST /auth/provision to
+// consume. app_metadata is retired: BA's admin-plugin user.role is the only
+// provider-side role signal, and only the server writes it.
 router.post('/admin/users/invite', ...admin, ah(async (req, res) => {
   const INVITE_BASE_ROLES = ['job-seeker', 'employer', 'super-admin'];
   const b = req.body || {};
@@ -246,76 +251,87 @@ router.post('/admin/users/invite', ...admin, ah(async (req, res) => {
   }
 
   const { rows: dupe } = await pool.query(
-    `select 1 from job_seekers where lower(email) = lower($1)
+    `select 1 from auth."user" where lower(email) = lower($1)
+     union all select 1 from job_seekers where lower(email) = lower($1)
      union all select 1 from employers where lower(email) = lower($1)
      union all select 1 from super_admins where lower(email) = lower($1) limit 1`, [email]);
   if (dupe[0]) return err(res, 409, 'CONFLICT', 'Email is already registered');
 
   const appUrl = appOrigin();
-  const metadata = {
-    role, custom_role_id: customRoleId,
+  // The pending app profile. Role and tag are COLUMNS on admin_invites, not
+  // part of the jsonb: provision reads role/custom_role_id from there and the
+  // body can never widen them (Review Focus 6).
+  const profile = {
     first_name: b.first_name, middle_name: b.middle_name || '', last_name: b.last_name,
     suffix: b.suffix || '', phone: b.phone || null,
     full_name: buildFullName(b.first_name, b.middle_name, b.last_name, b.suffix),
     company_name: b.company_name || null,
   };
-  const { data, error } = await supa().auth.admin.inviteUserByEmail(email, {
-    data: metadata, redirectTo: `${appUrl}/accept-invite`,
-  });
-  if (error) {
-    // Never collapse every upstream failure into "already registered": an SMTP
-    // or Supabase rate limit told the admin the address existed when it did
-    // not, and a retryable outage looked like a permanent conflict.
-    const message = String(error.message || '');
-    if (error.status === 429 || /rate limit/i.test(message)) {
-      return err(res, 429, 'RATE_LIMITED', 'Invite email rate limit reached. Please try again later.');
-    }
-    if (/invalid format|validate email/i.test(message)) {
-      return err(res, 400, 'BAD_REQUEST', 'Enter a valid email address');
-    }
-    if (/already|registered|exists/i.test(message)) {
-      return err(res, 409, 'CONFLICT', 'Email is already registered');
-    }
-    logger.error('invite_failed', { status: error.status });
-    return err(res, 502, 'UPSTREAM_ERROR', 'The invite email could not be sent. Please try again later.');
+  // Identity + pending grant in ONE transaction: a half-written invite would
+  // either claim the email with no grant or leave a grant with no user. The
+  // id comes from gen_random_uuid() so it is the same uuid the role row will
+  // use at provision (Decision 2/3).
+  let userId;
+  try {
+    userId = await withTransaction(async (client) => {
+      const { rows } = await client.query(
+        `insert into auth."user" ("name", email, "emailVerified", image, "createdAt", "updatedAt", "role", "banned", "twoFactorEnabled")
+         values ($1, $2, true, null, now(), now(), $3, false, false) returning "id"`,
+        [profile.full_name || email, email, role === 'super-admin' ? 'super-admin' : null]);
+      const id = rows[0].id;
+      await client.query(
+        `insert into public.admin_invites (user_id, role, custom_role_id, profile) values ($1, $2, $3, $4)`,
+        [id, role, customRoleId, JSON.stringify(profile)]);
+      return id;
+    });
+  } catch (e) {
+    // The auth.user email unique constraint fired between the dupe check and
+    // the insert: still a conflict, not a server error.
+    if (e.code === '23505') return err(res, 409, 'CONFLICT', 'Email is already registered');
+    throw e;
   }
 
-  // app_metadata is service-role-only, so it is the role signal a client cannot
-  // forge: POST /auth/provision honours a 'super-admin' body role only when it
-  // matches. The custom-role tag rides in the same write (G-01): provision
-  // resolves the tag from here only, so the invitee can never choose its own
-  // bundle. 0 is the full-admin sentinel (R10-02: GoTrue strips JSON null, so
-  // null cannot encode the grant); the key is always written so provision can
-  // tell "no tag" from "pre-fix invite". Set it before the invite is delivered
-  // (Task 60) so a failure here does not leave an invitee with role in
-  // user_metadata but no app_metadata.
-  const { error: metaErr } = await supa().auth.admin.updateUserById(
-    data.user.id, { app_metadata: { role, custom_role_id: customRoleId ?? 0 } });
-  if (metaErr) return err(res, 500, 'INTERNAL', 'Invite sent, but the account role could not be secured. Please retry the invite.');
+  // The email is BA's public reset flow (the dual-window note in the plan: the
+  // acting admin may still hold a Supabase session, and auth.api.createUser
+  // requires a BA admin session, so the user was written directly above).
+  try {
+    await baAuth.api.requestPasswordReset({ body: { email, redirectTo: `${appUrl}/reset-password` } });
+  } catch (e) {
+    // Compensate: the identity exists but the invitee will never get a link,
+    // so the address must not stay claimed. admin_invites cascades.
+    try { await pool.query('delete from auth."user" where "id" = $1', [userId]); } catch { /* best effort */ }
+    // Never forward the upstream message: it can name the address.
+    if (e?.statusCode === 429 || /rate limit/i.test(String(e?.message || ''))) {
+      return err(res, 429, 'RATE_LIMITED', 'Invite email rate limit reached. Please try again later.');
+    }
+    logger.error('invite_failed', { status: e?.statusCode });
+    return err(res, 502, 'UPSTREAM_ERROR', 'The invite email could not be sent. Please try again later.');
+  }
 
   void audit(req.user.id, 'user.invite', null, null, { email, role, custom_role_id: customRoleId });
   res.status(201).json({ invited: true, email, role });
 }));
 
-// Admin-initiated password reset (Task 5): Supabase emails its recovery link,
-// so the admin never chooses or sees a password. The response is identical
-// whether or not the address exists upstream, and no email is echoed or
-// logged — only the audit row records the acting admin and the target id.
+// Admin-initiated password reset (Task 5/6): Better Auth emails its recovery
+// link, so the admin never chooses or sees a password. The response is
+// identical whether or not the address exists upstream (BA answers 200 for an
+// unknown address), and no email is echoed or logged — only the audit row
+// records the acting admin and the target id.
 router.post('/admin/users/:id/reset-password', ...admin, ah(async (req, res) => {
   const { table, profile } = await findUserTable(req.params.id);
   if (!profile) return err(res, 404, 'NOT_FOUND', 'User account not found');
-  const { error } = await supa().auth.resetPasswordForEmail(profile.email, {
-    redirectTo: `${appOrigin()}/reset-password`,
-  });
-  if (error) {
+  try {
+    await baAuth.api.requestPasswordReset({
+      body: { email: profile.email, redirectTo: `${appOrigin()}/reset-password` },
+    });
+  } catch (e) {
     // Same mapping as the invite route: a retryable rate limit must not look
     // like a permanent failure, and the upstream message is never forwarded
     // (it can name the address).
-    const message = String(error.message || '');
-    if (error.status === 429 || /rate limit/i.test(message)) {
+    if (e?.statusCode === 429 || /rate limit/i.test(String(e?.message || ''))) {
       return err(res, 429, 'RATE_LIMITED', 'Password reset rate limit reached. Please try again later.');
     }
-    logger.error('password_reset_failed', { status: error.status });
+    logger.error('password_reset_failed', { status: e?.statusCode });
     return err(res, 502, 'UPSTREAM_ERROR', 'The password reset email could not be sent. Please try again later.');
   }
   void audit(req.user.id, 'user.password.reset', table, req.params.id);
@@ -323,9 +339,13 @@ router.post('/admin/users/:id/reset-password', ...admin, ah(async (req, res) => 
 }));
 
 // Force sign-out (Task 6): GoTrue's admin endpoint revokes every refresh token
-// for the auth user, so every device is signed out. Impersonation is NOT
-// offered — an admin acting as a user defeats the audit trail, which is why
-// no route, UI, or token exchange exists for it.
+// for the auth user, so every legacy device is signed out. During the dual
+// window (ADR-056) the same user can also hold BA sessions in auth."session" —
+// those are deleted here too, in the same request: a user who only ever signed
+// in through Better Auth still has a Supabase row, and leaving the BA session
+// alive would make "signed out" a lie. Impersonation is NOT offered — an admin
+// acting as a user defeats the audit trail, which is why no route, UI, or token
+// exchange exists for it.
 router.post('/admin/users/:id/sign-out', ...admin, ah(async (req, res) => {
   const { table, profile } = await findUserTable(req.params.id);
   if (!profile) return err(res, 404, 'NOT_FOUND', 'User account not found');
@@ -349,6 +369,7 @@ router.post('/admin/users/:id/sign-out', ...admin, ah(async (req, res) => {
     logger.error('force_sign_out_failed', { status: upstream.status });
     return err(res, 502, 'UPSTREAM_ERROR', 'The sessions could not be revoked. Please try again later.');
   }
+  await pool.query('delete from auth."session" where "userId" = $1', [req.params.id]);
   void audit(req.user.id, 'user.sessions.revoke', table, req.params.id);
   res.json({ signedOut: true });
 }));

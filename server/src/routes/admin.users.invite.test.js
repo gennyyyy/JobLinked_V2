@@ -14,26 +14,33 @@ describe('invite route shape', () => {
     expect(invite).toContain("['job-seeker', 'employer', 'super-admin']");
     expect(invite).toMatch(/company_name/);
   });
-  it('invites with metadata and the /accept-invite redirect', () => {
-    expect(invite).toContain('supa().auth.admin.inviteUserByEmail');
-    expect(invite).toContain('/accept-invite');
+  it('creates auth.user + admin_invites, then emails the BA reset link', () => {
+    expect(invite).toContain('insert into auth."user"');
+    expect(invite).toContain('insert into public.admin_invites');
+    expect(invite).toContain('baAuth.api.requestPasswordReset');
+    expect(invite).toContain('/reset-password');
     expect(invite).toContain("audit(req.user.id, 'user.invite'");
   });
-  it('writes role and the 0 full-admin sentinel to service-role app_metadata (G-01/R10-02)', () => {
-    // GoTrue strips JSON null, so a full-admin grant must be a value it keeps.
-    expect(invite).toMatch(/app_metadata:\s*\{\s*role,\s*custom_role_id:\s*customRoleId \?\? 0\s*\}/);
+  it('no longer touches Supabase or app_metadata (ADR-056)', () => {
+    expect(invite).not.toContain('supa');
+    expect(invite).not.toContain('app_metadata');
   });
 });
 
-const mocks = vi.hoisted(() => ({ poolQuery: vi.fn(), invite: vi.fn(), updateUser: vi.fn(), role: 'super-admin' }));
-vi.mock('../db.js', () => ({ pool: { query: mocks.poolQuery } }));
+const USER_ID = '11111111-1111-4111-8111-111111111111';
+const mocks = vi.hoisted(() => ({
+  poolQuery: vi.fn(), txQuery: vi.fn(), connect: vi.fn(), reset: vi.fn(),
+  supabase: vi.fn(), role: 'super-admin',
+}));
+vi.mock('../db.js', () => ({ pool: { query: mocks.poolQuery, connect: mocks.connect } }));
+vi.mock('../ba.js', () => ({ auth: { api: { requestPasswordReset: mocks.reset } } }));
 vi.mock('../auth.js', () => ({
   auth: (req, _res, next) => { req.user = { id: 'admin-1', email: 'a@x.com', role: mocks.role }; next(); },
   optionalAuth: (_req, _res, next) => next(),
   requireRole: (...roles) => (req, res, next) =>
     roles.includes(req.user?.role) ? next() : res.status(403).json({ error: { code: 'FORBIDDEN', message: 'Insufficient role' } }),
-  // S7: supa is a lazy getter, not a module-scope client.
-  supa: () => ({ auth: { admin: { inviteUserByEmail: mocks.invite, updateUserById: mocks.updateUser } } }),
+  // The route must never reach Supabase again; a call is a test failure.
+  supa: mocks.supabase,
 }));
 process.env.RETENTION_DISABLE = '1';
 process.env.CORS_ORIGIN = 'https://app.test';
@@ -48,95 +55,130 @@ beforeAll(async () => {
 afterAll(() => new Promise((r) => server.close(r)));
 beforeEach(() => {
   mocks.role = 'super-admin';
-  mocks.poolQuery.mockReset();
-  mocks.invite.mockReset();
-  mocks.updateUser.mockReset().mockResolvedValue({ data: { user: { id: 'u1' } }, error: null });
+  mocks.poolQuery.mockReset().mockResolvedValue({ rows: [] });
+  mocks.txQuery.mockReset().mockImplementation(async (sql) => (
+    /insert into auth\."user"/.test(String(sql)) ? { rows: [{ id: USER_ID }] } : { rows: [] }));
+  mocks.connect.mockReset().mockResolvedValue({ query: mocks.txQuery, release: vi.fn() });
+  mocks.reset.mockReset().mockResolvedValue({ status: true });
+  mocks.supabase.mockReset();
 });
 
 const post = (body) => fetch(`${base}/admin/users/invite`, {
   method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
+const authInsert = () => mocks.txQuery.mock.calls.find(([sql]) => /insert into auth\."user"/.test(String(sql)));
+const inviteInsert = () => mocks.txQuery.mock.calls.find(([sql]) => /insert into public\.admin_invites/.test(String(sql)));
 
 describe('invite runtime', () => {
-  it('201 and invites with metadata + redirectTo on the happy path', async () => {
-    mocks.poolQuery.mockResolvedValue({ rows: [] });          // dup check empty
-    mocks.invite.mockResolvedValue({ data: { user: { id: 'u1' } }, error: null });
-    const r = await post({ email: 'new@x.com', role: 'job-seeker', first_name: 'Ana', last_name: 'Cruz' });
+  it('201: one transaction writes auth.user then admin_invites with the full profile', async () => {
+    const r = await post({ email: 'new@x.com', role: 'job-seeker', first_name: 'Ana', middle_name: 'B', last_name: 'Cruz', suffix: 'Jr', phone: '0917' });
     expect(r.status).toBe(201);
     expect(await r.json()).toEqual({ invited: true, email: 'new@x.com', role: 'job-seeker' });
-    expect(mocks.invite).toHaveBeenCalledWith('new@x.com', expect.objectContaining({
-      redirectTo: 'https://app.test/accept-invite',
-      data: expect.objectContaining({ role: 'job-seeker', first_name: 'Ana', last_name: 'Cruz' }),
-    }));
-    // G-01: the tag is service-role state, written in the same call as role.
-    // 0 = the inviter explicitly granted a full admin (no custom role); R10-02:
-    // null would be stripped by GoTrue, so the sentinel is the wire value.
-    expect(mocks.updateUser).toHaveBeenCalledWith('u1', {
-      app_metadata: { role: 'job-seeker', custom_role_id: 0 },
+
+    const [userSql, userParams] = authInsert();
+    expect(userSql).toContain('returning "id"');
+    expect(userParams).toEqual(['Ana B Cruz Jr', 'new@x.com', null]);
+
+    const [inviteSql, inviteParams] = inviteInsert();
+    expect(inviteSql).toContain('public.admin_invites');
+    expect(inviteParams.slice(0, 3)).toEqual([USER_ID, 'job-seeker', null]);
+    expect(JSON.parse(inviteParams[3])).toEqual({
+      first_name: 'Ana', middle_name: 'B', last_name: 'Cruz', suffix: 'Jr',
+      phone: '0917', full_name: 'Ana B Cruz Jr', company_name: null,
     });
+
+    // Same message as before, new link: BA's own reset page sets the password.
+    expect(mocks.reset).toHaveBeenCalledWith({
+      body: { email: 'new@x.com', redirectTo: 'https://app.test/reset-password' },
+    });
+    expect(mocks.supabase).not.toHaveBeenCalled();
+    expect(mocks.poolQuery.mock.calls.some(([sql]) => /insert into audit_logs/.test(String(sql)))).toBe(true);
   });
-  it('writes custom_role_id 0 for a full-admin invite (not null/absent)', async () => {
-    mocks.poolQuery.mockResolvedValue({ rows: [] });
-    mocks.invite.mockResolvedValue({ data: { user: { id: 'u1' } }, error: null });
+
+  it('writes user.role = super-admin only for a super-admin invite', async () => {
     const r = await post({ email: 'boss@x.com', role: 'super-admin', first_name: 'Cid', last_name: 'Reyes' });
     expect(r.status).toBe(201);
-    expect(mocks.updateUser).toHaveBeenCalledWith('u1', {
-      app_metadata: { role: 'super-admin', custom_role_id: 0 },
-    });
+    expect(authInsert()[1]).toEqual(['Cid Reyes', 'boss@x.com', 'super-admin']);
+    expect(inviteInsert()[1].slice(0, 3)).toEqual([USER_ID, 'super-admin', null]);
   });
-  it('writes the custom-role tag into app_metadata in the same call (G-01)', async () => {
-    mocks.poolQuery.mockImplementation(async (sql) => (/category = 'custom_role'/.test(sql)
+
+  it('writes the custom-role tag into the admin_invites row (G-01)', async () => {
+    mocks.poolQuery.mockImplementation(async (sql) => (/category = 'custom_role'/.test(String(sql))
       ? { rows: [{ id: 12, base_role: 'job-seeker' }] }
       : { rows: [] }));
-    mocks.invite.mockResolvedValue({ data: { user: { id: 'u1' } }, error: null });
     const r = await post({ email: 'tagged@x.com', custom_role_id: 12, first_name: 'Ana', last_name: 'Cruz' });
     expect(r.status).toBe(201);
     expect(await r.json()).toEqual({ invited: true, email: 'tagged@x.com', role: 'job-seeker' });
-    expect(mocks.updateUser).toHaveBeenCalledWith('u1', {
-      app_metadata: { role: 'job-seeker', custom_role_id: 12 },
-    });
-    // user_metadata still mirrors it for the accept-invite form; the authority
-    // provision reads is app_metadata.
-    expect(mocks.invite.mock.calls[0][1].data).toMatchObject({ custom_role_id: 12 });
+    expect(inviteInsert()[1].slice(0, 3)).toEqual([USER_ID, 'job-seeker', 12]);
   });
-  it('409 when the email already exists in a role table (case-insensitive)', async () => {
+
+  it('409 when the email already exists — the dupe check covers auth.user and the role tables', async () => {
     mocks.poolQuery.mockResolvedValue({ rows: [{ '?column?': 1 }] });
     const r = await post({ email: 'Juan@X.com', role: 'employer', first_name: 'J', last_name: 'D', company_name: 'Acme' });
     expect(r.status).toBe(409);
     expect((await r.json()).error.code).toBe('CONFLICT');
-    expect(mocks.invite).not.toHaveBeenCalled();
+    const dupe = mocks.poolQuery.mock.calls[0][0];
+    expect(dupe).toContain('from auth."user"');
+    expect(dupe).toMatch(/union all select 1 from super_admins where lower\(email\)/);
+    expect(dupe).toContain('limit 1');
+    expect(mocks.reset).not.toHaveBeenCalled();
+    expect(mocks.connect).not.toHaveBeenCalled();
   });
-  it('409 when Supabase reports the auth user already exists', async () => {
-    mocks.poolQuery.mockResolvedValue({ rows: [] });
-    mocks.invite.mockResolvedValue({ data: null, error: { message: 'User already registered' } });
+
+  it('409 when the auth.user email unique constraint fires (23505)', async () => {
+    mocks.txQuery.mockRejectedValueOnce(Object.assign(new Error('duplicate key'), { code: '23505' }));
     const r = await post({ email: 'dup@x.com', role: 'job-seeker', first_name: 'A', last_name: 'B' });
     expect(r.status).toBe(409);
+    expect((await r.json()).error.code).toBe('CONFLICT');
+    expect(mocks.reset).not.toHaveBeenCalled();
   });
+
+  it('429 on a rate-limit-shaped send failure, compensation included', async () => {
+    mocks.reset.mockRejectedValue(Object.assign(new Error('Email rate limit exceeded'), { statusCode: 429 }));
+    const r = await post({ email: 'rl@x.com', role: 'job-seeker', first_name: 'A', last_name: 'B' });
+    expect(r.status).toBe(429);
+    expect((await r.json()).error).toEqual({
+      code: 'RATE_LIMITED', message: 'Invite email rate limit reached. Please try again later.',
+    });
+    const del = mocks.poolQuery.mock.calls.find(([sql]) => /delete from auth\."user" where "id" = \$1/.test(String(sql)));
+    expect(del?.[1]).toEqual([USER_ID]);
+  });
+
+  it('502 on another send failure, deletes the half-created auth.user row, leaks nothing', async () => {
+    mocks.reset.mockRejectedValue(Object.assign(new Error('smtp rejected rl@x.com'), { statusCode: 500 }));
+    const r = await post({ email: 'fail@x.com', role: 'job-seeker', first_name: 'A', last_name: 'B' });
+    const body = await r.json();
+    expect(r.status).toBe(502);
+    expect(body.error.code).toBe('UPSTREAM_ERROR');
+    expect(JSON.stringify(body)).not.toContain('smtp rejected');
+    expect(JSON.stringify(body)).not.toContain('fail@x.com');
+    const del = mocks.poolQuery.mock.calls.find(([sql]) => /delete from auth\."user" where "id" = \$1/.test(String(sql)));
+    expect(del?.[1]).toEqual([USER_ID]);
+    expect(mocks.poolQuery.mock.calls.some(([sql]) => /insert into audit_logs/.test(String(sql)))).toBe(false);
+  });
+
   it('400 when an employer invite omits company_name', async () => {
-    mocks.poolQuery.mockResolvedValue({ rows: [] });
     const r = await post({ email: 'e@x.com', role: 'employer', first_name: 'A', last_name: 'B' });
     expect(r.status).toBe(400);
-    expect(mocks.invite).not.toHaveBeenCalled();
+    expect(mocks.reset).not.toHaveBeenCalled();
   });
   it('400 when the request omits the email', async () => {
     const r = await post({ role: 'job-seeker', first_name: 'A', last_name: 'B' });
     expect(r.status).toBe(400);
     expect((await r.json()).error.code).toBe('BAD_REQUEST');
-    expect(mocks.invite).not.toHaveBeenCalled();
+    expect(mocks.reset).not.toHaveBeenCalled();
   });
   it('400 when the request omits first_name and last_name', async () => {
     const r = await post({ email: 'x@x.com', role: 'job-seeker' });
     expect(r.status).toBe(400);
     expect((await r.json()).error.code).toBe('BAD_REQUEST');
-    expect(mocks.invite).not.toHaveBeenCalled();
+    expect(mocks.reset).not.toHaveBeenCalled();
   });
   it('400 when role disagrees with the custom role base role', async () => {
-    // reference_data lookup resolves the custom role to base_role 'employer',
-    // while the request claims 'job-seeker' → reject, never invite.
     mocks.poolQuery.mockResolvedValue({ rows: [{ id: 12, base_role: 'employer' }] });
     const r = await post({ email: 'c@x.com', role: 'job-seeker', custom_role_id: 12, first_name: 'A', last_name: 'B', company_name: 'Acme' });
     expect(r.status).toBe(400);
     expect((await r.json()).error.code).toBe('BAD_REQUEST');
-    expect(mocks.invite).not.toHaveBeenCalled();
+    expect(mocks.reset).not.toHaveBeenCalled();
   });
   it('403 when the caller is not a super-admin', async () => {
     mocks.role = 'employer';

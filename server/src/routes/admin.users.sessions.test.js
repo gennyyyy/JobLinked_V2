@@ -1,5 +1,6 @@
 // Task 6: POST /admin/users/:id/sign-out revokes every refresh token through
-// GoTrue's admin endpoint. No impersonation route exists.
+// GoTrue's admin endpoint and, during the dual window (ADR-056), every BA
+// session row too. No impersonation route exists.
 import express from 'express';
 import { describe, it, expect, vi, beforeAll, afterAll, beforeEach } from 'vitest';
 import { err } from '../util.js';
@@ -58,6 +59,7 @@ beforeEach(() => {
 
 const post = (path = `/admin/users/${USER.id}/sign-out`) => fetch(`${base}${path}`, { method: 'POST' });
 const auditCall = () => mocks.poolQuery.mock.calls.find((c) => /insert into audit_logs/.test(String(c[0])));
+const baRevoke = () => mocks.poolQuery.mock.calls.find(([sql]) => /delete from auth\."session" where "userId" = \$1/.test(String(sql)));
 
 describe('POST /admin/users/:id/sign-out', () => {
   it('calls the GoTrue admin logout endpoint with the service-role key and audits it', async () => {
@@ -74,6 +76,10 @@ describe('POST /admin/users/:id/sign-out', () => {
     expect(init.headers.apikey).toBe('service-key');
     expect(init.headers.Authorization).toBe('Bearer service-key');
 
+    // Dual window (ADR-056): the BA side is revoked in the same request, so a
+    // user who only ever signed in through Better Auth is signed out too.
+    expect(baRevoke()?.[1]).toEqual([USER.id]);
+
     const [sql, params] = auditCall();
     expect(String(sql)).toContain('audit_logs');
     expect(params[1]).toBe('user.sessions.revoke');
@@ -87,6 +93,7 @@ describe('POST /admin/users/:id/sign-out', () => {
     expect(r.status).toBe(502);
     expect((await r.json()).error.code).toBe('UPSTREAM_ERROR');
     expect(auditCall()).toBeUndefined();
+    expect(baRevoke()).toBeUndefined();
   });
 
   it('502s a network failure', async () => {
@@ -102,6 +109,7 @@ describe('POST /admin/users/:id/sign-out', () => {
     expect(r.status).toBe(404);
     expect((await r.json()).error.code).toBe('NOT_FOUND');
     expect(upstream).not.toHaveBeenCalled();
+    expect(baRevoke()).toBeUndefined();
   });
 
   it('403s a caller that is not a super-admin', async () => {

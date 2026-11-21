@@ -1,13 +1,16 @@
-// Task 5: POST /admin/users/:id/reset-password sends Supabase's recovery email.
-// Success is always { sent: true }; the address is never echoed, missing users
-// 404, rate limits 429, other upstream failures 502, and every send is audited.
+// Task 5/6: POST /admin/users/:id/reset-password sends Better Auth's recovery
+// email. Success is always { sent: true }; the address is never echoed, missing
+// users 404, rate limits 429, other upstream failures 502, and every send is
+// audited (failures are not).
 import express from 'express';
 import { describe, it, expect, vi, beforeAll, afterAll, beforeEach } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
-  poolQuery: vi.fn(), reset: vi.fn(), role: 'super-admin', customRoleId: null, permissions: [],
+  poolQuery: vi.fn(), reset: vi.fn(), supabase: vi.fn(),
+  role: 'super-admin', customRoleId: null, permissions: [],
 }));
 vi.mock('../db.js', () => ({ pool: { query: mocks.poolQuery } }));
+vi.mock('../ba.js', () => ({ auth: { api: { requestPasswordReset: mocks.reset } } }));
 vi.mock('../auth.js', () => ({
   auth: (req, _res, next) => {
     req.user = {
@@ -18,7 +21,8 @@ vi.mock('../auth.js', () => ({
   },
   requireRole: (...roles) => (req, res, next) =>
     roles.includes(req.user?.role) ? next() : res.status(403).json({ error: { code: 'FORBIDDEN', message: 'Insufficient role' } }),
-  supa: () => ({ auth: { resetPasswordForEmail: mocks.reset } }),
+  // Supabase is gone from this route (ADR-056); any call fails the test.
+  supa: mocks.supabase,
 }));
 process.env.CORS_ORIGIN = 'https://app.test';
 const { default: adminRoutes } = await import('./admin-users.js');
@@ -38,7 +42,8 @@ beforeEach(() => {
   mocks.role = 'super-admin';
   mocks.customRoleId = null;
   mocks.permissions = [];
-  mocks.reset.mockReset().mockResolvedValue({ data: {}, error: null });
+  mocks.reset.mockReset().mockResolvedValue({ status: true });
+  mocks.supabase.mockReset();
   mocks.poolQuery.mockReset().mockImplementation(async (sql) => (
     /select tbl, profile from/.test(String(sql))
       ? { rows: [{ tbl: 'job_seekers', profile: USER }] }
@@ -55,7 +60,10 @@ describe('POST /admin/users/:id/reset-password', () => {
     expect(r.status).toBe(200);
     expect(body).toEqual({ sent: true });
     expect(JSON.stringify(body)).not.toContain(USER.email);
-    expect(mocks.reset).toHaveBeenCalledWith(USER.email, { redirectTo: 'https://app.test/reset-password' });
+    expect(mocks.reset).toHaveBeenCalledWith({
+      body: { email: USER.email, redirectTo: 'https://app.test/reset-password' },
+    });
+    expect(mocks.supabase).not.toHaveBeenCalled();
 
     const [sql, params] = auditCall();
     expect(String(sql)).toContain('audit_logs');
@@ -72,8 +80,8 @@ describe('POST /admin/users/:id/reset-password', () => {
     expect(mocks.reset).not.toHaveBeenCalled();
   });
 
-  it('429s a Supabase rate limit and audits nothing', async () => {
-    mocks.reset.mockResolvedValue({ data: null, error: { status: 429, message: 'Email rate limit exceeded' } });
+  it('429s a Better Auth rate limit and audits nothing', async () => {
+    mocks.reset.mockRejectedValue(Object.assign(new Error('Email rate limit exceeded'), { statusCode: 429 }));
     const r = await post();
     const body = await r.json();
     expect(r.status).toBe(429);
@@ -83,12 +91,13 @@ describe('POST /admin/users/:id/reset-password', () => {
   });
 
   it('502s another upstream failure without leaking the address', async () => {
-    mocks.reset.mockResolvedValue({ data: null, error: { status: 500, message: `smtp rejected ${USER.email}` } });
+    mocks.reset.mockRejectedValue(Object.assign(new Error(`smtp rejected ${USER.email}`), { statusCode: 500 }));
     const r = await post();
     const body = await r.json();
     expect(r.status).toBe(502);
     expect(body.error.code).toBe('UPSTREAM_ERROR');
     expect(JSON.stringify(body)).not.toContain(USER.email);
+    expect(JSON.stringify(body)).not.toContain('smtp rejected');
     expect(auditCall()).toBeUndefined();
   });
 

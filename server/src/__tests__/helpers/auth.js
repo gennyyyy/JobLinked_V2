@@ -32,7 +32,14 @@ const readBaSession = async ({ headers } = {}) => {
   return user ? { session: { token }, user } : null;
 };
 
-export const baAuth = { api: { getSession: vi.fn(readBaSession) } };
+export const baAuth = {
+  api: {
+    getSession: vi.fn(readBaSession),
+    // The admin invite/reset routes call this; a test that mounts admin-users
+    // through the seam must not reach the real BA (and its real mailer).
+    requestPasswordReset: vi.fn(),
+  },
+};
 
 // resolveRole() in auth.js runs one union query and reads rows[0]; the mocked
 // pool routes that query here (see helpers/db.js builtin rule).
@@ -74,4 +81,5 @@ export function resetAuth() {
   supabaseAuth.getUser.mockClear();
   // Restore readBaSession too: a test may have swapped in mockRejectedValue.
   baAuth.api.getSession.mockReset().mockImplementation(readBaSession);
+  baAuth.api.requestPasswordReset.mockReset();
 }

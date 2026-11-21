@@ -1,11 +1,11 @@
 import { pool } from '../db.js';
-import { supa } from '../auth.js';
 
 // Shallow (default): the database answers `select 1`. `?deep=true` additionally
-// probes the Supabase auth service with a dummy token — the cheapest real
-// round-trip. auth-js resolves with an AuthError for ANY HTTP answer (see
-// auth-js lib/fetch.js: a transport failure becomes AuthRetryableFetchError
-// with status 0, a healthy rejection a 4xx), so: answered = up.
+// checks that Better Auth's tables exist (ADR-056). to_regclass is a local
+// catalog lookup — no Supabase round-trip and no auth token needed, so a
+// missing `auth` schema (migration 017 not applied) reads as unavailable while
+// the app tables still answer. A null result IS the failure: to_regclass returns
+// null instead of raising when the relation is absent.
 export default async function health(req, res) {
   try {
     await pool.query('select 1');
@@ -14,10 +14,8 @@ export default async function health(req, res) {
   }
   if (req.query.deep === 'true') {
     try {
-      const { error } = await supa().auth.getUser('health-check');
-      if (error && (!error.status || error.status >= 500)) {
-        return res.status(503).json({ ok: false, db: 'ok', auth: 'unavailable' });
-      }
+      const { rows } = await pool.query(`select to_regclass('auth."user"') as t`);
+      if (!rows[0]?.t) return res.status(503).json({ ok: false, db: 'ok', auth: 'unavailable' });
     } catch {
       return res.status(503).json({ ok: false, db: 'ok', auth: 'unavailable' });
     }

@@ -9,13 +9,15 @@ import { describe, it, expect, vi, beforeAll, afterAll, beforeEach } from 'vites
 
 const mocks = vi.hoisted(() => ({
   query: vi.fn(async () => ({ rows: [], rowCount: 0 })),
+  txQuery: vi.fn(async () => ({ rows: [{ id: 'auth-uuid-1' }], rowCount: 1 })),
   connect: vi.fn(),
-  invite: vi.fn(),
-  updateUser: vi.fn(),
+  reset: vi.fn(),
+  supabase: vi.fn(),
   user: null,
 }));
 
 vi.mock('../db.js', () => ({ pool: { query: mocks.query, connect: mocks.connect } }));
+vi.mock('../ba.js', () => ({ auth: { api: { requestPasswordReset: mocks.reset } } }));
 vi.mock('../auth.js', () => ({
   // The principal is whatever the test sets — the real requirePermission
   // middleware still runs and reads customRoleId/permissions from it.
@@ -23,7 +25,8 @@ vi.mock('../auth.js', () => ({
   requireRole: (...roles) => (req, res, next) => roles.includes(req.user?.role)
     ? next()
     : res.status(403).json({ error: { code: 'FORBIDDEN', message: 'Insufficient role' } }),
-  supa: () => ({ auth: { admin: { inviteUserByEmail: mocks.invite, updateUserById: mocks.updateUser } } }),
+  // Supabase is gone from the invite path (ADR-056); any call fails the test.
+  supa: mocks.supabase,
 }));
 
 process.env.RETENTION_DISABLE = '1';
@@ -42,9 +45,10 @@ beforeAll(async () => {
 afterAll(() => new Promise((r) => server.close(r)));
 beforeEach(() => {
   mocks.query.mockReset();
-  mocks.connect.mockReset().mockResolvedValue({ query: vi.fn(async () => ({ rows: [], rowCount: 1 })), release: vi.fn() });
-  mocks.invite.mockReset().mockResolvedValue({ data: { user: { id: 'auth-uuid-1' } }, error: null });
-  mocks.updateUser.mockReset().mockResolvedValue({ data: { user: {} }, error: null });
+  mocks.txQuery.mockReset().mockResolvedValue({ rows: [{ id: 'auth-uuid-1' }], rowCount: 1 });
+  mocks.connect.mockReset().mockResolvedValue({ query: mocks.txQuery, release: vi.fn() });
+  mocks.reset.mockReset().mockResolvedValue({ status: true });
+  mocks.supabase.mockReset();
   mocks.user = fullAdmin();
 });
 
@@ -93,6 +97,9 @@ const adminRow = (customRoleId = null) => [{ tbl: 'super_admins', profile: {
   id: T, role: 'super-admin', status: 'active', custom_role_id: customRoleId, email: 't@x.com', full_name: 'Target',
 } }];
 
+// The pending grant the invite writes: [user_id, role, custom_role_id, profile].
+const inviteRow = () => mocks.txQuery.mock.calls.find(([sql]) => /insert into public\.admin_invites/.test(String(sql)));
+
 // ── G-02 invite ────────────────────────────────────────────────────────────
 describe('G-02 invite: only a full admin may mint a full admin', () => {
   it('P-08: a users.manage-only admin cannot invite an untagged super-admin', async () => {
@@ -101,7 +108,7 @@ describe('G-02 invite: only a full admin may mint a full admin', () => {
     const r = await invite({ email: 'boss@x.com', role: 'super-admin', first_name: 'Cid', last_name: 'Reyes' });
     expect(r.status).toBe(403);
     expect((await r.json()).error.code).toBe('FORBIDDEN');
-    expect(mocks.invite).not.toHaveBeenCalled();
+    expect(mocks.reset).not.toHaveBeenCalled();
   });
 
   it('refuses a bundle carrying a key the inviter does not hold', async () => {
@@ -110,7 +117,7 @@ describe('G-02 invite: only a full admin may mint a full admin', () => {
     const r = await invite({ email: 'x@x.com', custom_role_id: 40, first_name: 'A', last_name: 'B' });
     expect(r.status).toBe(403);
     expect((await r.json()).error.message).toMatch(/roles\.manage/);
-    expect(mocks.invite).not.toHaveBeenCalled();
+    expect(mocks.reset).not.toHaveBeenCalled();
   });
 
   it('lets a tagged admin delegate a bundle within its own', async () => {
@@ -119,14 +126,14 @@ describe('G-02 invite: only a full admin may mint a full admin', () => {
       [DUP_EMAIL, () => ({ rows: [] })]);
     const r = await invite({ email: 'delegate@x.com', custom_role_id: 41, first_name: 'A', last_name: 'B' });
     expect(r.status).toBe(201);
-    expect(mocks.updateUser).toHaveBeenCalledWith('auth-uuid-1', { app_metadata: { role: 'super-admin', custom_role_id: 41 } });
+    expect(inviteRow()[1].slice(0, 3)).toEqual(['auth-uuid-1', 'super-admin', 41]);
   });
 
   it('still lets a full admin invite an untagged super-admin', async () => {
     sqlDb([DUP_EMAIL, () => ({ rows: [] })]);
     const r = await invite({ email: 'boss2@x.com', role: 'super-admin', first_name: 'Cid', last_name: 'Reyes' });
     expect(r.status).toBe(201);
-    expect(mocks.updateUser).toHaveBeenCalledWith('auth-uuid-1', { app_metadata: { role: 'super-admin', custom_role_id: 0 } });
+    expect(inviteRow()[1].slice(0, 3)).toEqual(['auth-uuid-1', 'super-admin', null]);
   });
 });
 

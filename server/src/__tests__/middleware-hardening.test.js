@@ -7,7 +7,7 @@ vi.mock('../db.js', async () => { const h = await import('./helpers/db.js'); ret
 vi.mock('@supabase/supabase-js', async () => { const h = await import('./helpers/auth.js'); return { createClient: () => ({ auth: h.supabaseAuth }) }; });
 
 import { on, reset } from './helpers/db.js';
-import { loginAs, resetAuth, supabaseAuth } from './helpers/auth.js';
+import { loginAs, resetAuth } from './helpers/auth.js';
 import { makeHardenedApp } from './helpers/app.js';
 import { createApp } from '../app.js';
 import { uploadDir } from '../upload.js';
@@ -167,29 +167,25 @@ describe('H1 — compression', () => {
 });
 
 describe('M6 — deep health check', () => {
-  it('?deep=true reports auth ok when Supabase answers', async () => {
-    // A healthy Supabase always answers 4xx for a dummy token; auth-js surfaces
-    // that as a resolved AuthError carrying the HTTP status.
-    supabaseAuth.getUser.mockImplementationOnce(async () => ({
-      data: null, error: { message: 'Invalid JWT', status: 401 },
-    }));
+  // ADR-056: the deep probe is a local catalog check that Better Auth's tables
+  // exist — the Supabase dummy-token round-trip is gone.
+  it('?deep=true reports auth ok when the auth schema exists', async () => {
+    on(/to_regclass\('auth\."user"'\)/, () => ({ rows: [{ t: 'auth."user"' }] }));
     const res = await request(app).get('/api/health?deep=true');
     expect(res.status).toBe(200);
     expect(res.body).toEqual({ ok: true, db: 'ok', auth: 'ok' });
   });
 
-  it('?deep=true reports auth unavailable when the probe cannot reach Supabase', async () => {
-    // auth-js resolves with status 0 when the transport fails (lib/fetch.js).
-    supabaseAuth.getUser.mockImplementationOnce(async () => ({
-      data: null, error: { message: 'fetch failed', status: 0 },
-    }));
+  it('?deep=true reports auth unavailable when the auth schema is missing', async () => {
+    // to_regclass answers null (not an error) when the relation is absent.
+    on(/to_regclass\('auth\."user"'\)/, () => ({ rows: [{ t: null }] }));
     const res = await request(app).get('/api/health?deep=true');
     expect(res.status).toBe(503);
     expect(res.body).toEqual({ ok: false, db: 'ok', auth: 'unavailable' });
   });
 
   it('?deep=true treats a thrown probe as auth unavailable', async () => {
-    supabaseAuth.getUser.mockImplementationOnce(async () => { throw new Error('ECONNREFUSED'); });
+    on(/to_regclass/, () => { throw new Error('ECONNREFUSED'); });
     const res = await request(app).get('/api/health?deep=true');
     expect(res.status).toBe(503);
     expect(res.body).toEqual({ ok: false, db: 'ok', auth: 'unavailable' });
