@@ -192,7 +192,7 @@ export const auth = betterAuth({
 ### Task 4: Mount BA in Express (ordering-critical)
 
 **Files:**
-- Modify: `server/src/app.js` (mount + cors), `server/src/env.js` (required-env additions)
+- Modify: `server/src/app.js` (mount + cors), `server/src/env.js` (required-env additions), `server/src/routes/auth.js` (`/auth/provision` route-level `express.json()`)
 - Test: `server/src/__tests__/middleware-hardening.test.js` (extend), new `server/src/__tests__/ba-mount.test.js`
 
 **Interfaces:**
@@ -208,11 +208,11 @@ app.use(express.json({ limit: '1mb' }));          // unchanged position for ever
 app.use('/api', jobsRoutes, …);                   // unchanged
 ```
 
-`/api/auth/provision` parses its own body (`router.post('/provision', express.json(), …)` route-level), because the global parser now sits after the BA mount. Add `credentials: true` to the existing `cors({...})` call.
+`/api/auth/provision` parses its own body (`router.post('/provision', tokenAuth, express.json(), …)` route-level), because the global parser now sits after the BA mount. Add `credentials: true` to the existing `cors({...})` call.
 
 - [ ] **Step 1: Write the failing tests** — (a) `GET /api/auth/ok` → 200 with `{"ok":true…}` (per docs); (b) `POST /api/auth/provision` (session-mocked per helpers) still 401s unauthenticated and 400s without `role`; (c) a BA sign-in response carries `Set-Cookie: better-auth.session_token=…` (BA integration-config or stub); (d) a `POST /api/auth/sign-in/email` with `Origin` not in `trustedOrigins` → 403 (CSRF check fires), with a trusted origin → proceeds to credential check.
 - [ ] **Step 2:** Tests → FAIL.
-- [ ] **Step 3:** Implement the mount order + cors `credentials: true` + route-level json on provision; add `BETTER_AUTH_URL`, `BETTER_AUTH_SECRET`, `TURNSTILE_SECRET_KEY`, `SMTP_*` to `env.js`/`.env.example` (optional-in-dev, warn-not-exit until Task 15 flips the default).
+- [ ] **Step 3:** Implement the mount order + cors `credentials: true` + route-level json on provision; add `BETTER_AUTH_URL`, `BETTER_AUTH_SECRET`, `TURNSTILE_SECRET_KEY`, `SMTP_*` to `env.js`/`.env.example` (optional-in-dev, warn-not-exit until Task 12 flips the default). Give `ba.js` a dev-only `baseURL` fallback (`http://localhost:4000`) and Vite fallback origins (`5173`–`5175`) so the local CSRF check matches the CORS behavior.
 - [ ] **Step 4:** Tests → PASS. `npm --prefix server test` green (the old Supabase path still works untouched).
 - [ ] **Step 5:** Commit `feat(server): mount better-auth before body parser; cors credentials`.
 
