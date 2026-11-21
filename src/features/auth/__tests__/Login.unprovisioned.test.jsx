@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
@@ -8,8 +8,17 @@ vi.mock('../../../shared/hooks/useAuth', () => ({
   default: vi.fn(),
 }));
 
-vi.mock('../../../shared/services/auth', () => ({
-  signIn: vi.fn(),
+vi.mock('../../../shared/lib/api', () => ({
+  api: { get: vi.fn(), post: vi.fn(), patch: vi.fn(), del: vi.fn(), blob: vi.fn() },
+  clearApiCache: vi.fn(),
+  setApiIdentity: vi.fn(),
+}));
+vi.mock('../../../shared/lib/auth-client', async () => {
+  const { authClientMock } = await import('../../../test/authClientMock')
+  return { authClient: authClientMock }
+});
+vi.mock('../../../shared/lib/supabase', () => ({
+  supabase: { auth: { getUser: vi.fn(), updateUser: vi.fn() } },
 }));
 
 // No captcha here: a local .env.local carries a real site key, which would gate
@@ -23,7 +32,18 @@ vi.mock('../../../shared/lib/turnstile', () => ({
 }));
 
 import useAuth from '../../../shared/hooks/useAuth';
-import { signIn } from '../../../shared/services/auth';
+import { api } from '../../../shared/lib/api';
+import { authClientMock, resetAuthClient } from '../../../test/authClientMock';
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  resetAuthClient();
+  useAuth.mockReturnValue({ user: null, authenticate: vi.fn() });
+  // Valid BA credentials + a session, but no role row on this account.
+  authClientMock.signIn.email.mockResolvedValue({ data: { user: { id: 'u1' } }, error: null });
+  authClientMock.getSession.mockResolvedValue({ data: { user: { id: 'u1', email: 'new@example.com' } } });
+  api.get.mockRejectedValue(Object.assign(new Error('Account not provisioned'), { status: 403 }));
+});
 
 function renderLogin() {
   return render(
@@ -37,9 +57,7 @@ function renderLogin() {
 }
 
 describe('Login unprovisioned account routing', () => {
-  it('navigates to /complete-registration when signIn throws "needs provision"', async () => {
-    useAuth.mockReturnValue({ user: null, authenticate: vi.fn() });
-    signIn.mockRejectedValue(new Error('needs provision'));
+  it('navigates to /complete-registration when signIn needs provisioning', async () => {
     renderLogin();
 
     await userEvent.type(screen.getByLabelText(/email/i), 'new@example.com');
@@ -47,11 +65,11 @@ describe('Login unprovisioned account routing', () => {
     await userEvent.click(screen.getByRole('button', { name: /sign in/i }));
 
     expect(await screen.findByText('Complete Registration Page')).toBeInTheDocument();
+    // The client never provisions from metadata: the recovery page does it.
+    expect(api.post).not.toHaveBeenCalled();
   });
 
   it('does not show error message for unprovisioned accounts', async () => {
-    useAuth.mockReturnValue({ user: null, authenticate: vi.fn() });
-    signIn.mockRejectedValue(new Error('needs provision'));
     renderLogin();
 
     await userEvent.type(screen.getByLabelText(/email/i), 'new@example.com');

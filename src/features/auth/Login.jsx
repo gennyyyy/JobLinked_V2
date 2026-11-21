@@ -1,11 +1,10 @@
-import { useRef, useState } from 'react'
-import { Link, Navigate, useNavigate } from 'react-router-dom'
+import { useState } from 'react'
+import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { ArrowRight, Eye, EyeOff, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { FieldGroup, Field, FieldLabel } from '@/components/ui/field'
 import { InputGroup, InputGroupInput, InputGroupAddon, InputGroupButton } from '@/components/ui/input-group'
-import { signIn, listMfaFactors } from '@/shared/services/auth'
-import { supabase } from '@/shared/lib/supabase'
+import { signIn, completeTwoFactor, signOut } from '@/shared/services/auth'
 import { PORTALS } from '@/shared/constants'
 import useAuth from '@/shared/hooks/useAuth'
 import useCaptcha from '@/shared/hooks/useCaptcha'
@@ -20,22 +19,22 @@ import { Panel, TextField } from '@/shared/components/design'
 // signed-in visitor is forwarded straight to their own workspace.
 function Login() {
   const navigate = useNavigate()
+  const location = useLocation()
   const { user, role, loading, authenticate } = useAuth()
   const [error, setError] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [show, setShow] = useState(false)
   const [busy, setBusy] = useState(false)
-  const [mfaFactorId, setMfaFactorId] = useState(null)
+  const [mfaStep, setMfaStep] = useState(false)
   const [mfaCode, setMfaCode] = useState('')
   const [mfaLoading, setMfaLoading] = useState(false)
   const [mfaError, setMfaError] = useState('')
-  const [afterLoginPath, setAfterLoginPath] = useState('/')
-  const pendingUser = useRef(null)
   const captcha = useCaptcha()
 
   const signedInRole = role || user?.role
   const homePath = PORTALS.find((p) => p.key === signedInRole)?.homePath
+  const portalPath = (nextRole) => PORTALS.find((p) => p.key === nextRole)?.homePath || '/'
 
   if (loading) return <LoadingScreen />
   if (user && homePath) return <Navigate to={homePath} replace />
@@ -50,51 +49,20 @@ function Login() {
     setBusy(true)
     try {
       const loggedIn = await signIn(email.trim(), password, captcha.token)
-      // First login after provisioning: the AuthProvider's SIGNED_IN listener
-      // may have fetched /auth/me before the profile row existed, leaving its
-      // `user` null. Seed the provider with the profile signIn already resolved
-      // before routing, so ProtectedRoute sees the session on the first attempt.
-      const destination = PORTALS.find((p) => p.key === loggedIn.role)?.homePath || '/'
-
-      // AAL2 challenge: if the account has a verified TOTP factor and the
-      // session is only AAL1, ask for a code before routing.
-      let needsMfa = false
-      let factorId = null
-      try {
-        const aalRes = await supabase.auth.mfa.getAuthenticatorAssuranceLevel()
-        const aalData = aalRes?.data ?? aalRes
-        const nextLevel = aalData?.nextLevel ?? aalData?.next_level
-        if (nextLevel === 'aal2') {
-          const factors = typeof listMfaFactors === 'function' ? await listMfaFactors() : []
-          const verified = (Array.isArray(factors) ? factors : []).find(
-            (f) => f?.status === 'verified' || f?.status == null,
-          )
-          if (verified) {
-            needsMfa = true
-            factorId = verified.id
-          }
-        }
-      } catch {
-        needsMfa = false
-      }
-
-      if (needsMfa) {
-        pendingUser.current = loggedIn
-        setAfterLoginPath(destination)
-        setMfaFactorId(factorId)
-        setBusy(false)
+      // The account has TOTP: BA set no session, so ask for the code first.
+      if (loggedIn.twoFactorRedirect) {
+        setMfaStep(true)
         return
       }
-
+      // Seed the provider with the profile signIn already resolved so
+      // ProtectedRoute sees the session on the first attempt.
       authenticate?.(loggedIn)
-      navigate(destination)
+      navigate(portalPath(loggedIn.role))
     } catch (err) {
       captcha.reset() // single-use token: the next attempt needs a fresh one
-      // An unprovisioned account (valid Supabase session but no local profile)
-      // used to show the raw "needs provision" error and leave the visitor
-      // stuck. Route them to the recovery page instead — the session is kept
-      // alive there, and they can provision without signing up a new account.
-      if (/needs provision/i.test(err.message || '')) {
+      // A verified account with no role row finishes provisioning on its own
+      // page — the session is kept alive there.
+      if (err?.needsProvision || /needs provision/i.test(err.message || '')) {
         navigate('/complete-registration', { replace: true })
         return
       }
@@ -105,26 +73,16 @@ function Login() {
   }
 
   async function handleVerifyMfa() {
-    if (!mfaFactorId || mfaCode.length !== 6) return
+    if (mfaCode.length !== 6) return
     setMfaLoading(true)
     setMfaError('')
     try {
-      const challengeRes = await supabase.auth.mfa.challenge({ factorId: mfaFactorId })
-      const challengeData = challengeRes?.data ?? challengeRes
-      const challengeError = challengeRes?.error
-      if (challengeError) throw challengeError
-      const challengeId = challengeData?.id ?? challengeData?.challengeId
-      const verifyRes = await supabase.auth.mfa.verify({
-        factorId: mfaFactorId,
-        challengeId,
-        code: mfaCode,
-      })
-      const verifyError = verifyRes?.error
-      if (verifyError) throw verifyError
-      authenticate?.(pendingUser.current)
-      navigate(afterLoginPath)
+      // BA sets the session cookie on a valid code; the service then resolves
+      // the session user and their profile.
+      const loggedIn = await completeTwoFactor(mfaCode)
+      authenticate?.(loggedIn)
+      navigate(portalPath(loggedIn.role))
     } catch (err) {
-      captcha.reset()
       setMfaError(err?.message || 'Invalid code')
       setMfaCode('')
     } finally {
@@ -133,19 +91,14 @@ function Login() {
   }
 
   async function handleCancelMfa() {
-    try {
-      await supabase.auth.signOut()
-    } catch {
-      /* best-effort */
-    }
-    pendingUser.current = null
-    setMfaFactorId(null)
+    // The half-signed-in session is useless without the code step.
+    await signOut()
+    setMfaStep(false)
     setMfaCode('')
     setMfaError('')
-    setAfterLoginPath('/')
   }
 
-  if (mfaFactorId) {
+  if (mfaStep) {
     return (
       <PublicShell>
         <AuthFrame title="Two-factor authentication" subtitle="Enter the code from your authenticator app.">
@@ -178,6 +131,12 @@ function Login() {
   return (
     <PublicShell>
       <AuthFrame title="Welcome back." subtitle="A new opportunity could be waiting for you.">
+        {location.state?.invited ? (
+          <p className="text-xs leading-6 text-muted-foreground">Your password is set. Sign in to continue.</p>
+        ) : null}
+        {location.state?.reset ? (
+          <p role="status" className="text-xs leading-6 text-muted-foreground">Your password was updated. Sign in with your new password.</p>
+        ) : null}
         <form onSubmit={handleSubmit} className="flex flex-col gap-5">
           <FieldGroup>
             <Field>

@@ -29,6 +29,17 @@ if (process.env.NODE_ENV !== 'production') {
 const baseURL = process.env.BETTER_AUTH_URL
   || (process.env.NODE_ENV !== 'production' ? 'http://localhost:4000' : undefined);
 
+// ADR-056 decision 6: the captcha plugin is registered only when its secret is
+// configured. An always-registered plugin with no secret fails every sign-in,
+// sign-up, and reset with MISSING_RESPONSE; a dev-only bypass is the lesser
+// evil. Production still requires the secret at cutover (Task 12).
+const plugins = [admin(), twoFactor()];
+if (process.env.TURNSTILE_SECRET_KEY) {
+  plugins.push(captcha({ provider: 'cloudflare-turnstile', secretKey: process.env.TURNSTILE_SECRET_KEY }));
+} else if (process.env.NODE_ENV !== 'production') {
+  logger.warn('TURNSTILE_SECRET_KEY unset — captcha check disabled (client widget still follows VITE_TURNSTILE_SITE_KEY)');
+}
+
 export const auth = betterAuth({
   baseURL,
   secret: process.env.BETTER_AUTH_SECRET,
@@ -91,11 +102,7 @@ export const auth = betterAuth({
       if (issue) throw new APIError('BAD_REQUEST', { message: issue });
     }),
   },
-  plugins: [
-    admin(),
-    twoFactor(),
-    captcha({ provider: 'cloudflare-turnstile', secretKey: process.env.TURNSTILE_SECRET_KEY }),
-  ],
+  plugins,
   rateLimit: { enabled: true },
   // BA's default logger writes colorized free-text lines to the console, which
   // breaks the API's one-JSON-line-per-event contract. Route its events through

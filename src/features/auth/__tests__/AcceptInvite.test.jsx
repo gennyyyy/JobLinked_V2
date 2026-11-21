@@ -1,77 +1,33 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect } from 'vitest'
 import { render, screen } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
-import { MemoryRouter } from 'react-router-dom'
-
-vi.mock('../../../shared/lib/supabase', () => ({
-  supabase: { auth: { getSession: vi.fn(), updateUser: vi.fn() } },
-}))
-
-vi.mock('../../../shared/services/auth', () => ({
-  getProfile: vi.fn(),
-  provision: vi.fn(),
-}))
-
-vi.mock('../../../shared/hooks/useAuth', () => ({
-  default: () => ({ refreshUser: vi.fn() }),
-}))
-
-import { supabase } from '../../../shared/lib/supabase'
-import { getProfile, provision } from '../../../shared/services/auth'
+import { MemoryRouter, Routes, Route } from 'react-router-dom'
 import AcceptInvite from '../AcceptInvite'
 
-const session = {
-  user: {
-    id: 'u1',
-    email: 'n@x.com',
-    user_metadata: { role: 'employer', first_name: 'A', last_name: 'B', company_name: 'Acme' },
-  },
-}
-
-function renderPage() {
+function renderPage(entry = '/accept-invite') {
   return render(
-    <MemoryRouter>
-      <AcceptInvite />
+    <MemoryRouter initialEntries={[entry]}>
+      <Routes>
+        <Route path="/accept-invite" element={<AcceptInvite />} />
+        <Route path="/reset-password" element={<div>reset password page</div>} />
+        <Route path="/login" element={<div>login page</div>} />
+      </Routes>
     </MemoryRouter>
   )
 }
 
-beforeEach(() => {
-  vi.clearAllMocks()
-  supabase.auth.getSession.mockResolvedValue({ data: { session }, error: null })
-  supabase.auth.updateUser.mockResolvedValue({ error: null })
-  getProfile.mockResolvedValue(null)
-  provision.mockResolvedValue({ role: 'employer' })
-})
-
 describe('AcceptInvite', () => {
-  it('provisions a missing profile, shows the form, and submits the new password', async () => {
-    renderPage()
+  // ADR-056: an invite is a Better Auth reset link, so the invitation's
+  // credential is the reset token. The screen forwards it, never consumes it.
+  it('forwards an invite token to the reset-password screen', async () => {
+    renderPage('/accept-invite?token=tok_invite')
 
-    await userEvent.type(await screen.findByLabelText('New Password'), 'password123')
-    await userEvent.type(screen.getByLabelText('Confirm Password'), 'password123')
-    await userEvent.click(screen.getByRole('button', { name: /save/i }))
-
-    expect(provision).toHaveBeenCalledWith(
-      expect.objectContaining({ role: 'employer', email: 'n@x.com' })
-    )
-    expect(supabase.auth.updateUser).toHaveBeenCalledWith({ password: 'password123' })
+    expect(await screen.findByText('reset password page')).toBeInTheDocument()
   })
 
-  it('does not provision when the profile already exists', async () => {
-    getProfile.mockResolvedValue({ role: 'employer' })
-    renderPage()
+  it('keeps the invalid-link notice when the link has no token', () => {
+    renderPage('/accept-invite')
 
-    expect(await screen.findByLabelText('New Password')).toBeInTheDocument()
-    expect(screen.getByLabelText('Confirm Password')).toBeInTheDocument()
-    expect(provision).not.toHaveBeenCalled()
-  })
-
-  it('shows an error when there is no session', async () => {
-    supabase.auth.getSession.mockResolvedValue({ data: { session: null }, error: null })
-    renderPage()
-
-    expect(await screen.findByText('This invite link is invalid or expired.')).toBeInTheDocument()
-    expect(provision).not.toHaveBeenCalled()
+    expect(screen.getByText('This invite link is invalid or expired.')).toBeInTheDocument()
+    expect(screen.getByText('Go to sign in')).toBeInTheDocument()
   })
 })

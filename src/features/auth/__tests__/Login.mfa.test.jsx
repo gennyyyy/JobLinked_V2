@@ -6,9 +6,17 @@ import Login from '../Login'
 
 vi.mock('../../../shared/hooks/useAuth', () => ({ default: vi.fn() }))
 
-vi.mock('../../../shared/services/auth', () => ({
-  signIn: vi.fn(),
-  listMfaFactors: vi.fn(),
+vi.mock('../../../shared/lib/api', () => ({
+  api: { get: vi.fn(), post: vi.fn(), patch: vi.fn(), del: vi.fn(), blob: vi.fn() },
+  clearApiCache: vi.fn(),
+  setApiIdentity: vi.fn(),
+}))
+vi.mock('../../../shared/lib/auth-client', async () => {
+  const { authClientMock } = await import('../../../test/authClientMock')
+  return { authClient: authClientMock }
+})
+vi.mock('../../../shared/lib/supabase', () => ({
+  supabase: { auth: { getUser: vi.fn(), updateUser: vi.fn() } },
 }))
 
 const captcha = vi.hoisted(() => ({ siteKey: '' }))
@@ -24,34 +32,19 @@ vi.mock('../../../shared/components/Turnstile', async () => {
   return { default: ({ onToken }) => createElement('button', { type: 'button', onClick: () => onToken('captcha-token') }, 'solve captcha') }
 })
 
-vi.mock('../../../shared/lib/supabase', () => ({
-  supabase: {
-    auth: {
-      mfa: {
-        getAuthenticatorAssuranceLevel: vi.fn(),
-        challenge: vi.fn(),
-        verify: vi.fn(),
-      },
-      signOut: vi.fn(),
-    },
-  },
-}))
-
 import useAuth from '../../../shared/hooks/useAuth'
-import { signIn, listMfaFactors } from '../../../shared/services/auth'
-import { supabase } from '../../../shared/lib/supabase'
+import { api } from '../../../shared/lib/api'
+import { authClientMock, resetAuthClient } from '../../../test/authClientMock'
 
 beforeEach(() => {
   captcha.siteKey = ''
   vi.clearAllMocks()
+  resetAuthClient()
   const authenticate = vi.fn()
   useAuth.mockReturnValue({ user: null, authenticate })
-  signIn.mockResolvedValue({ id: '1', role: 'employer' })
-  listMfaFactors.mockResolvedValue([{ id: 'factor-1', status: 'verified' }])
-  supabase.auth.mfa.getAuthenticatorAssuranceLevel.mockResolvedValue({ data: { currentLevel: 'aal1', nextLevel: 'aal2' } })
-  supabase.auth.mfa.challenge.mockResolvedValue({ data: { id: 'challenge-1' }, error: null })
-  supabase.auth.mfa.verify.mockResolvedValue({ data: {}, error: null })
-  supabase.auth.signOut.mockResolvedValue({})
+  authClientMock.signIn.email.mockResolvedValue({ data: { user: { id: 'u1' } }, error: null })
+  authClientMock.getSession.mockResolvedValue({ data: { user: { id: 'u1', email: 'good@test.com' } } })
+  api.get.mockResolvedValue({ id: 'u1', role: 'employer' })
 })
 
 function renderLogin() {
@@ -66,7 +59,11 @@ function renderLogin() {
 }
 
 describe('Login MFA', () => {
-  it('shows the code step when a verified factor exists and does not navigate', async () => {
+  it('shows the code step when BA answers twoFactorRedirect and does not navigate', async () => {
+    authClientMock.signIn.email.mockResolvedValue({
+      data: { twoFactorRedirect: true, twoFactorMethods: ['totp'] },
+      error: null,
+    })
     renderLogin()
     await userEvent.type(screen.getByLabelText(/email/i), 'good@test.com')
     await userEvent.type(screen.getByLabelText(/password/i), 'secret123')
@@ -74,9 +71,18 @@ describe('Login MFA', () => {
 
     expect(await screen.findByLabelText(/verification code/i)).toBeInTheDocument()
     expect(screen.queryByText('employer home')).not.toBeInTheDocument()
+    // No session exists until the code step, so no profile read either.
+    expect(api.get).not.toHaveBeenCalled()
   })
 
-  it('calls verify with the code and navigates on success', async () => {
+  it('verifies the code, resolves the profile, and navigates to the portal', async () => {
+    authClientMock.signIn.email.mockResolvedValue({
+      data: { twoFactorRedirect: true, twoFactorMethods: ['totp'] },
+      error: null,
+    })
+    authClientMock.twoFactor.verifyTotp.mockResolvedValue({ data: { token: 'session' }, error: null })
+    const authenticate = vi.fn()
+    useAuth.mockReturnValue({ user: null, authenticate })
     renderLogin()
     await userEvent.type(screen.getByLabelText(/email/i), 'good@test.com')
     await userEvent.type(screen.getByLabelText(/password/i), 'secret123')
@@ -86,16 +92,22 @@ describe('Login MFA', () => {
     await userEvent.type(input, '123456')
     await userEvent.click(screen.getByRole('button', { name: /verify/i }))
 
-    await waitFor(() => expect(supabase.auth.mfa.verify).toHaveBeenCalledWith(expect.objectContaining({
-      factorId: 'factor-1',
-      challengeId: 'challenge-1',
-      code: '123456',
-    })))
+    await waitFor(() => expect(authClientMock.twoFactor.verifyTotp).toHaveBeenCalledWith({ code: '123456' }))
+    await waitFor(() => expect(authenticate).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'u1', role: 'employer' }),
+    ))
     expect(await screen.findByText('employer home')).toBeInTheDocument()
   })
 
   it('shows an error and stays on the code step for an invalid code', async () => {
-    supabase.auth.mfa.verify.mockResolvedValue({ data: null, error: new Error('Invalid code') })
+    authClientMock.signIn.email.mockResolvedValue({
+      data: { twoFactorRedirect: true, twoFactorMethods: ['totp'] },
+      error: null,
+    })
+    authClientMock.twoFactor.verifyTotp.mockResolvedValue({
+      data: null,
+      error: { code: 'INVALID_CODE', message: 'Invalid code', status: 401 },
+    })
     renderLogin()
     await userEvent.type(screen.getByLabelText(/email/i), 'good@test.com')
     await userEvent.type(screen.getByLabelText(/password/i), 'secret123')
@@ -107,9 +119,14 @@ describe('Login MFA', () => {
 
     expect(await screen.findByRole('alert')).toHaveTextContent(/invalid code/i)
     expect(screen.getByLabelText(/verification code/i)).toBeInTheDocument()
+    expect(screen.queryByText('employer home')).not.toBeInTheDocument()
   })
 
   it('signs out and returns to the password step on cancel', async () => {
+    authClientMock.signIn.email.mockResolvedValue({
+      data: { twoFactorRedirect: true, twoFactorMethods: ['totp'] },
+      error: null,
+    })
     renderLogin()
     await userEvent.type(screen.getByLabelText(/email/i), 'good@test.com')
     await userEvent.type(screen.getByLabelText(/password/i), 'secret123')
@@ -118,7 +135,7 @@ describe('Login MFA', () => {
     await screen.findByLabelText(/verification code/i)
     await userEvent.click(screen.getByRole('button', { name: /cancel/i }))
 
-    await waitFor(() => expect(supabase.auth.signOut).toHaveBeenCalled())
+    await waitFor(() => expect(authClientMock.signOut).toHaveBeenCalled())
     expect(screen.getByLabelText(/email/i)).toBeInTheDocument()
   })
 })

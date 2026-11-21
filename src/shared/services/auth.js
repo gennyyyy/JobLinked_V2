@@ -1,29 +1,53 @@
 import { supabase } from '../lib/supabase';
-import { api, clearApiCache } from '../lib/api';
+import { authClient } from '../lib/auth-client';
+import { api, clearApiCache, setApiIdentity } from '../lib/api';
 // True when the token is valid but no profile row exists yet (contract says
 // GET /api/auth/me 404s; the built middleware answers 403 'Account not
 // provisioned' — accept both).
 const needsProvision = (e) => e?.status === 404 || (e?.status === 403 && /not provisioned/i.test(e?.message || ''));
 
-// Supabase surfaces an unreachable/deleted project as a bare "Failed to fetch".
-// Turn that into something the person at the keyboard can act on.
+// Sign-in reached a valid session with no role row. Never auto-provision from
+// client metadata (ADR-056 decision 8): the server merges admin_invites /
+// pending_signups on the provisioning call instead.
+const provisionRequired = () => Object.assign(new Error('needs provision'), { needsProvision: true });
+
+// BA's captcha plugin reads the token from this header (ADR-056 decision 6).
+// Omitted entirely when no widget is configured, so the payload is unchanged.
+const captchaFetch = (token) => (token
+  ? { fetchOptions: { headers: { 'x-captcha-response': token } } }
+  : {});
+
+// One friendly error surface for Better Auth failures. BA client errors carry
+// `{ code, message, status }`; a network failure throws a bare TypeError.
 function friendlyAuthError(error) {
   if (!error) return error;
   const message = String(error.message || '');
-  const network = error.name === 'AuthRetryableFetchError'
-    || error.name === 'TypeError'
+  const network = error.name === 'TypeError'
+    || error.name === 'AuthRetryableFetchError'
     || /failed to fetch|networkerror|load failed|fetch failed/i.test(message);
   if (network) {
-    const url = import.meta.env.VITE_SUPABASE_URL || 'the configured Supabase URL';
     const err = new Error('We can\u2019t sign you in right now. Please check your connection and try again.');
-    err.detail = `Cannot reach the authentication service at ${url}. Check VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY in .env.local and confirm the Supabase project is active.`;
+    err.detail = `Cannot reach the authentication service at ${import.meta.env.VITE_API_URL || 'the configured API URL'}.`;
     return err;
   }
-  // Supabase rejects a missing, replayed, or expired captcha token with a
-  // message containing "captcha". Tokens are single-use, so the honest advice
-  // is to solve the challenge again — the caller resets the widget for that.
-  if (/captcha/i.test(message)) {
+  const code = String(error.code || '');
+  // Tokens are single-use: the honest advice is to solve the challenge again.
+  if (code === 'MISSING_RESPONSE' || /captcha/i.test(`${code} ${message}`)) {
     return new Error('Verification failed. Please complete the challenge again.');
+  }
+  if (code === 'EMAIL_NOT_VERIFIED') {
+    return new Error('Please verify your email address before signing in. Check your inbox for the verification link.');
+  }
+  if (code === 'INVALID_TOKEN') {
+    return new Error('This link is invalid or expired. Request a new one.');
+  }
+  if (code === 'INVALID_CODE' || code === 'INVALID_BACKUP_CODE') {
+    return new Error('Invalid code. Please try again.');
+  }
+  // Never reveal whether an email exists: the sign-in answer stays generic.
+  if (code === 'INVALID_EMAIL_OR_PASSWORD') return new Error('Invalid email or password');
+  if (error.status === 429 || code === 'TOO_MANY_REQUESTS' || /too many|rate.?limit/i.test(message)) {
+    return new Error('Too many attempts. Please wait a moment and try again.');
   }
   return error;
 }
@@ -95,25 +119,50 @@ export async function updateProfile(userId, patch) {
   }
 }
 
+// getSession (not the sign-in response) is the reliable user source: the
+// cookie is set by then, and the 2FA path only exists on the session.
+async function sessionUser() {
+  const { data } = await authClient.getSession().catch(() => ({ data: null }));
+  return data?.user || null;
+}
+
+// The GET cache is identity-keyed, so the identity must move BEFORE the first
+// authenticated read or a previous account's profile could be served.
+async function profileFor(user) {
+  setApiIdentity(user.id);
+  const profile = await getProfile(user.id);
+  if (!profile) throw provisionRequired();
+  if (profile.status === 'suspended') throw new Error('Invalid email or password');
+  return { ...user, ...profile };
+}
+
 export async function signIn(email, password, captchaToken) {
-  const { data, error } = await supabase.auth.signInWithPassword({
-    email,
-    password,
-    // Omit the option entirely when the widget is unconfigured, so behavior
-    // and payloads are byte-identical to before the captcha existed.
-    ...(captchaToken ? { options: { captchaToken } } : {}),
-  });
-  if (error) throw friendlyAuthError(error);
-  let profile = data.user ? await getProfile(data.user.id) : null;
-  if (!profile) {
-    // First login after email-confirm: provision from the signup metadata, then retry.
-    const meta = data.user?.user_metadata || {};
-    if (!meta.role) throw new Error('needs provision');
-    await provision({ ...meta, email: data.user.email });
-    profile = await getProfile(data.user.id);
+  let result;
+  try {
+    result = await authClient.signIn.email({ email, password, ...captchaFetch(captchaToken) });
+  } catch (error) {
+    throw friendlyAuthError(error);
   }
-  if (!profile || profile.status === 'suspended') throw new Error('Invalid email or password');
-  return { ...data.user, ...profile };
+  if (result.error) throw friendlyAuthError(result.error);
+  // TOTP accounts get no session until the code step completes.
+  if (result.data?.twoFactorRedirect) return { twoFactorRedirect: true };
+  const user = await sessionUser();
+  if (!user) throw new Error('We couldn\u2019t finish signing you in. Please try again.');
+  return profileFor(user);
+}
+
+// Second step of the login challenge: BA sets the session cookie here.
+export async function completeTwoFactor(code) {
+  let result;
+  try {
+    result = await authClient.twoFactor.verifyTotp({ code });
+  } catch (error) {
+    throw friendlyAuthError(error);
+  }
+  if (result.error) throw friendlyAuthError(result.error);
+  const user = (await sessionUser()) || result.data?.user;
+  if (!user) throw new Error('We couldn\u2019t finish signing you in. Please try again.');
+  return profileFor(user);
 }
 
 const ALLOWED_SIGNUP_ROLES = ['job-seeker', 'employer'];
@@ -158,36 +207,50 @@ export async function signUp({ email, password, role, firstName, middleName = ''
     representative_email: extra.representativeEmail || null,
     representative_position: extra.representativePosition || null,
   };
-  const { data, error } = await supabase.auth.signUp({
-    email,
-    password,
-    options: {
-      data: meta,
-      emailRedirectTo: `${window.location.origin}/auth/callback`,
-      ...(captchaToken ? { captchaToken } : {}),
-    },
-  });
-  if (error) throw friendlyAuthError(error);
-  if (!data.user) throw new Error('Registration failed — please try again');
+  let result;
+  try {
+    result = await authClient.signUp.email({
+      email,
+      password,
+      name: fullName,
+      callbackURL: `${window.location.origin}/auth/callback`,
+      ...captchaFetch(captchaToken),
+    });
+  } catch (error) {
+    throw friendlyAuthError(error);
+  }
+  if (result.error) throw friendlyAuthError(result.error);
+  const user = result.data?.user;
+  if (!user?.id) throw new Error('Registration failed \u2014 please try again');
 
-  // Session is null when Supabase requires email confirmation — first login
-  // provisions instead (see signIn). Otherwise provision immediately.
-  if (data.session) await provision({ ...meta, email });
+  // With requireEmailVerification BA returns no session and stores only
+  // name/email. Park the form profile for provision to claim after the address
+  // is verified (ADR-056 decision 8). The account already exists, so a failed
+  // pending write must not fail the registration — the visitor still verifies
+  // and can fill the profile at first sign-in.
+  try {
+    await api.post('auth/pending-signup', { userId: user.id, email, role, ...meta });
+  } catch (error) {
+    console.warn('pending signup profile was not stored', { status: error?.status });
+  }
+
   return {
-    ...data.user,
+    ...user,
     role, first_name: firstName, middle_name: middleName, last_name: lastName,
     suffix, full_name: fullName, email, ...extra,
-    emailConfirmationRequired: !data.session,
+    // requireEmailVerification is fixed in ba.js: sign-up never signs in.
+    emailConfirmationRequired: true,
   };
 }
 
 export async function signOut() {
-  // Best-effort: a revoke failure on a dead token (e.g. server 403) must not
-  // prevent local session clear — the caller always ends up logged out.
+  // Best-effort: a revoke failure must not prevent the local clear — the
+  // caller always ends up logged out.
   clearApiCache();
+  setApiIdentity('anon');
   try {
-    await supabase.auth.signOut();
-  } catch { /* revoke failed; local session still clears via SIGNED_OUT */ }
+    await authClient.signOut();
+  } catch { /* revoke failed; the local session still clears */ }
 }
 
 export async function changePassword(currentPassword, newPassword, captchaToken) {
@@ -224,11 +287,38 @@ export async function changeEmail(newEmail, currentPassword, captchaToken) {
 }
 
 export async function resetPassword(email, captchaToken) {
-  const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: `${window.location.origin}/reset-password`,
-    ...(captchaToken ? { captchaToken } : {}),
-  });
-  if (error) throw friendlyAuthError(error);
+  let result;
+  try {
+    result = await authClient.requestPasswordReset({
+      email,
+      redirectTo: `${window.location.origin}/reset-password`,
+      ...captchaFetch(captchaToken),
+    });
+  } catch (error) {
+    throw friendlyAuthError(error);
+  }
+  if (result.error) throw friendlyAuthError(result.error);
+}
+
+// The emailed link lands on /reset-password?token=… — the token is the credential.
+export async function resetPasswordWithToken(newPassword, token) {
+  let result;
+  try {
+    result = await authClient.resetPassword({ newPassword, token });
+  } catch (error) {
+    throw friendlyAuthError(error);
+  }
+  if (result.error) throw friendlyAuthError(result.error);
+}
+
+export async function verifyEmailToken(token) {
+  let result;
+  try {
+    result = await authClient.verifyEmail({ query: { token } });
+  } catch (error) {
+    throw friendlyAuthError(error);
+  }
+  if (result.error) throw friendlyAuthError(result.error);
 }
 
 export async function listMfaFactors() {

@@ -2,8 +2,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { EMPLOYMENT_STATUSES } from "@/shared/constants";
 import { normalizePhone, withPrefix } from "@/shared/utils/phone";
+import { PASSWORD_HINT } from "@/shared/utils/password";
 import ResumePicker from "@/shared/components/ResumePicker";
 import FormSelect from "@/shared/components/FormSelect";
+import PasswordRequirements from "@/shared/components/PasswordRequirements";
 
 function JobSeekerPersonalStep({ form, errors, set, autofillStatus, autofillTouched = [], handleResumeChange, inputClass, labelClass, reqMark }) {
   return (
@@ -75,19 +77,6 @@ function JobSeekerPersonalStep({ form, errors, set, autofillStatus, autofillTouc
               </div>
             </div>
 
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div data-invalid={!!errors.password}>
-                <Label htmlFor="password" className={labelClass}>Password{reqMark}</Label>
-                <Input id="password" name="password" type="password" placeholder="Min. 8 characters" value={form.password} onChange={(e) => set("password", e.target.value)} className={inputClass} />
-                {errors.password && <p className="text-danger text-xs mt-1">{errors.password}</p>}
-              </div>
-              <div data-invalid={!!errors.confirmPassword}>
-                <Label htmlFor="confirmPassword" className={labelClass}>Confirm Password{reqMark}</Label>
-                <Input id="confirmPassword" name="confirmPassword" type="password" placeholder="Re-enter password" value={form.confirmPassword} onChange={(e) => set("confirmPassword", e.target.value)} className={inputClass} />
-                {errors.confirmPassword && <p className="text-danger text-xs mt-1">{errors.confirmPassword}</p>}
-              </div>
-            </div>
-
             <div data-invalid={!!errors.employmentStatus}>
               <Label htmlFor="employmentStatus" className={labelClass}>Employment Status{reqMark}</Label>
               <FormSelect id="employmentStatus" name="employmentStatus" value={form.employmentStatus} onChange={(e) => set("employmentStatus", e.target.value)} className={inputClass}>
@@ -95,6 +84,20 @@ function JobSeekerPersonalStep({ form, errors, set, autofillStatus, autofillTouc
                 {EMPLOYMENT_STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
               </FormSelect>
               {errors.employmentStatus && <p className="text-danger text-xs mt-1">{errors.employmentStatus}</p>}
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div data-invalid={!!errors.password}>
+                <Label htmlFor="password" className={labelClass}>Password{reqMark}</Label>
+                <Input id="password" name="password" type="password" placeholder={PASSWORD_HINT} value={form.password} onChange={(e) => set("password", e.target.value)} className={inputClass} />
+                <PasswordRequirements value={form.password} />
+                {errors.password && <p className="text-danger text-xs mt-1">{errors.password}</p>}
+              </div>
+              <div data-invalid={!!errors.confirmPassword}>
+                <Label htmlFor="confirmPassword" className={labelClass}>Confirm Password{reqMark}</Label>
+                <Input id="confirmPassword" name="confirmPassword" type="password" placeholder="Re-enter password" value={form.confirmPassword} onChange={(e) => set("confirmPassword", e.target.value)} className={inputClass} />
+                {errors.confirmPassword && <p className="text-danger text-xs mt-1">{errors.confirmPassword}</p>}
+              </div>
             </div>
               </div>
             </section>

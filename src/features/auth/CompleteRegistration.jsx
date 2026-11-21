@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Navigate, useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { FieldGroup, Field, FieldLabel } from '@/components/ui/field';
@@ -12,10 +12,12 @@ import PublicShell from '@/shared/components/PublicShell';
 import AuthFrame from './AuthFrame';
 import FormSelect from '@/shared/components/FormSelect';
 
-// Cold-recovery page for unprovisioned accounts: a valid Supabase session
-// exists but no local profile row has been created yet. The visitor picks a
-// role, fills the minimum fields the provision endpoint requires, and the
-// session is kept alive — no sign-out, no new account.
+// Cold-recovery page for unprovisioned accounts: a valid session exists but no
+// local profile row has been created yet. Provisioning is attempted once on
+// mount with an empty body — the server merges admin_invites (admin invite) or
+// pending_signups (self-signup) — and the form is only the fallback for an
+// account with neither (ADR-056 decisions 7/8). The session is kept alive
+// throughout: no sign-out, no new account.
 export default function CompleteRegistration() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -30,6 +32,32 @@ export default function CompleteRegistration() {
   const [companyEmail, setCompanyEmail] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const canAutoProvision = Boolean(needsProvisioning || sessionUser) && !user;
+  const [autoBusy, setAutoBusy] = useState(canAutoProvision);
+  // One attempt per mount, whatever React's effect double-invoke does.
+  const attempted = useRef(false);
+
+  useEffect(() => {
+    if (!canAutoProvision || attempted.current) return;
+    attempted.current = true;
+    let active = true;
+    (async () => {
+      try {
+        const result = await provision({});
+        if (!active) return;
+        await refreshUser({ id: sessionUser?.id, email: sessionUser?.email });
+        const homePath = PORTALS.find((p) => p.key === result.role)?.homePath || '/';
+        navigate(homePath, { replace: true });
+      } catch (err) {
+        if (!active) return;
+        // 400 = no pending invite/signup for this account: the form is the
+        // only way to finish. Anything else is surfaced above the form.
+        if (err?.status !== 400) setError(err.message || 'Failed to complete registration');
+        setAutoBusy(false);
+      }
+    })();
+    return () => { active = false; };
+  }, [canAutoProvision, navigate, refreshUser, sessionUser]);
 
   // No session at all → sign-in page.
   if (loading) return <LoadingScreen />;
@@ -41,6 +69,8 @@ export default function CompleteRegistration() {
     const homePath = PORTALS.find((p) => p.key === user.role)?.homePath || '/';
     return <Navigate to={homePath} replace />;
   }
+  // The automatic merge is in flight: never flash the fallback form.
+  if (autoBusy) return <LoadingScreen />;
 
   async function handleSubmit(event) {
     event.preventDefault();

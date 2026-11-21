@@ -3,8 +3,19 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import JobSeekerRegister from '../JobSeekerRegister'
 
-vi.mock('../../../shared/services/auth', () => ({
-  signUp: vi.fn(),
+vi.mock('../../../shared/lib/api', () => ({
+  api: { get: vi.fn(), post: vi.fn(), patch: vi.fn(), del: vi.fn(), blob: vi.fn() },
+  clearApiCache: vi.fn(),
+  setApiIdentity: vi.fn(),
+}))
+// The screen runs the real service against the shared BA client seam; the
+// pending-signup POST is the service's only other side effect.
+vi.mock('../../../shared/lib/auth-client', async () => {
+  const { authClientMock } = await import('../../../test/authClientMock')
+  return { authClient: authClientMock }
+})
+vi.mock('../../../shared/lib/supabase', () => ({
+  supabase: { auth: { getUser: vi.fn(), updateUser: vi.fn() } },
 }))
 
 vi.mock('../../../shared/lib/resumeText', () => ({
@@ -15,9 +26,18 @@ vi.mock('../../../shared/services/reference', () => ({
   getReferenceValues: vi.fn(),
 }))
 
-import { signUp } from '../../../shared/services/auth'
+import { api } from '../../../shared/lib/api'
 import { extractResumeText } from '../../../shared/lib/resumeText'
 import { getReferenceValues } from '../../../shared/services/reference'
+import { authClientMock, resetAuthClient } from '../../../test/authClientMock'
+
+// BA returns the created user; the service then parks the form profile.
+const signedUp = (user = { id: 'user-1' }) => {
+  authClientMock.signUp.email.mockResolvedValue({ data: { token: null, user }, error: null })
+}
+const parked = (i = 0) => api.post.mock.calls[i][1]
+const sentCaptcha = (i = 0) =>
+  authClientMock.signUp.email.mock.calls[i]?.[0]?.fetchOptions?.headers?.['x-captcha-response']
 
 // Mutable site key: '' (the default) keeps every non-captcha test on today's
 // behavior; 'site-key' makes useCaptcha().required true. The widget itself is
@@ -44,6 +64,10 @@ vi.mock('../../../shared/components/Turnstile', async () => {
 })
 
 beforeEach(() => {
+  resetAuthClient()
+  // TermsModal reads the legal notice through the same API layer.
+  api.get.mockResolvedValue(null)
+  api.post.mockResolvedValue({ saved: true })
   captcha.siteKey = ''
   getReferenceValues.mockImplementation(async (category) => (
     category === 'job_field' ? ['Construction', 'Information Technology'] : ['Communication', 'Data Entry', 'Welding']
@@ -86,8 +110,8 @@ function fillRequired() {
   fireEvent.change(screen.getByLabelText(/barangay/i), { target: { value: 'Pulong Buhangin' } })
   fireEvent.change(screen.getByLabelText(/city \/ municipality/i), { target: { value: 'Santa Maria' } })
   fireEvent.change(screen.getByLabelText(/province/i), { target: { value: 'Bulacan' } })
-  fireEvent.change(screen.getByLabelText(/^password/i), { target: { value: 'password123' } })
-  fireEvent.change(screen.getByLabelText(/confirm password/i), { target: { value: 'password123' } })
+  fireEvent.change(screen.getByLabelText(/^password/i, { selector: 'input' }), { target: { value: 'password123!' } })
+  fireEvent.change(screen.getByLabelText(/confirm password/i), { target: { value: 'password123!' } })
   fireEvent.change(screen.getByLabelText(/employment status/i), { target: { value: 'Unemployed' } })
   fireEvent.click(screen.getByRole('button', { name: /view terms/i }))
   fireEvent.click(screen.getByRole('checkbox', { name: /agree to the municipal/i }))
@@ -107,6 +131,13 @@ describe('JobSeekerRegister autofill', () => {
     expect(screen.getByText('Step 2 — Address Information')).toBeInTheDocument()
     expect(screen.getByText('Step 3 — Background & Consent')).toBeInTheDocument()
     expect(screen.getByLabelText(/barangay/i).tagName).toBe('SELECT')
+  })
+
+  it('renders the password requirements checklist under the password field', () => {
+    renderPage()
+    const list = screen.getByRole('list', { name: /password requirements/i })
+    expect(list).toHaveTextContent('At least 8 characters')
+    expect(list).toHaveTextContent('One symbol (e.g. ! @ # $)')
   })
 
   it('fills inputs from a PDF but leaves them editable', async () => {
@@ -145,15 +176,15 @@ describe('JobSeekerRegister autofill', () => {
 
   it('lists a resume skill outside the vocabulary without sending it', async () => {
     extractResumeText.mockResolvedValue(`${SKILLED}, Underwater Basket Weaving`)
-    signUp.mockResolvedValue({ id: 'seeker-1', emailConfirmationRequired: false })
+    signedUp({ id: 'seeker-1' })
     renderPage()
     pickFile()
 
     expect(await screen.findByText(/Unrecognized skills: Underwater Basket Weaving/i)).toBeInTheDocument()
     await screen.findByRole('checkbox', { name: 'Data Entry' })
 
-    fireEvent.change(screen.getByLabelText(/^password/i), { target: { value: 'password123' } })
-    fireEvent.change(screen.getByLabelText(/confirm password/i), { target: { value: 'password123' } })
+    fireEvent.change(screen.getByLabelText(/^password/i, { selector: 'input' }), { target: { value: 'password123!' } })
+    fireEvent.change(screen.getByLabelText(/confirm password/i), { target: { value: 'password123!' } })
     fireEvent.change(screen.getByLabelText(/barangay/i), { target: { value: 'Pulong Buhangin' } })
     fireEvent.change(screen.getByLabelText(/city \/ municipality/i), { target: { value: 'Santa Maria' } })
     fireEvent.change(screen.getByLabelText(/province/i), { target: { value: 'Bulacan' } })
@@ -164,8 +195,8 @@ describe('JobSeekerRegister autofill', () => {
     fireEvent.click(screen.getByRole('checkbox', { name: /resume autofill can make mistakes/i }))
     fireEvent.click(screen.getByRole('button', { name: /create account/i }))
 
-    await waitFor(() => expect(signUp).toHaveBeenCalled())
-    expect(signUp.mock.calls[0][0].extra.skills).toEqual(['Data Entry', 'Communication'])
+    await waitFor(() => expect(api.post).toHaveBeenCalled())
+    expect(parked().skills).toEqual(['Data Entry', 'Communication'])
   })
 
   it('keeps the skills already picked when autofilling', async () => {
@@ -185,7 +216,7 @@ describe('JobSeekerRegister autofill', () => {
   })
 
   it('sends the picked skills and field via signUp extra', async () => {
-    signUp.mockResolvedValue({ id: 'seeker-1', emailConfirmationRequired: false })
+    signedUp({ id: 'seeker-1' })
     renderPage()
     fillRequired()
     fireEvent.click(await screen.findByRole('checkbox', { name: 'Welding' }))
@@ -193,8 +224,8 @@ describe('JobSeekerRegister autofill', () => {
     fireEvent.change(screen.getByLabelText('Field'), { target: { value: 'Information Technology' } })
     fireEvent.click(screen.getByRole('button', { name: /create account/i }))
 
-    await waitFor(() => expect(signUp).toHaveBeenCalled())
-    expect(signUp.mock.calls[0][0].extra).toMatchObject({
+    await waitFor(() => expect(api.post).toHaveBeenCalled())
+    expect(parked()).toMatchObject({
       field: 'Information Technology',
       skills: ['Welding'],
     })
@@ -202,7 +233,7 @@ describe('JobSeekerRegister autofill', () => {
 
   it('prefills the education row from the resume and sends it via signUp extra', async () => {
     extractResumeText.mockResolvedValue(`${SKILLED}\nCORNELIA M. DE JESUS MEMORIAL\nSCHOOL (GRADE 1 - 6)\nBSIT PUP SANTA MARIA (2023 - Present)`)
-    signUp.mockResolvedValue({ id: 'seeker-1', emailConfirmationRequired: false })
+    signedUp({ id: 'seeker-1' })
     renderPage()
     pickFile()
 
@@ -211,8 +242,8 @@ describe('JobSeekerRegister autofill', () => {
     expect(screen.getByPlaceholderText('School name')).toHaveValue('PUP Santa Maria')
     expect(screen.getByPlaceholderText('Course / field')).toHaveValue('BSIT')
 
-    fireEvent.change(screen.getByLabelText(/^password/i), { target: { value: 'password123' } })
-    fireEvent.change(screen.getByLabelText(/confirm password/i), { target: { value: 'password123' } })
+    fireEvent.change(screen.getByLabelText(/^password/i, { selector: 'input' }), { target: { value: 'password123!' } })
+    fireEvent.change(screen.getByLabelText(/confirm password/i), { target: { value: 'password123!' } })
     fireEvent.change(screen.getByLabelText(/barangay/i), { target: { value: 'Pulong Buhangin' } })
     fireEvent.change(screen.getByLabelText(/city \/ municipality/i), { target: { value: 'Santa Maria' } })
     fireEvent.change(screen.getByLabelText(/province/i), { target: { value: 'Bulacan' } })
@@ -223,11 +254,11 @@ describe('JobSeekerRegister autofill', () => {
     fireEvent.click(screen.getByRole('checkbox', { name: /resume autofill can make mistakes/i }))
     fireEvent.click(screen.getByRole('button', { name: /create account/i }))
 
-    await waitFor(() => expect(signUp).toHaveBeenCalled())
-    expect(signUp.mock.calls[0][0].extra).toMatchObject({
-      education: expect.objectContaining({ level: 'College', school: 'PUP Santa Maria', field: 'BSIT' }),
+    await waitFor(() => expect(api.post).toHaveBeenCalled())
+    expect(parked()).toMatchObject({
+      education: expect.objectContaining({ level: 'college', school: 'pup santa maria', field: 'bsit' }),
     })
-    await waitFor(() => expect(screen.getByText(/registration complete/i)).toBeInTheDocument())
+    await waitFor(() => expect(screen.getByText(/check your email/i)).toBeInTheDocument())
   })
 
   it('renders inert education history placeholders matching Profile', () => {
@@ -250,7 +281,7 @@ describe('JobSeekerRegister autofill', () => {
 
   it('submits education placeholders via signUp extra', async () => {
     extractResumeText.mockResolvedValue(SKILLED)
-    signUp.mockResolvedValue({ id: 'seeker-1', emailConfirmationRequired: false })
+    signedUp({ id: 'seeker-1' })
     renderPage()
     pickFile()
     await waitFor(() => expect(screen.getByText('Data Entry')).toBeInTheDocument())
@@ -259,8 +290,8 @@ describe('JobSeekerRegister autofill', () => {
     fireEvent.change(screen.getByPlaceholderText('School name'), { target: { value: 'Bulacan State' } })
     fireEvent.change(screen.getByPlaceholderText('Course / field'), { target: { value: 'IT' } })
     fireEvent.change(screen.getByPlaceholderText('Year'), { target: { value: '2020' } })
-    fireEvent.change(screen.getByLabelText(/^password/i), { target: { value: 'password123' } })
-    fireEvent.change(screen.getByLabelText(/confirm password/i), { target: { value: 'password123' } })
+    fireEvent.change(screen.getByLabelText(/^password/i, { selector: 'input' }), { target: { value: 'password123!' } })
+    fireEvent.change(screen.getByLabelText(/confirm password/i), { target: { value: 'password123!' } })
     fireEvent.change(screen.getByLabelText(/barangay/i), { target: { value: 'Pulong Buhangin' } })
     fireEvent.change(screen.getByLabelText(/city \/ municipality/i), { target: { value: 'Santa Maria' } })
     fireEvent.change(screen.getByLabelText(/province/i), { target: { value: 'Bulacan' } })
@@ -271,26 +302,26 @@ describe('JobSeekerRegister autofill', () => {
     fireEvent.click(screen.getByRole('checkbox', { name: /resume autofill can make mistakes/i }))
     fireEvent.click(screen.getByRole('button', { name: /create account/i }))
 
-    await waitFor(() => expect(signUp).toHaveBeenCalled())
-    expect(signUp.mock.calls[0][0].extra).toMatchObject({
-      education: expect.objectContaining({ level: 'College', school: 'Bulacan State', field: 'IT', end_year: 2020 }),
+    await waitFor(() => expect(api.post).toHaveBeenCalled())
+    expect(parked()).toMatchObject({
+      education: expect.objectContaining({ level: 'college', school: 'bulacan state', field: 'it', end_year: 2020 }),
     })
-    await waitFor(() => expect(screen.getByText(/registration complete/i)).toBeInTheDocument())
+    await waitFor(() => expect(screen.getByText(/check your email/i)).toBeInTheDocument())
   })
 
   it('persists Student employment status via signUp extra', async () => {
-    signUp.mockResolvedValue({ id: 'seeker-1', emailConfirmationRequired: false })
+    signedUp({ id: 'seeker-1' })
     renderPage()
     fillRequired()
     fireEvent.change(screen.getByLabelText(/employment status/i), { target: { value: 'Student' } })
     fireEvent.click(screen.getByRole('button', { name: /create account/i }))
 
-    await waitFor(() => expect(signUp).toHaveBeenCalled())
-    expect(signUp.mock.calls[0][0].extra).toMatchObject({ employmentStatus: 'Student' })
+    await waitFor(() => expect(api.post).toHaveBeenCalled())
+    expect(parked()).toMatchObject({ employment_status: 'Student' })
   })
 
   it('skips year validation when currently studying and posts end_year null', async () => {
-    signUp.mockResolvedValue({ id: 'seeker-1', emailConfirmationRequired: false })
+    signedUp({ id: 'seeker-1' })
     renderPage()
     fillRequired()
     fireEvent.change(screen.getByLabelText(/education level/i), { target: { value: 'College' } })
@@ -299,14 +330,14 @@ describe('JobSeekerRegister autofill', () => {
     expect(screen.getByPlaceholderText('Year')).toBeDisabled()
     fireEvent.click(screen.getByRole('button', { name: /create account/i }))
 
-    await waitFor(() => expect(signUp).toHaveBeenCalled())
-    expect(signUp.mock.calls[0][0].extra).toMatchObject({
-      education: expect.objectContaining({ level: 'College', school: 'PUP Santa Maria', end_year: null }),
+    await waitFor(() => expect(api.post).toHaveBeenCalled())
+    expect(parked()).toMatchObject({
+      education: expect.objectContaining({ level: 'college', school: 'pup santa maria', end_year: null }),
     })
   })
 
   it('requires a 4-digit year when not currently studying', async () => {
-    signUp.mockResolvedValue({ id: 'seeker-1', emailConfirmationRequired: false })
+    signedUp({ id: 'seeker-1' })
     renderPage()
     fillRequired()
     fireEvent.change(screen.getByLabelText(/education level/i), { target: { value: 'College' } })
@@ -314,7 +345,7 @@ describe('JobSeekerRegister autofill', () => {
     fireEvent.click(screen.getByRole('button', { name: /create account/i }))
 
     await waitFor(() => expect(screen.getByText(/graduation year must be a 4-digit year/i)).toBeInTheDocument())
-    expect(signUp).not.toHaveBeenCalled()
+    expect(authClientMock.signUp.email).not.toHaveBeenCalled()
   })
 
   it('blocks submit when accuracy confirmation is unchecked', async () => {
@@ -324,49 +355,49 @@ describe('JobSeekerRegister autofill', () => {
     fireEvent.click(screen.getByRole('button', { name: /create account/i }))
 
     await waitFor(() => expect(screen.getByText(/please confirm your information is true and correct/i)).toBeInTheDocument())
-    expect(signUp).not.toHaveBeenCalled()
+    expect(authClientMock.signUp.email).not.toHaveBeenCalled()
   })
 
   it('submits when both agree and accuracy confirmation are checked', async () => {
-    signUp.mockResolvedValue({ id: 'seeker-1', emailConfirmationRequired: false })
+    signedUp({ id: 'seeker-1' })
     renderPage()
     fillRequired()
     fireEvent.click(screen.getByRole('button', { name: /create account/i }))
 
-    await waitFor(() => expect(signUp).toHaveBeenCalled())
+    await waitFor(() => expect(api.post).toHaveBeenCalled())
   })
 
   it('submits a full Santa Maria address via signUp extra', async () => {
-    signUp.mockResolvedValue({ id: 'seeker-1', emailConfirmationRequired: false })
+    signedUp({ id: 'seeker-1' })
     renderPage()
     fillRequired()
     fireEvent.change(screen.getByLabelText(/postal/i), { target: { value: '3022' } })
     fireEvent.click(screen.getByRole('button', { name: /create account/i }))
 
-    await waitFor(() => expect(signUp).toHaveBeenCalled())
-    expect(signUp.mock.calls[0][0].extra).toMatchObject({
-      streetAddress: 'Norzagaray-Santa Maria Road',
-      barangayDistrict: 'Pulong Buhangin',
-      cityMunicipality: 'Santa Maria',
-      provinceState: 'Bulacan',
-      postalCode: '3022',
-      country: 'Philippines',
+    await waitFor(() => expect(api.post).toHaveBeenCalled())
+    expect(parked()).toMatchObject({
+      street_address: 'norzagaray-santa maria road',
+      barangay_district: 'pulong buhangin',
+      city_municipality: 'santa maria',
+      province_state: 'bulacan',
+      postal_code: '3022',
+      country: 'philippines',
     })
   })
 
   it('submits with blank barangay and postal', async () => {
-    signUp.mockResolvedValue({ id: 'seeker-1', emailConfirmationRequired: false })
+    signedUp({ id: 'seeker-1' })
     renderPage()
     fillRequired()
     fireEvent.change(screen.getByLabelText(/barangay/i), { target: { value: '' } })
     fireEvent.click(screen.getByRole('button', { name: /create account/i }))
 
-    await waitFor(() => expect(signUp).toHaveBeenCalled())
-    expect(signUp.mock.calls[0][0].extra).toMatchObject({
-      barangayDistrict: '',
-      cityMunicipality: 'Santa Maria',
-      provinceState: 'Bulacan',
-      postalCode: '',
+    await waitFor(() => expect(api.post).toHaveBeenCalled())
+    expect(parked()).toMatchObject({
+      barangay_district: null,
+      city_municipality: 'santa maria',
+      province_state: 'bulacan',
+      postal_code: null,
     })
   })
 
@@ -377,7 +408,7 @@ describe('JobSeekerRegister autofill', () => {
     fireEvent.click(screen.getByRole('button', { name: /create account/i }))
 
     await waitFor(() => expect(screen.getByText(/postal code must be 4 digits/i)).toBeInTheDocument())
-    expect(signUp).not.toHaveBeenCalled()
+    expect(authClientMock.signUp.email).not.toHaveBeenCalled()
   })
 })
 
@@ -393,37 +424,40 @@ describe('JobSeekerRegister captcha', () => {
     fireEvent.click(screen.getByRole('button', { name: /create account/i }))
 
     expect(await screen.findByText('Please complete the verification challenge.')).toBeInTheDocument()
-    expect(signUp).not.toHaveBeenCalled()
+    expect(authClientMock.signUp.email).not.toHaveBeenCalled()
   })
 
   it('sends the solved token and keeps the email-confirmation screen', async () => {
-    signUp.mockResolvedValue({ id: 'seeker-1', email: 'juan@example.com', emailConfirmationRequired: true })
+    signedUp({ id: 'seeker-1', email: 'juan@example.com' })
     renderPage()
     fillRequired()
     fireEvent.click(screen.getByRole('button', { name: /solve captcha/i }))
     fireEvent.click(screen.getByRole('button', { name: /create account/i }))
 
-    await waitFor(() => expect(signUp).toHaveBeenCalled())
-    expect(signUp.mock.calls[0][0].captchaToken).toBe('captcha-token')
+    await waitFor(() => expect(api.post).toHaveBeenCalled())
+    expect(sentCaptcha()).toBe('captcha-token')
     expect(await screen.findByText(/check your email/i)).toBeInTheDocument()
     expect(screen.getByText(/verification link to juan@example.com/i)).toBeInTheDocument()
   })
 
   it('requires a fresh challenge after a failed registration', async () => {
-    signUp.mockRejectedValueOnce(new Error('Registration failed — please try again'))
+    authClientMock.signUp.email.mockResolvedValueOnce({
+      data: null,
+      error: { message: 'Registration failed \u2014 please try again', status: 500 },
+    })
     renderPage()
     fillRequired()
     fireEvent.click(screen.getByRole('button', { name: /solve captcha/i }))
     fireEvent.click(screen.getByRole('button', { name: /create account/i }))
 
     expect(await screen.findByText(/registration failed/i)).toBeInTheDocument()
-    expect(signUp).toHaveBeenCalledTimes(1)
-    expect(signUp.mock.calls[0][0].captchaToken).toBe('captcha-token')
+    expect(authClientMock.signUp.email).toHaveBeenCalledTimes(1)
+    expect(sentCaptcha()).toBe('captcha-token')
 
     // The token is single-use: a retry without a fresh challenge is blocked.
     fireEvent.click(screen.getByRole('button', { name: /create account/i }))
     expect(await screen.findByText('Please complete the verification challenge.')).toBeInTheDocument()
-    expect(signUp).toHaveBeenCalledTimes(1)
+    expect(authClientMock.signUp.email).toHaveBeenCalledTimes(1)
   })
 })
 
@@ -451,6 +485,6 @@ describe('JobSeekerRegister resume review acknowledgement', () => {
     fireEvent.click(screen.getByRole('button', { name: /create account/i }))
 
     expect(await screen.findByText(/please confirm you will review the resume autofill information/i)).toBeInTheDocument()
-    expect(signUp).not.toHaveBeenCalled()
+    expect(authClientMock.signUp.email).not.toHaveBeenCalled()
   })
 })

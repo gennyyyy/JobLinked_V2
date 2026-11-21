@@ -2,10 +2,19 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import ForgotPassword from '../ForgotPassword'
-import { resetPassword } from '../../../shared/services/auth'
 
-vi.mock('../../../shared/services/auth', () => ({
-  resetPassword: vi.fn(),
+// The screen runs the real service against the shared BA client seam.
+vi.mock('../../../shared/lib/api', () => ({
+  api: { get: vi.fn(), post: vi.fn(), patch: vi.fn(), del: vi.fn(), blob: vi.fn() },
+  clearApiCache: vi.fn(),
+  setApiIdentity: vi.fn(),
+}))
+vi.mock('../../../shared/lib/auth-client', async () => {
+  const { authClientMock } = await import('../../../test/authClientMock')
+  return { authClient: authClientMock }
+})
+vi.mock('../../../shared/lib/supabase', () => ({
+  supabase: { auth: { getUser: vi.fn(), updateUser: vi.fn() } },
 }))
 
 // Mutable site key: '' (the default) keeps every non-captcha test on today's
@@ -32,8 +41,12 @@ vi.mock('../../../shared/components/Turnstile', async () => {
   }
 })
 
+import { authClientMock, resetAuthClient } from '../../../test/authClientMock'
+
 beforeEach(() => {
   captcha.siteKey = ''
+  vi.clearAllMocks()
+  resetAuthClient()
 })
 
 function renderForgot() {
@@ -41,11 +54,6 @@ function renderForgot() {
 }
 
 describe('ForgotPassword', () => {
-  beforeEach(() => {
-    vi.clearAllMocks()
-    resetPassword.mockResolvedValue({})
-  })
-
   it('renders the reset request form', () => {
     renderForgot()
     expect(screen.getByRole('heading', { name: /back on track/i })).toBeInTheDocument()
@@ -53,14 +61,14 @@ describe('ForgotPassword', () => {
     expect(screen.getByRole('button', { name: /send reset link/i })).toBeInTheDocument()
   })
 
-  it('rejects a blank email without calling resetPassword', async () => {
+  it('rejects a blank email without requesting a reset', async () => {
     // The input is type=email + required, which blocks a plain click on empty
     // input; dispatch submit directly to exercise the trim() guard.
     const { container } = renderForgot()
     fireEvent.submit(container.querySelector('form'))
 
     expect(await screen.findByText('Please enter your email address')).toBeInTheDocument()
-    expect(resetPassword).not.toHaveBeenCalled()
+    expect(authClientMock.requestPasswordReset).not.toHaveBeenCalled()
   })
 
   it('sends the reset link and shows the success notice', async () => {
@@ -68,24 +76,29 @@ describe('ForgotPassword', () => {
     fireEvent.change(screen.getByLabelText(/email/i), { target: { value: 'jane@example.com' } })
     fireEvent.click(screen.getByRole('button', { name: /send reset link/i }))
 
-    await waitFor(() => expect(resetPassword).toHaveBeenCalledWith('jane@example.com', ''))
+    await waitFor(() => expect(authClientMock.requestPasswordReset).toHaveBeenCalledWith(
+      expect.objectContaining({ email: 'jane@example.com' }),
+    ))
+    expect(authClientMock.requestPasswordReset.mock.calls[0][0].redirectTo)
+      .toContain('/reset-password')
     expect(await screen.findByText(/check your email for reset instructions/i)).toBeInTheDocument()
   })
 
   it('shows an error when the reset request fails', async () => {
-    resetPassword.mockRejectedValue(new Error('too many requests'))
+    authClientMock.requestPasswordReset.mockResolvedValue({
+      data: null,
+      error: { message: 'Email delivery failed', status: 500 },
+    })
     renderForgot()
     fireEvent.change(screen.getByLabelText(/email/i), { target: { value: 'jane@example.com' } })
     fireEvent.click(screen.getByRole('button', { name: /send reset link/i }))
 
-    expect(await screen.findByText('too many requests')).toBeInTheDocument()
+    expect(await screen.findByText('Email delivery failed')).toBeInTheDocument()
   })
 })
 
 describe('ForgotPassword captcha', () => {
   beforeEach(() => {
-    vi.clearAllMocks()
-    resetPassword.mockResolvedValue({})
     captcha.siteKey = 'site-key'
   })
 
@@ -95,23 +108,30 @@ describe('ForgotPassword captcha', () => {
     fireEvent.click(screen.getByRole('button', { name: /send reset link/i }))
 
     expect(await screen.findByText('Please complete the verification challenge.')).toBeInTheDocument()
-    expect(resetPassword).not.toHaveBeenCalled()
+    expect(authClientMock.requestPasswordReset).not.toHaveBeenCalled()
   })
 
-  it('forwards the solved token and demands a fresh one after a failure', async () => {
-    resetPassword.mockRejectedValueOnce(new Error('too many requests'))
+  it('sends the solved token in the captcha header and demands a fresh one after a failure', async () => {
+    authClientMock.requestPasswordReset.mockResolvedValueOnce({
+      data: null,
+      error: { message: 'Email delivery failed', status: 500 },
+    })
     renderForgot()
     fireEvent.change(screen.getByLabelText(/email/i), { target: { value: 'jane@example.com' } })
     fireEvent.click(screen.getByRole('button', { name: /solve captcha/i }))
     fireEvent.click(screen.getByRole('button', { name: /send reset link/i }))
 
-    await waitFor(() => expect(resetPassword).toHaveBeenCalledWith('jane@example.com', 'captcha-token'))
-    expect(await screen.findByText('too many requests')).toBeInTheDocument()
+    await waitFor(() => expect(authClientMock.requestPasswordReset).toHaveBeenCalledWith(
+      expect.objectContaining({
+        fetchOptions: { headers: { 'x-captcha-response': 'captcha-token' } },
+      }),
+    ))
+    expect(await screen.findByText('Email delivery failed')).toBeInTheDocument()
 
     // The token is single-use: a retry without a fresh challenge is blocked.
     fireEvent.click(screen.getByRole('button', { name: /send reset link/i }))
     expect(await screen.findByText('Please complete the verification challenge.')).toBeInTheDocument()
-    expect(resetPassword).toHaveBeenCalledTimes(1)
+    expect(authClientMock.requestPasswordReset).toHaveBeenCalledTimes(1)
   })
 
   it('keeps the success notice when the challenge was solved', async () => {
@@ -120,7 +140,7 @@ describe('ForgotPassword captcha', () => {
     fireEvent.click(screen.getByRole('button', { name: /solve captcha/i }))
     fireEvent.click(screen.getByRole('button', { name: /send reset link/i }))
 
-    await waitFor(() => expect(resetPassword).toHaveBeenCalledWith('jane@example.com', 'captcha-token'))
+    await waitFor(() => expect(authClientMock.requestPasswordReset).toHaveBeenCalled())
     expect(await screen.findByText(/check your email for reset instructions/i)).toBeInTheDocument()
   })
 })

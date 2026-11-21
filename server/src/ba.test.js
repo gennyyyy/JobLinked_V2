@@ -85,6 +85,37 @@ describe('better-auth instance', () => {
   });
 });
 
+describe('conditional captcha plugin (ADR-056 decision 6)', () => {
+  const pluginIds = (auth) => auth.options.plugins.map((plugin) => plugin.id);
+
+  it('registers the turnstile captcha plugin when TURNSTILE_SECRET_KEY is set', async () => {
+    const auth = await loadAuth();
+
+    expect(pluginIds(auth)).toContain('captcha');
+  });
+
+  it('skips the captcha plugin and warns once in development when the secret is missing', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+    const auth = await loadAuth({ NODE_ENV: 'development', TURNSTILE_SECRET_KEY: undefined });
+
+    // No plugin means no MISSING_RESPONSE 400 on sign-in/up/reset in dev.
+    expect(pluginIds(auth)).not.toContain('captcha');
+    expect(jsonLines(warn)).toContainEqual(
+      expect.objectContaining({ level: 'warn', msg: expect.stringMatching(/TURNSTILE_SECRET_KEY/) })
+    );
+  });
+
+  it('stays silent about the missing secret in production (the cutover task enforces it)', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+    const auth = await loadAuth({ NODE_ENV: 'production', TURNSTILE_SECRET_KEY: undefined });
+
+    expect(pluginIds(auth)).not.toContain('captcha');
+    expect(jsonLines(warn).filter((line) => /TURNSTILE_SECRET_KEY/.test(line.msg || ''))).toHaveLength(0);
+  });
+});
+
 describe('bcrypt password carry-over', () => {
   it('verifies a real Supabase-era $2a$ bcrypt cost-10 hash', async () => {
     const auth = await loadAuth();

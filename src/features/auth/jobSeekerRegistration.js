@@ -1,4 +1,5 @@
 import { normalizePhone, isValidPhone } from "@/shared/utils/phone";
+import { passwordError } from "@/shared/utils/password";
 
 export const EDUCATION_LEVELS = ["Elementary", "High School", "Senior High School", "Vocational", "College", "Post-Graduate"];
 export const MAX_PDF_SIZE = 2 * 1024 * 1024;
@@ -43,8 +44,8 @@ export function validate(values) {
   if (!values.cityMunicipality?.trim()) e.cityMunicipality = "City / Municipality is required";
   if (!values.provinceState?.trim()) e.provinceState = "Province is required";
   if (values.postalCode?.trim() && !/^\d{4}$/.test(values.postalCode.trim())) e.postalCode = "Postal code must be 4 digits";
-  if (!values.password) e.password = "Password is required";
-  else if (values.password.length < 8) e.password = "Password must be at least 8 characters";
+  const passwordIssue = passwordError(values.password);
+  if (passwordIssue) e.password = passwordIssue;
   if (!values.confirmPassword) e.confirmPassword = "Please confirm your password";
   else if (values.password !== values.confirmPassword) e.confirmPassword = "Passwords do not match";
   if (!values.employmentStatus) e.employmentStatus = "Employment status is required";

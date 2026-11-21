@@ -1,15 +1,22 @@
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { ArrowRight, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { FieldGroup, Field, FieldLabel } from '@/components/ui/field'
 import { InputGroup, InputGroupInput } from '@/components/ui/input-group'
-import { supabase } from '@/shared/lib/supabase'
+import { resetPasswordWithToken } from '@/shared/services/auth'
+import { passwordError, PASSWORD_HINT } from '@/shared/utils/password'
 import PublicShell from '@/shared/components/PublicShell'
 import AuthFrame from './AuthFrame'
 
+const INVALID = 'This reset link is invalid or expired. Request a new one.'
+
 export default function ResetPassword() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  // BA's reset email redirects here with ?token=… — that token is the
+  // credential (ADR-056 decision 6), so the form is unusable without it.
+  const token = searchParams.get('token') || ''
   const [password, setPassword] = useState('')
   const [confirm, setConfirm] = useState('')
   const [error, setError] = useState('')
@@ -18,8 +25,9 @@ export default function ResetPassword() {
   async function handleSubmit(event) {
     event.preventDefault()
     setError('')
-    if (!password || password.length < 8) {
-      setError('Password must be at least 8 characters')
+    const passwordIssue = passwordError(password)
+    if (passwordIssue) {
+      setError(passwordIssue)
       return
     }
     if (password !== confirm) {
@@ -28,14 +36,27 @@ export default function ResetPassword() {
     }
     setBusy(true)
     try {
-      const { error: updateError } = await supabase.auth.updateUser({ password })
-      if (updateError) throw updateError
-      navigate('/login')
+      await resetPasswordWithToken(password, token)
+      navigate('/login', { replace: true, state: { reset: true } })
     } catch (err) {
-      setError(err.message || 'Could not reset password. The link may have expired.')
+      setError(err.message || INVALID)
     } finally {
       setBusy(false)
     }
+  }
+
+  if (!token) {
+    return (
+      <PublicShell>
+        <AuthFrame title="Reset link issue." subtitle="We couldn’t open this password link.">
+          <div className="flex flex-col gap-5">
+            <p role="alert" className="text-xs leading-6 text-destructive">{INVALID}</p>
+            <Link to="/forgot-password" className="text-xs font-medium text-primary">Request a new link</Link>
+            <Link to="/login" className="text-xs font-medium text-primary">Go to sign in</Link>
+          </div>
+        </AuthFrame>
+      </PublicShell>
+    )
   }
 
   return (
@@ -51,7 +72,7 @@ export default function ResetPassword() {
                   name="password"
                   type="password"
                   autoComplete="new-password"
-                  placeholder="Min. 8 characters"
+                  placeholder={PASSWORD_HINT}
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}

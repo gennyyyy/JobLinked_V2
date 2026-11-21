@@ -17,29 +17,24 @@ function EmployerRepresentativeStep({ errors, setErrors, inputClass, labelClass,
                     <Label htmlFor="repMiddleName" className={labelClass}>Middle Name <span className="text-muted-foreground font-normal">(optional)</span></Label>
                     <Input id="repMiddleName" name="repMiddleName" type="text" placeholder="Santos" className={inputClass} />
                   </div>
+                </div>
+                <div className="grid gap-4 sm:grid-cols-2">
                   <div>
                     <Label htmlFor="repLastName" className={labelClass}>Last Name{reqMark}</Label>
                   <Input id="repLastName" name="repLastName" type="text" placeholder="Reyes" className={inputClass} onChange={() => { if (errors.repLastName) setErrors((prev) => ({ ...prev, repLastName: undefined })); }} />
                     {errors.repLastName && <p className="text-danger text-xs mt-1">{errors.repLastName}</p>}
                   </div>
-                </div>
-                <div className="grid gap-4 sm:grid-cols-2">
                   <div>
                     <Label htmlFor="repSuffix" className={labelClass}>Suffix <span className="text-muted-foreground font-normal">(optional)</span></Label>
                   <Input id="repSuffix" name="repSuffix" type="text" placeholder="Jr., Sr., III" className={inputClass} />
                   </div>
-                  <div>
+                </div>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="sm:col-span-2">
                     <Label htmlFor="repPosition" className={labelClass}>Designation / Position{reqMark}</Label>
                     <Input id="repPosition" name="repPosition" type="text" placeholder="e.g. HR Manager" className={inputClass} onChange={() => { if (errors.repPosition) setErrors((prev) => ({ ...prev, repPosition: undefined })); }} />
                     {errors.repPosition && <p className="text-danger text-xs mt-1">{errors.repPosition}</p>}
                   </div>
-                  <div>
-                    <Label htmlFor="repBirthdate" className={labelClass}>Birthday{reqMark}</Label>
-                    <Input id="repBirthdate" name="repBirthdate" type="date" max={new Date().toISOString().slice(0, 10)} className={inputClass} onChange={() => { if (errors.repBirthdate) setErrors((prev) => ({ ...prev, repBirthdate: undefined })); }} />
-                    {errors.repBirthdate && <p className="text-danger text-xs mt-1">{errors.repBirthdate}</p>}
-                  </div>
-                </div>
-                <div className="grid gap-4 sm:grid-cols-2">
                   <div>
                     <Label htmlFor="repMobile" className={labelClass}>Representative Mobile{reqMark}</Label>
                     <div className="relative">

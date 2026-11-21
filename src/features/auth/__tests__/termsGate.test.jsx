@@ -1,7 +1,13 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import JobSeekerRegister from '../JobSeekerRegister'
+
+// The notice body normally comes from the API; a fixed body keeps this suite
+// offline and makes the read state settle deterministically.
+vi.mock('../../../shared/services/legal', () => ({
+  getLegal: () => Promise.resolve('Terms body'),
+}))
 
 function renderPage() {
   return render(<MemoryRouter><JobSeekerRegister /></MemoryRouter>)
@@ -15,8 +21,8 @@ function fillValid() {
   fireEvent.change(screen.getByLabelText(/birthday/i), { target: { value: '1990-05-04' } })
   fireEvent.change(screen.getByLabelText(/street address/i), { target: { value: 'Norzagaray-Santa Maria Road' } })
   fireEvent.change(screen.getByLabelText(/barangay/i), { target: { value: 'Pulong Buhangin' } })
-  fireEvent.change(screen.getByLabelText(/^password/i), { target: { value: 'password123' } })
-  fireEvent.change(screen.getByLabelText(/confirm password/i), { target: { value: 'password123' } })
+  fireEvent.change(screen.getByLabelText(/^password/i, { selector: 'input' }), { target: { value: 'password123!' } })
+  fireEvent.change(screen.getByLabelText(/confirm password/i), { target: { value: 'password123!' } })
   fireEvent.change(screen.getByLabelText(/employment status/i), { target: { value: 'Unemployed' } })
   fireEvent.click(screen.getByRole('checkbox', { name: /true and correct/i }))
 }

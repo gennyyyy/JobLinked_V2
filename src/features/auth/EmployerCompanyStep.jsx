@@ -1,10 +1,14 @@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useState } from "react";
 import { BULACAN_MUNICIPALITIES, SANTA_MARIA_BARANGAYS } from "@/shared/constants";
 import { toLocalDigits } from "@/shared/utils/phone";
+import { PASSWORD_HINT } from "@/shared/utils/password";
 import FormSelect from "@/shared/components/FormSelect";
+import PasswordRequirements from "@/shared/components/PasswordRequirements";
 
 function EmployerCompanyStep({ errors, setErrors, inputClass, labelClass, reqMark }) {
+  const [password, setPassword] = useState("");
   return (
             <section className="surface p-5">
               <p className="font-mono text-[11px] tracking-[0.2em] text-primary uppercase mb-4 font-semibold">Step 1 — Company Details</p>
@@ -85,7 +89,8 @@ function EmployerCompanyStep({ errors, setErrors, inputClass, labelClass, reqMar
                 <div className="grid gap-4 pt-2 sm:grid-cols-2">
                   <div>
                     <Label htmlFor="password" className={labelClass}>Password{reqMark}</Label>
-                    <Input id="password" name="password" type="password" placeholder="Min. 8 characters" className={inputClass} onChange={() => { if (errors.password) setErrors((prev) => ({ ...prev, password: undefined })); }} />
+                    <Input id="password" name="password" type="password" placeholder={PASSWORD_HINT} value={password} className={inputClass} onChange={(e) => { setPassword(e.target.value); if (errors.password) setErrors((prev) => ({ ...prev, password: undefined })); }} />
+                    <PasswordRequirements value={password} />
                     {errors.password && <p className="text-danger text-xs mt-1">{errors.password}</p>}
                   </div>
                   <div>

@@ -1,48 +1,78 @@
 import { useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { supabase } from '@/shared/lib/supabase';
-import { getProfile, provision } from '@/shared/services/auth';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { authClient } from '@/shared/lib/auth-client';
+import { setApiIdentity } from '@/shared/lib/api';
+import { getProfile, verifyEmailToken } from '@/shared/services/auth';
 import useAuth from '@/shared/hooks/useAuth';
 import LoadingScreen from '@/shared/components/LoadingScreen';
 import PublicShell from '@/shared/components/PublicShell';
 import { PORTALS } from '@/shared/constants';
 import AuthFrame from './AuthFrame';
 
+const INVALID = 'The verification link is invalid or expired.';
+
+// The emailed link is BA's /api/auth/verify-email?token=…&callbackURL=… — BA
+// verifies server-side and redirects here (no session; sign-up never signs in).
+// A token can also arrive directly on this route, in which case we verify it
+// here. Either way the visitor then signs in, where pending_signups is claimed.
 export default function AuthCallback() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { refreshUser } = useAuth();
   const [error, setError] = useState('');
+  const [verified, setVerified] = useState(false);
+  const errorParam = searchParams.get('error');
+  const token = searchParams.get('token');
 
   useEffect(() => {
     let active = true;
     (async () => {
-      const { data: { session }, error: authError } = await supabase.auth.getSession();
-      if (authError) throw authError;
-      if (!session?.user) throw new Error('The verification link is invalid or expired.');
+      // BA's redirect appends ?error=INVALID_TOKEN (or TOKEN_EXPIRED) when the
+      // link no longer verifies.
+      if (errorParam) throw new Error(INVALID);
+      if (token) await verifyEmailToken(token);
 
-      let profile = await getProfile(session.user.id);
-      if (!profile) {
-        const meta = session.user.user_metadata || {};
-        if (!meta.role) throw new Error('Your account details could not be loaded. Please sign in.');
-        await provision({ ...meta, email: session.user.email });
-        profile = await getProfile(session.user.id);
+      const { data } = await authClient.getSession().catch(() => ({ data: null }));
+      const sessionUser = data?.user;
+      if (!sessionUser) {
+        if (active) setVerified(true);
+        return;
       }
-      // Email confirmation is shared by every portal's signup, so the resolved
-      // role — not the link — decides the destination. Never hardcode one path.
+
+      // A session here means a signed-in visitor re-verified (or a change-email
+      // confirmation). Route by the resolved role; an unprovisioned account
+      // finishes on the recovery page, which claims the pending profile.
+      setApiIdentity(sessionUser.id);
+      const profile = await getProfile(sessionUser.id);
+      await refreshUser(sessionUser);
       const homePath = PORTALS.find((p) => p.key === profile?.role)?.homePath;
-      if (!homePath) throw new Error('Your account role could not be determined. Please sign in.');
-      await refreshUser(session.user);
-      if (active) navigate(homePath, { replace: true });
+      if (active) navigate(homePath || '/complete-registration', { replace: true });
     })().catch((err) => active && setError(err.message || 'Email verification failed.'));
     return () => { active = false; };
-  }, [navigate, refreshUser]);
+  }, [navigate, refreshUser, errorParam, token]);
 
-  if (!error) return <LoadingScreen />
+  if (!error && !verified) return <LoadingScreen />
+
+  if (error) {
+    return (
+      <PublicShell>
+        <AuthFrame title="Verification link issue." subtitle="We couldn’t verify this email link.">
+          <div className="flex flex-col gap-5">
+            <p role="alert" className="text-xs leading-6 text-destructive">{error}</p>
+            <Link to="/login" className="text-xs font-medium text-primary">Go to sign in</Link>
+          </div>
+        </AuthFrame>
+      </PublicShell>
+    )
+  }
+
   return (
     <PublicShell>
-      <AuthFrame title="Verification link issue." subtitle="We couldn’t verify this email link.">
+      <AuthFrame title="Email verified." subtitle="Your address is confirmed.">
         <div className="flex flex-col gap-5">
-          <p role="alert" className="text-xs leading-6 text-destructive">{error}</p>
+          <p role="status" className="text-xs leading-6 text-muted-foreground">
+            You can now sign in to finish setting up your account.
+          </p>
           <Link to="/login" className="text-xs font-medium text-primary">Go to sign in</Link>
         </div>
       </AuthFrame>

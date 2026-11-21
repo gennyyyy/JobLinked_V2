@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
@@ -8,12 +8,25 @@ vi.mock('../../../shared/hooks/useAuth', () => ({
   default: vi.fn(),
 }));
 
-vi.mock('../../../shared/services/auth', () => ({
-  provision: vi.fn(),
+// Real service + shared client seam; the API layer answers /auth/provision.
+vi.mock('../../../shared/lib/api', () => ({
+  api: { get: vi.fn(), post: vi.fn(), patch: vi.fn(), del: vi.fn(), blob: vi.fn() },
+  clearApiCache: vi.fn(),
+  setApiIdentity: vi.fn(),
+}));
+vi.mock('../../../shared/lib/auth-client', async () => {
+  const { authClientMock } = await import('../../../test/authClientMock')
+  return { authClient: authClientMock }
+});
+vi.mock('../../../shared/lib/supabase', () => ({
+  supabase: { auth: { getUser: vi.fn(), updateUser: vi.fn() } },
 }));
 
 import useAuth from '../../../shared/hooks/useAuth';
-import { provision } from '../../../shared/services/auth';
+import { api } from '../../../shared/lib/api';
+
+const apiError = (status, message) => Object.assign(new Error(message), { status });
+const NO_PENDING = () => apiError(400, 'role must be job-seeker, employer, or super-admin');
 
 function renderWithRouter(ui, { initialPath = '/complete-registration' } = {}) {
   return render(
@@ -28,31 +41,36 @@ function renderWithRouter(ui, { initialPath = '/complete-registration' } = {}) {
   );
 }
 
+const unprovisioned = (refreshUser = vi.fn()) => {
+  useAuth.mockReturnValue({
+    user: null,
+    needsProvisioning: true,
+    sessionUser: { id: 'u1', email: 'test@example.com' },
+    loading: false,
+    refreshUser,
+  });
+  return refreshUser;
+};
+
+beforeEach(() => {
+  vi.clearAllMocks();
+});
+
 describe('CompleteRegistration', () => {
-  it('preselects role from query param', () => {
-    useAuth.mockReturnValue({
-      user: null,
-      needsProvisioning: true,
-      sessionUser: { id: 'u1', email: 'test@example.com' },
-      loading: false,
-      refreshUser: vi.fn(),
-    });
+  it('preselects role from query param', async () => {
+    unprovisioned();
+    api.post.mockRejectedValueOnce(NO_PENDING());
     renderWithRouter(<CompleteRegistration />, {
       initialPath: '/complete-registration?role=employer',
     });
-    expect(screen.getByLabelText(/registration path/i)).toHaveValue('employer');
+    expect(await screen.findByLabelText(/registration path/i)).toHaveValue('employer');
   });
 
-  it('defaults to job-seeker when no role param is present', () => {
-    useAuth.mockReturnValue({
-      user: null,
-      needsProvisioning: true,
-      sessionUser: { id: 'u1', email: 'test@example.com' },
-      loading: false,
-      refreshUser: vi.fn(),
-    });
+  it('defaults to job-seeker when no role param is present', async () => {
+    unprovisioned();
+    api.post.mockRejectedValueOnce(NO_PENDING());
     renderWithRouter(<CompleteRegistration />);
-    expect(screen.getByLabelText(/registration path/i)).toHaveValue('job-seeker');
+    expect(await screen.findByLabelText(/registration path/i)).toHaveValue('job-seeker');
   });
 
   it('redirects to /login when no session exists', async () => {
@@ -65,6 +83,7 @@ describe('CompleteRegistration', () => {
     });
     renderWithRouter(<CompleteRegistration />);
     expect(await screen.findByText('Login Page')).toBeInTheDocument();
+    expect(api.post).not.toHaveBeenCalled();
   });
 
   it('redirects to portal when user is already provisioned', async () => {
@@ -77,86 +96,86 @@ describe('CompleteRegistration', () => {
     });
     renderWithRouter(<CompleteRegistration />);
     expect(await screen.findByText('Employer Portal')).toBeInTheDocument();
+    expect(api.post).not.toHaveBeenCalled();
   });
 
-  it('calls provision with correct payload for job-seeker and navigates', async () => {
-    useAuth.mockReturnValue({
-      user: null,
-      needsProvisioning: true,
-      sessionUser: { id: 'u1', email: 'test@example.com' },
-      loading: false,
-      refreshUser: vi.fn(),
-    });
-    provision.mockResolvedValue({ role: 'job-seeker' });
+  it('auto-provisions once on mount and routes by the merged role', async () => {
+    const refreshUser = unprovisioned();
+    api.post.mockResolvedValue({ id: 'u1', role: 'job-seeker' });
     renderWithRouter(<CompleteRegistration />);
 
-    await userEvent.type(screen.getByLabelText(/first name/i), 'John');
+    expect(await screen.findByText('Job Seeker Portal')).toBeInTheDocument();
+    expect(api.post).toHaveBeenCalledTimes(1);
+    expect(api.post).toHaveBeenCalledWith('auth/provision', {});
+    expect(refreshUser).toHaveBeenCalledWith({ id: 'u1', email: 'test@example.com' });
+  });
+
+  it('never renders the form while the automatic merge is in flight', async () => {
+    unprovisioned();
+    let resolve;
+    api.post.mockReturnValue(new Promise((r) => { resolve = r; }));
+    renderWithRouter(<CompleteRegistration />);
+
+    expect(screen.queryByLabelText(/registration path/i)).not.toBeInTheDocument();
+    resolve({ id: 'u1', role: 'employer' });
+    expect(await screen.findByText('Employer Portal')).toBeInTheDocument();
+  });
+
+  it('falls back to the form when there is no pending invite or signup (400)', async () => {
+    unprovisioned();
+    api.post.mockRejectedValueOnce(NO_PENDING());
+    api.post.mockResolvedValueOnce({ role: 'job-seeker' });
+    renderWithRouter(<CompleteRegistration />);
+
+    await userEvent.type(await screen.findByLabelText(/first name/i), 'John');
     await userEvent.type(screen.getByLabelText(/middle name/i), 'M');
     await userEvent.type(screen.getByLabelText(/last name/i), 'Doe');
     await userEvent.click(screen.getByRole('button', { name: /complete registration/i }));
 
-    await waitFor(() =>
-      expect(provision).toHaveBeenCalledWith({
-        role: 'job-seeker',
-        first_name: 'John',
-        middle_name: 'M',
-        last_name: 'Doe',
-        suffix: '',
-        email: 'test@example.com',
-      })
-    );
+    await waitFor(() => expect(api.post).toHaveBeenLastCalledWith('auth/provision', {
+      role: 'job-seeker',
+      first_name: 'John',
+      middle_name: 'M',
+      last_name: 'Doe',
+      suffix: '',
+      email: 'test@example.com',
+    }));
     expect(await screen.findByText('Job Seeker Portal')).toBeInTheDocument();
   });
 
   it('calls provision with company fields for employer', async () => {
-    useAuth.mockReturnValue({
-      user: null,
-      needsProvisioning: true,
-      sessionUser: { id: 'u1', email: 'test@example.com' },
-      loading: false,
-      refreshUser: vi.fn(),
-    });
-    provision.mockResolvedValue({ role: 'employer' });
+    unprovisioned();
+    api.post.mockRejectedValueOnce(NO_PENDING());
+    api.post.mockResolvedValueOnce({ role: 'employer' });
     renderWithRouter(<CompleteRegistration />, {
       initialPath: '/complete-registration?role=employer',
     });
 
-    await userEvent.type(screen.getByLabelText(/first name/i), 'Jane');
+    await userEvent.type(await screen.findByLabelText(/first name/i), 'Jane');
     await userEvent.type(screen.getByLabelText(/last name/i), 'Smith');
     await userEvent.type(screen.getByLabelText(/company name/i), 'Acme Corp');
     await userEvent.type(screen.getByLabelText(/company email/i), 'info@acme.com');
     await userEvent.click(screen.getByRole('button', { name: /complete registration/i }));
 
-    await waitFor(() =>
-      expect(provision).toHaveBeenCalledWith({
-        role: 'employer',
-        first_name: 'Jane',
-        middle_name: '',
-        last_name: 'Smith',
-        suffix: '',
-        email: 'test@example.com',
-        company_name: 'Acme Corp',
-        company_email: 'info@acme.com',
-      })
-    );
+    await waitFor(() => expect(api.post).toHaveBeenLastCalledWith('auth/provision', {
+      role: 'employer',
+      first_name: 'Jane',
+      middle_name: '',
+      last_name: 'Smith',
+      suffix: '',
+      email: 'test@example.com',
+      company_name: 'Acme Corp',
+      company_email: 'info@acme.com',
+    }));
     expect(await screen.findByText('Employer Portal')).toBeInTheDocument();
   });
 
-  it('shows error when provision fails', async () => {
-    useAuth.mockReturnValue({
-      user: null,
-      needsProvisioning: true,
-      sessionUser: { id: 'u1', email: 'test@example.com' },
-      loading: false,
-      refreshUser: vi.fn(),
-    });
-    provision.mockRejectedValue(new Error('Server error'));
+  it('shows the error above the form when the automatic merge fails unexpectedly', async () => {
+    unprovisioned();
+    api.post.mockRejectedValueOnce(apiError(500, 'Server error'));
     renderWithRouter(<CompleteRegistration />);
 
-    await userEvent.type(screen.getByLabelText(/first name/i), 'John');
-    await userEvent.type(screen.getByLabelText(/last name/i), 'Doe');
-    await userEvent.click(screen.getByRole('button', { name: /complete registration/i }));
-
     expect(await screen.findByText('Server error')).toBeInTheDocument();
+    expect(screen.getByLabelText(/registration path/i)).toBeInTheDocument();
   });
 });

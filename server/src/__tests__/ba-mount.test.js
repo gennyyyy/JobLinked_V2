@@ -134,4 +134,22 @@ describe('better-auth mount order', () => {
       vi.resetModules();
     }
   });
+
+  // ADR-056 decision 6: without the secret the plugin is absent, so a credential
+  // POST cannot answer 400 MISSING_RESPONSE. Asserted on the built instance (not
+  // through a request) because BA's own pg pool is outside the mounted mock seam.
+  it('loads no captcha plugin when TURNSTILE_SECRET_KEY is unset (dev)', async () => {
+    vi.stubEnv('TURNSTILE_SECRET_KEY', undefined);
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    vi.resetModules();
+    try {
+      const { auth } = await import('../ba.js');
+      const ids = auth.options.plugins.map((plugin) => plugin.id);
+      expect(ids).not.toContain('captcha');
+      expect(warn.mock.calls.some(([line]) => /TURNSTILE_SECRET_KEY/.test(line))).toBe(true);
+    } finally {
+      vi.unstubAllEnvs();
+      vi.resetModules();
+    }
+  });
 });

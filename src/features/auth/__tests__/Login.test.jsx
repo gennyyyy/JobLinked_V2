@@ -8,8 +8,19 @@ vi.mock('../../../shared/hooks/useAuth', () => ({
   default: vi.fn(),
 }))
 
-vi.mock('../../../shared/services/auth', () => ({
-  signIn: vi.fn(),
+// The screens run the real service; the one seam below it is the BA client and
+// the API layer.
+vi.mock('../../../shared/lib/api', () => ({
+  api: { get: vi.fn(), post: vi.fn(), patch: vi.fn(), del: vi.fn(), blob: vi.fn() },
+  clearApiCache: vi.fn(),
+  setApiIdentity: vi.fn(),
+}))
+vi.mock('../../../shared/lib/auth-client', async () => {
+  const { authClientMock } = await import('../../../test/authClientMock')
+  return { authClient: authClientMock }
+})
+vi.mock('../../../shared/lib/supabase', () => ({
+  supabase: { auth: { getUser: vi.fn(), updateUser: vi.fn() } },
 }))
 
 // Mutable site key: '' (the default) keeps every non-captcha test on today's
@@ -37,11 +48,13 @@ vi.mock('../../../shared/components/Turnstile', async () => {
 })
 
 import useAuth from '../../../shared/hooks/useAuth'
-import { signIn } from '../../../shared/services/auth'
+import { api } from '../../../shared/lib/api'
+import { authClientMock, resetAuthClient } from '../../../test/authClientMock'
 
 beforeEach(() => {
   captcha.siteKey = ''
-  signIn.mockClear()
+  vi.clearAllMocks()
+  resetAuthClient()
 })
 
 function renderLogin() {
@@ -50,6 +63,12 @@ function renderLogin() {
       <Login />
     </MemoryRouter>
   )
+}
+
+const signsIn = (user = { id: '1', email: 'good@test.com' }) => {
+  authClientMock.signIn.email.mockResolvedValue({ data: { user }, error: null })
+  authClientMock.getSession.mockResolvedValue({ data: { user } })
+  api.get.mockResolvedValue({ id: '1', role: 'employer' })
 }
 
 describe('Login', () => {
@@ -63,27 +82,47 @@ describe('Login', () => {
 
   it('shows error on failed login', async () => {
     useAuth.mockReturnValue({ user: null })
-    signIn.mockRejectedValue(new Error('Invalid login credentials'))
+    authClientMock.signIn.email.mockResolvedValue({
+      data: null,
+      error: { code: 'INVALID_EMAIL_OR_PASSWORD', message: 'Invalid email or password', status: 401 },
+    })
     renderLogin()
 
     await userEvent.type(screen.getByLabelText(/email/i), 'bad@test.com')
     await userEvent.type(screen.getByLabelText(/password/i), 'wrong')
     await userEvent.click(screen.getByRole('button', { name: /sign in/i }))
 
-    expect(await screen.findByText(/invalid login credentials/i)).toBeInTheDocument()
+    expect(await screen.findByText(/invalid email or password/i)).toBeInTheDocument()
+  })
+
+  it('asks an unverified account to verify its email', async () => {
+    useAuth.mockReturnValue({ user: null })
+    authClientMock.signIn.email.mockResolvedValue({
+      data: null,
+      error: { code: 'EMAIL_NOT_VERIFIED', message: 'Email not verified', status: 403 },
+    })
+    renderLogin()
+
+    await userEvent.type(screen.getByLabelText(/email/i), 'new@test.com')
+    await userEvent.type(screen.getByLabelText(/password/i), 'secret123')
+    await userEvent.click(screen.getByRole('button', { name: /sign in/i }))
+
+    expect(await screen.findByText(/verify your email address/i)).toBeInTheDocument()
   })
 
   it('seeds the auth provider before routing after a successful login', async () => {
     const authenticate = vi.fn()
     useAuth.mockReturnValue({ user: null, authenticate })
-    signIn.mockResolvedValue({ id: '1', role: 'employer' })
+    signsIn()
     renderLogin()
 
     await userEvent.type(screen.getByLabelText(/email/i), 'good@test.com')
     await userEvent.type(screen.getByLabelText(/password/i), 'secret123')
     await userEvent.click(screen.getByRole('button', { name: /sign in/i }))
 
-    await waitFor(() => expect(authenticate).toHaveBeenCalledWith(expect.objectContaining({ id: '1', role: 'employer' })))
+    await waitFor(() => expect(authenticate).toHaveBeenCalledWith(
+      expect.objectContaining({ id: '1', role: 'employer' }),
+    ))
   })
 
   it('does not redirect when user is already logged in', () => {
@@ -104,13 +143,16 @@ describe('Login captcha', () => {
     await userEvent.click(screen.getByRole('button', { name: /sign in/i }))
 
     expect(await screen.findByText('Please complete the verification challenge.')).toBeInTheDocument()
-    expect(signIn).not.toHaveBeenCalled()
+    expect(authClientMock.signIn.email).not.toHaveBeenCalled()
   })
 
   it('forwards the solved token and demands a fresh one after a rejection', async () => {
     captcha.siteKey = 'site-key'
     useAuth.mockReturnValue({ user: null })
-    signIn.mockRejectedValueOnce(new Error('Invalid login credentials'))
+    authClientMock.signIn.email.mockResolvedValueOnce({
+      data: null,
+      error: { code: 'INVALID_EMAIL_OR_PASSWORD', message: 'Invalid email or password', status: 401 },
+    })
     renderLogin()
 
     await userEvent.type(screen.getByLabelText(/email/i), 'good@test.com')
@@ -118,12 +160,16 @@ describe('Login captcha', () => {
     await userEvent.click(screen.getByRole('button', { name: /solve captcha/i }))
     await userEvent.click(screen.getByRole('button', { name: /sign in/i }))
 
-    await waitFor(() => expect(signIn).toHaveBeenCalledWith('good@test.com', 'secret123', 'captcha-token'))
-    expect(await screen.findByText(/invalid login credentials/i)).toBeInTheDocument()
+    await waitFor(() => expect(authClientMock.signIn.email).toHaveBeenCalledWith({
+      email: 'good@test.com',
+      password: 'secret123',
+      fetchOptions: { headers: { 'x-captcha-response': 'captcha-token' } },
+    }))
+    expect(await screen.findByText(/invalid email or password/i)).toBeInTheDocument()
 
     // The token is single-use: a retry without a fresh challenge is blocked.
     await userEvent.click(screen.getByRole('button', { name: /sign in/i }))
     expect(await screen.findByText('Please complete the verification challenge.')).toBeInTheDocument()
-    expect(signIn).toHaveBeenCalledTimes(1)
+    expect(authClientMock.signIn.email).toHaveBeenCalledTimes(1)
   })
 })

@@ -3,6 +3,12 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import JobSeekerRegister from '../JobSeekerRegister'
 
+// The notice body normally comes from the API; a fixed body keeps this suite
+// offline and makes the consent gate settle deterministically.
+vi.mock('../../../shared/services/legal', () => ({
+  getLegal: () => Promise.resolve('Terms body'),
+}))
+
 function fillAllButBirthdate() {
   fireEvent.change(screen.getByLabelText(/^first name/i), { target: { value: 'Juan' } })
   fireEvent.change(screen.getByLabelText(/last name/i), { target: { value: 'Cruz' } })
@@ -10,8 +16,8 @@ function fillAllButBirthdate() {
   fireEvent.change(screen.getByLabelText(/mobile number/i), { target: { value: '9171234567' } })
   fireEvent.change(screen.getByLabelText(/street address/i), { target: { value: 'Norzagaray-Santa Maria Road' } })
   fireEvent.change(screen.getByLabelText(/barangay/i), { target: { value: 'Pulong Buhangin' } })
-  fireEvent.change(screen.getByLabelText(/^password/i), { target: { value: 'password123' } })
-  fireEvent.change(screen.getByLabelText(/confirm password/i), { target: { value: 'password123' } })
+  fireEvent.change(screen.getByLabelText(/^password/i, { selector: 'input' }), { target: { value: 'password123!' } })
+  fireEvent.change(screen.getByLabelText(/confirm password/i), { target: { value: 'password123!' } })
   fireEvent.click(screen.getByRole('checkbox', { name: /agree to the municipal/i }))
   fireEvent.click(screen.getByRole('checkbox', { name: /true and correct/i }))
   fireEvent.click(screen.getByRole('checkbox', { name: /resume autofill can make mistakes/i }))

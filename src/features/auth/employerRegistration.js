@@ -1,4 +1,5 @@
 import { normalizePhone, isValidPhone } from "@/shared/utils/phone";
+import { passwordError } from "@/shared/utils/password";
 
 export function validate(values) {
   const e = {};
@@ -19,9 +20,8 @@ export function validate(values) {
   else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.repEmail)) e.repEmail = "Invalid email address";
   if (!values.repMobile?.trim()) e.repMobile = "Representative mobile is required";
   else if (!isValidPhone(values.repMobile)) e.repMobile = "Enter a valid number (e.g. 917 123 4567)";
-  if (!values.repBirthdate) e.repBirthdate = "Birthday is required";
-  if (!values.password) e.password = "Password is required";
-  else if (values.password.length < 8) e.password = "Password must be at least 8 characters";
+  const passwordIssue = passwordError(values.password);
+  if (passwordIssue) e.password = passwordIssue;
   if (!values.confirmPassword) e.confirmPassword = "Please confirm your password";
   else if (values.password !== values.confirmPassword) e.confirmPassword = "Passwords do not match";
   if (!values.agree) e.agree = "You must agree to the terms";
@@ -40,7 +40,6 @@ export function buildEmployerSignUpPayload(values) {
     suffix: values.repSuffix?.trim() || "",
     extra: {
       phone: normalizePhone(values.repMobile),
-      birthdate: values.repBirthdate,
       companyName: values.companyName.trim(),
       industry: values.industry.trim(),
       companyEmail: values.companyEmail.trim(),

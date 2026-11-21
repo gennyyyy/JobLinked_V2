@@ -2,15 +2,19 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { MemoryRouter, Routes, Route } from 'react-router-dom'
 import AuthCallback from '../AuthCallback'
-import { getProfile, provision } from '../../../shared/services/auth'
 
-vi.mock('../../../shared/lib/supabase', () => ({
-  supabase: { auth: { getSession: vi.fn() } },
+// Real service + shared client seam; the API layer answers /auth/me.
+vi.mock('../../../shared/lib/api', () => ({
+  api: { get: vi.fn(), post: vi.fn(), patch: vi.fn(), del: vi.fn(), blob: vi.fn() },
+  clearApiCache: vi.fn(),
+  setApiIdentity: vi.fn(),
 }))
-
-vi.mock('../../../shared/services/auth', () => ({
-  getProfile: vi.fn(),
-  provision: vi.fn(),
+vi.mock('../../../shared/lib/auth-client', async () => {
+  const { authClientMock } = await import('../../../test/authClientMock')
+  return { authClient: authClientMock }
+})
+vi.mock('../../../shared/lib/supabase', () => ({
+  supabase: { auth: { getUser: vi.fn(), updateUser: vi.fn() } },
 }))
 
 const refreshUser = vi.fn()
@@ -18,18 +22,17 @@ vi.mock('../../../shared/hooks/useAuth', () => ({
   default: () => ({ refreshUser }),
 }))
 
-import { supabase } from '../../../shared/lib/supabase'
+import { api } from '../../../shared/lib/api'
+import { authClientMock, resetAuthClient } from '../../../test/authClientMock'
 
-const sessionFor = (id, meta = {}) => ({
-  data: { session: { user: { id, email: `${id}@test.com`, user_metadata: meta } } },
-  error: null,
-})
+const sessionFor = (id = 'u1') => ({ data: { user: { id, email: `${id}@test.com` } } })
 
-function renderCallback() {
+function renderCallback(entry = '/auth/callback') {
   return render(
-    <MemoryRouter initialEntries={['/auth/callback']}>
+    <MemoryRouter initialEntries={[entry]}>
       <Routes>
         <Route path="/auth/callback" element={<AuthCallback />} />
+        <Route path="/complete-registration" element={<div>complete registration</div>} />
         <Route path="/employer" element={<div>employer home</div>} />
         <Route path="/job-seeker" element={<div>seeker home</div>} />
         <Route path="/super-admin" element={<div>admin home</div>} />
@@ -41,47 +44,57 @@ function renderCallback() {
 describe('AuthCallback role routing (B1)', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    resetAuthClient()
     refreshUser.mockResolvedValue(undefined)
-    supabase.auth.getSession.mockResolvedValue(sessionFor('u1'))
+    authClientMock.getSession.mockResolvedValue(sessionFor('u1'))
   })
 
   it('sends an employer to /employer instead of the job-seeker error', async () => {
-    getProfile.mockResolvedValue({ id: 'u1', role: 'employer' })
+    api.get.mockResolvedValue({ id: 'u1', role: 'employer' })
     renderCallback()
     expect(await screen.findByText('employer home')).toBeInTheDocument()
     expect(screen.queryByText(/not a jobseeker account/i)).not.toBeInTheDocument()
+    expect(refreshUser).toHaveBeenCalledWith(expect.objectContaining({ id: 'u1' }))
   })
 
   it('sends a job-seeker to /job-seeker', async () => {
-    getProfile.mockResolvedValue({ id: 'u1', role: 'job-seeker' })
+    api.get.mockResolvedValue({ id: 'u1', role: 'job-seeker' })
     renderCallback()
     expect(await screen.findByText('seeker home')).toBeInTheDocument()
   })
 
   it('sends a super-admin to /super-admin', async () => {
-    getProfile.mockResolvedValue({ id: 'u1', role: 'super-admin' })
+    api.get.mockResolvedValue({ id: 'u1', role: 'super-admin' })
     renderCallback()
     expect(await screen.findByText('admin home')).toBeInTheDocument()
   })
 
-  it('provisions an unprovisioned account then routes by its role', async () => {
-    getProfile.mockResolvedValueOnce(null).mockResolvedValueOnce({ id: 'u1', role: 'employer' })
-    supabase.auth.getSession.mockResolvedValue(sessionFor('u1', { role: 'employer' }))
+  it('routes a session without a role row to the recovery page (pending profile is claimed there)', async () => {
+    api.get.mockRejectedValue(Object.assign(new Error('Account not provisioned'), { status: 403 }))
     renderCallback()
-    expect(await screen.findByText('employer home')).toBeInTheDocument()
-    expect(provision).toHaveBeenCalledTimes(1)
+    expect(await screen.findByText('complete registration')).toBeInTheDocument()
   })
 
-  it('shows the expired-link error when there is no session', async () => {
-    supabase.auth.getSession.mockResolvedValue({ data: { session: null }, error: null })
+  it('shows the verified state with a sign-in link when BA already verified without a session', async () => {
+    authClientMock.getSession.mockResolvedValue({ data: null })
     renderCallback()
+    expect(await screen.findByText(/you can now sign in/i)).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /go to sign in/i })).toHaveAttribute('href', '/login')
+  })
+
+  it('verifies a token that arrives directly on this route', async () => {
+    authClientMock.getSession.mockResolvedValue({ data: null })
+    renderCallback('/auth/callback?token=tok_email')
+
+    expect(await screen.findByText(/you can now sign in/i)).toBeInTheDocument()
+    expect(authClientMock.verifyEmail).toHaveBeenCalledWith({ query: { token: 'tok_email' } })
+  })
+
+  it('shows the expired-link error when BA redirects with a rejected token', async () => {
+    authClientMock.getSession.mockResolvedValue({ data: null })
+    renderCallback('/auth/callback?error=INVALID_TOKEN')
+
     expect(await screen.findByText(/verification link is invalid or expired/i)).toBeInTheDocument()
-  })
-
-  it('shows an error when the role cannot be determined', async () => {
-    getProfile.mockResolvedValueOnce(null).mockResolvedValueOnce(null)
-    supabase.auth.getSession.mockResolvedValue({ data: { session: { user: { id: 'u1', email: 'u1@test.com', user_metadata: { role: 'employer' } } } }, error: null })
-    renderCallback()
-    expect(await screen.findByText(/role could not be determined/i)).toBeInTheDocument()
+    expect(authClientMock.verifyEmail).not.toHaveBeenCalled()
   })
 })
