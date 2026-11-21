@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import request from 'supertest';
 
 vi.mock('../db.js', async () => { const h = await import('./helpers/db.js'); return { pool: h.pool, query: h.query, clientQuery: h.clientQuery, connect: h.connect }; });
-vi.mock('@supabase/supabase-js', async () => { const h = await import('./helpers/auth.js'); return { createClient: () => ({ auth: h.supabaseAuth }) }; });
+vi.mock('../ba.js', async () => { const h = await import('./helpers/auth.js'); return { auth: h.baAuth }; });
 
 import { on, reset, callsOf } from './helpers/db.js';
 import { loginAs, resetAuth } from './helpers/auth.js';
@@ -32,7 +32,7 @@ describe('POST /api/applications', () => {
     publishJob();
     on((sql) => /insert into job_applications/.test(sql), () => ({ rows: [appRow] }));
     const res = await request(app).post('/api/applications')
-      .set('Authorization', `Bearer ${token}`)
+      .set('Cookie', token)
       .send({ job_id: JOB, resume_id: null });
     expect(res.status).toBe(201);
     expect(res.body.status).toBe('Applied');
@@ -46,7 +46,7 @@ describe('POST /api/applications', () => {
       const e = new Error('duplicate key'); e.code = '23505'; throw e;
     });
     const res = await request(app).post('/api/applications')
-      .set('Authorization', `Bearer ${token}`)
+      .set('Cookie', token)
       .send({ job_id: JOB });
     expect(res.status).toBe(409);
     expect(res.body.error.code).toBe('CONFLICT');
@@ -59,7 +59,7 @@ describe('POST /api/applications', () => {
     // whose deadline passed returns no row — the handler must 400, not 201.
     on((sql) => /insert into job_applications/.test(sql), () => ({ rows: [] }));
     const res = await request(app).post('/api/applications')
-      .set('Authorization', `Bearer ${token}`)
+      .set('Cookie', token)
       .send({ job_id: JOB });
     expect(res.status).toBe(400);
     expect(res.body.error.code).toBe('BAD_REQUEST');
@@ -74,7 +74,7 @@ describe('POST /api/applications', () => {
     const token = loginAs({ id: SEEKER, role: 'job-seeker' });
     publishJob('draft');
     const res = await request(app).post('/api/applications')
-      .set('Authorization', `Bearer ${token}`)
+      .set('Cookie', token)
       .send({ job_id: JOB });
     expect(res.status).toBe(400);
     expect(res.body.error.code).toBe('BAD_REQUEST');
@@ -83,7 +83,7 @@ describe('POST /api/applications', () => {
   it('404 NOT_FOUND when the job does not exist', async () => {
     const token = loginAs({ id: SEEKER, role: 'job-seeker' });
     const res = await request(app).post('/api/applications')
-      .set('Authorization', `Bearer ${token}`)
+      .set('Cookie', token)
       .send({ job_id: 'nope' });
     expect(res.status).toBe(404);
     expect(res.body.error.code).toBe('NOT_FOUND');
@@ -92,7 +92,7 @@ describe('POST /api/applications', () => {
   it('403 FORBIDDEN for an employer', async () => {
     const token = loginAs({ id: EMPLOYER, role: 'employer' });
     const res = await request(app).post('/api/applications')
-      .set('Authorization', `Bearer ${token}`)
+      .set('Cookie', token)
       .send({ job_id: 'job-1' });
     expect(res.status).toBe(403);
     expect(res.body.error.code).toBe('FORBIDDEN');
@@ -107,7 +107,7 @@ describe('POST /api/applications/:id/status', () => {
     loadOwnedApp();
     publishJob('published', EMPLOYER);
     const res = await request(app).post(`/api/applications/${APP}/status`)
-      .set('Authorization', `Bearer ${token}`)
+      .set('Cookie', token)
       .send({ status: 'Interview', remarks: 'Sat 10am' });
     expect(res.status).toBe(200);
     const history = callsOf(/insert into application_status_history/)[0];
@@ -118,7 +118,7 @@ describe('POST /api/applications/:id/status', () => {
   it('404 NOT_FOUND for a malformed :id (S1: never a 22P02 500)', async () => {
     const token = loginAs({ id: EMPLOYER, role: 'employer' });
     const res = await request(app).post('/api/applications/not-a-uuid/status')
-      .set('Authorization', `Bearer ${token}`)
+      .set('Cookie', token)
       .send({ status: 'Interview' });
     expect(res.status).toBe(404);
     expect(res.body.error.code).toBe('NOT_FOUND');
@@ -130,7 +130,7 @@ describe('POST /api/applications/:id/status', () => {
     loadOwnedApp();
     publishJob();
     const res = await request(app).post(`/api/applications/${APP}/status`)
-      .set('Authorization', `Bearer ${token}`)
+      .set('Cookie', token)
       .send({ status: 'Hired' });
     expect(res.status).toBe(400);
     expect(callsOf(/insert into application_status_history/)).toHaveLength(0);
@@ -141,7 +141,7 @@ describe('POST /api/applications/:id/status', () => {
     loadOwnedApp();
     publishJob();
     const res = await request(app).post(`/api/applications/${APP}/status`)
-      .set('Authorization', `Bearer ${token}`)
+      .set('Cookie', token)
       .send({ status: 'Interview' });
     expect(res.status).toBe(403);
     expect(res.body.error.code).toBe('FORBIDDEN');
@@ -158,7 +158,7 @@ describe('GET /api/applications/mine', () => {
     const token = loginAs({ id: SEEKER, role: 'job-seeker' });
     on((sql) => /where a\.seeker_id = \$1/.test(sql), () => ({ rows: [{ ...appRow, history }] }));
     const res = await request(app).get('/api/applications/mine')
-      .set('Authorization', `Bearer ${token}`);
+      .set('Cookie', token);
     expect(res.status).toBe(200);
     const mine = callsOf(/application_status_history h where h\.application_id = a\.id/)[0];
     expect(mine.sql).toMatch(/from job_applications a/);

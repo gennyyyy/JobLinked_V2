@@ -5,7 +5,7 @@ import os from 'node:os';
 import path from 'node:path';
 
 vi.mock('../db.js', async () => { const h = await import('./helpers/db.js'); return { pool: h.pool, query: h.query, clientQuery: h.clientQuery, connect: h.connect }; });
-vi.mock('@supabase/supabase-js', async () => { const h = await import('./helpers/auth.js'); return { createClient: () => ({ auth: h.supabaseAuth }) }; });
+vi.mock('../ba.js', async () => { const h = await import('./helpers/auth.js'); return { auth: h.baAuth }; });
 
 // upload.js resolves UPLOAD_DIR at import time — point it at a scratch dir
 // BEFORE anything imports it, so this suite never writes into server/uploads/.
@@ -43,7 +43,7 @@ describe('POST /api/files/resumes — upload limits and orphan cleanup', () => {
     const token = loginAs({ id: S1, role: 'job-seeker' });
     stubQuota();
     const res = await request(app).post('/api/files/resumes')
-      .set('Authorization', `Bearer ${token}`)
+      .set('Cookie', token)
       .attach('file', Buffer.from('hello'), { filename: 'notes.txt' });
     expect(res.status).toBe(400);
     expect(res.body.error.message).toContain('Only PDF, DOC, DOCX, PNG, or JPG');
@@ -55,7 +55,7 @@ describe('POST /api/files/resumes — upload limits and orphan cleanup', () => {
     stubQuota();
     const bigPdf = Buffer.concat([Buffer.from('%PDF-1.4\n'), Buffer.alloc(2 * 1024 * 1024 + 16)]);
     const res = await request(app).post('/api/files/resumes')
-      .set('Authorization', `Bearer ${token}`)
+      .set('Cookie', token)
       .attach('file', bigPdf, { filename: 'big.pdf', contentType: 'application/pdf' });
     expect(res.status).toBe(400);
     expect(res.body.error.message).toContain('2 MB or smaller');
@@ -67,7 +67,7 @@ describe('POST /api/files/resumes — upload limits and orphan cleanup', () => {
     stubQuota();
     const huge = Buffer.concat([Buffer.from('%PDF-1.4\n'), Buffer.alloc(5 * 1024 * 1024)]);
     const res = await request(app).post('/api/files/resumes')
-      .set('Authorization', `Bearer ${token}`)
+      .set('Cookie', token)
       .attach('file', huge, { filename: 'huge.pdf', contentType: 'application/pdf' });
     expect(res.status).toBe(400);
     expect(res.body.error.message).toMatch(/too large/i);
@@ -78,7 +78,7 @@ describe('POST /api/files/resumes — upload limits and orphan cleanup', () => {
     stubQuota();
     on(/insert into resumes/, () => { const e = new Error('duplicate key value violates unique constraint "resumes_one_active_uidx"'); e.code = '23505'; throw e; });
     const res = await request(app).post('/api/files/resumes')
-      .set('Authorization', `Bearer ${token}`)
+      .set('Cookie', token)
       .attach('file', Buffer.from('%PDF-1.4\n'), { filename: 'ok.pdf', contentType: 'application/pdf' });
     expect(res.status).toBe(500);
     expect(filesIn(S4)).toHaveLength(0);
@@ -89,7 +89,7 @@ describe('POST /api/files/resumes — upload limits and orphan cleanup', () => {
     stubQuota();
     on(/insert into resumes/, () => ({ rows: [{ id: 'aaaaaaaa-0000-4000-8000-000000000001', file_name: 'ok.pdf', file_path: 'x', is_active: true }] }));
     const res = await request(app).post('/api/files/resumes')
-      .set('Authorization', `Bearer ${token}`)
+      .set('Cookie', token)
       .attach('file', Buffer.from('%PDF-1.4\n'), { filename: 'ok.pdf', contentType: 'application/pdf' });
     expect(res.status).toBe(201);
     const files = filesIn(S5);

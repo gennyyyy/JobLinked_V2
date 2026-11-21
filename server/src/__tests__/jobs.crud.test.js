@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import request from 'supertest';
 
 vi.mock('../db.js', async () => { const h = await import('./helpers/db.js'); return { pool: h.pool, query: h.query, clientQuery: h.clientQuery, connect: h.connect }; });
-vi.mock('@supabase/supabase-js', async () => { const h = await import('./helpers/auth.js'); return { createClient: () => ({ auth: h.supabaseAuth }) }; });
+vi.mock('../ba.js', async () => { const h = await import('./helpers/auth.js'); return { auth: h.baAuth }; });
 
 import { on, reset, callsOf } from './helpers/db.js';
 import { loginAs, resetAuth } from './helpers/auth.js';
@@ -35,7 +35,7 @@ describe('POST /api/jobs', () => {
     on((sql) => /insert into job_vacancies/.test(sql) && /returning id/.test(sql), () => ({ rows: [{ id: JOB }] }));
     requireJobLoad(EMPLOYER);
     const res = await request(app).post('/api/jobs')
-      .set('Authorization', `Bearer ${token}`)
+      .set('Cookie', token)
       .send({ title: 'Dev', work_arrangement: 'Remote / Work from home' });
     expect(res.status).toBe(201);
     expect(res.body.employers.company_name).toBe('Acme');
@@ -48,7 +48,7 @@ describe('POST /api/jobs', () => {
     const token = loginAs({ id: EMPLOYER, role: 'employer' });
     on(/select accreditation_status from employers/, () => ({ rows: [{ accreditation_status: 'pending' }] }));
     const res = await request(app).post('/api/jobs')
-      .set('Authorization', `Bearer ${token}`)
+      .set('Cookie', token)
       .send({ title: 'Dev' });
     expect(res.status).toBe(403);
     expect(res.body.error.code).toBe('FORBIDDEN');
@@ -59,7 +59,7 @@ describe('POST /api/jobs', () => {
     on((sql) => /insert into job_vacancies/.test(sql) && /returning id/.test(sql), () => ({ rows: [{ id: JOB }] }));
     requireJobLoad(EMPLOYER, 'draft');
     const res = await request(app).post('/api/jobs')
-      .set('Authorization', `Bearer ${token}`)
+      .set('Cookie', token)
       .send({ title: 'Dev', status: 'draft' });
     expect(res.status).toBe(201);
     expect(callsOf(/select accreditation_status/)).toHaveLength(0);
@@ -68,7 +68,7 @@ describe('POST /api/jobs', () => {
   it('400 BAD_REQUEST when title is missing', async () => {
     const token = loginAs({ id: EMPLOYER, role: 'employer' });
     const res = await request(app).post('/api/jobs')
-      .set('Authorization', `Bearer ${token}`)
+      .set('Cookie', token)
       .send({ location: 'Manila' });
     expect(res.status).toBe(400);
     expect(res.body.error.code).toBe('BAD_REQUEST');
@@ -77,7 +77,7 @@ describe('POST /api/jobs', () => {
   it('403 FORBIDDEN for a job-seeker', async () => {
     const token = loginAs({ id: SEEKER, role: 'job-seeker' });
     const res = await request(app).post('/api/jobs')
-      .set('Authorization', `Bearer ${token}`)
+      .set('Cookie', token)
       .send({ title: 'Dev', status: 'draft' });
     expect(res.status).toBe(403);
     expect(res.body.error.code).toBe('FORBIDDEN');
@@ -103,7 +103,7 @@ describe('PATCH /api/jobs/:id', () => {
     on((sql) => /update job_vacancies set/.test(sql), () => ({ rowCount: 1 }));
     requireJobLoad(EMPLOYER);
     const res = await request(app).patch(`/api/jobs/${JOB}`)
-      .set('Authorization', `Bearer ${token}`)
+      .set('Cookie', token)
       .send({ title: 'Senior Dev' });
     expect(res.status).toBe(200);
     const update = callsOf(/update job_vacancies set/)[0];
@@ -116,7 +116,7 @@ describe('PATCH /api/jobs/:id', () => {
     const token = loginAs({ id: OTHER, role: 'employer' });
     requireJobLoad(EMPLOYER);
     const res = await request(app).patch(`/api/jobs/${JOB}`)
-      .set('Authorization', `Bearer ${token}`)
+      .set('Cookie', token)
       .send({ title: 'Nope' });
     expect(res.status).toBe(403);
     expect(res.body.error.code).toBe('FORBIDDEN');
@@ -125,7 +125,7 @@ describe('PATCH /api/jobs/:id', () => {
   it('404 NOT_FOUND when the job does not exist', async () => {
     const token = loginAs({ id: EMPLOYER, role: 'employer' });
     const res = await request(app).patch('/api/jobs/nope')
-      .set('Authorization', `Bearer ${token}`)
+      .set('Cookie', token)
       .send({ title: 'X' });
     expect(res.status).toBe(404);
     expect(res.body.error.code).toBe('NOT_FOUND');
@@ -135,7 +135,7 @@ describe('PATCH /api/jobs/:id', () => {
     const token = loginAs({ id: EMPLOYER, role: 'employer' });
     requireJobLoad(EMPLOYER);
     const res = await request(app).patch(`/api/jobs/${JOB}`)
-      .set('Authorization', `Bearer ${token}`)
+      .set('Cookie', token)
       .send({ work_arrangement: 'Moon-based' });
     expect(res.status).toBe(400);
     expect(res.body.error.code).toBe('BAD_REQUEST');
@@ -148,7 +148,7 @@ describe('PATCH /api/jobs/:id', () => {
     const token = loginAs({ id: EMPLOYER, role: 'employer' });
     requireJobLoad(EMPLOYER);
     const res = await request(app).patch(`/api/jobs/${JOB}`)
-      .set('Authorization', `Bearer ${token}`)
+      .set('Cookie', token)
       .send({ vacancies: '' });
     expect(res.status).toBe(400);
     expect(res.body.error.code).toBe('BAD_REQUEST');
@@ -159,7 +159,7 @@ describe('PATCH /api/jobs/:id', () => {
     const token = loginAs({ id: EMPLOYER, role: 'employer' });
     requireJobLoad(EMPLOYER);
     const res = await request(app).patch(`/api/jobs/${JOB}`)
-      .set('Authorization', `Bearer ${token}`)
+      .set('Cookie', token)
       .send({ work_arrangement: '' });
     expect(res.status).toBe(400);
     expect(res.body.error.code).toBe('BAD_REQUEST');
@@ -172,7 +172,7 @@ describe('PATCH /api/jobs/:id', () => {
     const token = loginAs({ id: EMPLOYER, role: 'employer' });
     requireJobLoad(EMPLOYER);
     const res = await request(app).patch(`/api/jobs/${JOB}`)
-      .set('Authorization', `Bearer ${token}`)
+      .set('Cookie', token)
       .send({ status });
     expect(res.status).toBe(400);
     expect(res.body.error.code).toBe('BAD_REQUEST');
@@ -184,7 +184,7 @@ describe('PATCH /api/jobs/:id', () => {
     const token = loginAs({ id: ADMIN, role: 'super-admin' });
     requireJobLoad(EMPLOYER);
     const res = await request(app).patch(`/api/jobs/${JOB}`)
-      .set('Authorization', `Bearer ${token}`)
+      .set('Cookie', token)
       .send({ status: 'rejected' });
     expect(res.status).toBe(200);
     expect(callsOf(/update job_vacancies set status/)[0].params[1]).toBe('rejected');
@@ -196,7 +196,7 @@ describe('DELETE /api/jobs/:id', () => {
     const token = loginAs({ id: EMPLOYER, role: 'employer' });
     requireJobLoad(EMPLOYER);
     on(/select count\(\*\)::int c from job_applications/, () => ({ rows: [{ c: 3 }] }));
-    const res = await request(app).delete(`/api/jobs/${JOB}`).set('Authorization', `Bearer ${token}`);
+    const res = await request(app).delete(`/api/jobs/${JOB}`).set('Cookie', token);
     expect(res.status).toBe(200);
     expect(res.body).toEqual({ deleted: true, applications: 3 });
     expect(callsOf(/delete from job_vacancies where id = \$1/)).toHaveLength(1);

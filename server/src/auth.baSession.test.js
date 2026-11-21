@@ -8,7 +8,7 @@ vi.mock('@supabase/supabase-js', async () => { const h = await import('./__tests
 vi.mock('./ba.js', async () => { const h = await import('./__tests__/helpers/auth.js'); return { auth: h.baAuth }; });
 
 import { on, reset } from './__tests__/helpers/db.js';
-import { baAuth, loginAs, loginAsBA, resetAuth } from './__tests__/helpers/auth.js';
+import { baAuth, loginAs, loginAsLegacy, resetAuth } from './__tests__/helpers/auth.js';
 import { makeApp, makeHardenedApp } from './__tests__/helpers/app.js';
 import { tokenAuth } from './auth.js';
 
@@ -29,7 +29,7 @@ describe('dual session resolution (ADR-056 decision 8)', () => {
   // (a) A BA cookie alone is a session. The role still comes from the Postgres
   // role table, and the retired app_metadata never rides on the principal.
   it('resolves a BA cookie to the role-table principal with no app_metadata', async () => {
-    const cookie = loginAsBA({ id: SEEKER, role: 'job-seeker' });
+    const cookie = loginAs({ id: SEEKER, role: 'job-seeker' });
 
     const res = await request(makeHardenedApp()).get('/api/auth/me').set('Cookie', cookie);
 
@@ -41,7 +41,7 @@ describe('dual session resolution (ADR-056 decision 8)', () => {
   });
 
   it('tokenAuth maps the BA user to { id, email, role } with app_metadata undefined', async () => {
-    const cookie = loginAsBA({ id: SEEKER, role: 'employer' });
+    const cookie = loginAs({ id: SEEKER, role: 'employer' });
 
     const out = await call(tokenAuth, { headers: { cookie } });
 
@@ -53,7 +53,7 @@ describe('dual session resolution (ADR-056 decision 8)', () => {
   // (b) The legacy Supabase bearer path is untouched — and the BA fast path
   // means no BA lookup is even attempted without the cookie.
   it('keeps the Supabase bearer path working and skips BA on a cookie-less request', async () => {
-    const token = loginAs({ id: SEEKER, role: 'job-seeker' });
+    const token = loginAsLegacy({ id: SEEKER, role: 'job-seeker' });
 
     const res = await request(app).get('/api/auth/me').set('Authorization', `Bearer ${token}`);
 
@@ -65,7 +65,7 @@ describe('dual session resolution (ADR-056 decision 8)', () => {
   // (c) A BA session whose user has no role row is a valid identity, not a
   // provisioned account.
   it('404s /auth/me and 403s an auth route when the BA user has no role row', async () => {
-    const cookie = loginAsBA({ id: SEEKER, role: 'job-seeker' });
+    const cookie = loginAs({ id: SEEKER, role: 'job-seeker' });
     on(/select role, profile from/, () => ({ rows: [], rowCount: 0 }));
 
     const me = await request(app).get('/api/auth/me').set('Cookie', cookie);
@@ -79,7 +79,7 @@ describe('dual session resolution (ADR-056 decision 8)', () => {
 
   // (d) Suspension wording must stay identical to the Supabase-era contract.
   it('403s a suspended BA account with the existing suspension message', async () => {
-    const cookie = loginAsBA({ id: SEEKER, role: 'job-seeker', status: 'suspended' });
+    const cookie = loginAs({ id: SEEKER, role: 'job-seeker', status: 'suspended' });
 
     const res = await request(app).get('/api/notifications/mine').set('Cookie', cookie);
 
@@ -89,7 +89,7 @@ describe('dual session resolution (ADR-056 decision 8)', () => {
 
   // (e) Decision 7: the super_admins row AND the BA user role must agree.
   it('403s Insufficient privileges when the BA role contradicts a super_admins row', async () => {
-    const cookie = loginAsBA({ id: SEEKER, role: 'job-seeker' });
+    const cookie = loginAs({ id: SEEKER, role: 'job-seeker' });
     on(/select role, profile from/, () => ({ rows: [{ role: 'super-admin', profile: { id: SEEKER, status: 'active' } }] }));
 
     const res = await request(app).get('/api/notifications/mine').set('Cookie', cookie);
@@ -99,7 +99,7 @@ describe('dual session resolution (ADR-056 decision 8)', () => {
   });
 
   it('allows a super-admin when the BA role agrees with the row', async () => {
-    const cookie = loginAsBA({ id: SEEKER, role: 'super-admin' });
+    const cookie = loginAs({ id: SEEKER, role: 'super-admin' });
 
     const res = await request(app).get('/api/notifications/mine').set('Cookie', cookie);
 
@@ -109,8 +109,8 @@ describe('dual session resolution (ADR-056 decision 8)', () => {
   // (f) Dual window: a BA outage must not invalidate a still-valid Supabase
   // bearer (both credentials present, BA throws).
   it('falls back to the Supabase bearer when the BA lookup throws', async () => {
-    const cookie = loginAsBA({ id: OTHER, role: 'employer' });
-    const token = loginAs({ id: SEEKER, role: 'job-seeker' });
+    const cookie = loginAs({ id: OTHER, role: 'employer' });
+    const token = loginAsLegacy({ id: SEEKER, role: 'job-seeker' });
     baAuth.api.getSession.mockRejectedValue(new Error('BA down'));
 
     const res = await request(app).get('/api/auth/me')

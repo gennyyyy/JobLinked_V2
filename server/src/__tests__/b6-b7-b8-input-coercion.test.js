@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import request from 'supertest';
 
 vi.mock('../db.js', async () => { const h = await import('./helpers/db.js'); return { pool: h.pool, query: h.query, clientQuery: h.clientQuery, connect: h.connect }; });
-vi.mock('@supabase/supabase-js', async () => { const h = await import('./helpers/auth.js'); return { createClient: () => ({ auth: h.supabaseAuth }) }; });
+vi.mock('../ba.js', async () => { const h = await import('./helpers/auth.js'); return { auth: h.baAuth }; });
 
 import { on, reset, callsOf } from './helpers/db.js';
 import { loginAs, resetAuth } from './helpers/auth.js';
@@ -66,7 +66,7 @@ describe('B8 — skills param may arrive as an array', () => {
 describe('B6 — enum-valued status filters are validated', () => {
   it('GET /api/jobs?status=bogus → 400 for a super-admin', async () => {
     const token = loginAs({ id: ADMIN, role: 'super-admin' });
-    const res = await request(app).get('/api/jobs?status=bogus').set('Authorization', `Bearer ${token}`);
+    const res = await request(app).get('/api/jobs?status=bogus').set('Cookie', token);
     expect(res.status).toBe(400);
     expect(res.body.error.code).toBe('BAD_REQUEST');
   });
@@ -74,39 +74,39 @@ describe('B6 — enum-valued status filters are validated', () => {
   it('GET /api/jobs?status=draft still works for a super-admin', async () => {
     const token = loginAs({ id: ADMIN, role: 'super-admin' });
     stubList();
-    const res = await request(app).get('/api/jobs?status=draft').set('Authorization', `Bearer ${token}`);
+    const res = await request(app).get('/api/jobs?status=draft').set('Cookie', token);
     expect(res.status).toBe(200);
   });
 
   it('GET /api/employers/:id/jobs?status=bogus → 400', async () => {
     const token = loginAs({ id: EMPLOYER, role: 'employer' });
-    const res = await request(app).get(`/api/employers/${EMPLOYER}/jobs?status=bogus`).set('Authorization', `Bearer ${token}`);
+    const res = await request(app).get(`/api/employers/${EMPLOYER}/jobs?status=bogus`).set('Cookie', token);
     expect(res.status).toBe(400);
     expect(res.body.error.code).toBe('BAD_REQUEST');
   });
 
   it('GET /api/admin/users?status=bogus → 400', async () => {
     const token = loginAs({ id: ADMIN, role: 'super-admin' });
-    const res = await request(app).get('/api/admin/users?status=bogus').set('Authorization', `Bearer ${token}`);
+    const res = await request(app).get('/api/admin/users?status=bogus').set('Cookie', token);
     expect(res.status).toBe(400);
     expect(res.body.error.code).toBe('BAD_REQUEST');
   });
 
   it('GET /api/admin/jobs?status=bogus → 400', async () => {
     const token = loginAs({ id: ADMIN, role: 'super-admin' });
-    const res = await request(app).get('/api/admin/jobs?status=bogus').set('Authorization', `Bearer ${token}`);
+    const res = await request(app).get('/api/admin/jobs?status=bogus').set('Cookie', token);
     expect(res.status).toBe(400);
   });
 
   it('GET /api/admin/applications?status=bogus → 400', async () => {
     const token = loginAs({ id: ADMIN, role: 'super-admin' });
-    const res = await request(app).get('/api/admin/applications?status=bogus').set('Authorization', `Bearer ${token}`);
+    const res = await request(app).get('/api/admin/applications?status=bogus').set('Cookie', token);
     expect(res.status).toBe(400);
   });
 
   it('GET /api/admin/companies?status=bogus → 400', async () => {
     const token = loginAs({ id: ADMIN, role: 'super-admin' });
-    const res = await request(app).get('/api/admin/companies?status=bogus').set('Authorization', `Bearer ${token}`);
+    const res = await request(app).get('/api/admin/companies?status=bogus').set('Cookie', token);
     expect(res.status).toBe(400);
   });
 
@@ -114,7 +114,7 @@ describe('B6 — enum-valued status filters are validated', () => {
     const token = loginAs({ id: ADMIN, role: 'super-admin' });
     on(/select count\(\*\)::int c from employers/, () => ({ rows: [{ c: 0 }] }));
     on(/select \* from employers/, () => ({ rows: [] }));
-    const res = await request(app).get('/api/admin/companies?status=suspended').set('Authorization', `Bearer ${token}`);
+    const res = await request(app).get('/api/admin/companies?status=suspended').set('Cookie', token);
     expect(res.status).toBe(200);
     // The filter param, then pageSize 25 / offset 0 — C2's LIMIT/OFFSET tail.
     expect(callsOf(/select \* from employers/)[0].params).toEqual(['suspended', 25, 0]);

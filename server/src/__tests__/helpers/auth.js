@@ -47,27 +47,35 @@ export const baAuth = {
 // pool routes that query here (see helpers/db.js builtin rule).
 export const resolveRoleResult = (id) => profiles.get(id) ?? null;
 
-// A provisioned, authenticated account of `role`; returns its bearer token.
-export function loginAs({ id, role, status = 'active', email }) {
-  const token = `tok-${id}`;
-  tokens.set(token, { id, email: email || `${id}@test.local`, app_metadata: { role } });
-  profiles.set(id, { role, profile: { id, status } });
-  return token;
-}
-
-// A provisioned BA account: registers the session cookie AND the same profiles
-// entry loginAs() writes, so auth.js resolves both sides of the dual window
-// through the same mocked pool. Returns the Cookie header value.
-// twoFactorEnabled mirrors the BA two-factor plugin's user flag (aal2 signal).
-export function loginAsBA({ id, role, status = 'active', email, twoFactorEnabled = false }) {
+// A provisioned, authenticated account of `role`. The session is the BA cookie
+// (ADR-056 decision 9), so this returns the Cookie header value auth.js reads.
+// Registers the same profiles entry resolveRole() answers from. twoFactorEnabled
+// mirrors the BA two-factor plugin's user flag (aal2 signal).
+export function loginAs({ id, role, status = 'active', email, twoFactorEnabled = false }) {
   const token = `ba-${id}`;
   baSessions.set(token, { id, email: email || `${id}@test.local`, role, twoFactorEnabled });
   profiles.set(id, { role, profile: { id, status } });
   return `better-auth.session_token=${token}`;
 }
 
-// A valid token with NO provisioned row (fresh session — me 404 / provision creates).
-export function tokenOnly({ id, email }) {
+// A BA session with NO provisioned row (fresh session — me 404 / provision creates).
+export function sessionOnly({ id, email }) {
+  const token = `ba-${id}`;
+  baSessions.set(token, { id, email: email || `${id}@test.local`, role: null, twoFactorEnabled: false });
+  return `better-auth.session_token=${token}`;
+}
+
+// --- Legacy Supabase bearer (still live until Task 13) -----------------------
+// Only the dual-window fallback tests use these; route tests authenticate
+// through loginAs()/sessionOnly() above.
+export function loginAsLegacy({ id, role, status = 'active', email }) {
+  const token = `tok-${id}`;
+  tokens.set(token, { id, email: email || `${id}@test.local`, app_metadata: { role } });
+  profiles.set(id, { role, profile: { id, status } });
+  return token;
+}
+
+export function tokenOnlyLegacy({ id, email }) {
   const token = `tok-${id}`;
   tokens.set(token, { id, email: email || `${id}@test.local`, app_metadata: {} });
   return token;

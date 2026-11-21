@@ -4,7 +4,7 @@ import request from 'supertest';
 // Tags are posting "highlights", not skills: matching reads job_vacancies.skills
 // (Task 3), so this only guarantees one stable lowercase/deduped display value.
 vi.mock('../db.js', async () => { const h = await import('./helpers/db.js'); return { pool: h.pool, query: h.query, clientQuery: h.clientQuery, connect: h.connect }; });
-vi.mock('@supabase/supabase-js', async () => { const h = await import('./helpers/auth.js'); return { createClient: () => ({ auth: h.supabaseAuth }) }; });
+vi.mock('../ba.js', async () => { const h = await import('./helpers/auth.js'); return { auth: h.baAuth }; });
 
 import { on, reset, callsOf } from './helpers/db.js';
 import { loginAs, resetAuth } from './helpers/auth.js';
@@ -30,7 +30,7 @@ describe('job tag casing', () => {
     requireJobLoad();
 
     const res = await request(app).post('/api/jobs')
-      .set('Authorization', `Bearer ${token}`)
+      .set('Cookie', token)
       .send({ title: 'Dev', status: 'draft', tags: DIRTY });
 
     expect(res.status).toBe(201);
@@ -43,7 +43,7 @@ describe('job tag casing', () => {
     on(/update job_vacancies set/, () => ({ rowCount: 1 }));
 
     const res = await request(app).patch(`/api/jobs/${JOB}`)
-      .set('Authorization', `Bearer ${token}`)
+      .set('Cookie', token)
       .send({ tags: DIRTY });
 
     expect(res.status).toBe(200);
@@ -56,7 +56,7 @@ describe('job tag casing', () => {
     on((sql) => /insert into job_vacancies/.test(sql) && /returning \*/.test(sql), () => ({ rows: [{ id: JOB }] }));
 
     const res = await request(app).post(`/api/jobs/${JOB}/duplicate`)
-      .set('Authorization', `Bearer ${token}`);
+      .set('Cookie', token);
 
     expect(res.status).toBe(201);
     expect(callsOf(/insert into job_vacancies/)[0].params).toContainEqual(['urgent hiring']);
@@ -70,7 +70,7 @@ describe('job tag casing', () => {
     on(/update job_vacancies set/, () => ({ rowCount: 1 }));
 
     const res = await request(app).patch(`/api/admin/jobs/${JOB}`)
-      .set('Authorization', `Bearer ${token}`)
+      .set('Cookie', token)
       .send({ tags: DIRTY });
 
     expect(res.status).toBe(200);
@@ -83,7 +83,7 @@ describe('job tag casing', () => {
     on(/update job_vacancies set/, () => ({ rowCount: 1 }));
 
     const res = await request(app).patch(`/api/jobs/${JOB}`)
-      .set('Authorization', `Bearer ${token}`)
+      .set('Cookie', token)
       .send({ tags: 'Urgent Hiring' });
 
     // A string is not a tags list: the helper yields [] so the NOT NULL array

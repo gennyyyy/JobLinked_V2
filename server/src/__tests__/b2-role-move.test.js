@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import request from 'supertest';
 
 vi.mock('../db.js', async () => { const h = await import('./helpers/db.js'); return { pool: h.pool, query: h.query, clientQuery: h.clientQuery, connect: h.connect }; });
-vi.mock('@supabase/supabase-js', async () => { const h = await import('./helpers/auth.js'); return { createClient: () => ({ auth: h.supabaseAuth }) }; });
+vi.mock('../ba.js', async () => { const h = await import('./helpers/auth.js'); return { auth: h.baAuth }; });
 
 import { on, reset, callsOf, unionOrder } from './helpers/db.js';
 import { loginAs, resetAuth } from './helpers/auth.js';
@@ -88,7 +88,7 @@ const seedEmployerWithData = () => {
 };
 
 const move = (token, role) => request(app).post(`/api/admin/users/${U}/role`)
-  .set('Authorization', `Bearer ${token}`).send({ role });
+  .set('Cookie', token).send({ role });
 
 describe('F1 — admin role move never deletes (data-loss regression)', () => {
   it('employer → job-seeker leaves jobs, applications, and their rows intact', async () => {
@@ -155,7 +155,7 @@ describe('F1 — admin role move never deletes (data-loss regression)', () => {
   it('403 when moving your own account (lockout footgun, unchanged)', async () => {
     const token = loginAs({ id: ADMIN, role: 'super-admin' });
     const res = await request(app).post(`/api/admin/users/${ADMIN}/role`)
-      .set('Authorization', `Bearer ${token}`).send({ role: 'employer' });
+      .set('Cookie', token).send({ role: 'employer' });
     expect(res.status).toBe(403);
     expect(res.body.error.code).toBe('FORBIDDEN');
   });
@@ -223,7 +223,7 @@ describe('F1 — the moved user resolves and lists under the NEW role', () => {
       return { rows: rows.slice(offset, offset + limit).map((r) => ({ role: r.role, profile: r.profile })) };
     });
 
-    const res = await request(app).get('/api/admin/users').set('Authorization', `Bearer ${token}`);
+    const res = await request(app).get('/api/admin/users').set('Cookie', token);
     expect(res.status).toBe(200);
     // Exactly one row for the moved id, and it is the ACTIVE job_seekers row —
     // never the shadowed inactive employers row the move left behind.

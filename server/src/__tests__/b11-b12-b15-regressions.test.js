@@ -2,10 +2,10 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import request from 'supertest';
 
 vi.mock('../db.js', async () => { const h = await import('./helpers/db.js'); return { pool: h.pool, query: h.query, clientQuery: h.clientQuery, connect: h.connect }; });
-vi.mock('@supabase/supabase-js', async () => { const h = await import('./helpers/auth.js'); return { createClient: () => ({ auth: h.supabaseAuth }) }; });
+vi.mock('../ba.js', async () => { const h = await import('./helpers/auth.js'); return { auth: h.baAuth }; });
 
 import { on, reset, callsOf } from './helpers/db.js';
-import { loginAs, tokenOnly, resetAuth } from './helpers/auth.js';
+import { loginAs, sessionOnly, resetAuth } from './helpers/auth.js';
 import { makeApp } from './helpers/app.js';
 
 const SEEKER = '11111111-1111-1111-1111-111111111111';
@@ -19,7 +19,7 @@ beforeEach(() => { reset(); resetAuth(); });
 describe('B12 — audit-log date filters are validated', () => {
   it('400 BAD_REQUEST for a malformed from', async () => {
     const token = loginAs({ id: ADMIN, role: 'super-admin' });
-    const res = await request(app).get('/api/admin/audit-logs?from=abc').set('Authorization', `Bearer ${token}`);
+    const res = await request(app).get('/api/admin/audit-logs?from=abc').set('Cookie', token);
     expect(res.status).toBe(400);
     expect(res.body.error.code).toBe('BAD_REQUEST');
     expect(callsOf(/from audit_logs/)).toHaveLength(0);
@@ -27,7 +27,7 @@ describe('B12 — audit-log date filters are validated', () => {
 
   it('400 BAD_REQUEST for a partial to date', async () => {
     const token = loginAs({ id: ADMIN, role: 'super-admin' });
-    const res = await request(app).get('/api/admin/audit-logs?to=2026-01').set('Authorization', `Bearer ${token}`);
+    const res = await request(app).get('/api/admin/audit-logs?to=2026-01').set('Cookie', token);
     expect(res.status).toBe(400);
   });
 
@@ -35,7 +35,7 @@ describe('B12 — audit-log date filters are validated', () => {
     const token = loginAs({ id: ADMIN, role: 'super-admin' });
     on(/coalesce\(js\.full_name/, () => ({ rows: [] }));
     const res = await request(app).get('/api/admin/audit-logs?from=2026-01-01&to=2026-01-31')
-      .set('Authorization', `Bearer ${token}`);
+      .set('Cookie', token);
     expect(res.status).toBe(200);
     const call = callsOf(/l\.created_at >=/)[0];
     expect(call.params).toContain('2026-01-01T00:00:00');
@@ -67,7 +67,7 @@ describe('B15 — LIKE wildcards are escaped', () => {
     // M2: the three tables are now one UNION ALL query (count + page rows).
     on(/select count\(\*\)::int c from \(/, () => ({ rows: [{ c: 0 }] }));
     on(/select t\.role, t\.profile/, () => ({ rows: [] }));
-    const res = await request(app).get('/api/admin/users?search=%25%25').set('Authorization', `Bearer ${token}`);
+    const res = await request(app).get('/api/admin/users?search=%25%25').set('Cookie', token);
     expect(res.status).toBe(200);
     // '%%' → each % escaped: % + \% + \% + % — a literal, not a match-all.
     // The filter runs on the deduped row's jsonb profile (F1); the params
@@ -81,7 +81,7 @@ describe('B15 — LIKE wildcards are escaped', () => {
 // 23505 → 500. The loser now answers the documented 200 idempotent body.
 describe('B11 — provision double-submit answers 200, not 500', () => {
   it('23505 on the insert returns the existing row with 200', async () => {
-    const token = tokenOnly({ id: SEEKER });
+    const token = sessionOnly({ id: SEEKER });
     on((sql) => /insert into job_seekers/.test(sql), () => {
       // The racing request wins: its row now exists in the registry.
       loginAs({ id: SEEKER, role: 'job-seeker' });
@@ -90,7 +90,7 @@ describe('B11 — provision double-submit answers 200, not 500', () => {
       throw e;
     });
     const res = await request(app).post('/api/auth/provision')
-      .set('Authorization', `Bearer ${token}`)
+      .set('Cookie', token)
       .send({ role: 'job-seeker', first_name: 'Ana', last_name: 'Cruz' });
     expect(res.status).toBe(200);
     expect(res.body.role).toBe('job-seeker');
@@ -100,10 +100,10 @@ describe('B11 — provision double-submit answers 200, not 500', () => {
   });
 
   it('a real (non-23505) insert failure still 500s', async () => {
-    const token = tokenOnly({ id: SEEKER });
+    const token = sessionOnly({ id: SEEKER });
     on((sql) => /insert into job_seekers/.test(sql), () => { throw new Error('disk full'); });
     const res = await request(app).post('/api/auth/provision')
-      .set('Authorization', `Bearer ${token}`)
+      .set('Cookie', token)
       .send({ role: 'job-seeker', first_name: 'Ana', last_name: 'Cruz' });
     expect(res.status).toBe(500);
     expect(res.body.error.code).toBe('INTERNAL');

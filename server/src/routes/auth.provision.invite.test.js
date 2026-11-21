@@ -7,11 +7,10 @@ import request from 'supertest';
 // /auth/me derives aal from the BA two-factor flag. Real routers + the shared
 // BA/db mock seam.
 vi.mock('../db.js', async () => { const h = await import('../__tests__/helpers/db.js'); return { pool: h.pool, query: h.query, clientQuery: h.clientQuery, connect: h.connect }; });
-vi.mock('@supabase/supabase-js', async () => { const h = await import('../__tests__/helpers/auth.js'); return { createClient: () => ({ auth: h.supabaseAuth }) }; });
 vi.mock('../ba.js', async () => { const h = await import('../__tests__/helpers/auth.js'); return { auth: h.baAuth }; });
 
 import { on, reset, callsOf } from '../__tests__/helpers/db.js';
-import { loginAsBA, resetAuth } from '../__tests__/helpers/auth.js';
+import { loginAs, resetAuth } from '../__tests__/helpers/auth.js';
 import { makeApp } from '../__tests__/helpers/app.js';
 import { resetVocabularyCache } from '../vocabulary.js';
 
@@ -31,7 +30,7 @@ const inviteRow = (over = {}) => ({
   ...over,
 });
 
-// A freshly invited account has no role row; loginAsBA always seeds one.
+// A freshly invited account has no role row; loginAs always seeds one.
 const unprovisioned = () => on(/select role, profile from/, () => ({ rows: [], rowCount: 0 }));
 const withInvite = (row) => on(/^select \* from public\.admin_invites/, () => ({ rows: [row], rowCount: 1 }));
 const inviteClaimed = () => on(/^delete from public\.admin_invites/, () => ({ rows: [{ user_id: SEEKER }], rowCount: 1 }));
@@ -54,7 +53,7 @@ describe('provision on better-auth: the admin_invites grant wins', () => {
   // Review Focus 6: a client sending role/custom_role_id must not change its
   // role. The invite row is the only source; the body is ordinary profile only.
   it('creates the INVITE role and profile when the body asks for super-admin', async () => {
-    const cookie = loginAsBA({ id: SEEKER, role: 'job-seeker' });
+    const cookie = loginAs({ id: SEEKER, role: 'job-seeker' });
     unprovisioned();
     withInvite(inviteRow());
     inviteClaimed();
@@ -75,7 +74,7 @@ describe('provision on better-auth: the admin_invites grant wins', () => {
   });
 
   it('claims and deletes the invite in the same transaction as the insert', async () => {
-    const cookie = loginAsBA({ id: SEEKER, role: 'job-seeker' });
+    const cookie = loginAs({ id: SEEKER, role: 'job-seeker' });
     unprovisioned();
     withInvite(inviteRow());
     inviteClaimed();
@@ -95,7 +94,7 @@ describe('provision on better-auth: the admin_invites grant wins', () => {
   });
 
   it('resolves a non-null invite custom_role_id inside the transaction', async () => {
-    const cookie = loginAsBA({ id: SEEKER, role: 'job-seeker' });
+    const cookie = loginAs({ id: SEEKER, role: 'job-seeker' });
     unprovisioned();
     withInvite(inviteRow({ custom_role_id: 7 }));
     on(/category = 'custom_role'/, () => ({ rows: [{ id: 7 }], rowCount: 1 }));
@@ -114,7 +113,7 @@ describe('provision on better-auth: the admin_invites grant wins', () => {
   });
 
   it('403 INVITE_INCOMPLETE for an invite tag that no longer resolves, without burning the invite', async () => {
-    const cookie = loginAsBA({ id: SEEKER, role: 'job-seeker' });
+    const cookie = loginAs({ id: SEEKER, role: 'job-seeker' });
     unprovisioned();
     withInvite(inviteRow({ custom_role_id: 999 }));
     on(/category = 'custom_role'/, () => ({ rows: [], rowCount: 0 }));
@@ -128,7 +127,7 @@ describe('provision on better-auth: the admin_invites grant wins', () => {
   });
 
   it('super-admin invite: 201 when the provider role agrees', async () => {
-    const cookie = loginAsBA({ id: ADMIN, role: 'super-admin' });
+    const cookie = loginAs({ id: ADMIN, role: 'super-admin' });
     unprovisioned();
     withInvite(inviteRow({ role: 'super-admin', profile: { first_name: 'Cid', last_name: 'Reyes' } }));
     inviteClaimed();
@@ -144,7 +143,7 @@ describe('provision on better-auth: the admin_invites grant wins', () => {
   });
 
   it('super-admin invite: 403 when the provider role disagrees', async () => {
-    const cookie = loginAsBA({ id: SEEKER, role: 'job-seeker' });
+    const cookie = loginAs({ id: SEEKER, role: 'job-seeker' });
     withInvite(inviteRow({ role: 'super-admin' }));
 
     const res = await provision(cookie);
@@ -156,7 +155,7 @@ describe('provision on better-auth: the admin_invites grant wins', () => {
   });
 
   it('no invite row + super-admin body role -> 403, no write', async () => {
-    const cookie = loginAsBA({ id: SEEKER, role: 'job-seeker' });
+    const cookie = loginAs({ id: SEEKER, role: 'job-seeker' });
 
     const res = await provision(cookie, { role: 'super-admin' });
 
@@ -168,7 +167,7 @@ describe('provision on better-auth: the admin_invites grant wins', () => {
   // Replay: the invite is gone and the role row exists — the documented 200,
   // and nothing is inserted or deleted again.
   it('replay answers 200 with the existing row and performs no second insert', async () => {
-    const cookie = loginAsBA({ id: SEEKER, role: 'job-seeker' });
+    const cookie = loginAs({ id: SEEKER, role: 'job-seeker' });
 
     const res = await provision(cookie, { role: 'job-seeker' });
 
@@ -181,7 +180,7 @@ describe('provision on better-auth: the admin_invites grant wins', () => {
   // Two concurrent provisions: the loser's claim returns no row, so it must not
   // insert — it re-resolves the winner's row and answers the documented 200.
   it('a lost claim re-resolves and answers 200, never a second insert', async () => {
-    const cookie = loginAsBA({ id: SEEKER, role: 'job-seeker' });
+    const cookie = loginAs({ id: SEEKER, role: 'job-seeker' });
     let lookups = 0;
     on(/select role, profile from/, () => {
       lookups += 1;
@@ -201,7 +200,7 @@ describe('provision on better-auth: the admin_invites grant wins', () => {
   });
 
   it('a lost claim with no row appearing fails closed with 403', async () => {
-    const cookie = loginAsBA({ id: SEEKER, role: 'job-seeker' });
+    const cookie = loginAs({ id: SEEKER, role: 'job-seeker' });
     unprovisioned();
     withInvite(inviteRow());
     on(/^delete from public\.admin_invites/, () => ({ rows: [], rowCount: 0 }));
@@ -214,7 +213,7 @@ describe('provision on better-auth: the admin_invites grant wins', () => {
   });
 
   it('self-signup on a BA session (no invite) keeps the body role and a null tag', async () => {
-    const cookie = loginAsBA({ id: SEEKER, role: 'job-seeker' });
+    const cookie = loginAs({ id: SEEKER, role: 'job-seeker' });
     unprovisioned();
     seekerInsert();
 
@@ -230,7 +229,7 @@ describe('provision on better-auth: the admin_invites grant wins', () => {
 // BA for aal, and must never decode a JWT for a BA session.
 describe('/auth/me aal on a BA session', () => {
   it('aal2 when the BA user has a two-factor factor', async () => {
-    const cookie = loginAsBA({ id: SEEKER, role: 'job-seeker', twoFactorEnabled: true });
+    const cookie = loginAs({ id: SEEKER, role: 'job-seeker', twoFactorEnabled: true });
 
     const res = await request(app).get('/api/auth/me').set('Cookie', cookie);
 
@@ -239,7 +238,7 @@ describe('/auth/me aal on a BA session', () => {
   });
 
   it('aal1 without a factor, even with a JWT-shaped Authorization header', async () => {
-    const cookie = loginAsBA({ id: SEEKER, role: 'job-seeker' });
+    const cookie = loginAs({ id: SEEKER, role: 'job-seeker' });
     const payload = Buffer.from(JSON.stringify({ aal: 'aal2' })).toString('base64url');
 
     const res = await request(app).get('/api/auth/me')

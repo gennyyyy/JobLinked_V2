@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import request from 'supertest';
 
 vi.mock('../db.js', async () => { const h = await import('./helpers/db.js'); return { pool: h.pool, query: h.query, clientQuery: h.clientQuery, connect: h.connect }; });
-vi.mock('@supabase/supabase-js', async () => { const h = await import('./helpers/auth.js'); return { createClient: () => ({ auth: h.supabaseAuth }) }; });
+vi.mock('../ba.js', async () => { const h = await import('./helpers/auth.js'); return { auth: h.baAuth }; });
 
 import { on, reset, callsOf } from './helpers/db.js';
 import { loginAs, resetAuth } from './helpers/auth.js';
@@ -21,7 +21,7 @@ describe('feeFilter routes', () => {
   it('(a) POST /jobs blocked -> 422 zero writes', async () => {
     const token = loginAs({ id: EMPLOYER, role: 'employer' });
     on((sql) => /insert into job_vacancies/.test(sql), () => ({ rows: [{ id: JOB }] }));
-    const res = await request(app).post('/api/jobs').set('Authorization', `Bearer ${token}`)
+    const res = await request(app).post('/api/jobs').set('Cookie', token)
       .send({ title: 'Dev', description: 'registration fee applies' });
     expect(res.status).toBe(422);
     expect(res.body.error.code).toBe('FEE_POLICY_BLOCKED');
@@ -31,7 +31,7 @@ describe('feeFilter routes', () => {
   it('(b) PATCH blocked keeps post unchanged', async () => {
     const token = loginAs({ id: EMPLOYER, role: 'employer' });
     on((sql) => /where j\.id = \$1/.test(sql), () => ({ rows: [job(EMPLOYER)] }));
-    const res = await request(app).patch(`/api/jobs/${JOB}`).set('Authorization', `Bearer ${token}`)
+    const res = await request(app).patch(`/api/jobs/${JOB}`).set('Cookie', token)
       .send({ description: 'processing payment required' });
     expect(res.status).toBe(422);
     expect(res.body.error.code).toBe('FEE_POLICY_BLOCKED');
@@ -44,7 +44,7 @@ describe('feeFilter routes', () => {
     on((sql) => /where j\.id = \$1/.test(sql), () => ({ rows: [job(EMPLOYER, loads++ === 0 ? 'draft' : 'pending', { description: 'deposit required' })] }));
     on(/select accreditation_status from employers/, () => ({ rows: [{ accreditation_status: 'approved' }] }));
     on((sql) => /insert into job_prohibited_flags/.test(sql), () => ({ rows: [], rowCount: 1 }));
-    const res = await request(app).post(`/api/jobs/${JOB}/status`).set('Authorization', `Bearer ${token}`)
+    const res = await request(app).post(`/api/jobs/${JOB}/status`).set('Cookie', token)
       .send({ status: 'published' });
     expect(res.status).toBe(200);
     expect(res.body.status).toBe('pending');
@@ -56,7 +56,7 @@ describe('feeFilter routes', () => {
     let loads = 0;
     on((sql) => /where j\.id = \$1/.test(sql), () => ({ rows: [job(EMPLOYER, loads++ === 0 ? 'draft' : 'published')] }));
     on(/select accreditation_status from employers/, () => ({ rows: [{ accreditation_status: 'approved' }] }));
-    const res = await request(app).post(`/api/jobs/${JOB}/status`).set('Authorization', `Bearer ${token}`)
+    const res = await request(app).post(`/api/jobs/${JOB}/status`).set('Cookie', token)
       .send({ status: 'published' });
     expect(res.status).toBe(200);
     expect(res.body.status).toBe('published');
@@ -67,14 +67,14 @@ describe('feeFilter routes', () => {
     const token = loginAs({ id: EMPLOYER, role: 'employer' });
     on((sql) => /where j\.id = \$1/.test(sql), () => ({ rows: [job(EMPLOYER)] }));
     on((sql) => /from job_prohibited_flags/.test(sql) && /resolved is null/.test(sql), () => ({ rows: [{ id: 'f' }] }));
-    const res = await request(app).post(`/api/jobs/${JOB}/duplicate`).set('Authorization', `Bearer ${token}`);
+    const res = await request(app).post(`/api/jobs/${JOB}/duplicate`).set('Cookie', token);
     expect(res.status).toBe(422);
     expect(res.body.error.code).toBe('FEE_POLICY_BLOCKED');
   });
 
   it('GET /jobs/fee-filter/terms returns terms', async () => {
     const token = loginAs({ id: EMPLOYER, role: 'employer' });
-    const res = await request(app).get('/api/jobs/fee-filter/terms').set('Authorization', `Bearer ${token}`);
+    const res = await request(app).get('/api/jobs/fee-filter/terms').set('Cookie', token);
     expect(res.status).toBe(200);
     expect(res.body.block).toContain('registration fee');
     expect(res.body.hold).toContain('fee');

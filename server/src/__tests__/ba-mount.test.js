@@ -16,7 +16,7 @@ vi.mock('../db.js', async () => { const h = await import('./helpers/db.js'); ret
 vi.mock('@supabase/supabase-js', async () => { const h = await import('./helpers/auth.js'); return { createClient: () => ({ auth: h.supabaseAuth }) }; });
 
 import { on, reset } from './helpers/db.js';
-import { tokenOnly, resetAuth } from './helpers/auth.js';
+import { tokenOnlyLegacy, resetAuth } from './helpers/auth.js';
 import { makeHardenedApp } from './helpers/app.js';
 
 const SEEKER = '11111111-1111-4111-8111-111111111111';
@@ -80,7 +80,7 @@ describe('better-auth mount', () => {
   });
 
   it('POST /api/auth/provision 400s without a role (route-level body parser)', async () => {
-    const token = tokenOnly({ id: SEEKER });
+    const token = tokenOnlyLegacy({ id: SEEKER });
     const res = await request(app).post('/api/auth/provision')
       .set('Authorization', `Bearer ${token}`)
       .send({});
@@ -89,7 +89,7 @@ describe('better-auth mount', () => {
   });
 
   it('POST /api/auth/provision creates the row from a parsed body', async () => {
-    const token = tokenOnly({ id: SEEKER });
+    const token = tokenOnlyLegacy({ id: SEEKER });
     on((sql) => /insert into job_seekers/.test(sql) && /returning \*/.test(sql),
       () => ({ rows: [{ id: SEEKER, email: 'u@test.local', full_name: 'ana cruz' }] }));
     const res = await request(app).post('/api/auth/provision')

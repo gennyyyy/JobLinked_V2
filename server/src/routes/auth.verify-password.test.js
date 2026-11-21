@@ -7,11 +7,10 @@ import { APIError } from 'better-auth/api';
 // { status: true } or throws INVALID_PASSWORD; the route translates that to the
 // app contract and never forwards a BA error body.
 vi.mock('../db.js', async () => { const h = await import('../__tests__/helpers/db.js'); return { pool: h.pool, query: h.query, clientQuery: h.clientQuery, connect: h.connect }; });
-vi.mock('@supabase/supabase-js', async () => { const h = await import('../__tests__/helpers/auth.js'); return { createClient: () => ({ auth: h.supabaseAuth }) }; });
 vi.mock('../ba.js', async () => { const h = await import('../__tests__/helpers/auth.js'); return { auth: h.baAuth }; });
 
 import { reset } from '../__tests__/helpers/db.js';
-import { baAuth, loginAsBA, resetAuth } from '../__tests__/helpers/auth.js';
+import { baAuth, loginAs, resetAuth } from '../__tests__/helpers/auth.js';
 import { makeApp } from '../__tests__/helpers/app.js';
 
 const SEEKER = '11111111-1111-4111-8111-111111111111';
@@ -31,7 +30,7 @@ describe('POST /api/auth/verify-password', () => {
   });
 
   it('answers { valid: true } through BA when the password matches', async () => {
-    const cookie = loginAsBA({ id: SEEKER, role: 'job-seeker' });
+    const cookie = loginAs({ id: SEEKER, role: 'job-seeker' });
     baAuth.api.verifyPassword.mockResolvedValue({ status: true });
 
     const res = await verify(cookie, { password: 'pw123456!' });
@@ -47,7 +46,7 @@ describe('POST /api/auth/verify-password', () => {
   });
 
   it('401 INVALID_PASSWORD for a wrong password, with no BA internals in the body', async () => {
-    const cookie = loginAsBA({ id: SEEKER, role: 'job-seeker' });
+    const cookie = loginAs({ id: SEEKER, role: 'job-seeker' });
     baAuth.api.verifyPassword.mockRejectedValue(
       APIError.from('BAD_REQUEST', { code: 'INVALID_PASSWORD', message: 'Invalid password' }),
     );
@@ -59,7 +58,7 @@ describe('POST /api/auth/verify-password', () => {
   });
 
   it('400s when the password is missing', async () => {
-    const cookie = loginAsBA({ id: SEEKER, role: 'job-seeker' });
+    const cookie = loginAs({ id: SEEKER, role: 'job-seeker' });
 
     const res = await verify(cookie, {});
 

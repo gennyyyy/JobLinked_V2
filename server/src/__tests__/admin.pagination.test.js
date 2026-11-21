@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import request from 'supertest';
 
 vi.mock('../db.js', async () => { const h = await import('./helpers/db.js'); return { pool: h.pool, query: h.query, clientQuery: h.clientQuery, connect: h.connect }; });
-vi.mock('@supabase/supabase-js', async () => { const h = await import('./helpers/auth.js'); return { createClient: () => ({ auth: h.supabaseAuth }) }; });
+vi.mock('../ba.js', async () => { const h = await import('./helpers/auth.js'); return { auth: h.baAuth }; });
 
 import { on, reset, callsOf } from './helpers/db.js';
 import { loginAs, resetAuth } from './helpers/auth.js';
@@ -14,8 +14,8 @@ const OTHER_EMPLOYER = '33333333-3333-3333-3333-333333333333';
 const ADMIN = '44444444-4444-4444-4444-444444444444';
 
 const app = makeApp();
-const as = (id, role) => `Bearer ${loginAs({ id, role })}`;
-const adminGet = (path) => request(app).get(`/api${path}`).set('Authorization', as(ADMIN, 'super-admin'));
+const as = (id, role) => loginAs({ id, role });
+const adminGet = (path) => request(app).get(`/api${path}`).set('Cookie', as(ADMIN, 'super-admin'));
 
 beforeEach(() => { reset(); resetAuth(); });
 
@@ -139,7 +139,7 @@ describe('C2 — admin list endpoints are paginated', () => {
     ['/admin/applications', SEEKER, 'job-seeker'],
     ['/admin/accreditations', EMPLOYER, 'employer'],
   ])('GET %s → 403 for a non-admin', async (path, id, role) => {
-    const res = await request(app).get(`/api${path}`).set('Authorization', as(id, role));
+    const res = await request(app).get(`/api${path}`).set('Cookie', as(id, role));
     expect(res.status).toBe(403);
     expect(res.body.error.code).toBe('FORBIDDEN');
   });
@@ -150,7 +150,7 @@ describe('M1 — GET /employers/:employerId/jobs is paginated', () => {
   it('returns the envelope with applicant_count and SQL LIMIT/OFFSET', async () => {
     on(/select count\(\*\)::int c from job_vacancies j left join employers/, () => ({ rows: [{ c: 9 }] }));
     on(/applicant_count/, () => ({ rows: [{ id: 'j1', company_id: EMPLOYER, company_name: 'Acme', logo_path: null, applicant_count: 4 }] }));
-    const res = await request(app).get(`/api/employers/${EMPLOYER}/jobs`).set('Authorization', as(EMPLOYER, 'employer'));
+    const res = await request(app).get(`/api/employers/${EMPLOYER}/jobs`).set('Cookie', as(EMPLOYER, 'employer'));
     expect(res.status).toBe(200);
     expect(res.body.total).toBe(9);
     expect(res.body.page).toBe(1);
@@ -168,7 +168,7 @@ describe('M1 — GET /employers/:employerId/jobs is paginated', () => {
     on(/select count\(\*\)::int c from job_vacancies j left join employers/, () => ({ rows: [{ c: 9 }] }));
     on(/count\(\*\) filter \(where status =/, () => ({ rows: [{ total: 9, published: 9, closed: 0, draft: 0 }] }));
     on(/applicant_count/, () => ({ rows: [] }));
-    const res = await request(app).get(`/api/employers/${EMPLOYER}/jobs?page=5`).set('Authorization', as(EMPLOYER, 'employer'));
+    const res = await request(app).get(`/api/employers/${EMPLOYER}/jobs?page=5`).set('Cookie', as(EMPLOYER, 'employer'));
     expect(res.body).toEqual({ data: [], total: 9, page: 5, pageSize: 25, counts: { total: 9, published: 9, closed: 0, draft: 0 } });
     expect(callsOf(/applicant_count/)[0].params).toEqual([EMPLOYER, 25, 100]);
   });
@@ -178,7 +178,7 @@ describe('M1 — GET /employers/:employerId/jobs is paginated', () => {
     on(/count\(\*\) filter \(where status =/, () => ({ rows: [{ total: 12, published: 7, closed: 3, draft: 2 }] }));
     on(/applicant_count/, () => ({ rows: [] }));
     const res = await request(app).get(`/api/employers/${EMPLOYER}/jobs?status=draft&page=3`)
-      .set('Authorization', as(EMPLOYER, 'employer'));
+      .set('Cookie', as(EMPLOYER, 'employer'));
     expect(res.status).toBe(200);
     expect(res.body).toEqual({ data: [], total: 2, page: 3, pageSize: 25, counts: { total: 12, published: 7, closed: 3, draft: 2 } });
     // The list count carries the status filter; the counts SQL must not.
@@ -190,19 +190,19 @@ describe('M1 — GET /employers/:employerId/jobs is paginated', () => {
   });
 
   it('junk page params → 400 with no query', async () => {
-    const res = await request(app).get(`/api/employers/${EMPLOYER}/jobs?page=abc`).set('Authorization', as(EMPLOYER, 'employer'));
+    const res = await request(app).get(`/api/employers/${EMPLOYER}/jobs?page=abc`).set('Cookie', as(EMPLOYER, 'employer'));
     expect(res.status).toBe(400);
     expect(res.body.error.message).toBe('page must be a positive integer');
     expect(callsOf(/job_vacancies/)).toHaveLength(0);
   });
 
   it('allows another employer to read published jobs (public, ADR-048)', async () => {
-    const res = await request(app).get(`/api/employers/${EMPLOYER}/jobs`).set('Authorization', as(OTHER_EMPLOYER, 'employer'));
+    const res = await request(app).get(`/api/employers/${EMPLOYER}/jobs`).set('Cookie', as(OTHER_EMPLOYER, 'employer'));
     expect(res.status).toBe(200);
   });
 
   it('400 for a malformed company id, unchanged', async () => {
-    const res = await request(app).get('/api/employers/nope/jobs').set('Authorization', as(EMPLOYER, 'employer'));
+    const res = await request(app).get('/api/employers/nope/jobs').set('Cookie', as(EMPLOYER, 'employer'));
     expect(res.status).toBe(400);
     expect(res.body.error.code).toBe('BAD_REQUEST');
   });
@@ -227,7 +227,7 @@ describe('C2 — report exports are bounded', () => {
   });
 
   it('403 for a non-admin, unchanged', async () => {
-    const res = await request(app).get('/api/admin/reports/vacancies/export').set('Authorization', as(SEEKER, 'job-seeker'));
+    const res = await request(app).get('/api/admin/reports/vacancies/export').set('Cookie', as(SEEKER, 'job-seeker'));
     expect(res.status).toBe(403);
   });
 });

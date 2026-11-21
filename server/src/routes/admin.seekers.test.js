@@ -7,7 +7,7 @@ import request from 'supertest';
 // route exists so a super-admin can learn a resume's file_path (the
 // /files/* stream endpoint never exposes it).
 vi.mock('../db.js', async () => { const h = await import('../__tests__/helpers/db.js'); return { pool: h.pool, query: h.query, clientQuery: h.clientQuery, connect: h.connect }; });
-vi.mock('@supabase/supabase-js', async () => { const h = await import('../__tests__/helpers/auth.js'); return { createClient: () => ({ auth: h.supabaseAuth }) }; });
+vi.mock('../ba.js', async () => { const h = await import('../__tests__/helpers/auth.js'); return { auth: h.baAuth }; });
 
 import { on, reset, callsOf } from '../__tests__/helpers/db.js';
 import { loginAs, resetAuth } from '../__tests__/helpers/auth.js';
@@ -21,7 +21,7 @@ const SEEKER = '11111111-1111-1111-1111-111111111111';
 beforeEach(() => { reset(); resetAuth(); });
 
 const asAdmin = () => loginAs({ id: ADMIN, role: 'super-admin' });
-const get = (path, token) => request(app).get(`/api${path}`).set('Authorization', `Bearer ${token}`);
+const get = (path, token) => request(app).get(`/api${path}`).set('Cookie', token);
 
 describe('GET /api/admin/seekers/:id/resumes', () => {
   it('returns the seeker resume rows as stored, active first', async () => {

@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import request from 'supertest';
 
 vi.mock('../db.js', async () => { const h = await import('./helpers/db.js'); return { pool: h.pool, query: h.query, clientQuery: h.clientQuery, connect: h.connect }; });
-vi.mock('@supabase/supabase-js', async () => { const h = await import('./helpers/auth.js'); return { createClient: () => ({ auth: h.supabaseAuth }) }; });
+vi.mock('../ba.js', async () => { const h = await import('./helpers/auth.js'); return { auth: h.baAuth }; });
 
 import { on, reset, callsOf } from './helpers/db.js';
 import { loginAs, resetAuth } from './helpers/auth.js';
@@ -75,7 +75,7 @@ describe('broadcast excludes opted-out users', () => {
     const token = loginAs({ id: 'admin-1', role: 'super-admin' });
     on(/insert into notifications/, () => ({ rows: [], rowCount: 2 }));
     const res = await request(app).post('/api/admin/system-notifications')
-      .set('Authorization', `Bearer ${token}`).send({ title: 'Hi', message: 'Msg' });
+      .set('Cookie', token).send({ title: 'Hi', message: 'Msg' });
     expect(res.status).toBe(200);
     const inserts = callsOf(/insert into notifications/);
     expect(inserts).toHaveLength(1);

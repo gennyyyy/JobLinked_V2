@@ -5,10 +5,7 @@ vi.mock('../db.js', async () => {
   const h = await import('./helpers/db.js');
   return { pool: h.pool, query: h.query, clientQuery: h.clientQuery, connect: h.connect };
 });
-vi.mock('@supabase/supabase-js', async () => {
-  const h = await import('./helpers/auth.js');
-  return { createClient: () => ({ auth: h.supabaseAuth }) };
-});
+vi.mock('../ba.js', async () => { const h = await import('./helpers/auth.js'); return { auth: h.baAuth }; });
 
 process.env.SUPABASE_URL ||= 'http://127.0.0.1';
 process.env.SUPABASE_SERVICE_ROLE_KEY ||= 'test-service-role-key';
@@ -45,7 +42,7 @@ describe('resilience regressions (live 2026-11-05)', () => {
 
     const res = await request(makeApp())
       .patch(`/api/admin/users/${U}`)
-      .set('Authorization', `Bearer ${token}`)
+      .set('Cookie', token)
       .send({ status: 'active' });
 
     expect(res.status).toBe(200);
@@ -57,7 +54,7 @@ describe('resilience regressions (live 2026-11-05)', () => {
     const token = loginAs({ id: ADMIN, role: 'super-admin' });
     const res = await request(makeApp())
       .patch(`/api/admin/users/${U}`)
-      .set('Authorization', `Bearer ${token}`)
+      .set('Cookie', token)
       .send({ status: 'inactive' });
     expect(res.status).toBe(400);
     expect(res.body.error.code).toBe('BAD_REQUEST');

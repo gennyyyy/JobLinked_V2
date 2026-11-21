@@ -6,7 +6,7 @@ import request from 'supertest';
 // `vacancies int not null` (schema.sql:190) or the NOT NULL + CHECK
 // `work_arrangement` (schema.sql:183-184), and a null write is a 23502 500.
 vi.mock('../db.js', async () => { const h = await import('./helpers/db.js'); return { pool: h.pool, query: h.query, clientQuery: h.clientQuery, connect: h.connect }; });
-vi.mock('@supabase/supabase-js', async () => { const h = await import('./helpers/auth.js'); return { createClient: () => ({ auth: h.supabaseAuth }) }; });
+vi.mock('../ba.js', async () => { const h = await import('./helpers/auth.js'); return { auth: h.baAuth }; });
 
 import { on, reset, callsOf } from './helpers/db.js';
 import { loginAs, resetAuth } from './helpers/auth.js';
@@ -18,7 +18,7 @@ const JOB = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
 const app = makeApp();
 beforeEach(() => { reset(); resetAuth(); });
 
-const asAdmin = () => `Bearer ${loginAs({ id: ADMIN, role: 'super-admin' })}`;
+const asAdmin = () => loginAs({ id: ADMIN, role: 'super-admin' });
 const stubJob = () => on(/^select \* from job_vacancies where id = \$1$/, () => ({
   rows: [{ id: JOB, title: 'Dev', work_arrangement: 'Hybrid', vacancies: 3, status: 'published' }],
 }));
@@ -27,7 +27,7 @@ describe('PATCH /api/admin/jobs/:id — NOT NULL columns', () => {
   it('400 BAD_REQUEST when vacancies is emptied, no update', async () => {
     stubJob();
     const res = await request(app).patch(`/api/admin/jobs/${JOB}`)
-      .set('Authorization', asAdmin())
+      .set('Cookie', asAdmin())
       .send({ vacancies: '' });
     expect(res.status).toBe(400);
     expect(res.body.error.code).toBe('BAD_REQUEST');
@@ -37,7 +37,7 @@ describe('PATCH /api/admin/jobs/:id — NOT NULL columns', () => {
   it('400 BAD_REQUEST when work_arrangement is emptied, no update', async () => {
     stubJob();
     const res = await request(app).patch(`/api/admin/jobs/${JOB}`)
-      .set('Authorization', asAdmin())
+      .set('Cookie', asAdmin())
       .send({ work_arrangement: '' });
     expect(res.status).toBe(400);
     expect(res.body.error.code).toBe('BAD_REQUEST');
@@ -51,7 +51,7 @@ describe('PATCH /api/admin/jobs/:id — NOT NULL columns', () => {
       rows: [{ id: JOB, title: 'Dev', work_arrangement: 'Hybrid', vacancies: 3, location: null }],
     }));
     const res = await request(app).patch(`/api/admin/jobs/${JOB}`)
-      .set('Authorization', asAdmin())
+      .set('Cookie', asAdmin())
       .send({ location: '' });
     expect(res.status).toBe(200);
     const update = callsOf(/update job_vacancies set/)[0];

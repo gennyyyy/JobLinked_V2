@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import request from 'supertest';
 
 vi.mock('../db.js', async () => { const h = await import('./helpers/db.js'); return { pool: h.pool, query: h.query, clientQuery: h.clientQuery, connect: h.connect }; });
-vi.mock('@supabase/supabase-js', async () => { const h = await import('./helpers/auth.js'); return { createClient: () => ({ auth: h.supabaseAuth }) }; });
+vi.mock('../ba.js', async () => { const h = await import('./helpers/auth.js'); return { auth: h.baAuth }; });
 
 import { reset } from './helpers/db.js';
 import { resetAuth, loginAs } from './helpers/auth.js';
@@ -41,7 +41,7 @@ describe('authLimiter keying (integration)', () => {
     for (let i = 0; i < 101; i++) {
       const res = await request(app)
         .get('/api/auth/me')
-        .set('Authorization', `Bearer ${aToken}`);
+        .set('Cookie', aToken);
       if (res.status === 429) aLimited++;
     }
     // A reached the 100/15min limit, so exactly one request is 429.
@@ -50,7 +50,7 @@ describe('authLimiter keying (integration)', () => {
     // B is on a different bucket — the very first request must not be 429.
     const bRes = await request(app)
       .get('/api/auth/me')
-      .set('Authorization', `Bearer ${bToken}`);
+      .set('Cookie', bToken);
     expect(bRes.status).not.toBe(429);
   });
 
@@ -101,7 +101,7 @@ describe('TRUST_PROXY boot warning', () => {
       // Re-install mocks after resetModules so the app under test still sees
       // the in-memory DB/auth fakes from this file.
       vi.doMock('../db.js', async () => { const h = await import('./helpers/db.js'); return { pool: h.pool, query: h.query, clientQuery: h.clientQuery, connect: h.connect }; });
-      vi.doMock('@supabase/supabase-js', async () => { const h = await import('./helpers/auth.js'); return { createClient: () => ({ auth: h.supabaseAuth }) }; });
+      vi.doMock('../ba.js', async () => { const h = await import('./helpers/auth.js'); return { auth: h.baAuth }; });
       const { createApp } = await import('../app.js');
       createApp();
       const warnings = warnSpy.mock.calls
@@ -123,7 +123,7 @@ describe('TRUST_PROXY boot warning', () => {
     try {
       vi.resetModules();
       vi.doMock('../db.js', async () => { const h = await import('./helpers/db.js'); return { pool: h.pool, query: h.query, clientQuery: h.clientQuery, connect: h.connect }; });
-      vi.doMock('@supabase/supabase-js', async () => { const h = await import('./helpers/auth.js'); return { createClient: () => ({ auth: h.supabaseAuth }) }; });
+      vi.doMock('../ba.js', async () => { const h = await import('./helpers/auth.js'); return { auth: h.baAuth }; });
       const { createApp } = await import('../app.js');
       createApp();
       const warnings = warnSpy.mock.calls

@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import request from 'supertest';
 
 vi.mock('../db.js', async () => { const h = await import('./helpers/db.js'); return { pool: h.pool, query: h.query, clientQuery: h.clientQuery, connect: h.connect }; });
-vi.mock('@supabase/supabase-js', async () => { const h = await import('./helpers/auth.js'); return { createClient: () => ({ auth: h.supabaseAuth }) }; });
+vi.mock('../ba.js', async () => { const h = await import('./helpers/auth.js'); return { auth: h.baAuth }; });
 
 import { on, reset, callsOf } from './helpers/db.js';
 import { loginAs, resetAuth } from './helpers/auth.js';
@@ -19,7 +19,7 @@ describe('PATCH /api/seekers/me', () => {
     const token = loginAs({ id: SEEKER, role: 'job-seeker' });
     on((sql) => /update job_seekers set/.test(sql), () => ({ rows: [{ id: SEEKER, first_name: '', phone: '0917000000' }] }));
     const res = await request(app).patch('/api/seekers/me')
-      .set('Authorization', `Bearer ${token}`)
+      .set('Cookie', token)
       .send({ first_name: '', nickname: 'sneaky', phone: '0917000000', status: 'banned' });
     expect(res.status).toBe(200);
     const update = callsOf(/update job_seekers set/)[0];
@@ -34,7 +34,7 @@ describe('PATCH /api/seekers/me', () => {
   it('400 BAD_REQUEST when no allow-listed field is present', async () => {
     const token = loginAs({ id: SEEKER, role: 'job-seeker' });
     const res = await request(app).patch('/api/seekers/me')
-      .set('Authorization', `Bearer ${token}`)
+      .set('Cookie', token)
       .send({ something_else: 1 });
     expect(res.status).toBe(400);
     expect(res.body.error.code).toBe('BAD_REQUEST');
@@ -43,7 +43,7 @@ describe('PATCH /api/seekers/me', () => {
   it('403 FORBIDDEN for an employer', async () => {
     const token = loginAs({ id: EMPLOYER, role: 'employer' });
     const res = await request(app).patch('/api/seekers/me')
-      .set('Authorization', `Bearer ${token}`)
+      .set('Cookie', token)
       .send({ phone: '0917000000' });
     expect(res.status).toBe(403);
     expect(res.body.error.code).toBe('FORBIDDEN');
@@ -55,7 +55,7 @@ describe('PATCH /api/employers/me', () => {
     const token = loginAs({ id: EMPLOYER, role: 'employer' });
     on((sql) => /update employers set/.test(sql), () => ({ rows: [{ id: EMPLOYER, company_name: '' }] }));
     const res = await request(app).patch('/api/employers/me')
-      .set('Authorization', `Bearer ${token}`)
+      .set('Cookie', token)
       .send({ company_name: '', id: EMPLOYER + '-hack' });
     expect(res.status).toBe(200);
     const update = callsOf(/update employers set/)[0];
@@ -67,7 +67,7 @@ describe('PATCH /api/employers/me', () => {
   it('403 FORBIDDEN for a job-seeker', async () => {
     const token = loginAs({ id: SEEKER, role: 'job-seeker' });
     const res = await request(app).patch('/api/employers/me')
-      .set('Authorization', `Bearer ${token}`)
+      .set('Cookie', token)
       .send({ company_name: 'Acme' });
     expect(res.status).toBe(403);
     expect(res.body.error.code).toBe('FORBIDDEN');

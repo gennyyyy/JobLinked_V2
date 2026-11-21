@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterAll, vi } from 'vitest';
 import request from 'supertest';
 
 vi.mock('../db.js', async () => { const h = await import('./helpers/db.js'); return { pool: h.pool, query: h.query, clientQuery: h.clientQuery, connect: h.connect }; });
-vi.mock('@supabase/supabase-js', async () => { const h = await import('./helpers/auth.js'); return { createClient: () => ({ auth: h.supabaseAuth }) }; });
+vi.mock('../ba.js', async () => { const h = await import('./helpers/auth.js'); return { auth: h.baAuth }; });
 
 // auth.js builds a Supabase client lazily; stub env so any import path can't throw.
 process.env.SUPABASE_URL ||= 'http://127.0.0.1';
@@ -40,7 +40,7 @@ describe('F-01 — general limiter keys by the authenticated user, IP otherwise'
   const USER_B = 'bbbbbbbb-2222-4222-8222-222222222222';
   // Authenticated leg on an auth route; anonymous leg on the 404 catch-all —
   // both are counted by apiLimiter, only the key differs.
-  const asUser = (token) => request(defaultApp).get('/api/notifications/mine').set('Authorization', `Bearer ${token}`);
+  const asUser = (token) => request(defaultApp).get('/api/notifications/mine').set('Cookie', token);
   const anon = () => request(defaultApp).get('/api/not-a-route');
 
   it('users behind one IP keep independent buckets; anonymous stays IP-keyed', async () => {
@@ -71,7 +71,7 @@ describe('F-01 — general limiter keys by the authenticated user, IP otherwise'
     expect(res.headers['ratelimit']).toContain('limit=1000');
   });
 
-  it('an invalid token falls back to the IP bucket (no free rides)', async () => {
+  it('an invalid session falls back to the IP bucket (no free rides)', async () => {
     const before = await anon();
     const bad = await asUser('garbage'); // 401 at the route — but still counted
     const after = await anon();

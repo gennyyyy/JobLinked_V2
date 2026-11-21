@@ -11,7 +11,7 @@ import request from 'supertest';
 // history write rolls the whole duplicate back (500, rollback fired, no commit).
 
 vi.mock('../db.js', async () => { const h = await import('../__tests__/helpers/db.js'); return { pool: h.pool, query: h.query, clientQuery: h.clientQuery, connect: h.connect }; });
-vi.mock('@supabase/supabase-js', async () => { const h = await import('../__tests__/helpers/auth.js'); return { createClient: () => ({ auth: h.supabaseAuth }) }; });
+vi.mock('../ba.js', async () => { const h = await import('../__tests__/helpers/auth.js'); return { auth: h.baAuth }; });
 
 import { on, reset, callsOf } from '../__tests__/helpers/db.js';
 import { loginAs, resetAuth } from '../__tests__/helpers/auth.js';
@@ -40,7 +40,7 @@ const asEmployer = (job = origJob, failHistory = false) => {
   if (failHistory) on(/insert into job_status_history/, () => { throw new Error('history write failed'); });
   return token;
 };
-const dup = (token) => request(app).post(`/api/jobs/${JOB}/duplicate`).set('Authorization', `Bearer ${token}`);
+const dup = (token) => request(app).post(`/api/jobs/${JOB}/duplicate`).set('Cookie', token);
 
 describe('POST /jobs/:id/duplicate', () => {
   it('reloads the copy and returns it with a 201', async () => {

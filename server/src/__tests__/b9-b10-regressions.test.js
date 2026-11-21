@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import request from 'supertest';
 
 vi.mock('../db.js', async () => { const h = await import('./helpers/db.js'); return { pool: h.pool, query: h.query, clientQuery: h.clientQuery, connect: h.connect }; });
-vi.mock('@supabase/supabase-js', async () => { const h = await import('./helpers/auth.js'); return { createClient: () => ({ auth: h.supabaseAuth }) }; });
+vi.mock('../ba.js', async () => { const h = await import('./helpers/auth.js'); return { auth: h.baAuth }; });
 
 import { on, reset, callsOf } from './helpers/db.js';
 import { loginAs, resetAuth } from './helpers/auth.js';
@@ -27,7 +27,7 @@ describe('B9 — CSV export escapes cells per RFC 4180', () => {
   it('doubles embedded quotes instead of breaking the row', async () => {
     const token = loginAs({ id: ADMIN, role: 'super-admin' });
     stubVacancies([{ title: 'SA "Best" Co', employers: { company_name: 'Acme' }, location: 'Manila', status: 'published', employment_type: 'Full-time', created_at: '2026-01-01' }]);
-    const res = await request(app).get('/api/admin/reports/vacancies/export').set('Authorization', `Bearer ${token}`);
+    const res = await request(app).get('/api/admin/reports/vacancies/export').set('Cookie', token);
     expect(res.status).toBe(200);
     expect(res.text).toContain('"SA ""Best"" Co"');
     expect(res.text).not.toContain('"SA "Best" Co"');
@@ -36,7 +36,7 @@ describe('B9 — CSV export escapes cells per RFC 4180', () => {
   it('keeps an embedded comma inside the quoted cell', async () => {
     const token = loginAs({ id: ADMIN, role: 'super-admin' });
     stubVacancies([{ title: 'Dev', employers: { company_name: 'Acme, Inc.' }, location: 'Manila', status: 'published', employment_type: 'Full-time', created_at: '2026-01-01' }]);
-    const res = await request(app).get('/api/admin/reports/vacancies/export').set('Authorization', `Bearer ${token}`);
+    const res = await request(app).get('/api/admin/reports/vacancies/export').set('Cookie', token);
     expect(res.status).toBe(200);
     expect(res.text).toContain('"Acme, Inc."');
   });
@@ -44,14 +44,14 @@ describe('B9 — CSV export escapes cells per RFC 4180', () => {
   it('keeps an embedded newline inside the quoted cell', async () => {
     const token = loginAs({ id: ADMIN, role: 'super-admin' });
     stubVacancies([{ title: 'Line one\nLine two', employers: { company_name: 'Acme' }, location: 'Manila', status: 'published', employment_type: 'Full-time', created_at: '2026-01-01' }]);
-    const res = await request(app).get('/api/admin/reports/vacancies/export').set('Authorization', `Bearer ${token}`);
+    const res = await request(app).get('/api/admin/reports/vacancies/export').set('Cookie', token);
     expect(res.status).toBe(200);
     expect(res.text).toContain('"Line one\nLine two"');
   });
 
   it('403 FORBIDDEN for a non-admin caller', async () => {
     const token = loginAs({ id: SEEKER, role: 'job-seeker' });
-    const res = await request(app).get('/api/admin/reports/vacancies/export').set('Authorization', `Bearer ${token}`);
+    const res = await request(app).get('/api/admin/reports/vacancies/export').set('Cookie', token);
     expect(res.status).toBe(403);
     expect(res.body.error.code).toBe('FORBIDDEN');
   });

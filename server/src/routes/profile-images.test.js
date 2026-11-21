@@ -5,10 +5,7 @@ vi.mock('../db.js', async () => {
   const h = await import('../__tests__/helpers/db.js');
   return { pool: h.pool, query: h.query, clientQuery: h.clientQuery, connect: h.connect };
 });
-vi.mock('@supabase/supabase-js', async () => {
-  const h = await import('../__tests__/helpers/auth.js');
-  return { createClient: () => ({ auth: h.supabaseAuth }) };
-});
+vi.mock('../ba.js', async () => { const h = await import('../__tests__/helpers/auth.js'); return { auth: h.baAuth }; });
 
 process.env.SUPABASE_URL ||= 'http://127.0.0.1';
 process.env.SUPABASE_SERVICE_ROLE_KEY ||= 'test-service-role-key';
@@ -36,7 +33,7 @@ describe('profile images (ADR-040)', () => {
     on(/insert into profile_images/, () => ({ rows: [{ updated_at: '2026-01-01T00:00:00.000Z' }] }));
 
     const res = await request(app).post('/api/seekers/me/avatar')
-      .set('Authorization', `Bearer ${token}`)
+      .set('Cookie', token)
       .attach('file', PNG, { filename: 'me.png', contentType: 'image/png' });
 
     expect(res.status).toBe(201);
@@ -51,7 +48,7 @@ describe('profile images (ADR-040)', () => {
   it('rejects an EXE renamed .png before it reaches the database', async () => {
     const token = loginAs({ id: SEEKER, role: 'job-seeker' });
     const res = await request(app).post('/api/seekers/me/avatar')
-      .set('Authorization', `Bearer ${token}`)
+      .set('Cookie', token)
       .attach('file', Buffer.from('MZ\u0090\u0000', 'latin1'), { filename: 'evil.png', contentType: 'image/png' });
 
     expect(res.status).toBe(400);
@@ -66,7 +63,7 @@ describe('profile images (ADR-040)', () => {
     }));
 
     const res = await request(app).get(`/api/seekers/${SEEKER}/avatar`)
-      .set('Authorization', `Bearer ${token}`)
+      .set('Cookie', token)
       .buffer(true).parse(binaryParser);
     expect(res.status).toBe(200);
     expect(res.headers['content-type']).toBe('image/png');
@@ -81,7 +78,7 @@ describe('profile images (ADR-040)', () => {
   it('does not let an unrelated employer read a seeker avatar', async () => {
     const token = loginAs({ id: EMPLOYER, role: 'employer' });
     on(/select 1 from job_applications a join job_vacancies/, () => ({ rows: [] }));
-    const res = await request(app).get(`/api/seekers/${SEEKER}/avatar`).set('Authorization', `Bearer ${token}`);
+    const res = await request(app).get(`/api/seekers/${SEEKER}/avatar`).set('Cookie', token);
     expect(res.status).toBe(403);
   });
 
@@ -101,7 +98,7 @@ describe('profile images (ADR-040)', () => {
     on(/left join profile_images i on i.owner_id/, () => ({
       rows: [{ id: SEEKER, full_name: 'Jane', has_avatar: true, avatar_updated_at: '2026-01-01T00:00:00.000Z' }],
     }));
-    const res = await request(app).get('/api/seekers/me').set('Authorization', `Bearer ${token}`);
+    const res = await request(app).get('/api/seekers/me').set('Cookie', token);
     expect(res.status).toBe(200);
     expect(res.body.has_avatar).toBe(true);
     expect(res.body.avatar_updated_at).toBeTruthy();
@@ -111,7 +108,7 @@ describe('profile images (ADR-040)', () => {
   it('deletes only the caller own image kind', async () => {
     const token = loginAs({ id: SEEKER, role: 'job-seeker' });
     on(/^delete from profile_images/, () => ({ rows: [], rowCount: 1 }));
-    const res = await request(app).delete('/api/seekers/me/avatar').set('Authorization', `Bearer ${token}`);
+    const res = await request(app).delete('/api/seekers/me/avatar').set('Cookie', token);
     expect(res.status).toBe(200);
     expect(res.body).toEqual({ deleted: true });
     expect(callsOf(/^delete from profile_images/)[0].params).toEqual([SEEKER, 'seeker-avatar']);

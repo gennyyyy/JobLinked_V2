@@ -5,7 +5,7 @@ import os from 'node:os';
 import path from 'node:path';
 
 vi.mock('../db.js', async () => { const h = await import('./helpers/db.js'); return { pool: h.pool, query: h.query, clientQuery: h.clientQuery, connect: h.connect }; });
-vi.mock('@supabase/supabase-js', async () => { const h = await import('./helpers/auth.js'); return { createClient: () => ({ auth: h.supabaseAuth }) }; });
+vi.mock('../ba.js', async () => { const h = await import('./helpers/auth.js'); return { auth: h.baAuth }; });
 
 // upload.js resolves UPLOAD_DIR at import time — point it at a scratch dir
 // before anything imports it, so this suite never writes into server/uploads/.
@@ -49,7 +49,7 @@ describe('F-04 — doc_type allow-list', () => {
   it('POST /api/documents rejects a garbage doc_type with 400 and no orphan', async () => {
     const token = loginAs({ id: EMPLOYER, role: 'employer' });
     const res = await request(app).post('/api/documents')
-      .set('Authorization', `Bearer ${token}`)
+      .set('Cookie', token)
       .field('doc_type', '<script>alert(1)</script>')
       .attach('file', pdf(), { filename: 'permit.pdf', contentType: 'application/pdf' });
     expect(res.status).toBe(400);
@@ -61,7 +61,7 @@ describe('F-04 — doc_type allow-list', () => {
   it('POST /api/files/documents rejects a garbage doc_type with 400 and no orphan', async () => {
     const token = loginAs({ id: E2, role: 'employer' });
     const res = await request(app).post('/api/files/documents')
-      .set('Authorization', `Bearer ${token}`)
+      .set('Cookie', token)
       .field('doc_type', 'Not A Real Document')
       .attach('file', pdf(), { filename: 'permit.pdf', contentType: 'application/pdf' });
     expect(res.status).toBe(400);
@@ -74,7 +74,7 @@ describe('F-04 — doc_type allow-list', () => {
     const token = loginAs({ id: E3, role: 'employer' });
     on(/insert into employer_documents/, () => ({ rows: [{ id: 'doc-1', doc_type: 'Business Permit' }] }));
     const res = await request(app).post('/api/files/documents')
-      .set('Authorization', `Bearer ${token}`)
+      .set('Cookie', token)
       .field('doc_type', 'Business Permit')
       .attach('file', pdf(), { filename: 'permit.pdf', contentType: 'application/pdf' });
     expect(res.status).toBe(201);
@@ -89,7 +89,7 @@ describe('F-11 — salary fields must be numeric', () => {
   it('POST /api/jobs rejects a non-numeric salary_min with 400, no insert', async () => {
     const token = loginAs({ id: EMPLOYER, role: 'employer' });
     const res = await request(app).post('/api/jobs')
-      .set('Authorization', `Bearer ${token}`)
+      .set('Cookie', token)
       .send({ title: 'Dev', salary_min: 'abc' });
     expect(res.status).toBe(400);
     expect(res.body.error.code).toBe('BAD_REQUEST');
@@ -99,7 +99,7 @@ describe('F-11 — salary fields must be numeric', () => {
   it('POST /api/jobs rejects a non-numeric salary_max with 400', async () => {
     const token = loginAs({ id: EMPLOYER, role: 'employer' });
     const res = await request(app).post('/api/jobs')
-      .set('Authorization', `Bearer ${token}`)
+      .set('Cookie', token)
       .send({ title: 'Dev', salary_min: 100, salary_max: 'lots' });
     expect(res.status).toBe(400);
     expect(res.body.error.code).toBe('BAD_REQUEST');
@@ -109,7 +109,7 @@ describe('F-11 — salary fields must be numeric', () => {
     const token = loginAs({ id: EMPLOYER, role: 'employer' });
     requireJobLoad();
     const res = await request(app).patch(`/api/jobs/${JOB}`)
-      .set('Authorization', `Bearer ${token}`)
+      .set('Cookie', token)
       .send({ salary_min: 'abc' });
     expect(res.status).toBe(400);
     expect(res.body.error.code).toBe('BAD_REQUEST');
@@ -120,7 +120,7 @@ describe('F-11 — salary fields must be numeric', () => {
     const token = loginAs({ id: EMPLOYER, role: 'employer' });
     requireJobLoad();
     const res = await request(app).patch(`/api/jobs/${JOB}`)
-      .set('Authorization', `Bearer ${token}`)
+      .set('Cookie', token)
       .send({ salary_min: '15000' });
     expect(res.status).toBe(200);
     expect(callsOf(/update job_vacancies set/)[0].params).toContain('15000');

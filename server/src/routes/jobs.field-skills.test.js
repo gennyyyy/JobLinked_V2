@@ -7,7 +7,7 @@ import request from 'supertest';
 // fan-out matches skills overlap OR the same field (location still ORed).
 // (The GET /jobs?skills= text search has its own suite: jobs.skills.test.js.)
 vi.mock('../db.js', async () => { const h = await import('../__tests__/helpers/db.js'); return { pool: h.pool, query: h.query, clientQuery: h.clientQuery, connect: h.connect }; });
-vi.mock('@supabase/supabase-js', async () => { const h = await import('../__tests__/helpers/auth.js'); return { createClient: () => ({ auth: h.supabaseAuth }) }; });
+vi.mock('../ba.js', async () => { const h = await import('../__tests__/helpers/auth.js'); return { auth: h.baAuth }; });
 
 import { on, reset, callsOf } from '../__tests__/helpers/db.js';
 import { loginAs, resetAuth } from '../__tests__/helpers/auth.js';
@@ -42,9 +42,9 @@ const employerReady = (job = jobRow()) => {
 };
 
 const create = (token, body) => request(app).post('/api/jobs')
-  .set('Authorization', `Bearer ${token}`).send(body);
+  .set('Cookie', token).send(body);
 const patch = (token, body, path = `/api/jobs/${JOB}`) => request(app).patch(path)
-  .set('Authorization', `Bearer ${token}`).send(body);
+  .set('Cookie', token).send(body);
 
 beforeEach(() => {
   reset();

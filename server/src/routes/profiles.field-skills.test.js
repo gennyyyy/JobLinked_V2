@@ -6,7 +6,7 @@ import request from 'supertest';
 // on write) and 3 (legacy backfilled skills still save). Migration 016 backfills
 // legacy free text lowercased, so the vocabulary itself may hold "arc welding".
 vi.mock('../db.js', async () => { const h = await import('../__tests__/helpers/db.js'); return { pool: h.pool, query: h.query, clientQuery: h.clientQuery, connect: h.connect }; });
-vi.mock('@supabase/supabase-js', async () => { const h = await import('../__tests__/helpers/auth.js'); return { createClient: () => ({ auth: h.supabaseAuth }) }; });
+vi.mock('../ba.js', async () => { const h = await import('../__tests__/helpers/auth.js'); return { auth: h.baAuth }; });
 
 import { on, reset, callsOf } from '../__tests__/helpers/db.js';
 import { loginAs, resetAuth } from '../__tests__/helpers/auth.js';
@@ -25,7 +25,7 @@ let vocabSkills = SKILLS;
 const app = makeApp();
 
 const patchMe = (token, body) => request(app).patch('/api/seekers/me')
-  .set('Authorization', `Bearer ${token}`).send(body);
+  .set('Cookie', token).send(body);
 const updateReturns = (row = { id: SEEKER }) => on(/update job_seekers set/, () => ({ rows: [row] }));
 
 beforeEach(() => {
@@ -142,7 +142,7 @@ describe('PATCH /api/seekers/me field', () => {
     const token = loginAs({ id: EMPLOYER, role: 'employer' });
 
     const res = await request(app).patch('/api/employers/me')
-      .set('Authorization', `Bearer ${token}`).send({ field: 'Information Technology' });
+      .set('Cookie', token).send({ field: 'Information Technology' });
 
     expect(res.status).toBe(400);
     expect(res.body.error.message).toBe('Nothing to update');

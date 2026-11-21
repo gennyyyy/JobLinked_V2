@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 vi.mock('../db.js', async () => { const h = await import('./helpers/db.js'); return { pool: h.pool, query: h.query, clientQuery: h.clientQuery, connect: h.connect }; });
-vi.mock('@supabase/supabase-js', async () => { const h = await import('./helpers/auth.js'); return { createClient: () => ({ auth: h.supabaseAuth }) }; });
+vi.mock('../ba.js', async () => { const h = await import('./helpers/auth.js'); return { auth: h.baAuth }; });
 
 import { on, reset } from './helpers/db.js';
 import { loginAs, resetAuth } from './helpers/auth.js';
@@ -55,7 +55,7 @@ describe('C3 — security headers (helmet)', () => {
     try {
       const res = await request(app)
         .get(`/api/files/resumes/${id}/csp-stream-test.pdf`)
-        .set('Authorization', `Bearer ${token}`);
+        .set('Cookie', token);
       expect(res.status).toBe(200);
       expect(res.headers['content-type']).toContain('application/pdf');
       expect(res.headers['content-length']).toBe(String(bytes.length));
@@ -76,7 +76,7 @@ describe('C3 — security headers (helmet)', () => {
     }));
     const res = await request(app)
       .get('/api/admin/reports/seekers/export?format=csv')
-      .set('Authorization', `Bearer ${token}`);
+      .set('Cookie', token);
     expect(res.status).toBe(200);
     expect(res.headers['content-type']).toContain('text/csv');
     expect(res.headers['content-disposition']).toContain('attachment');

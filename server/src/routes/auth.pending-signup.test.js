@@ -8,11 +8,10 @@ import request from 'supertest';
 // row); provision merges the row, then claims and deletes it in the same
 // transaction as the role insert. Real routers + the shared BA/db mock seam.
 vi.mock('../db.js', async () => { const h = await import('../__tests__/helpers/db.js'); return { pool: h.pool, query: h.query, clientQuery: h.clientQuery, connect: h.connect }; });
-vi.mock('@supabase/supabase-js', async () => { const h = await import('../__tests__/helpers/auth.js'); return { createClient: () => ({ auth: h.supabaseAuth }) }; });
 vi.mock('../ba.js', async () => { const h = await import('../__tests__/helpers/auth.js'); return { auth: h.baAuth }; });
 
 import { on, reset, callsOf } from '../__tests__/helpers/db.js';
-import { loginAsBA, resetAuth } from '../__tests__/helpers/auth.js';
+import { loginAs, resetAuth } from '../__tests__/helpers/auth.js';
 import { makeApp } from '../__tests__/helpers/app.js';
 import { resetVocabularyCache } from '../vocabulary.js';
 
@@ -157,7 +156,7 @@ describe('provision claims the pending self-signup row', () => {
   // The whole point: BA's sign-up body is gone once the user verifies, so the
   // verified session sends {} and every field must come back from the row.
   it('merges the pending role and profile, then deletes the row in the transaction', async () => {
-    const cookie = loginAsBA({ id: SEEKER, role: 'job-seeker' });
+    const cookie = loginAs({ id: SEEKER, role: 'job-seeker' });
     unprovisioned();
     withPending({
       role: 'job-seeker',
@@ -194,7 +193,7 @@ describe('provision claims the pending self-signup row', () => {
   });
 
   it('lets the body override the pending role and profile fields', async () => {
-    const cookie = loginAsBA({ id: SEEKER, role: 'job-seeker' });
+    const cookie = loginAs({ id: SEEKER, role: 'job-seeker' });
     unprovisioned();
     withPending({
       role: 'job-seeker',
@@ -219,7 +218,7 @@ describe('provision claims the pending self-signup row', () => {
   });
 
   it('400 when there is no invite, no pending row, and no body role', async () => {
-    const cookie = loginAsBA({ id: SEEKER, role: 'job-seeker' });
+    const cookie = loginAs({ id: SEEKER, role: 'job-seeker' });
     unprovisioned();
 
     const res = await provision(cookie, {});
@@ -231,7 +230,7 @@ describe('provision claims the pending self-signup row', () => {
   });
 
   it('an invite wins over a pending row and both rows are deleted', async () => {
-    const cookie = loginAsBA({ id: SEEKER, role: 'job-seeker' });
+    const cookie = loginAs({ id: SEEKER, role: 'job-seeker' });
     unprovisioned();
     withInvite({ user_id: SEEKER, role: 'job-seeker', custom_role_id: null, profile: { first_name: 'Ana', last_name: 'Cruz' } });
     inviteClaimed();
@@ -254,7 +253,7 @@ describe('provision claims the pending self-signup row', () => {
   });
 
   it('a second provision answers 200 and consumes nothing', async () => {
-    const cookie = loginAsBA({ id: SEEKER, role: 'job-seeker' });
+    const cookie = loginAs({ id: SEEKER, role: 'job-seeker' });
 
     const res = await provision(cookie, { role: 'job-seeker' });
 
@@ -267,7 +266,7 @@ describe('provision claims the pending self-signup row', () => {
   // Same race as the invite: the pre-read row is gone by claim time, so the
   // loser inserts nothing and re-resolves the winner's row (200).
   it('a lost pending claim re-resolves and answers 200, never a second insert', async () => {
-    const cookie = loginAsBA({ id: SEEKER, role: 'job-seeker' });
+    const cookie = loginAs({ id: SEEKER, role: 'job-seeker' });
     let lookups = 0;
     on(/select role, profile from/, () => {
       lookups += 1;
@@ -287,7 +286,7 @@ describe('provision claims the pending self-signup row', () => {
   });
 
   it('a lost pending claim with no row appearing fails closed with 403', async () => {
-    const cookie = loginAsBA({ id: SEEKER, role: 'job-seeker' });
+    const cookie = loginAs({ id: SEEKER, role: 'job-seeker' });
     unprovisioned();
     withPending({ role: 'job-seeker', profile: { first_name: 'Ana' } });
     on(/^delete from public\.pending_signups/, () => ({ rows: [], rowCount: 0 }));

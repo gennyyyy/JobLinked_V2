@@ -4,7 +4,7 @@ import request from 'supertest';
 // P3 (ADR-046): one canonical employment_type list shared by the DB CHECK,
 // db/seed.sql, this server constant and the two UI forms.
 vi.mock('../db.js', async () => { const h = await import('./helpers/db.js'); return { pool: h.pool, query: h.query, clientQuery: h.clientQuery, connect: h.connect }; });
-vi.mock('@supabase/supabase-js', async () => { const h = await import('./helpers/auth.js'); return { createClient: () => ({ auth: h.supabaseAuth }) }; });
+vi.mock('../ba.js', async () => { const h = await import('./helpers/auth.js'); return { auth: h.baAuth }; });
 
 import { on, reset, callsOf } from './helpers/db.js';
 import { loginAs, resetAuth } from './helpers/auth.js';
@@ -37,7 +37,7 @@ describe('employment_type domain', () => {
     const token = loginAs({ id: EMPLOYER, role: 'employer' });
 
     const res = await request(app).post('/api/jobs')
-      .set('Authorization', `Bearer ${token}`)
+      .set('Cookie', token)
       .send({ title: 'Dev', status: 'draft', employment_type: 'Freelance' });
 
     expect(res.status).toBe(400);
@@ -52,7 +52,7 @@ describe('employment_type domain', () => {
     requireJobLoad();
 
     const res = await request(app).post('/api/jobs')
-      .set('Authorization', `Bearer ${token}`)
+      .set('Cookie', token)
       .send({ title: 'Dev', status: 'draft', employment_type: type });
 
     expect(res.status).toBe(201);
@@ -65,7 +65,7 @@ describe('employment_type domain', () => {
     requireJobLoad();
 
     const res = await request(app).post('/api/jobs')
-      .set('Authorization', `Bearer ${token}`)
+      .set('Cookie', token)
       .send({ title: 'Dev', status: 'draft', employment_type: '' });
 
     expect(res.status).toBe(201);
@@ -77,7 +77,7 @@ describe('employment_type domain', () => {
     requireJobLoad();
 
     const res = await request(app).patch(`/api/jobs/${JOB}`)
-      .set('Authorization', `Bearer ${token}`)
+      .set('Cookie', token)
       .send({ employment_type: 'Freelance' });
 
     expect(res.status).toBe(400);
@@ -91,7 +91,7 @@ describe('employment_type domain', () => {
     on(/update job_vacancies set/, () => ({ rowCount: 1 }));
 
     const res = await request(app).patch(`/api/jobs/${JOB}`)
-      .set('Authorization', `Bearer ${token}`)
+      .set('Cookie', token)
       .send({ employment_type: type });
 
     expect(res.status).toBe(200);
@@ -103,7 +103,7 @@ describe('employment_type domain', () => {
     stubAdminJob();
 
     const res = await request(app).patch(`/api/admin/jobs/${JOB}`)
-      .set('Authorization', `Bearer ${token}`)
+      .set('Cookie', token)
       .send({ employment_type: 'Freelance' });
 
     expect(res.status).toBe(400);
@@ -117,7 +117,7 @@ describe('employment_type domain', () => {
     on(/update job_vacancies set/, () => ({ rowCount: 1 }));
 
     const res = await request(app).patch(`/api/admin/jobs/${JOB}`)
-      .set('Authorization', `Bearer ${token}`)
+      .set('Cookie', token)
       .send({ employment_type: type });
 
     expect(res.status).toBe(200);

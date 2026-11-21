@@ -5,10 +5,7 @@ import { setupIntegrationDb } from './db.bootstrap.js';
 // Supabase is the only mocked boundary (token validation, no network). Roles,
 // SQL, constraints and triggers all run against real Postgres through the real
 // db.js pool.
-vi.mock('@supabase/supabase-js', async () => {
-  const h = await import('../helpers/auth.js');
-  return { createClient: () => ({ auth: h.supabaseAuth }) };
-});
+vi.mock('../../ba.js', async () => { const h = await import('../../__tests__/helpers/auth.js'); return { auth: h.baAuth }; });
 
 const ctx = await setupIntegrationDb();
 
@@ -71,30 +68,33 @@ describe('integration slice — real Postgres', () => {
     await pool.query(`update job_vacancies set deadline = current_date - 1 where id = $1`, [id(203)]);
     const token = loginAs({ id: id(202), role: 'job-seeker' });
 
-    const late = await request(app).post('/api/applications').set('Authorization', `Bearer ${token}`).send({ job_id: id(203) });
+    const late = await request(app).post('/api/applications').set('Cookie', token).send({ job_id: id(203) });
     expect(late.status).toBe(400);
     expect(late.body.error.message).toMatch(/deadline/i);
 
     await pool.query(`update job_vacancies set deadline = current_date + 7 where id = $1`, [id(203)]);
-    const ok = await request(app).post('/api/applications').set('Authorization', `Bearer ${token}`).send({ job_id: id(203) });
+    const ok = await request(app).post('/api/applications').set('Cookie', token).send({ job_id: id(203) });
     expect(ok.status).toBe(201);
 
-    const dup = await request(app).post('/api/applications').set('Authorization', `Bearer ${token}`).send({ job_id: id(203) });
+    const dup = await request(app).post('/api/applications').set('Cookie', token).send({ job_id: id(203) });
     expect(dup.status).toBe(409);
   });
 
-  // Phase 1, law 3 (schema.sql:424): resumes_one_active_uidx partial index.
-  d('at most one active resume per seeker (partial unique index)', async () => {
+  // ADR-049: resumes(seeker_id) is unique — one resume per seeker, replaced in
+  // place (the row keeps its id, so past applications resolve to the new file).
+  d('one resume per seeker (unique seeker_id)', async () => {
     await addSeeker(301, 'resumes@it.local');
     await pool.query(`insert into resumes (seeker_id, file_path, file_name, is_active) values ($1, 'resumes/a.pdf', 'a.pdf', true)`, [id(301)]);
+    // Even an inactive row is rejected: the unique index is on seeker_id alone
+    // (ADR-049 replaced the old partial `where is_active` index).
     await expect(pool.query(
-      `insert into resumes (seeker_id, file_path, file_name, is_active) values ($1, 'resumes/b.pdf', 'b.pdf', true)`, [id(301)]))
-      .rejects.toMatchObject({ code: '23505' });
+      `insert into resumes (seeker_id, file_path, file_name, is_active) values ($1, 'resumes/b.pdf', 'b.pdf', false)`, [id(301)]))
+      .rejects.toMatchObject({ code: '23505', constraint: 'resumes_one_per_seeker_uidx' });
 
-    await pool.query(`update resumes set is_active = false where seeker_id = $1`, [id(301)]);
-    await pool.query(`insert into resumes (seeker_id, file_path, file_name, is_active) values ($1, 'resumes/b.pdf', 'b.pdf', true)`, [id(301)]);
-    const { rows } = await pool.query('select count(*)::int n from resumes where seeker_id = $1', [id(301)]);
-    expect(rows[0].n).toBe(2);
+    const { rows: [kept] } = await pool.query('select id from resumes where seeker_id = $1', [id(301)]);
+    await pool.query(`update resumes set file_path = 'resumes/b.pdf', file_name = 'b.pdf', uploaded_at = now() where id = $1`, [kept.id]);
+    const { rows } = await pool.query('select id, file_name from resumes where seeker_id = $1', [id(301)]);
+    expect(rows).toEqual([{ id: kept.id, file_name: 'b.pdf' }]);
   });
 
   // Phase 1, law 4 (schema.sql:431): one pending accreditation per company —

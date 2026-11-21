@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import request from 'supertest';
 
 vi.mock('../db.js', async () => { const h = await import('./helpers/db.js'); return { pool: h.pool, query: h.query, clientQuery: h.clientQuery, connect: h.connect }; });
-vi.mock('@supabase/supabase-js', async () => { const h = await import('./helpers/auth.js'); return { createClient: () => ({ auth: h.supabaseAuth }) }; });
+vi.mock('../ba.js', async () => { const h = await import('./helpers/auth.js'); return { auth: h.baAuth }; });
 
 import { on, reset, callsOf } from './helpers/db.js';
 import { loginAs, resetAuth } from './helpers/auth.js';
@@ -32,7 +32,7 @@ describe('POST /api/jobs/:id/status', () => {
     on(/select accreditation_status from employers/, () => ({ rows: [{ accreditation_status: 'approved' }] }));
 
     const res = await request(app).post(`/api/jobs/${JOB}/status`)
-      .set('Authorization', `Bearer ${token}`)
+      .set('Cookie', token)
       .send({ status: 'published', remarks: 'ok' });
 
     expect(res.status).toBe(200);
@@ -53,7 +53,7 @@ describe('POST /api/jobs/:id/status', () => {
     loadOwnedDraft(EMPLOYER);
     on((sql) => /where j\.id = \$1/.test(sql), () => ({ rows: [job(EMPLOYER, 'closed')] }));
     const res = await request(app).post(`/api/jobs/${JOB}/status`)
-      .set('Authorization', `Bearer ${token}`)
+      .set('Cookie', token)
       .send({ status: 'closed' });
     expect(res.status).toBe(200);
     expect(callsOf(/insert into job_status_history/)[0].params).toEqual([JOB, 'closed', undefined, EMPLOYER]);
@@ -63,7 +63,7 @@ describe('POST /api/jobs/:id/status', () => {
     const token = loginAs({ id: EMPLOYER, role: 'employer' });
     loadOwnedDraft(EMPLOYER);
     const res = await request(app).post(`/api/jobs/${JOB}/status`)
-      .set('Authorization', `Bearer ${token}`)
+      .set('Cookie', token)
       .send({ status: 'teleported' });
     expect(res.status).toBe(400);
     expect(res.body.error.code).toBe('BAD_REQUEST');
@@ -73,7 +73,7 @@ describe('POST /api/jobs/:id/status', () => {
   it('404 NOT_FOUND for a malformed id (S1: never a 22P02 500)', async () => {
     const token = loginAs({ id: EMPLOYER, role: 'employer' });
     const res = await request(app).post('/api/jobs/not-a-uuid/status')
-      .set('Authorization', `Bearer ${token}`)
+      .set('Cookie', token)
       .send({ status: 'closed' });
     expect(res.status).toBe(404);
     expect(res.body.error.code).toBe('NOT_FOUND');
@@ -84,7 +84,7 @@ describe('POST /api/jobs/:id/status', () => {
     const token = loginAs({ id: OTHER, role: 'employer' });
     loadOwnedDraft(EMPLOYER);
     const res = await request(app).post(`/api/jobs/${JOB}/status`)
-      .set('Authorization', `Bearer ${token}`)
+      .set('Cookie', token)
       .send({ status: 'closed' });
     expect(res.status).toBe(403);
     expect(res.body.error.code).toBe('FORBIDDEN');
@@ -96,7 +96,7 @@ describe('POST /api/jobs/:id/status', () => {
     const token = loginAs({ id: EMPLOYER, role: 'employer' });
     loadOwnedDraft(EMPLOYER);
     const res = await request(app).post(`/api/jobs/${JOB}/status`)
-      .set('Authorization', `Bearer ${token}`)
+      .set('Cookie', token)
       .send({ status });
     expect(res.status).toBe(400);
     expect(res.body.error.code).toBe('BAD_REQUEST');
@@ -108,7 +108,7 @@ describe('POST /api/jobs/:id/status', () => {
     let loads = 0;
     on((sql) => /where j\.id = \$1/.test(sql), () => ({ rows: [job(EMPLOYER, loads++ === 0 ? 'draft' : 'approved')] }));
     const res = await request(app).post(`/api/jobs/${JOB}/status`)
-      .set('Authorization', `Bearer ${token}`)
+      .set('Cookie', token)
       .send({ status: 'approved' });
     expect(res.status).toBe(200);
     expect(res.body.status).toBe('approved');

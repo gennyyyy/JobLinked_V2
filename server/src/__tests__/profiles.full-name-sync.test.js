@@ -5,7 +5,7 @@ import request from 'supertest';
 // patch touches one of them. A patch that sends ONLY full_name keeps the
 // invite/legacy contract (verbatim). No DDL.
 vi.mock('../db.js', async () => { const h = await import('./helpers/db.js'); return { pool: h.pool, query: h.query, clientQuery: h.clientQuery, connect: h.connect }; });
-vi.mock('@supabase/supabase-js', async () => { const h = await import('./helpers/auth.js'); return { createClient: () => ({ auth: h.supabaseAuth }) }; });
+vi.mock('../ba.js', async () => { const h = await import('./helpers/auth.js'); return { auth: h.baAuth }; });
 
 import { on, reset, callsOf } from './helpers/db.js';
 import { loginAs, resetAuth } from './helpers/auth.js';
@@ -21,7 +21,7 @@ const updateReturns = (row) => on(/update job_seekers set/, () => ({ rows: [{ id
 
 const patchMe = (token, body) => request(app)
   .patch('/api/seekers/me')
-  .set('Authorization', `Bearer ${token}`)
+  .set('Cookie', token)
   .send(body);
 
 describe('PATCH /api/seekers/me — full_name derivation', () => {
