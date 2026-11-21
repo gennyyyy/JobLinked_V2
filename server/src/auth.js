@@ -1,4 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
+import { fromNodeHeaders } from 'better-auth/node';
+// Aliased: `auth` is the middleware this module exports.
+import { auth as baAuth } from './ba.js';
 import { pool } from './db.js';
 import { err } from './util.js';
 import { cachedGetUser } from './tokenCache.js';
@@ -49,66 +52,83 @@ export async function resolveRole(id) {
 }
 
 // One shape for the principal, so every attach site carries the same fields
-// (ADR-042 needs customRoleId + permissions on the request).
-function principalOf(user, found) {
+// (ADR-042 needs customRoleId + permissions on the request). app_metadata is
+// the legacy (Supabase) provider-side role signal — a BA principal has none.
+function principalOf(resolved, found) {
   return {
-    id: user.id,
-    email: user.email,
+    id: resolved.id,
+    email: resolved.email,
     role: found.role,
-    app_metadata: user.app_metadata,
+    app_metadata: resolved.source === 'supabase' ? resolved.app_metadata : undefined,
     customRoleId: found.custom_role_id ?? null,
     permissions: Array.isArray(found.permissions) ? found.permissions : [],
   };
 }
 
-// F2 (docs/arch/audit/phase4-loadtest.md): the cross-request memo of the
-// Supabase JWT -> user resolution lives in tokenCache.js (own module so the
-// test helper can reset it without importing auth.js). The per-request
-// userFromToken memo below still sits on top of it: within one request the
-// principal is resolved once and shared by attachPrincipal and the route's own
-// auth middleware, so no request ever pays two round-trips.
-const roleFrom = (req, id) => (req._role ??= resolveRole(id));
-
-// Per-request memo of the JWT -> user resolution, layered over the cross-request
-// memo in tokenCache.js: within one request attachPrincipal + the route's own
-// auth middleware share one resolution, so no request ever pays two
-// round-trips. The per-request memo stays because it is what the F-01 limiter
-// keying already relies on; the TTL cache is what removes the round-trip
-// itself, and the two are different scopes (request vs process).
+// ADR-056 dual window (Task 5): a request resolves to the BA cookie first, then
+// the legacy Supabase bearer. One memo per request — attachPrincipal and the
+// route's own middleware share the lookup. The cookie check is a substring so
+// it matches both `better-auth.session_token` and `__Secure-better-auth...`.
+const baCookie = (req) => (req.headers.cookie || '').includes('better-auth.session_token');
+const bearerToken = (req) => (req.headers.authorization || '').replace(/^bearer\s+/i, '');
 const userFromToken = (req) => (req._supaUser ??= (async () => {
-  const token = (req.headers.authorization || '').replace(/^bearer\s+/i, '');
+  const token = bearerToken(req);
   if (!token) return null;
   try {
     return await cachedGetUser(token, (t) => supa().auth.getUser(t));
   } catch { return null; }
 })());
 
+// Never throws: a failed lookup is simply "no principal", so an auth outage
+// answers 401 instead of 500 and a BA hiccup still lets the bearer through.
+const resolveSession = (req) => (req._session ??= (async () => {
+  try {
+    const cookie = baCookie(req);
+    if (!cookie && !bearerToken(req)) return null;
+    if (cookie) {
+      try {
+        const session = await baAuth.api.getSession({ headers: fromNodeHeaders(req.headers) });
+        if (session?.user) {
+          return { source: 'ba', id: session.user.id, email: session.user.email, role: session.user.role ?? null };
+        }
+      } catch { /* fall through — the Supabase bearer may still be valid */ }
+    }
+    const user = await userFromToken(req);
+    return user ? { source: 'supabase', id: user.id, email: user.email, app_metadata: user.app_metadata } : null;
+  } catch { return null; }
+})());
+
+// The role-table lookup is memoized per request (one round-trip, shared by
+// attachPrincipal and the route's own middleware). It sits on top of the
+// cross-request Supabase token cache (F2, tokenCache.js) — a different scope.
+const roleFrom = (req, id) => (req._role ??= resolveRole(id));
+
 // App-level principal attachment for the rate limiter's keyGenerator.
-// Best-effort — an invalid, unprovisioned, or inactive token simply leaves
+// Best-effort — an invalid, unprovisioned, or inactive session simply leaves
 // req.user unset (the limiter falls back to the IP), and the route's own auth
 // middleware still enforces its 401/403 unchanged.
 export async function attachPrincipal(req, _res, next) {
   try {
-    const user = await userFromToken(req);
-    if (user) {
-      const found = await roleFrom(req, user.id).catch(() => null);
+    const resolved = await resolveSession(req);
+    if (resolved) {
+      const found = await roleFrom(req, resolved.id).catch(() => null);
       if (found?.profile.status === 'active') {
-        req.user = principalOf(user, found);
+        req.user = principalOf(resolved, found);
       }
     }
   } catch { /* never let the limiter's helper fail a request */ }
   next();
 }
 
-// Required auth: validates the Supabase JWT, attaches { id, email, role, app_metadata }.
+// Required auth: BA cookie or legacy Supabase bearer, then the role-table gate.
 export async function auth(req, res, next) {
-  const token = (req.headers.authorization || '').replace(/^bearer\s+/i, '');
-  if (!token) return err(res, 401, 'UNAUTHORIZED', 'Missing access token');
-  const user = await userFromToken(req);
-  if (!user) return err(res, 401, 'UNAUTHORIZED', 'Invalid or expired token');
+  const cookie = baCookie(req);
+  if (!cookie && !bearerToken(req)) return err(res, 401, 'UNAUTHORIZED', 'Missing access token');
+  const resolved = await resolveSession(req);
+  if (!resolved) return err(res, 401, 'UNAUTHORIZED', 'Invalid or expired token');
   let found;
   try {
-    found = await roleFrom(req, user.id);
+    found = await roleFrom(req, resolved.id);
   } catch {
     return err(res, 500, 'INTERNAL', 'Role lookup failed');
   }
@@ -116,22 +136,25 @@ export async function auth(req, res, next) {
   if (found.profile.status !== 'active') {
     return err(res, 403, 'FORBIDDEN', 'This account has been suspended or deactivated. Contact PESO.');
   }
-  // Defense-in-depth (Task 2): a super-admins row only grants admin when the
-  // service-role-only app_metadata agrees. A forged/escalated row is rejected.
-  if (found.role === 'super-admin' && user.app_metadata?.role !== 'super-admin') {
+  // Defense-in-depth (ADR-056 decision 7): a super_admins row only grants admin
+  // when the provider-side signal agrees — BA's admin-plugin user.role now, the
+  // service-role-only app_metadata during the dual window. A forged/escalated
+  // row is rejected.
+  const providerRole = resolved.source === 'ba' ? resolved.role : resolved.app_metadata?.role;
+  if (found.role === 'super-admin' && providerRole !== 'super-admin') {
     return err(res, 403, 'FORBIDDEN', 'Insufficient privileges');
   }
-  req.user = principalOf(user, found);
+  req.user = principalOf(resolved, found);
   next();
 }
 
-// Optional auth for public reads: attaches req.user when a valid token is present.
+// Optional auth for public reads: attaches req.user when a valid session is present.
 export async function optionalAuth(req, _res, next) {
-  const user = await userFromToken(req);
-  if (!user) return next();
-  const found = await roleFrom(req, user.id).catch(() => null);
+  const resolved = await resolveSession(req);
+  if (!resolved) return next();
+  const found = await roleFrom(req, resolved.id).catch(() => null);
   if (found && found.profile.status === 'active') {
-    req.user = principalOf(user, found);
+    req.user = principalOf(resolved, found);
   }
   next();
 }
@@ -139,15 +162,16 @@ export async function optionalAuth(req, _res, next) {
 export const requireRole = (...roles) => (req, res, next) =>
   roles.includes(req.user?.role) ? next() : err(res, 403, 'FORBIDDEN', 'Insufficient role');
 
-// Token-only auth (Addendum B): validates the Supabase JWT but SKIPS the
-// provisioned-row check — a fresh session has no row by definition.
-// app_metadata is service-role-only, so it is the one role signal the client
-// cannot forge (provision trusts it for super-admin, never the body).
+// Token-only auth (Addendum B): validates the session but SKIPS the
+// provisioned-row check — a fresh session has no row by definition. Carries
+// the provider role so provision can authorize a super-admin grant: BA's
+// user.role, or app_metadata (service-role-only) during the dual window.
+// Task 6 drops app_metadata from this shape.
 export async function tokenAuth(req, res, next) {
-  const token = (req.headers.authorization || '').replace(/^bearer\s+/i, '');
-  if (!token) return err(res, 401, 'UNAUTHORIZED', 'Missing access token');
-  const user = await userFromToken(req);
-  if (!user) return err(res, 401, 'UNAUTHORIZED', 'Invalid or expired token');
-  req.user = { id: user.id, email: user.email, app_metadata: user.app_metadata };
+  const cookie = baCookie(req);
+  if (!cookie && !bearerToken(req)) return err(res, 401, 'UNAUTHORIZED', 'Missing access token');
+  const resolved = await resolveSession(req);
+  if (!resolved) return err(res, 401, 'UNAUTHORIZED', 'Invalid or expired token');
+  req.user = { id: resolved.id, email: resolved.email, role: resolved.role ?? null, app_metadata: resolved.app_metadata };
   next();
 }
