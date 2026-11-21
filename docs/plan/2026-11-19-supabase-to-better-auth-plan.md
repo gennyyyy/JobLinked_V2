@@ -51,7 +51,7 @@
 9. **Turnstile stays**, same site key; server-side verification moves from Supabase to BA's captcha plugin (`x-captcha-response` header on `/sign-in/email`, `/sign-up/email`, `/request-password-reset`).
 10. **Cutover order:** data migration runs BEFORE the client deploy flips to BA (users already exist when the new login goes live).
 11. **Server-side password policy:** `minPasswordLength: 8` plus a `hooks.before` guard on sign-up / reset / change enforcing 8–72 chars and one letter, one number, one symbol — the same rules as `src/shared/utils/password.js`. The client is not the trust boundary.
-12. **Admin invites:** BA `user.role` is the provider-side signal. The pending profile (`first_name`, `middle_name`, `last_name`, `suffix`, `phone`, `company_name`) and the custom-role grant live in `public.admin_invites` (`user_id uuid PK`, `role text`, `custom_role_id int null`, `profile jsonb`, `created_at`). Only the server invite route writes it; provision reads and deletes it. No `additionalFields` on `auth.user`, no `app_metadata`.
+12. **Admin invites:** BA `user.role` is the provider-side signal. The pending profile (`first_name`, `middle_name`, `last_name`, `suffix`, `phone`, `company_name`) and the custom-role grant live in `public.admin_invites` (`user_id uuid PK`, `role text`, `custom_role_id bigint null` — `reference_data.id` is bigint — `profile jsonb`, `created_at`). Only the server invite route writes it; provision reads and deletes it. No `additionalFields` on `auth.user`, no `app_metadata`.
 13. **Email sender:** Resend SMTP in production (`SMTP_HOST=smtp.resend.com`, port 587, user `resend`, password = API key, verified `FROM`). In dev, when `SMTP_HOST` is unset, the mailer logs the action URL to the server console; production with no SMTP fails loudly and never logs the URL.
 14. **Generated names win:** BA table/column names are exactly as the CLI generates them (`"twoFactor"` is quoted camelCase). `kysely` is an explicit dependency because the config imports `PostgresDialect`. `/forget-password` does not exist — the endpoint is `/request-password-reset`.
 
@@ -156,10 +156,10 @@ export const auth = betterAuth({
 - Produces: tables exactly as `npx auth generate` emits them — `auth."user"`, `auth."session"`, `auth."account"`, `auth."verification"`, `auth."twoFactor"` (quoted camelCase; the admin plugin adds `role`, `banned`, `banReason`, `banExpires` to `"user"` and `impersonatedBy` to `"session"`; the two-factor plugin adds `"twoFactor"` + `twoFactorEnabled` on `"user"`). Column families per BA docs: `"user"(id uuid PK, name, email unique, email_verified, image, created_at, updated_at, …)`, `"session"(id, user_id FK, token unique, expires_at, …)`, `"account"(id, user_id FK, provider_id, account_id, password, …)`, `"verification"(id, identifier, value, expires_at, …)`.
 - Also produces: **`public.admin_invites`** (Decision 12), the only new app-side object:
   ```sql
-  create table if not exists admin_invites (
+  create table if not exists public.admin_invites (
     user_id uuid primary key references auth."user"(id) on delete cascade,
     role text not null check (role in ('job-seeker','employer','super-admin')),
-    custom_role_id int null references reference_data(id) on delete set null,
+    custom_role_id bigint null references public.reference_data(id) on delete set null,
     profile jsonb not null default '{}'::jsonb,
     created_at timestamptz not null default now()
   );
@@ -168,7 +168,7 @@ export const auth = betterAuth({
 - [ ] **Step 1:** Run `npx auth@latest generate --config server/src/ba.js` (or per current CLI docs) against a local scratch DB; capture the emitted SQL.
 - [ ] **Step 2: Verify the DDL** — every `id`/`user_id` column must be `uuid` (Decision 2), and table names must match the generated quoted names exactly (do **not** rewrite `"twoFactor"` to `two_factor` or `"user"` to `users`). If the generator emits `text` ids, stop and surface it to the architect before proceeding (the role-table FK story depends on uuid).
 - [ ] **Step 3:** Write `017_*.sql` = `create schema if not exists auth;` + the generated DDL unchanged + the `admin_invites` DDL above. Mirror both into `db/schema.sql`. Do not change any existing table.
-- [ ] **Step 4: Verify** — apply on the dev DB (`DATABASE_URL` in `server/.env`): `"C:\Program Files\PostgreSQL\18\bin\psql.exe" "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/migrations/017_better_auth_tables.sql`, then insert the ledger row exactly as `db/apply-migrations.sh` does: `insert into public.schema_migrations (name) values ('017_better_auth_tables.sql') on conflict do nothing;`. (`psql` is installed but not on PATH; the bash runner needs WSL, which this machine lacks — use the full psql path locally, the bash runner on the Linux host.) Confirm `\dt auth.*` shows the 5 tables, `\d public.admin_invites` shows the columns, and a re-run is a no-op.
+- [ ] **Step 4: Verify** — the dev ledger currently stops at `014`. Apply the committed migrations **in order** through the same psql + ledger procedure: `015_document_petitions.sql`, `016_job_field_and_skills.sql`, then `017_better_auth_tables.sql`. (`psql` is installed but not on PATH; the bash runner needs WSL, which this machine lacks — use the full psql path locally, the bash runner on the Linux host.) For each file: `"C:\Program Files\PostgreSQL\18\bin\psql.exe" "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/migrations/<file>`, then `insert into public.schema_migrations (name) values ('<file>') on conflict do nothing;`. Confirm `\dt auth.*` shows the 5 tables, `\d public.admin_invites` shows the columns, and a re-run is a no-op. Stop and report if 015 or 016 fails — do not work around a failed committed migration.
 - [ ] **Step 5:** Commit `db: better-auth tables in auth schema (migration 017)`.
 
 ### Task 3: Supabase → Better Auth data migration script
