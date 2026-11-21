@@ -26,6 +26,7 @@ Better Auth is a library, not a service: it runs inside the existing single Expr
 10. **Data migration.** A resumable, idempotent script reads `auth.users` from the Supabase Postgres database (read-only) and writes `auth."user"`/`auth."account"`, preserving the bcrypt hash bytes and `email_confirmed_at`, with uuids equal to the Supabase ids. The admin API cannot be the source: it omits `encrypted_password` (measured 2026-11-21 — 0 of 161 users returned a hash). It runs before the client deploy. Sessions do not migrate: every user signs in once.
 11. **MFA.** TOTP moves to BA's two-factor plugin. Supabase TOTP secrets are provider-encrypted with no documented importer, so existing factors are **not** migrated; affected admins re-enroll once at cutover and are told so.
 12. **Schema authority.** `db/migrations/017_better_auth_tables.sql` + `db/schema.sql`. BA table names are exactly as generated (quoted, including `"twoFactor"`); renaming them breaks BA's queries. The only new `public` object is `admin_invites`. The generated DDL must emit `uuid` ids; if it emits `text`, stop and return to the architect.
+13. **Runtime options pinned.** BA's origin/CSRF check is forced on (`advanced.disableOriginCheck: false`) even under `NODE_ENV=test`, so a wrong `trustedOrigins` list fails the suite. Schema introspection is off (`advanced.database.validateSchema: false`): migration 017 is the authority, and `/api/auth/ok` must not require a database round-trip. BA's logger is routed through the API's one-JSON-line logger. Every `better-auth` upgrade requires re-running the generator and diffing 017.
 
 ## Consequences
 
@@ -34,6 +35,7 @@ Better Auth is a library, not a service: it runs inside the existing single Expr
 - New runtime dependencies: `better-auth`, `bcrypt`, `nodemailer`, and an explicit `kysely` (the config imports `PostgresDialect`; do not rely on a transitive dependency).
 - One deploy window accepts two token formats. That complexity is temporary and must not leak past the cleanup task.
 - The single-process, in-memory limiter ceiling (ADR-037) now applies to BA's limiter too. Scaling out requires a shared store for both.
+- Runtime schema validation is deliberately off: a BA upgrade can add a column that 017 lacks, and the failure appears at query time. Re-generate and diff the DDL on every upgrade (decision 13).
 - `supabase/` stays in the repo as the historical schema target (`db/README.md`); only runtime/config references are removed.
 
 ## Not in scope
