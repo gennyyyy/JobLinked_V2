@@ -17,7 +17,7 @@
 ## Global Constraints
 
 - **No TypeScript.** BA config and clients are plain ESM JavaScript (`.js`); BA works without TS (repo rule).
-- **Schema:** changes go through `db/schema.sql` + `db/migrations/017_*.sql` (016 is taken by the PESO revision plan), applied via `db/apply-migrations.sh` (ledger). The Lead Architect signs off on Task 2's DDL with this plan. No change to any existing table — the role tables keep their `uuid` PKs.
+- **Schema:** changes go through `db/schema.sql` + `db/migrations/017_*.sql` (BA tables) and `018_*.sql` (pending signups), applied via `db/apply-migrations.sh` (ledger). The Lead Architect signs off on Task 2's DDL with this plan. No change to any existing table — the role tables keep their `uuid` PKs.
 - **Auth rule unchanged:** BA is identity only; all profile/job/app data still flows through the Express API. No browser-side database.
 - **API calls stay through `src/shared/lib/api.js`**; auth calls through the BA client (`src/shared/lib/auth-client.js`).
 - **Dual-auth window:** BA sessions and Supabase JWTs are both accepted between Task 5 and Task 16. Never break a working session path before its replacement is verified.
@@ -32,7 +32,7 @@
 2. **CSRF origin check misconfiguration** — BA rejects `POST /api/auth/*` whose `Origin` is not in `trustedOrigins`; a wrong list locks every login out (silent outage like the CORS_ORIGIN failure mode). Expected: localhost dev origins + production origin accepted. Pinned in Task 4.
 3. **Malformed/legacy bcrypt hash** — `bcrypt.compare` throws on a truncated hash → 500 instead of 401. Expected: any hash-mismatch path answers `401 INVALID_EMAIL_OR_PASSWORD`. Pinned in Task 5.
 4. **BA mount ordering** — `express.json()` before the BA handler hangs every BA request; BA catch-all swallowing `/api/auth/provision` and `/auth/me` breaks provisioning. Expected: BA mounted before the body parser, custom auth routes registered before the BA catch-all with route-level body parsing. Pinned in Task 4.
-5. **Unverified email → provisioned row** — a user who signed up but never verified their email must not get a role row and must not pass `requireEmailVerification`. Expected: sign-in answers the BA `EMAIL_NOT_VERIFIED` error; provision 403s. Pinned in Task 5 (provision 403) and Task 9 (signup flow).
+5. **Unverified email → provisioned row** — a user who signed up but never verified their email must not get a role row and must not pass `requireEmailVerification`. Expected: sign-in answers the BA `EMAIL_NOT_VERIFIED` error; with `requireEmailVerification` BA returns **no session** at sign-up, so provision is unreachable until verification; the `pending_signups` row is claimed only by a verified session (Task 6c). Pinned in Task 5 (no row → 403) and Task 6c (unverified pending write only).
 6. **Invite grant tampering** — a client sending `role: 'super-admin'` or `custom_role_id` to `/auth/provision` must not change its role. Expected: the pending row in `admin_invites` is the only source; the body is ignored. Pinned in Task 6.
 7. **Direct-API password bypass** — `POST /api/auth/sign-up/email` with `aaaaaaaa` must fail even though the UI never sends it. Expected: the server hook enforces 8–72 + letter/number/symbol. Pinned in Task 1 (unit) and Task 4 (through the mount).
 
@@ -61,7 +61,8 @@
 |---|---|---|
 | `POST /api/auth/sign-in/email`, `/sign-up/email`, `/request-password-reset`, `/reset-password`, `/change-password`, `/change-email`, `/list-sessions`, `/revoke-*`, `/two-factor/*`, `/ok` | Better Auth | new; replaces the equivalent Supabase calls. Client uses `authClient.*`, never raw `fetch`, except where noted. |
 | `GET /api/auth/me` | ours (unchanged contract) | same response incl. `permissions`, `custom_role_id`, `aal`; now session-sourced. |
-| `POST /api/auth/provision` | ours (unchanged contract) | same body `{ role }`; session-sourced id; uuid ids make the role-row insert unchanged. Invited users send `{}` — the server merges the pending profile from `admin_invites`. |
+| `POST /api/auth/pending-signup` | ours (new, pre-auth) | body `{ userId, email, role, ...profile }`; stores the self-signup payload for an existing unverified BA user whose id+email match. Roles limited to `job-seeker`/`employer`; never creates a session or role row; rate-limited by `authLimiter`; returns `{ saved: true }`. |
+| `POST /api/auth/provision` | ours (unchanged contract) | same body `{ role }`; session-sourced id; uuid ids make the role-row insert unchanged. Invited users send `{}` — the server merges the pending profile from `admin_invites`; self-signups send `{}` after verification — the server merges `pending_signups`. |
 | `POST /api/auth/*` (BA) + our `authLimiter` | both | express-rate-limit buckets unchanged. |
 | `POST /admin/users/:id/invite`, `:id/reset-password`, PATCH `:id` | ours | internals switch to BA admin API; request/response shapes unchanged. |
 
@@ -251,8 +252,28 @@ const resolveSession = (req) => (req._session ??= (async () => {
 - Consumes: BA's internal adapter (or direct `auth."user"`/`auth."account"` inserts) for admin-created users while the acting admin may still hold a Supabase session; public `auth.api.requestPasswordReset` for the email; `auth.api.adminUpdateUser`/`setRole` once the caller is BA-authenticated. `auth.api.createUser` is **not** usable in the dual window — it requires a BA admin session.
 - Produces: identical route contracts (table above). Invite writes `public.admin_invites` (role, `custom_role_id`, profile jsonb) and emails a reset link; `POST /auth/provision` merges that pending profile, deletes the row, and authors the role row. The super-admin gate becomes BA `user.role === 'super-admin'` **and** an `admin_invites` row for that user — `app_metadata` is gone. `aal`: `'aal2'` iff the BA session user has `twoFactorEnabled` and the sign-in completed the factor step (derive from session user flags; document the mapping in the route comment — it is informational for the client's MFA gating, which moves to the client flow in Task 12).
 
-- [ ] **Step 1: Rewrite the tests first** (same expected values, BA mocks instead of Supabase mocks): invite creates the user + `admin_invites` row with the full profile and custom-role tag, then calls `requestPasswordReset`; a client-supplied `custom_role_id` in the provision body is ignored; provision consumes and deletes the invite row and writes the role row with the invite's profile; 409 parity when the email exists; PATCH strips body email (B13 invariant) and changes the login identity via BA admin API only; reset-password route calls `requestPasswordReset`; `/auth/me` email-sync writes the role table on mismatch (exact behavior of `routes/auth.js:174-186`); health deep check probes BA (`auth.handler` `/ok` semantics — no Supabase round-trip).
+- [ ] **Step 1: Rewrite the tests first** (same expected values, BA mocks instead of Supabase mocks): invite creates the user + `admin_invites` row with the full profile and custom-role tag, then calls `requestPasswordReset`; a client-supplied `custom_role_id` in the provision body is ignored; provision consumes and deletes the invite row and writes the role row with the invite's profile; 409 parity when the email exists; admin PATCH stays role-table-only (it strips `email` by design — B13; the account-settings flow owns email changes); reset-password route calls `requestPasswordReset`; `/auth/me` email-sync writes the role table on mismatch; health deep check verifies the local `auth` schema, no Supabase round-trip.
 - [ ] **Step 2:** FAIL. **Step 3:** Implement. **Step 4:** PASS. **Step 5:** Commit `feat(server): provision/me/admin on better-auth`.
+
+#### Task 6c (added 2026-11-21): pending self-signup profile
+
+Supabase kept the registration form in `user_metadata`; BA stores only `name`/`email`, and with `requireEmailVerification` sign-up returns **no session**. Without a store, every registrant re-enters their data after verifying.
+
+**Files:** `db/migrations/018_pending_signups.sql` (+ mirror in `db/schema.sql`), `server/src/routes/auth.js` (new `POST /auth/pending-signup`; provision merge), tests.
+
+```sql
+create table if not exists public.pending_signups (
+  user_id uuid primary key references auth."user"(id) on delete cascade,
+  role text not null check (role in ('job-seeker','employer')),
+  profile jsonb not null default '{}'::jsonb,
+  created_at timestamptz not null default now()
+);
+```
+
+- `POST /api/auth/pending-signup` (ours, pre-auth, route-level `express.json()`, `authLimiter`): body `{ userId, email, role, ...profile }`. Require a uuid, a matching unverified `auth."user"` row, and a `job-seeker`/`employer` role; reject `super-admin`/`custom_role_id` outright; upsert by `user_id`; return `{ saved: true }`. It never creates a session or role row.
+- Provision: with no invite, read/claim `pending_signups` in the same transaction as the role insert (`delete … returning *`); `role = body.role ?? pending.role` (allow-list), profile = `{ ...pending.profile, ...body }`; delete the pending row. The invite path wins if both exist and still deletes the pending row. Replay/concurrency follows the invite `{raced}` contract.
+- Tests: unverified-only write, id+email match, role rejection, verified/unknown user 400; provision consumes the pending row, preserves every field, body overrides, and a second provision returns 200; invite + pending → invite wins and both rows are gone.
+- Apply 018 to the dev DB with the psql + ledger procedure.
 
 ### Task 7: Migration rehearsal (local + staging data)
 
