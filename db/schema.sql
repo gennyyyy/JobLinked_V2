@@ -731,7 +731,8 @@ on conflict (key) do nothing;
 -- =============================================================================
 -- Better Auth (auth schema) — db/migrations/017_better_auth_tables.sql, ADR-056.
 -- Owned by better-auth (server/src/ba.js); names/columns exactly as
--- `npx auth generate` emits. public.admin_invites is the only app-side object.
+-- `npx auth generate` emits. public.admin_invites and public.pending_signups
+-- (migration 018) are the only app-side objects.
 -- =============================================================================
 
 create schema if not exists "auth";
@@ -760,6 +761,16 @@ create table if not exists public.admin_invites (
   user_id uuid primary key references auth."user"(id) on delete cascade,
   role text not null check (role in ('job-seeker','employer','super-admin')),
   custom_role_id bigint null references public.reference_data(id) on delete set null,
+  profile jsonb not null default '{}'::jsonb,
+  created_at timestamptz not null default now()
+);
+
+-- db/migrations/018_pending_signups.sql, ADR-056 decision 8: the registration
+-- form's payload held for an existing unverified auth."user" row; claimed by
+-- provision in the same transaction as the role-row insert.
+create table if not exists public.pending_signups (
+  user_id uuid primary key references auth."user"(id) on delete cascade,
+  role text not null check (role in ('job-seeker','employer')),
   profile jsonb not null default '{}'::jsonb,
   created_at timestamptz not null default now()
 );

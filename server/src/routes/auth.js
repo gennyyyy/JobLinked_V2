@@ -1,8 +1,9 @@
 import express, { Router } from 'express';
 import { pool } from '../db.js';
 import { resolveRole, tokenAuth } from '../auth.js';
-import { ah, err, audit, buildFullName, isNumericId, withTransaction } from '../util.js';
+import { ah, err, audit, buildFullName, isNumericId, isUuid, withTransaction } from '../util.js';
 import { loadVocabulary, canonicalizeField } from '../vocabulary.js';
+import logger from '../logger.js';
 
 const router = Router();
 
@@ -13,6 +14,41 @@ const LOWERCASE_PERSON = new Set(['first_name', 'middle_name', 'last_name', 'suf
   'house_number_unit', 'street_address', 'subdivision_building', 'barangay_district',
   'city_municipality', 'province_state', 'postal_code', 'country']);
 const EMPLOYMENT_STATUSES = ['Employed', 'Unemployed', 'Underemployed', 'Fresh Graduate', 'Student'];
+
+// ADR-056 decision 8 / Review Focus 5: BA's requireEmailVerification returns no
+// session at sign-up and stores only name/email, so the registration form's
+// role/profile would be lost until the first verified sign-in. This pre-auth,
+// rate-limited write parks it on public.pending_signups against an existing
+// UNVERIFIED auth."user" row (id and lower(email) must match). It never writes
+// auth.*, never creates a session or role row, and never accepts super-admin or
+// a custom-role tag — those are admin-invite only. Unknown body keys are
+// harmless: provision reads only its allowlist.
+router.post('/auth/pending-signup', express.json(), ah(async (req, res) => {
+  const b = req.body || {};
+  if (!isUuid(b.userId) || typeof b.email !== 'string' || !b.email.trim()) {
+    return err(res, 400, 'BAD_REQUEST', 'userId (uuid) and email are required');
+  }
+  if (!['job-seeker', 'employer'].includes(b.role)) {
+    return err(res, 400, 'BAD_REQUEST', 'role must be job-seeker or employer');
+  }
+  if ('custom_role_id' in b) {
+    return err(res, 400, 'BAD_REQUEST', 'custom_role_id cannot be set at signup');
+  }
+  const { rows } = await pool.query(
+    `select id from auth."user"
+      where id = $1 and lower(email) = lower($2) and "emailVerified" = false`,
+    [b.userId, b.email]);
+  if (!rows[0]) return err(res, 400, 'BAD_REQUEST', 'No unverified account matches this id and email');
+  const profile = { ...b };
+  for (const k of ['userId', 'email', 'role', 'custom_role_id']) delete profile[k];
+  await pool.query(
+    `insert into public.pending_signups (user_id, role, profile) values ($1,$2,$3)
+     on conflict (user_id) do update set role = excluded.role, profile = excluded.profile`,
+    [b.userId, b.role, profile]);
+  // Counts/ids only: the body is PII and must never reach the log line.
+  logger.info('pending signup saved', { userId: b.userId, profileFields: Object.keys(profile).length });
+  res.json({ saved: true });
+}));
 
 // Replaces handle_new_user. Idempotent on (id) — 200 if the row already exists.
 // Addendum B: token-only auth, NO provisioned-row gate (fresh sessions have no row).
@@ -26,9 +62,21 @@ router.post('/auth/provision', tokenAuth, express.json(), ah(async (req, res) =>
   // it is the sole source of the role AND of the custom-role tag; the body may
   // add or correct ordinary profile fields and nothing else (Review Focus 6).
   // Read it first so the super-admin gate judges the role actually written.
+  // With no invite, a self-signup's pending_signups row supplies the role and
+  // profile fallback (decision 8) — never the custom-role tag.
   const { rows: [invite] } = await pool.query(
     'select * from public.admin_invites where user_id = $1', [req.user.id]);
-  const role = invite ? invite.role : b.role;
+  // ADR-056 decision 8: a self-signup parked its role/profile before email
+  // verification. Read it only when no invite exists — the invite is the
+  // stronger signal (and the pending row is still consumed below). Aliased so
+  // the columns never collide with the role-union query.
+  let pending = null;
+  if (!invite) {
+    const { rows } = await pool.query(
+      'select p.role, p.profile from public.pending_signups p where p.user_id = $1', [req.user.id]);
+    pending = rows[0] ?? null;
+  }
+  const role = invite ? invite.role : (b.role ?? pending?.role);
   if (!['job-seeker', 'employer', 'super-admin'].includes(role)) {
     return err(res, 400, 'BAD_REQUEST', 'role must be job-seeker, employer, or super-admin');
   }
@@ -47,7 +95,7 @@ router.post('/auth/provision', tokenAuth, express.json(), ah(async (req, res) =>
   // (R10-02: GoTrue strips JSON null, so the grant needs a value it keeps);
   // seekers and employers self-signup without a key. A BA invite carries its
   // grant in the admin_invites row instead, where null means "no custom role".
-  if (!invite && role === 'super-admin' && !('custom_role_id' in (req.user.app_metadata || {}))) {
+  if (!invite && !pending && role === 'super-admin' && !('custom_role_id' in (req.user.app_metadata || {}))) {
     return err(res, 403, 'INVITE_INCOMPLETE', 'Invite is incomplete. Re-send the invite.');
   }
   // Existing behavior first: an already-provisioned user keeps their row, and a
@@ -59,8 +107,12 @@ router.post('/auth/provision', tokenAuth, express.json(), ah(async (req, res) =>
   }
 
   // An invited user may send {}: the pending profile fills the gaps and the body
-  // may add/correct ordinary fields. Role and tag never come from it.
-  const p = invite ? { ...(invite.profile || {}), ...b } : b;
+  // may add/correct ordinary fields. Role and tag never come from it. A
+  // self-signup's pending row works the same way, one signal weaker than an
+  // invite.
+  const p = invite ? { ...(invite.profile || {}), ...b }
+    : pending ? { ...(pending.profile || {}), ...b }
+    : b;
   const email = req.user.email || p.email || '';
   const person = {};
   for (const k of PERSON) {
@@ -162,6 +214,13 @@ router.post('/auth/provision', tokenAuth, express.json(), ah(async (req, res) =>
           'delete from public.admin_invites where user_id = $1 returning *', [req.user.id]);
         if (!claimed.rows[0]) return { raced: true };
       }
+      // The self-signup row is always consumed here — after a successful invite
+      // claim too, so an invited user's stale pending row cannot outlive the
+      // role insert. A pre-read row another provision claimed first is the same
+      // race as an invite: insert nothing and re-resolve.
+      const claimedPending = await client.query(
+        'delete from public.pending_signups where user_id = $1 returning *', [req.user.id]);
+      if (pending && !claimedPending.rows[0]) return { raced: true };
       let created;
       if (role === 'job-seeker') {
         const r = await client.query(

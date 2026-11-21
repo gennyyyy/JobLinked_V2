@@ -32,8 +32,11 @@ describe('provision custom_role_id', () => {
     expect(authSrc).toMatch(/insert into job_seekers[\s\S]*custom_role_id/);
   });
   it('fails closed on an unresolvable or non-numeric tag instead of widening to break-glass (R10-01)', () => {
-    expect(authSrc).toContain('INVITE_INCOMPLETE');
-    expect(authSrc).not.toMatch(/custom_role_id[\s\S]{0,120}BAD_REQUEST/);
+    // Scope the assertion to provision: the pre-auth pending-signup endpoint
+    // legitimately answers BAD_REQUEST when a client sends custom_role_id.
+    const provisionSrc = authSrc.slice(authSrc.indexOf("router.post('/auth/provision'"));
+    expect(provisionSrc).toContain('INVITE_INCOMPLETE');
+    expect(provisionSrc).not.toMatch(/custom_role_id[\s\S]{0,120}BAD_REQUEST/);
   });
   it('reads the full-admin sentinel 0 as null (R10-02)', () => {
     expect(authSrc).toMatch(/Number\(rawTag\) === 0/);
@@ -48,7 +51,7 @@ describe('provision custom_role_id', () => {
 // server-only admin_invites table. The request body can never widen it.
 describe('provision admin_invites grant', () => {
   it('takes the role from the invite row, the body only as the no-invite fallback', () => {
-    expect(authSrc).toMatch(/const role = invite \? invite\.role : b\.role;/);
+    expect(authSrc).toMatch(/const role = invite \? invite\.role : \(b\.role \?\? pending\?\.role\);/);
     expect(authSrc).not.toMatch(/b\.custom_role_id/);
   });
 
