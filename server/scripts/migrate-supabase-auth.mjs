@@ -6,13 +6,13 @@
 //   node server/scripts/migrate-supabase-auth.mjs --apply             # write auth."user"/"account"
 //   node server/scripts/migrate-supabase-auth.mjs --apply --batch=500 --resume=<userId>
 //
-// Source: Supabase admin API (service role). Target: DATABASE_URL.
-// Sessions and MFA factors do not migrate: every user signs in once.
-// Logs counts only — never emails, hashes, or tokens.
+// Source: the Supabase Postgres database, read-only (SUPABASE_DATABASE_URL).
+// The admin API is not usable: it omits encrypted_password (measured 0/161).
+// Target: DATABASE_URL. Sessions and MFA factors do not migrate.
+// Logs counts only — never emails, hashes, URLs, or tokens.
 import { readFileSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
 import pg from 'pg';
-import { createClient } from '@supabase/supabase-js';
 
 // Runs before the client flips to BA (Decision 10), so the upsert may land on a
 // user a previous run already created: keep the app-owned role it carries.
@@ -42,50 +42,63 @@ const ACCOUNT_INSERT = `
     select 1 from auth."account" where "userId" = $1::uuid and "providerId" = 'credential'
   )`;
 
+// Keyset-paginated read, ordered by id, from the only source that still holds
+// Supabase password hashes. $1 = previous page's last id (null on the first
+// page; a resume id starts after it), $2 = batch size.
+const SOURCE_PAGE = `
+  select id, email, encrypted_password, email_confirmed_at, created_at,
+         raw_user_meta_data, raw_app_meta_data
+  from auth.users
+  where ($1::uuid is null or id > $1::uuid)
+  order by id
+  limit $2`;
+
+// The Supabase connection must never be able to write.
+export function sourceClientConfig(connectionString) {
+  return { connectionString, options: '-c default_transaction_read_only=on' };
+}
+
+// Fail closed before any connection: hashes are the point of this migration.
+export function envError(env = process.env) {
+  const missing = ['SUPABASE_DATABASE_URL', 'DATABASE_URL'].filter((key) => !env[key]);
+  return missing.length ? `missing env: ${missing.join(', ')}` : null;
+}
+
 // Pure mapping. Supabase `encrypted_password` (bcrypt $2a$) is carried verbatim
 // for BA's bcrypt verify (Decision 4). `auth."user"."email"` is NOT NULL, so a
-// source user without one cannot be represented and is skipped by the caller.
-export function mapUser(supabaseUser) {
-  const meta = supabaseUser.user_metadata ?? {};
-  const appMeta = supabaseUser.app_metadata ?? {};
+// source row without one cannot be represented and is skipped by the caller.
+export function mapUser(row) {
+  const meta = row.raw_user_meta_data ?? {};
+  const appMeta = row.raw_app_meta_data ?? {};
   return {
     user: {
-      id: supabaseUser.id,
-      name: meta.full_name || [meta.first_name, meta.last_name].filter(Boolean).join(' ') || supabaseUser.email,
-      email: supabaseUser.email,
-      emailVerified: supabaseUser.email_confirmed_at != null,
+      id: row.id,
+      name: meta.full_name || [meta.first_name, meta.last_name].filter(Boolean).join(' ') || row.email,
+      email: row.email,
+      emailVerified: row.email_confirmed_at != null,
       image: null,
-      createdAt: supabaseUser.created_at,
+      createdAt: row.created_at,
       updatedAt: new Date(),
       role: appMeta.role ?? null,
       banned: false,
       twoFactorEnabled: false,
     },
-    password: supabaseUser.encrypted_password ?? null,
+    password: row.encrypted_password ?? null,
   };
 }
 
-export async function runMigration({ supabase, db, flags = {}, log = (line) => console.log(JSON.stringify(line)) }) {
+export async function runMigration({ source, db, flags = {}, log = (line) => console.log(JSON.stringify(line)) }) {
   const apply = Boolean(flags.apply);
   const batch = flags.batch ?? 500;
   const counts = { total: 0, verified: 0, withPassword: 0, usersWritten: 0, accountsWritten: 0, skipped: 0 };
+  let cursor = flags.resume ?? null;
 
-  // The admin API has no id cursor, so --resume rescans pages and skips through
-  // the given id (the guide's `id > $1`). Idempotent writes make the re-scan free.
-  let skipping = Boolean(flags.resume);
+  for (;;) {
+    const { rows } = await source.query(SOURCE_PAGE, [cursor, batch]);
+    if (!rows.length) break;
 
-  for (let page = 1; ; page += 1) {
-    const { data, error } = await supabase.auth.admin.listUsers({ page, perPage: batch });
-    if (error) throw new Error(`listUsers page ${page}: ${error.message}`);
-    const users = data?.users ?? [];
-
-    for (const supabaseUser of users) {
-      if (skipping) {
-        if (supabaseUser.id === flags.resume) skipping = false;
-        continue;
-      }
-
-      const { user, password } = mapUser(supabaseUser);
+    for (const row of rows) {
+      const { user, password } = mapUser(row);
       if (!user.email) {
         counts.skipped += 1;
         continue;
@@ -108,7 +121,8 @@ export async function runMigration({ supabase, db, flags = {}, log = (line) => c
       }
     }
 
-    if (users.length < batch) break;
+    cursor = rows[rows.length - 1].id;
+    if (rows.length < batch) break;
   }
 
   const summary = { event: 'migrate_supabase_auth', ...counts };
@@ -142,24 +156,23 @@ function loadEnv() {
 async function main() {
   loadEnv();
   const flags = parseArgs(process.argv.slice(2));
-  const missing = ['SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY', 'DATABASE_URL'].filter((key) => !process.env[key]);
-  if (missing.length) {
-    console.error(JSON.stringify({ event: 'migrate_supabase_auth_failed', message: `missing env: ${missing.join(', ')}` }));
+  const issue = envError();
+  if (issue) {
+    console.error(JSON.stringify({ event: 'migrate_supabase_auth_failed', message: issue }));
     process.exitCode = 1;
     return;
   }
 
-  const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, {
-    auth: { persistSession: false, autoRefreshToken: false },
-  });
+  const source = new pg.Client(sourceClientConfig(process.env.SUPABASE_DATABASE_URL));
   const db = new pg.Pool({ connectionString: process.env.DATABASE_URL, max: 2 });
   try {
-    await runMigration({ supabase, db, flags });
+    await source.connect();
+    await runMigration({ source, db, flags });
   } catch (error) {
     console.error(JSON.stringify({ event: 'migrate_supabase_auth_failed', message: error?.message || String(error) }));
     process.exitCode = 1;
   } finally {
-    await db.end();
+    await Promise.allSettled([source.end(), db.end()]);
   }
 }
 
