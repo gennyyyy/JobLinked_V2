@@ -2,6 +2,8 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import compression from 'compression';
+import { toNodeHandler } from 'better-auth/node';
+import { auth } from './ba.js';
 import authRoutes from './routes/auth.js';
 import jobsRoutes from './routes/jobs.js';
 import applicationsRoutes from './routes/applications.js';
@@ -85,7 +87,10 @@ export function createApp() {
     logger.warn('TRUST_PROXY unset in production — all requests appear from the proxy IP; IP-keyed limiters become site-wide. Set TRUST_PROXY to the hop count.');
   }
   // L2: cache the preflight for a day so browsers stop re-OPTIONSing.
-  app.use(cors({ origin: allowOrigin, maxAge: 86400 }));
+  // ADR-056 Decision 1: BA sessions are cookies, so the SPA's fetch must send
+  // credentials; cors then echoes the matching origin (never `*`, which browsers
+  // reject for credentialed requests).
+  app.use(cors({ origin: allowOrigin, maxAge: 86400, credentials: true }));
   // L3: before the limiters so even 429 answers carry the correlation id.
   app.use(requestId);
   // H5: one JSON access line per request, wrapped around everything below.
@@ -113,13 +118,21 @@ export function createApp() {
   // attachPrincipal already populated req.user app-wide above, so the
   // keyGenerator resolves to the authenticated user id here too.
   app.use('/api', apiLimiter);
+  // ADR-056 (Review Focus 4): mount order is the feature. Our two auth routes
+  // first (they carry the unchanged contracts), then BA's catch-all, then the
+  // body parser. BA's node handler reads the raw request stream itself, so an
+  // express.json() in front of it would hang/garble every BA call. Anything
+  // under /api/auth/* not owned by our router is BA's.
+  app.use('/api', authRoutes);
+  app.all('/api/auth/*', toNodeHandler(auth));
   // The body parser runs AFTER every throttle. Before this, an anonymous
   // caller could force up to 1 MB of JSON.parse on the single event loop with
   // no limiter ever seeing the request — measured live: /api/health p50 8.6 s
   // under a 900 KB-body flood from one client. Limiters key on headers/path
   // only (attachPrincipal reads Authorization), so nothing above needs a body.
+  // /auth/provision parses its own body at the route (routes/auth.js).
   app.use(express.json({ limit: '1mb' }));
-  app.use('/api', authRoutes, jobsRoutes, applicationsRoutes, profilesRoutes, adminRoutes, adminUsersRoutes, adminJobsRoutes, adminReferenceRoutes, legalRoutes, referenceRoutes, notificationsRoutes, reportsRoutes, aiRoutes, aiMatchRoutes, accountRoutes);
+  app.use('/api', jobsRoutes, applicationsRoutes, profilesRoutes, adminRoutes, adminUsersRoutes, adminJobsRoutes, adminReferenceRoutes, legalRoutes, referenceRoutes, notificationsRoutes, reportsRoutes, aiRoutes, aiMatchRoutes, accountRoutes);
   app.use('/api', (_req, res) => err(res, 404, 'NOT_FOUND', 'Route not found'));
   // eslint-disable-next-line no-unused-vars
   app.use((e, _req, res, _next) => {

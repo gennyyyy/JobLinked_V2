@@ -71,8 +71,10 @@ describe('better-auth instance', () => {
   it('trusts CORS_ORIGIN plus the dev web origins outside production', async () => {
     const auth = await loadAuth({ NODE_ENV: 'development' });
 
+    // Wildcards cover every local port (Vite 5173-5175, preview 4173) instead of
+    // a port list that drifts from app.js's dev CORS regex.
     expect(auth.options.trustedOrigins).toEqual(
-      expect.arrayContaining(['https://jobs.example.com', 'http://localhost:5173', 'http://127.0.0.1:5173'])
+      expect.arrayContaining(['https://jobs.example.com', 'http://localhost:*', 'http://127.0.0.1:*'])
     );
   });
 

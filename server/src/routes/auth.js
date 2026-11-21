@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import express, { Router } from 'express';
 import { pool } from '../db.js';
 import { resolveRole, tokenAuth } from '../auth.js';
 import { ah, err, audit, buildFullName, isNumericId, withTransaction } from '../util.js';
@@ -16,7 +16,9 @@ const EMPLOYMENT_STATUSES = ['Employed', 'Unemployed', 'Underemployed', 'Fresh G
 
 // Replaces handle_new_user. Idempotent on (id) — 200 if the row already exists.
 // Addendum B: token-only auth, NO provisioned-row gate (fresh sessions have no row).
-router.post('/auth/provision', tokenAuth, ah(async (req, res) => {
+// ADR-056: the BA catch-all owns /api/auth/* before the global express.json(),
+// so this route parses its own body (a no-op when a parser already ran).
+router.post('/auth/provision', tokenAuth, express.json(), ah(async (req, res) => {
   const b = req.body || {};
   const role = b.role;
   if (!['job-seeker', 'employer', 'super-admin'].includes(role)) {

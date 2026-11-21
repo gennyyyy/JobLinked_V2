@@ -6,7 +6,9 @@ import { describe, it, expect, vi, beforeAll, beforeEach, afterEach } from 'vite
 // missing, trust proxy yields the client IP behind one proxy hop, and the
 // error middleware logs diagnostics only — no request data, no pg PII
 // payload. Route modules are stubbed; one stub carries the diagnostic
-// endpoints the assertions need. Same mocked-db pattern as routes/*.test.js.
+// endpoints the assertions need. It rides the jobs router, not the auth
+// router: ADR-056 mounts the auth router before the body parser, so a stub
+// there would answer before express.json() and never see 400/413 parse errors.
 const mocks = vi.hoisted(() => ({
   query: vi.fn(),
   // pg-shaped DatabaseError: code/sqlState are safe diagnostics, query and
@@ -23,7 +25,8 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock('./env.js', () => ({}));
 vi.mock('./db.js', () => ({ pool: { query: mocks.query } }));
-vi.mock('./routes/auth.js', () => ({
+vi.mock('./routes/auth.js', () => ({ default: (_req, _res, next) => next() }));
+vi.mock('./routes/jobs.js', () => ({
   default: (req, res, next) => {
     if (req.path === '/boom') throw mocks.boom();
     if (req.path === '/boom-auth') {
@@ -34,7 +37,6 @@ vi.mock('./routes/auth.js', () => ({
     next();
   },
 }));
-vi.mock('./routes/jobs.js', () => ({ default: (_req, _res, next) => next() }));
 vi.mock('./routes/applications.js', () => ({ default: (_req, _res, next) => next() }));
 vi.mock('./routes/profiles.js', () => ({ default: (_req, _res, next) => next() }));
 vi.mock('./routes/admin.js', () => ({ default: (_req, _res, next) => next() }));

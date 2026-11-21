@@ -114,6 +114,19 @@ describe('L2 — CORS preflight caching', () => {
     }
   });
 
+  // ADR-056 Decision 1: BA sessions ride a cookie, so credentialed fetches need
+  // the header pair — and a credentialed response must echo the exact origin
+  // (the `*` wildcard is invalid with credentials).
+  it('allows credentials and echoes the origin on a preflight', async () => {
+    const res = await request(app)
+      .options('/api/health')
+      .set('Origin', 'http://localhost:5173')
+      .set('Access-Control-Request-Method', 'GET');
+    expect(res.status).toBe(204);
+    expect(res.headers['access-control-allow-origin']).toBe('http://localhost:5173');
+    expect(res.headers['access-control-allow-credentials']).toBe('true');
+  });
+
   it('still rejects a non-localhost origin outside production', async () => {
     const res = await request(app)
       .get('/api/health')
