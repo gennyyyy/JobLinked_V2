@@ -62,6 +62,7 @@
 | `POST /api/auth/sign-in/email`, `/sign-up/email`, `/request-password-reset`, `/reset-password`, `/change-password`, `/change-email`, `/list-sessions`, `/revoke-*`, `/two-factor/*`, `/ok` | Better Auth | new; replaces the equivalent Supabase calls. Client uses `authClient.*`, never raw `fetch`, except where noted. |
 | `GET /api/auth/me` | ours (unchanged contract) | same response incl. `permissions`, `custom_role_id`, `aal`; now session-sourced. |
 | `POST /api/auth/pending-signup` | ours (new, pre-auth) | body `{ userId, email, role, ...profile }`; stores the self-signup payload for an existing unverified BA user whose id+email match. Roles limited to `job-seeker`/`employer`; never creates a session or role row; rate-limited by `authLimiter`; returns `{ saved: true }`. |
+| `POST /api/auth/verify-password` | ours (new, session) | body `{ password }`; calls BA `verifyPassword` with the session headers; `200 { valid: true }` or `401 INVALID_PASSWORD`. Used by the change-email panel to keep its current-password re-auth. |
 | `POST /api/auth/provision` | ours (unchanged contract) | same body `{ role }`; session-sourced id; uuid ids make the role-row insert unchanged. Invited users send `{}` — the server merges the pending profile from `admin_invites`; self-signups send `{}` after verification — the server merges `pending_signups`. |
 | `POST /api/auth/*` (BA) + our `authLimiter` | both | express-rate-limit buckets unchanged. |
 | `POST /admin/users/:id/invite`, `:id/reset-password`, PATCH `:id` | ours | internals switch to BA admin API; request/response shapes unchanged. |
@@ -312,10 +313,12 @@ create table if not exists public.pending_signups (
 ### Task 10: Client — account security surfaces
 
 **Files:**
-- Modify: `src/shared/components/MfaPanel.jsx` (BA twoFactor: enable → QR/secret → `verifyTOTP` → enabled; disable; backup codes display), `ChangePassword.jsx` (`changePassword({ currentPassword, newPassword })`), `EmailChangePanel.jsx` (`changeEmail` + verification notice), `AccountSettings.jsx` sessions card (`listSessions` / `revokeSessions` / `revokeOtherSessions` — direct authClient calls are acceptable here per the API contract note)
-- Test: `MfaPanel`, `ChangePassword`, account settings suites (rewired to `authClientMock`)
+- Modify: `server/src/routes/auth.js` (`POST /auth/verify-password`), `src/shared/services/auth.js`, `src/shared/components/MfaPanel.jsx` (BA twoFactor: password-gated enable → QR/secret → `verifyTOTP` → enabled; password-gated disable; backup codes display), `ChangePassword.jsx` (`changePassword({ currentPassword, newPassword })`, no Turnstile), `EmailChangePanel.jsx` (`verify-password` then `changeEmail` + verification notice)
+- Test: `MfaPanel`, `ChangePassword`, email-change suites, `services/__tests__/auth.test.js`, new `auth.verify-password.test.js`
+- Not built: the end-user sessions card does not exist in this codebase; do not invent one. Admin force sign-out already revokes sessions.
+- New dependency: a small QR renderer for the TOTP URI (e.g. `qrcode.react`) — BA returns `totpURI`, not a QR image.
 
-- [ ] **Step 1:** Tests first (enable→verify→banner; wrong current password error mapping; revoke-all clears session → `AuthProvider` resets). **Step 2:** FAIL. **Step 3:** Implement. **Step 4:** PASS. **Step 5:** Commit `feat(client): mfa/password/email/sessions on better-auth`.
+- [ ] **Step 1:** Tests first: password-gated TOTP enable → QR/secret/backup codes → `verifyTotp` → enabled; password-gated disable; wrong current password mapping on change-password and change-email; `verify-password` 200/401 and its use before `changeEmail`; no Turnstile on change-password. **Step 2:** FAIL. **Step 3:** Implement. **Step 4:** PASS. **Step 5:** Commit `feat(auth): mfa/password/email on better-auth + verify-password`.
 
 ### Task 11: Test-harness sweep (the Supabase mock seam)
 
