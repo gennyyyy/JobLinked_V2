@@ -12,7 +12,11 @@
 - Better Auth docs (verify versions/APIs against these before implementing each task): [installation](https://better-auth.com/docs/installation), [Express integration](https://better-auth.com/docs/integrations/express), [PostgreSQL adapter](https://better-auth.com/docs/adapters/postgresql), [database concepts](https://better-auth.com/docs/concepts/database) (schema, `generateId`), [email & password](https://better-auth.com/docs/authentication/email-password) (hash/verify, email verification), [captcha plugin](https://better-auth.com/docs/plugins/captcha) (Turnstile), [two-factor plugin](https://better-auth.com/docs/plugins/two-factor), [admin plugin](https://better-auth.com/docs/plugins/admin), [React client](https://better-auth.com/docs/concepts/client), [official Supabase migration guide](https://better-auth.com/docs/guides/supabase-migration-guide) (bcrypt mapping + call mapping).
 - Current-stack reference: `docs/arch/tech-stack.md`. The Clerk scenario doc `docs/arch/tech-stack-auth-alternative.md` is superseded by this plan.
 
-**Lead Architect sign-off (2026-11-21):** ADR-056 (`docs/arch/adr-056-better-auth-cutover.md`) approves the structure, the `auth` schema, the `public.admin_invites` table, and Task 2's DDL shape. Any deviation — `text` ids, renamed BA tables, or an extra `public` object — returns to the architect before implementation.
+**Lead Architect sign-off (2026-11-21):** ADR-056 (`docs/arch/adr-056-better-auth-cutover.md`) approves the structure, the `auth` schema, the `public.admin_invites`/`public.pending_signups` tables, and Task 2's DDL shape. Any deviation — `text` ids, renamed BA tables, or an extra `public` object — returns to the architect before implementation.
+
+**Progress (2026-11-21):** Tasks 1, 2, 3, 4, 5, 6a, 6b, 6c, 8, 9, 10, 11 implemented and verified (900+ server tests, 800+ client tests, lint/build green). Task 7/12 are blocked on operator secrets: `SUPABASE_DATABASE_URL` (read-only Supabase Postgres — the admin API omits password hashes) and `SMTP_*` (Resend), plus `TURNSTILE_SECRET_KEY`/`BETTER_AUTH_URL`/`BETTER_AUTH_SECRET` for production. Task 13 cleanup and Task 14 docs follow the cutover.
+
+**Target environment:** `server/.env` `DATABASE_URL` is an SSH `LocalForward` to the **VPS database** (`docs/ops/deploy-runbook.md` §"Local dev against the VPS database"). Migrations 015–018 are applied there; `auth."user"` is still empty. Confirm this is the intended migration target before running `--apply`.
 
 ## Global Constraints
 
