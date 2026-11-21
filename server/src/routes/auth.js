@@ -1,6 +1,8 @@
 import express, { Router } from 'express';
+import { fromNodeHeaders } from 'better-auth/node';
 import { pool } from '../db.js';
-import { resolveRole, tokenAuth } from '../auth.js';
+import { auth, resolveRole, tokenAuth } from '../auth.js';
+import { auth as baAuth } from '../ba.js';
 import { ah, err, audit, buildFullName, isNumericId, isUuid, withTransaction } from '../util.js';
 import { loadVocabulary, canonicalizeField } from '../vocabulary.js';
 import logger from '../logger.js';
@@ -297,6 +299,31 @@ router.post('/auth/provision', tokenAuth, express.json(), ah(async (req, res) =>
   }
   void audit(req.user.id, 'auth.register', role === 'job-seeker' ? 'job_seekers' : role === 'employer' ? 'employers' : 'super_admins', req.user.id, { role, custom_role_id: customRoleId });
   res.status(201).json({ ...row, role });
+}));
+
+// ADR-056: the client's change-email panel re-authenticates before BA starts the
+// address change. BA's verifyPassword reads the session cookie (its own API, not
+// a client-supplied identity) and answers { status: true } or throws
+// INVALID_PASSWORD. Translate that to the app contract; a BA error body never
+// reaches the client. Route-level parser: BA's catch-all owns /api/auth/* before
+// the global express.json(), exactly like provision.
+router.post('/auth/verify-password', auth, express.json(), ah(async (req, res) => {
+  const password = req.body?.password;
+  if (typeof password !== 'string' || !password) {
+    return err(res, 400, 'BAD_REQUEST', 'password is required');
+  }
+  try {
+    await baAuth.api.verifyPassword({ body: { password }, headers: fromNodeHeaders(req.headers) });
+  } catch (e) {
+    // Only the failed check becomes our 401; the message stays neutral.
+    if (e?.body?.code === 'INVALID_PASSWORD') {
+      return err(res, 401, 'INVALID_PASSWORD', 'Current password is incorrect');
+    }
+    // A legacy Supabase bearer has no BA session to verify against.
+    if (e?.status === 'UNAUTHORIZED') return err(res, 401, 'UNAUTHORIZED', 'Invalid or expired token');
+    throw e;
+  }
+  res.json({ valid: true });
 }));
 
 // Replaces the getProfile fan-out. Valid token + no row → 404 (needs provision);

@@ -14,6 +14,8 @@ vi.mock('../db.js', () => ({
   },
 }));
 vi.mock('../auth.js', () => ({
+  // /auth/verify-password is the only route using it and is not under test here.
+  auth: (_req, _res, next) => next(),
   tokenAuth: (req, _res, next) => {
     req.user = { id: 'user-1', email: mocks.tokenEmail, ...mocks.userExtra };
     next();

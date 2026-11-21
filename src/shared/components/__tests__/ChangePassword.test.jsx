@@ -7,34 +7,6 @@ vi.mock('../../services/auth', () => ({
   changePassword: vi.fn(),
 }))
 
-// Mutable site key: '' (the default) keeps every non-captcha test on today's
-// behavior; 'site-key' makes useCaptcha().required true. The widget itself is
-// replaced by a button that hands the form a token.
-const captcha = vi.hoisted(() => ({ siteKey: '' }))
-
-vi.mock('../../lib/turnstile', () => ({
-  get TURNSTILE_SITE_KEY() { return captcha.siteKey },
-  loadTurnstile: vi.fn(),
-  renderTurnstile: vi.fn(),
-  resetTurnstile: vi.fn(),
-  removeTurnstile: vi.fn(),
-}))
-
-vi.mock('../../components/Turnstile', async () => {
-  const { createElement } = await import('react')
-  return {
-    default: ({ onToken }) => createElement(
-      'button',
-      { type: 'button', onClick: () => onToken('captcha-token') },
-      'solve captcha',
-    ),
-  }
-})
-
-beforeEach(() => {
-  captcha.siteKey = ''
-})
-
 function fill(current, next, confirm) {
   fireEvent.change(screen.getByLabelText(/current password/i), { target: { value: current } })
   fireEvent.change(screen.getByLabelText(/^new password/i), { target: { value: next } })
@@ -61,13 +33,13 @@ describe('ChangePassword', () => {
     fill('oldpass', 'short', 'short')
     fireEvent.click(screen.getByRole('button', { name: /update password/i }))
 
-    expect(await screen.findByText('New password must be at least 8 characters.')).toBeInTheDocument()
+    expect(await screen.findByText('Password must be at least 8 characters')).toBeInTheDocument()
     expect(changePassword).not.toHaveBeenCalled()
   })
 
   it('rejects mismatched new passwords', async () => {
     render(<ChangePassword />)
-    fill('oldpass', 'password123', 'password999')
+    fill('oldpass', 'password123!', 'password999!')
     fireEvent.click(screen.getByRole('button', { name: /update password/i }))
 
     expect(await screen.findByText('New passwords do not match.')).toBeInTheDocument()
@@ -76,63 +48,34 @@ describe('ChangePassword', () => {
 
   it('updates the password, shows a success notice and clears the fields', async () => {
     render(<ChangePassword />)
-    fill('oldpass', 'password123', 'password123')
+    fill('oldpass', 'password123!', 'password123!')
     fireEvent.click(screen.getByRole('button', { name: /update password/i }))
 
-    await waitFor(() => expect(changePassword).toHaveBeenCalledWith('oldpass', 'password123', ''))
+    await waitFor(() => expect(changePassword).toHaveBeenCalledWith('oldpass', 'password123!'))
     expect(await screen.findByText('Password updated successfully.')).toBeInTheDocument()
     expect(screen.getByLabelText(/current password/i)).toHaveValue('')
   })
 
   it('shows an error when the change fails', async () => {
-    changePassword.mockRejectedValue(new Error('wrong current password'))
+    changePassword.mockRejectedValue(new Error('Current password is incorrect.'))
     render(<ChangePassword />)
-    fill('bad', 'password123', 'password123')
+    fill('bad', 'password123!', 'password123!')
     fireEvent.click(screen.getByRole('button', { name: /update password/i }))
 
-    expect(await screen.findByText('wrong current password')).toBeInTheDocument()
-  })
-})
-
-describe('ChangePassword captcha', () => {
-  beforeEach(() => {
-    vi.clearAllMocks()
-    changePassword.mockResolvedValue({})
-    captcha.siteKey = 'site-key'
+    expect(await screen.findByText('Current password is incorrect.')).toBeInTheDocument()
   })
 
-  it('blocks the update until the challenge is solved', async () => {
+  // BA's change-password verifies the current password itself and is not a
+  // captcha-protected endpoint (ADR-056 decision 6): no widget, no token, no
+  // challenge to solve before the update.
+  it('asks for no verification challenge before the update', async () => {
     render(<ChangePassword />)
-    fill('oldpass', 'password123', 'password123')
+    expect(screen.queryByRole('button', { name: /solve captcha/i })).not.toBeInTheDocument()
+
+    fill('oldpass', 'password123!', 'password123!')
     fireEvent.click(screen.getByRole('button', { name: /update password/i }))
 
-    expect(await screen.findByText('Please complete the verification challenge.')).toBeInTheDocument()
-    expect(changePassword).not.toHaveBeenCalled()
-  })
-
-  it('forwards the solved token and demands a fresh one after a failure', async () => {
-    changePassword.mockRejectedValueOnce(new Error('wrong current password'))
-    render(<ChangePassword />)
-    fill('oldpass', 'password123', 'password123')
-    fireEvent.click(screen.getByRole('button', { name: /solve captcha/i }))
-    fireEvent.click(screen.getByRole('button', { name: /update password/i }))
-
-    await waitFor(() => expect(changePassword).toHaveBeenCalledWith('oldpass', 'password123', 'captcha-token'))
-    expect(await screen.findByText('wrong current password')).toBeInTheDocument()
-
-    // The token is single-use: a retry without a fresh challenge is blocked.
-    fireEvent.click(screen.getByRole('button', { name: /update password/i }))
-    expect(await screen.findByText('Please complete the verification challenge.')).toBeInTheDocument()
-    expect(changePassword).toHaveBeenCalledTimes(1)
-  })
-
-  it('updates the password when the challenge was solved', async () => {
-    render(<ChangePassword />)
-    fill('oldpass', 'password123', 'password123')
-    fireEvent.click(screen.getByRole('button', { name: /solve captcha/i }))
-    fireEvent.click(screen.getByRole('button', { name: /update password/i }))
-
-    await waitFor(() => expect(changePassword).toHaveBeenCalledWith('oldpass', 'password123', 'captcha-token'))
-    expect(await screen.findByText('Password updated successfully.')).toBeInTheDocument()
+    await waitFor(() => expect(changePassword).toHaveBeenCalledTimes(1))
+    expect(changePassword.mock.calls[0]).toHaveLength(2)
   })
 })

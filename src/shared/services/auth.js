@@ -1,4 +1,3 @@
-import { supabase } from '../lib/supabase';
 import { authClient } from '../lib/auth-client';
 import { api, clearApiCache, setApiIdentity } from '../lib/api';
 // True when the token is valid but no profile row exists yet (contract says
@@ -253,37 +252,48 @@ export async function signOut() {
   } catch { /* revoke failed; the local session still clears */ }
 }
 
-export async function changePassword(currentPassword, newPassword, captchaToken) {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user?.email) throw new Error('No active account found.');
+// BA's change-password (and the two-factor endpoints) answer INVALID_PASSWORD
+// for a wrong current password; the client shows one honest line for all three.
+const wrongPassword = (error) => error?.code === 'INVALID_PASSWORD'
+  || /invalid password/i.test(String(error?.message || ''));
 
-  // The re-auth also carries a token: once CAPTCHA protection is enabled,
-  // Supabase rejects this signInWithPassword without one for every role.
-  const { error: verifyError } = await supabase.auth.signInWithPassword({
-    email: user.email,
-    password: currentPassword,
-    ...(captchaToken ? { options: { captchaToken } } : {}),
-  });
-  if (verifyError) {
-    const friendly = friendlyAuthError(verifyError);
-    throw friendly === verifyError ? new Error('Current password is incorrect.') : friendly;
+// ADR-056 decision 6: change-password verifies the current password and is not
+// a captcha-protected endpoint, so no token rides along. The password policy
+// stays client-side (utils/password.js); the server hook is the trust boundary.
+export async function changePassword(currentPassword, newPassword) {
+  let result;
+  try {
+    result = await authClient.changePassword({ currentPassword, newPassword, revokeOtherSessions: true });
+  } catch (error) {
+    throw friendlyAuthError(error);
   }
-
-  const { error } = await supabase.auth.updateUser({ password: newPassword });
-  if (error) throw friendlyAuthError(error);
+  if (result.error) {
+    if (wrongPassword(result.error)) throw new Error('Current password is incorrect.');
+    throw friendlyAuthError(result.error);
+  }
 }
 
-export async function changeEmail(newEmail, currentPassword, captchaToken) {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user?.email) throw new Error('No active account found.');
-  const { error: verifyError } = await supabase.auth.signInWithPassword({
-    email: user.email,
-    password: currentPassword,
-    ...(captchaToken ? { options: { captchaToken } } : {}),
-  });
-  if (verifyError) throw new Error('Current password is incorrect.');
-  const { error } = await supabase.auth.updateUser({ email: newEmail }, { emailRedirectTo: `${window.location.origin}/auth/callback` });
-  if (error) throw friendlyAuthError(error);
+// The email change needs a fresh re-auth first: our session route checks the
+// password through BA, then BA emails a verification link to the NEW address.
+export async function changeEmail(newEmail, currentPassword) {
+  try {
+    await api.post('auth/verify-password', { password: currentPassword });
+  } catch (error) {
+    if (error?.error?.code === 'INVALID_PASSWORD') {
+      throw new Error('Current password is incorrect.', { cause: error });
+    }
+    throw error;
+  }
+  let result;
+  try {
+    result = await authClient.changeEmail({
+      newEmail,
+      callbackURL: `${window.location.origin}/auth/callback`,
+    });
+  } catch (error) {
+    throw friendlyAuthError(error);
+  }
+  if (result.error) throw friendlyAuthError(result.error);
 }
 
 export async function resetPassword(email, captchaToken) {
@@ -321,34 +331,56 @@ export async function verifyEmailToken(token) {
   if (result.error) throw friendlyAuthError(result.error);
 }
 
+// BA's two-factor plugin keeps one TOTP factor per user; there is no factor id
+// to list, only the user's twoFactorEnabled flag.
 export async function listMfaFactors() {
-  const { data, error } = await supabase.auth.mfa.listFactors()
-  if (error) throw friendlyAuthError(error)
-  return data?.totp || []
+  const { data } = await authClient.getSession().catch(() => ({ data: null }));
+  return data?.user?.twoFactorEnabled
+    ? [{ id: 'totp', status: 'verified', friendly_name: 'Authenticator app' }]
+    : [];
 }
 
-export async function enrollMfa() {
-  const { data, error } = await supabase.auth.mfa.enroll({ factorType: 'totp' })
-  if (error) throw friendlyAuthError(error)
-  return data
+// Enable with the current password. BA answers the otpauth URI and one-time
+// backup codes — no QR image; the panel renders it.
+export async function enrollMfa(password) {
+  let result;
+  try {
+    result = await authClient.twoFactor.enable({ password });
+  } catch (error) {
+    throw friendlyAuthError(error);
+  }
+  if (result.error) {
+    if (wrongPassword(result.error)) throw new Error('Current password is incorrect.');
+    throw friendlyAuthError(result.error);
+  }
+  const data = result.data || {};
+  return { method: data.method, totpURI: data.totpURI, backupCodes: data.backupCodes };
 }
 
-export async function verifyMfaEnrollment(factorId, code) {
-  const { data: challenge, error: cErr } = await supabase.auth.mfa.challenge({ factorId })
-  if (cErr) throw friendlyAuthError(cErr)
-  const { data, error } = await supabase.auth.mfa.verify({ factorId, challengeId: challenge.id, code })
-  if (error) throw friendlyAuthError(error)
-  return data
+// Second step of enrollment. BA flips twoFactorEnabled server-side; re-read the
+// session so the provider and listMfaFactors see the new flag.
+export async function verifyMfaEnrollment(code) {
+  let result;
+  try {
+    result = await authClient.twoFactor.verifyTotp({ code });
+  } catch (error) {
+    throw friendlyAuthError(error);
+  }
+  if (result.error) throw friendlyAuthError(result.error);
+  await authClient.getSession().catch(() => null);
 }
 
-export async function unenrollMfa(factorId, code) {
-  const factors = await listMfaFactors()
-  const factor = factors.find((f) => f.id === factorId)
-  if (!factor) throw new Error('Factor not found.')
-  const { data: challenge, error: cErr } = await supabase.auth.mfa.challenge({ factorId })
-  if (cErr) throw friendlyAuthError(cErr)
-  const { error: vErr } = await supabase.auth.mfa.verify({ factorId, challengeId: challenge.id, code })
-  if (vErr) throw friendlyAuthError(vErr)
-  const { error } = await supabase.auth.mfa.unenroll({ factorId })
-  if (error) throw friendlyAuthError(error)
+// Password-gated: BA removes the factor and the flag together.
+export async function unenrollMfa(password) {
+  let result;
+  try {
+    result = await authClient.twoFactor.disable({ password });
+  } catch (error) {
+    throw friendlyAuthError(error);
+  }
+  if (result.error) {
+    if (wrongPassword(result.error)) throw new Error('Current password is incorrect.');
+    throw friendlyAuthError(result.error);
+  }
+  await authClient.getSession().catch(() => null);
 }

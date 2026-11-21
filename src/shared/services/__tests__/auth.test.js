@@ -10,26 +10,13 @@ vi.mock('../../../shared/lib/auth-client', async () => {
   const { authClientMock } = await import('../../../test/authClientMock')
   return { authClient: authClientMock }
 })
-vi.mock('../../../shared/lib/supabase', () => ({
-  supabase: {
-    auth: {
-      signInWithPassword: vi.fn(),
-      signUp: vi.fn(),
-      signOut: vi.fn(),
-      getUser: vi.fn(),
-      updateUser: vi.fn(),
-      resetPasswordForEmail: vi.fn(),
-      onAuthStateChange: vi.fn(() => ({ data: { subscription: { unsubscribe: vi.fn() } } })),
-    },
-  },
-}))
 
 import { api, clearApiCache, setApiIdentity } from '../../../shared/lib/api'
 import { authClientMock, resetAuthClient } from '../../../test/authClientMock'
-import { supabase } from '../../../shared/lib/supabase'
 import {
-  signIn, signUp, signOut, getProfile, changePassword, resetPassword,
+  signIn, signUp, signOut, getProfile, changePassword, changeEmail, resetPassword,
   resetPasswordWithToken, verifyEmailToken, completeTwoFactor, updateProfile,
+  listMfaFactors, enrollMfa, verifyMfaEnrollment, unenrollMfa,
 } from '../auth'
 
 beforeEach(() => {
@@ -359,38 +346,137 @@ describe('signOut', () => {
   })
 })
 
-describe('changePassword (still Supabase until Task 10)', () => {
-  it('verifies the current password then updates', async () => {
-    supabase.auth.getUser.mockResolvedValue({ data: { user: { id: 'u1', email: 'a@b.com' } } })
-    supabase.auth.signInWithPassword.mockResolvedValue({ data: {}, error: null })
-    supabase.auth.updateUser.mockResolvedValue({ data: {}, error: null })
+describe('changePassword', () => {
+  it('changes the password with the current one and revokes other sessions', async () => {
+    await changePassword('old12345', 'new12345!')
 
-    await changePassword('old12345', 'new12345')
-
-    expect(supabase.auth.signInWithPassword).toHaveBeenCalledWith({ email: 'a@b.com', password: 'old12345' })
-    expect(supabase.auth.updateUser).toHaveBeenCalledWith({ password: 'new12345' })
-  })
-
-  it('throws when the current password is wrong', async () => {
-    supabase.auth.getUser.mockResolvedValue({ data: { user: { id: 'u1', email: 'a@b.com' } } })
-    supabase.auth.signInWithPassword.mockResolvedValue({ data: {}, error: { message: 'bad' } })
-
-    await expect(changePassword('wrong', 'new12345')).rejects.toThrow('Current password is incorrect')
-    expect(supabase.auth.updateUser).not.toHaveBeenCalled()
-  })
-
-  it('forwards the captcha token through the re-auth', async () => {
-    supabase.auth.getUser.mockResolvedValue({ data: { user: { id: 'u1', email: 'a@b.com' } } })
-    supabase.auth.signInWithPassword.mockResolvedValue({ data: {}, error: null })
-    supabase.auth.updateUser.mockResolvedValue({ data: {}, error: null })
-
-    await changePassword('old12345', 'new12345', 'captcha-token')
-
-    expect(supabase.auth.signInWithPassword).toHaveBeenCalledWith({
-      email: 'a@b.com',
-      password: 'old12345',
-      options: { captchaToken: 'captcha-token' },
+    expect(authClientMock.changePassword).toHaveBeenCalledWith({
+      currentPassword: 'old12345',
+      newPassword: 'new12345!',
+      revokeOtherSessions: true,
     })
+  })
+
+  it('maps a wrong current password to one honest message', async () => {
+    authClientMock.changePassword.mockResolvedValue({
+      data: null,
+      error: { code: 'INVALID_PASSWORD', message: 'Invalid password', status: 400 },
+    })
+
+    await expect(changePassword('wrong', 'new12345!')).rejects.toThrow('Current password is incorrect.')
+  })
+
+  it('does not pre-validate the new password (the component owns the policy)', async () => {
+    await changePassword('old12345', 'short')
+
+    expect(authClientMock.changePassword).toHaveBeenCalledWith(expect.objectContaining({ newPassword: 'short' }))
+  })
+
+  it('surfaces any other failure untouched', async () => {
+    authClientMock.changePassword.mockResolvedValue({
+      data: null,
+      error: { code: 'SESSION_EXPIRED', message: 'Session expired', status: 401 },
+    })
+
+    await expect(changePassword('old12345', 'new12345!')).rejects.toThrow('Session expired')
+  })
+})
+
+describe('changeEmail', () => {
+  it('re-authenticates with verify-password before asking BA to change the address', async () => {
+    api.post.mockResolvedValue({ valid: true })
+
+    await changeEmail('new@test.com', 'old12345')
+
+    expect(api.post).toHaveBeenCalledWith('auth/verify-password', { password: 'old12345' })
+    expect(authClientMock.changeEmail).toHaveBeenCalledWith({
+      newEmail: 'new@test.com',
+      callbackURL: `${window.location.origin}/auth/callback`,
+    })
+    expect(api.post.mock.invocationCallOrder[0])
+      .toBeLessThan(authClientMock.changeEmail.mock.invocationCallOrder[0])
+  })
+
+  it('stops before BA when the current password is wrong', async () => {
+    api.post.mockRejectedValue(Object.assign(new Error('Current password is incorrect'), {
+      status: 401,
+      error: { code: 'INVALID_PASSWORD', message: 'Current password is incorrect' },
+    }))
+
+    await expect(changeEmail('new@test.com', 'wrong')).rejects.toThrow('Current password is incorrect.')
+    expect(authClientMock.changeEmail).not.toHaveBeenCalled()
+  })
+
+  it('surfaces a BA refusal', async () => {
+    api.post.mockResolvedValue({ valid: true })
+    authClientMock.changeEmail.mockResolvedValue({
+      data: null,
+      error: { code: 'EMAIL_ALREADY_EXISTS', message: 'Email already exists', status: 422 },
+    })
+
+    await expect(changeEmail('new@test.com', 'old12345')).rejects.toThrow('Email already exists')
+  })
+})
+
+describe('MFA', () => {
+  it('reports the authenticator factor when the session user has 2FA enabled', async () => {
+    authClientMock.getSession.mockResolvedValue({ data: { user: { id: 'u1', twoFactorEnabled: true } } })
+
+    await expect(listMfaFactors()).resolves.toEqual([
+      { id: 'totp', status: 'verified', friendly_name: 'Authenticator app' },
+    ])
+  })
+
+  it('reports no factors when 2FA is off', async () => {
+    authClientMock.getSession.mockResolvedValue({ data: { user: { id: 'u1', twoFactorEnabled: false } } })
+
+    await expect(listMfaFactors()).resolves.toEqual([])
+  })
+
+  it('enables TOTP with the password and returns the URI and backup codes', async () => {
+    authClientMock.twoFactor.enable.mockResolvedValue({
+      data: { method: 'totp', totpURI: 'otpauth://totp/x?secret=ABC', backupCodes: ['a', 'b'] },
+      error: null,
+    })
+
+    await expect(enrollMfa('old12345')).resolves.toEqual({
+      method: 'totp',
+      totpURI: 'otpauth://totp/x?secret=ABC',
+      backupCodes: ['a', 'b'],
+    })
+    expect(authClientMock.twoFactor.enable).toHaveBeenCalledWith({ password: 'old12345' })
+  })
+
+  it('verifies the enrollment code then refreshes the session', async () => {
+    await verifyMfaEnrollment('123456')
+
+    expect(authClientMock.twoFactor.verifyTotp).toHaveBeenCalledWith({ code: '123456' })
+    expect(authClientMock.getSession).toHaveBeenCalled()
+  })
+
+  it('maps an invalid enrollment code', async () => {
+    authClientMock.twoFactor.verifyTotp.mockResolvedValue({
+      data: null,
+      error: { code: 'INVALID_CODE', message: 'Invalid code', status: 401 },
+    })
+
+    await expect(verifyMfaEnrollment('000000')).rejects.toThrow('Invalid code. Please try again.')
+  })
+
+  it('disables 2FA with the password then refreshes the session', async () => {
+    await unenrollMfa('old12345')
+
+    expect(authClientMock.twoFactor.disable).toHaveBeenCalledWith({ password: 'old12345' })
+    expect(authClientMock.getSession).toHaveBeenCalled()
+  })
+
+  it('maps a wrong password on disable', async () => {
+    authClientMock.twoFactor.disable.mockResolvedValue({
+      data: null,
+      error: { code: 'INVALID_PASSWORD', message: 'Invalid password', status: 400 },
+    })
+
+    await expect(unenrollMfa('wrong')).rejects.toThrow('Current password is incorrect.')
   })
 })
 

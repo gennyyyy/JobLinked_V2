@@ -38,6 +38,8 @@ export const baAuth = {
     // The admin invite/reset routes call this; a test that mounts admin-users
     // through the seam must not reach the real BA (and its real mailer).
     requestPasswordReset: vi.fn(),
+    // Our /auth/verify-password route re-checks the current password through BA.
+    verifyPassword: vi.fn(),
   },
 };
 
@@ -82,4 +84,5 @@ export function resetAuth() {
   // Restore readBaSession too: a test may have swapped in mockRejectedValue.
   baAuth.api.getSession.mockReset().mockImplementation(readBaSession);
   baAuth.api.requestPasswordReset.mockReset();
+  baAuth.api.verifyPassword.mockReset();
 }

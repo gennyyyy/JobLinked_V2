@@ -1,8 +1,19 @@
 import { useEffect, useState } from 'react'
+import { QRCodeSVG } from 'qrcode.react'
 import { Button } from '@/components/ui/button'
-import { Panel } from './design'
+import { Panel, TextField } from './design'
 import useAuth from '../hooks/useAuth'
 import * as authService from '../services/auth'
+
+// BA answers a `totpURI`, not a QR image: render the QR here and pull the secret
+// out for manual entry. A malformed URI simply hides the secret line.
+function totpSecret(uri) {
+  try {
+    return new URL(uri).searchParams.get('secret') || ''
+  } catch {
+    return ''
+  }
+}
 
 export function MfaPanel({ className, contentClassName, size }) {
   const { user } = useAuth() || {}
@@ -10,23 +21,21 @@ export function MfaPanel({ className, contentClassName, size }) {
   const [mfaLoading, setMfaLoading] = useState(true)
   const [mfaError, setMfaError] = useState('')
   const [mfaMessage, setMfaMessage] = useState('')
+  const [enrollPassword, setEnrollPassword] = useState('')
+  const [enrollingMfa, setEnrollingMfa] = useState(false)
   const [enrollData, setEnrollData] = useState(null)
   const [verifyCode, setVerifyCode] = useState('')
   const [verifyingMfa, setVerifyingMfa] = useState(false)
+  const [codesCopied, setCodesCopied] = useState(false)
   const [disablingMfaId, setDisablingMfaId] = useState(null)
-  const [disableCode, setDisableCode] = useState('')
+  const [disablePassword, setDisablePassword] = useState('')
+  const [disablingMfa, setDisablingMfa] = useState(false)
 
   useEffect(() => {
     let cancelled = false
     async function load() {
-      let listFactors
-      try { listFactors = authService.listMfaFactors } catch { listFactors = undefined }
-      if (typeof listFactors !== 'function') {
-        if (!cancelled) { setMfaFactors([]); setMfaLoading(false) }
-        return
-      }
       try {
-        const factors = await listFactors()
+        const factors = await authService.listMfaFactors()
         if (cancelled) return
         setMfaFactors(Array.isArray(factors) ? factors : [])
       } catch (err) {
@@ -41,41 +50,55 @@ export function MfaPanel({ className, contentClassName, size }) {
     return () => { cancelled = true }
   }, [user])
 
+  async function refreshFactors() {
+    const factors = await authService.listMfaFactors()
+    setMfaFactors(Array.isArray(factors) ? factors : [])
+  }
+
   const enrolledMfaFactors = (mfaFactors || []).filter((factor) => !factor?.status || factor.status === 'verified')
+  const secret = enrollData ? totpSecret(enrollData.totpURI) : ''
 
   async function handleEnrollMfa() {
     setMfaError('')
     setMfaMessage('')
-    let enroll
-    try { enroll = authService.enrollMfa } catch { enroll = undefined }
-    if (typeof enroll !== 'function') return
+    if (!enrollPassword) {
+      setMfaError('Enter your current password.')
+      return
+    }
+    setEnrollingMfa(true)
     try {
-      const data = await enroll()
+      const data = await authService.enrollMfa(enrollPassword)
       setEnrollData(data)
+      setEnrollPassword('')
+      setCodesCopied(false)
     } catch (err) {
       setMfaError(err?.message || 'Failed to start enrollment.')
+    } finally {
+      setEnrollingMfa(false)
+    }
+  }
+
+  async function handleCopyCodes() {
+    try {
+      await navigator.clipboard.writeText((enrollData?.backupCodes || []).join('\n'))
+      setCodesCopied(true)
+    } catch {
+      setMfaError('Copy failed. Select the codes and copy them manually.')
     }
   }
 
   async function handleVerifyMfa() {
-    if (!enrollData?.id) return
+    if (!enrollData) return
     setVerifyingMfa(true)
     setMfaError('')
     setMfaMessage('')
     try {
-      let verify
-      try { verify = authService.verifyMfaEnrollment } catch { verify = undefined }
-      if (typeof verify !== 'function') return
-      await verify(enrollData.id, verifyCode)
+      await authService.verifyMfaEnrollment(verifyCode)
+      // The codes were shown once: the verified state drops them.
       setEnrollData(null)
       setVerifyCode('')
       setMfaMessage('Two-factor authentication enabled.')
-      let listFactors
-      try { listFactors = authService.listMfaFactors } catch { listFactors = undefined }
-      if (typeof listFactors === 'function') {
-        const factors = await listFactors()
-        setMfaFactors(Array.isArray(factors) ? factors : [])
-      }
+      await refreshFactors()
     } catch (err) {
       setMfaError(err?.message || 'Invalid code.')
     } finally {
@@ -83,25 +106,24 @@ export function MfaPanel({ className, contentClassName, size }) {
     }
   }
 
-  async function handleDisableMfa(factorId) {
+  async function handleDisableMfa() {
     setMfaError('')
     setMfaMessage('')
-    let unenroll
-    try { unenroll = authService.unenrollMfa } catch { unenroll = undefined }
-    if (typeof unenroll !== 'function') return
+    if (!disablePassword) {
+      setMfaError('Enter your current password.')
+      return
+    }
+    setDisablingMfa(true)
     try {
-      await unenroll(factorId, disableCode)
+      await authService.unenrollMfa(disablePassword)
       setDisablingMfaId(null)
-      setDisableCode('')
+      setDisablePassword('')
       setMfaMessage('Two-factor authentication disabled.')
-      let listFactors
-      try { listFactors = authService.listMfaFactors } catch { listFactors = undefined }
-      if (typeof listFactors === 'function') {
-        const factors = await listFactors()
-        setMfaFactors(Array.isArray(factors) ? factors : [])
-      }
+      await refreshFactors()
     } catch (err) {
-      setMfaError(err?.message || 'Invalid code.')
+      setMfaError(err?.message || 'Failed to disable two-factor authentication.')
+    } finally {
+      setDisablingMfa(false)
     }
   }
 
@@ -111,20 +133,47 @@ export function MfaPanel({ className, contentClassName, size }) {
       {mfaError && <p role="alert" className="text-xs text-destructive">{mfaError}</p>}
       {mfaMessage && <p role="status" className="text-xs text-success">{mfaMessage}</p>}
       {!mfaLoading && enrolledMfaFactors.length === 0 && !enrollData && (
-        <Button type="button" onClick={handleEnrollMfa}>Enable two-factor authentication</Button>
+        <div className="flex flex-col gap-4">
+          <TextField
+            label="Current password"
+            type="password"
+            autoComplete="current-password"
+            required
+            value={enrollPassword}
+            onChange={(e) => setEnrollPassword(e.target.value)}
+          />
+          <Button type="button" onClick={handleEnrollMfa} disabled={enrollingMfa}>
+            {enrollingMfa ? 'Starting…' : 'Enable two-factor authentication'}
+          </Button>
+        </div>
       )}
       {enrollData && (
         <div className="flex flex-col gap-4">
-          <img src={enrollData?.totp?.qr_code} alt="QR code" className="size-40" />
-          {enrollData?.totp?.secret && (
-            <p className="text-xs text-muted-foreground">Secret: <code>{enrollData.totp.secret}</code></p>
+          <div className="flex items-start gap-4">
+            <QRCodeSVG value={enrollData.totpURI} size={160} aria-label="QR code for your authenticator app" />
+            <div className="flex flex-col gap-2 text-xs text-muted-foreground">
+              <p>Scan the QR with your authenticator app.</p>
+              {secret && <p>Or enter the secret: <code className="break-all text-foreground">{secret}</code></p>}
+            </div>
+          </div>
+          {Array.isArray(enrollData.backupCodes) && enrollData.backupCodes.length > 0 && (
+            <div className="flex flex-col gap-2 rounded-xl border border-border bg-muted/40 p-3">
+              <p className="text-xs font-medium text-foreground">Backup codes — save these now; they are shown only once.</p>
+              <ul className="grid grid-cols-2 gap-1 font-mono text-xs text-muted-foreground">
+                {enrollData.backupCodes.map((code) => <li key={code}>{code}</li>)}
+              </ul>
+              <Button type="button" variant="outline" onClick={handleCopyCodes}>Copy backup codes</Button>
+              {codesCopied && <p role="status" className="text-xs text-success">Backup codes copied.</p>}
+            </div>
           )}
-          <input
-            aria-label="Verification code"
+          <TextField
+            label="Verification code"
+            inputMode="numeric"
+            autoComplete="one-time-code"
+            maxLength={6}
             placeholder="Enter code"
             value={verifyCode}
-            onChange={(e) => setVerifyCode(e.target.value)}
-            className="form-input"
+            onChange={(e) => setVerifyCode(e.target.value.replace(/\D/g, ''))}
           />
           <Button type="button" disabled={verifyingMfa} onClick={handleVerifyMfa}>
             {verifyingMfa ? 'Verifying…' : 'Verify'}
@@ -143,16 +192,18 @@ export function MfaPanel({ className, contentClassName, size }) {
               </div>
               {disablingMfaId === factor.id && (
                 <div className="flex flex-col gap-2">
-                  <input
-                    aria-label="Verification code"
-                    placeholder="Enter code"
-                    value={disableCode}
-                    onChange={(e) => setDisableCode(e.target.value)}
-                    className="form-input"
+                  <TextField
+                    label="Current password"
+                    type="password"
+                    autoComplete="current-password"
+                    value={disablePassword}
+                    onChange={(e) => setDisablePassword(e.target.value)}
                   />
                   <div className="flex gap-2">
-                    <Button type="button" onClick={() => handleDisableMfa(factor.id)}>Confirm disable</Button>
-                    <Button type="button" variant="outline" onClick={() => { setDisablingMfaId(null); setDisableCode('') }}>Cancel</Button>
+                    <Button type="button" disabled={disablingMfa} onClick={handleDisableMfa}>
+                      {disablingMfa ? 'Disabling…' : 'Confirm disable'}
+                    </Button>
+                    <Button type="button" variant="outline" onClick={() => { setDisablingMfaId(null); setDisablePassword('') }}>Cancel</Button>
                   </div>
                 </div>
               )}
