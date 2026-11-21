@@ -43,3 +43,32 @@ describe('provision custom_role_id', () => {
     expect(authSrc).not.toMatch(/b\.custom_role_id/);
   });
 });
+
+// ADR-056 decision 7 / Review Focus 6: the pending grant lives in the
+// server-only admin_invites table. The request body can never widen it.
+describe('provision admin_invites grant', () => {
+  it('takes the role from the invite row, the body only as the no-invite fallback', () => {
+    expect(authSrc).toMatch(/const role = invite \? invite\.role : b\.role;/);
+    expect(authSrc).not.toMatch(/b\.custom_role_id/);
+  });
+
+  it('reads the invite and claims it with a delete-returning', () => {
+    expect(authSrc).toMatch(/select \* from public\.admin_invites where user_id = \$1/);
+    expect(authSrc).toMatch(/delete from public\.admin_invites where user_id = \$1 returning \*/);
+  });
+
+  it('gates super-admin on the provider signal per session source', () => {
+    expect(authSrc).toContain("req.user.source === 'ba' ? req.user.role : req.user.app_metadata?.role");
+  });
+
+  it("resolves the invite's grant on the transaction connection", () => {
+    expect(authSrc).toMatch(/const grant = await client\.query\(/);
+  });
+
+  it('answers the existing row before the invite is consumed', () => {
+    const existing = authSrc.indexOf('const existing = await resolveRole');
+    const claim = authSrc.indexOf('delete from public.admin_invites');
+    expect(existing).toBeGreaterThan(0);
+    expect(existing).toBeLessThan(claim);
+  });
+});

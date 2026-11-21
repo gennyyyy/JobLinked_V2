@@ -89,7 +89,15 @@ const resolveSession = (req) => (req._session ??= (async () => {
       try {
         const session = await baAuth.api.getSession({ headers: fromNodeHeaders(req.headers) });
         if (session?.user) {
-          return { source: 'ba', id: session.user.id, email: session.user.email, role: session.user.role ?? null };
+          return {
+            source: 'ba',
+            id: session.user.id,
+            email: session.user.email,
+            role: session.user.role ?? null,
+            // Decision 6 / Task 6: the two-factor plugin's user flag. BA issues no
+            // session before the factor step, so this is the whole aal signal.
+            twoFactorEnabled: session.user.twoFactorEnabled === true,
+          };
         }
       } catch { /* fall through — the Supabase bearer may still be valid */ }
     }
@@ -164,14 +172,23 @@ export const requireRole = (...roles) => (req, res, next) =>
 
 // Token-only auth (Addendum B): validates the session but SKIPS the
 // provisioned-row check — a fresh session has no row by definition. Carries
-// the provider role so provision can authorize a super-admin grant: BA's
-// user.role, or app_metadata (service-role-only) during the dual window.
-// Task 6 drops app_metadata from this shape.
+// the provider role so provision can authorize a super-admin grant (BA's
+// user.role, or app_metadata — service-role-only — during the dual window),
+// plus `source` and `twoFactorEnabled` for the /auth/me aal mapping.
 export async function tokenAuth(req, res, next) {
   const cookie = baCookie(req);
   if (!cookie && !bearerToken(req)) return err(res, 401, 'UNAUTHORIZED', 'Missing access token');
   const resolved = await resolveSession(req);
   if (!resolved) return err(res, 401, 'UNAUTHORIZED', 'Invalid or expired token');
-  req.user = { id: resolved.id, email: resolved.email, role: resolved.role ?? null, app_metadata: resolved.app_metadata };
+  req.user = {
+    id: resolved.id,
+    email: resolved.email,
+    role: resolved.role ?? null,
+    app_metadata: resolved.app_metadata,
+    // Task 6: routes branch on the source (never read app_metadata for BA) and
+    // derive /auth/me's aal from the BA user flag instead of re-querying BA.
+    source: resolved.source,
+    twoFactorEnabled: resolved.twoFactorEnabled === true,
+  };
   next();
 }

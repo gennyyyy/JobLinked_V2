@@ -49,9 +49,10 @@ export function loginAs({ id, role, status = 'active', email }) {
 // A provisioned BA account: registers the session cookie AND the same profiles
 // entry loginAs() writes, so auth.js resolves both sides of the dual window
 // through the same mocked pool. Returns the Cookie header value.
-export function loginAsBA({ id, role, status = 'active', email }) {
+// twoFactorEnabled mirrors the BA two-factor plugin's user flag (aal2 signal).
+export function loginAsBA({ id, role, status = 'active', email, twoFactorEnabled = false }) {
   const token = `ba-${id}`;
-  baSessions.set(token, { id, email: email || `${id}@test.local`, role });
+  baSessions.set(token, { id, email: email || `${id}@test.local`, role, twoFactorEnabled });
   profiles.set(id, { role, profile: { id, status } });
   return `better-auth.session_token=${token}`;
 }
