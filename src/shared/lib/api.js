@@ -1,28 +1,19 @@
-import { supabase } from './supabase';
+import { authClient } from './auth-client';
+import { apiUrl } from './apiUrl';
 
-// Sole HTTP path for all data access. Attaches the Supabase session JWT,
+// Sole HTTP path for all data access. Cookies carry the session (better-auth),
 // sends JSON by default (FormData passes through for uploads), and throws
 // Error(message) with .status on { error } bodies — pages already render
 // error.message.
-function apiUrl() {
-  if (import.meta.env.VITE_API_URL) return import.meta.env.VITE_API_URL;
-  if (import.meta.env.DEV) return 'http://localhost:4000';
-  return '';
-}
 
 // Absolute URL for a public API asset (company logo) that <img src> can load
-// without an Authorization header.
+// without a session.
 export const apiAssetUrl = (path) => `${apiUrl()}/api/${String(path || '').replace(/^\/+/, '')}`;
 
-// Token and user id come from one session read: the GET cache is keyed per
-// identity, so the key must belong to the session that sends the request.
-async function sessionAuth() {
-  const { data: { session } } = await supabase.auth.getSession();
-  return {
-    headers: session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {},
-    userId: session?.user?.id ?? 'anon',
-  };
-}
+// The GET cache is keyed per identity so one account's data can never be
+// served to another. AuthProvider owns the transitions and calls this before
+// any profile/API read; 'anon' covers every signed-out read.
+let identity = 'anon';
 
 function withQuery(path, params = {}) {
   const qs = new URLSearchParams();
@@ -52,24 +43,34 @@ function unreachable(url) {
   throw error;
 }
 
-// Exactly one refreshSession + one retry per 401, then bounce. Straight-line
-// code — no loop or recursion — so an infinite refresh loop is impossible.
-// Shared by request() and blob(): on 401 retry once with a fresh token, then
-// bounce on a second 401; non-OK responses throw the server's error message.
-async function settleAuth(res, sent, url, retry) {
-  if (res.status === 401 && sent.Authorization) {
-    let fresh;
-    try {
-      fresh = await refreshedHeaders();
-    } catch {
-      await bounce(res);
+async function bounce(res) {
+  let message;
+  try {
+    message = (await res.json())?.error?.message;
+  } catch { /* non-JSON error body */ }
+  try {
+    await authClient.signOut();
+  } catch { /* best-effort cleanup before bounce */ }
+  window.location.href = '/login';
+  throwStatus(res, message);
+}
+
+// Exactly one getSession probe + one retry per 401, then bounce. Straight-line
+// code — no loop or recursion — so an infinite retry loop is impossible.
+// A 401 with no session user is a public call's refusal: throw it untouched
+// (never bounce a signed-out visitor). Shared by request() and blob().
+async function settleAuth(res, url, retry) {
+  if (res.status === 401) {
+    const { data } = await authClient.getSession().catch(() => ({ data: null }));
+    if (data?.user) {
+      try {
+        // The browser re-sends the (possibly just-refreshed) session cookie.
+        res = await retry();
+      } catch {
+        unreachable(url);
+      }
+      if (res.status === 401) await bounce(res);
     }
-    try {
-      res = await retry(fresh);
-    } catch {
-      unreachable(url);
-    }
-    if (res.status === 401) await bounce(res);
   }
   if (!res.ok) {
     let apiError;
@@ -91,25 +92,7 @@ async function settleAuth(res, sent, url, retry) {
   return res;
 }
 
-async function refreshedHeaders() {
-  const { data, error } = await supabase.auth.refreshSession();
-  if (error || !data?.session?.access_token) throw error || new Error('refresh failed');
-  return { Authorization: `Bearer ${data.session.access_token}` };
-}
-
-async function bounce(res) {
-  let message;
-  try {
-    message = (await res.json())?.error?.message;
-  } catch { /* non-JSON error body */ }
-  try {
-    await supabase.auth.signOut();
-  } catch { /* best-effort cleanup before bounce */ }
-  window.location.href = '/login';
-  throwStatus(res, message);
-}
-
-// Two layers over GET, both keyed `${userId}::${path}` so one identity's data
+// Two layers over GET, both keyed `${identity}::${path}` so one identity's data
 // can never be served to another:
 // - in-flight coalescing: identical GETs while one is pending share its promise;
 // - a 10 s cache of parsed 2xx JSON, so fast page switching does not refetch
@@ -118,8 +101,8 @@ async function bounce(res) {
 const GET_CACHE_TTL_MS = 10_000;
 const getCache = new Map();
 const inFlightGets = new Map();
-// Bumped on every clear so a GET that was already in flight when a write
-// landed cannot store the pre-write body under the new state.
+// Bumped on every clear so a GET that was already in flight when a write or a
+// sign-out landed cannot store the stale body under the new state.
 let cacheGeneration = 0;
 
 export function clearApiCache() {
@@ -127,13 +110,21 @@ export function clearApiCache() {
   getCache.clear();
 }
 
+export function setApiIdentity(id) {
+  const next = id || 'anon';
+  if (next === identity) return;
+  identity = next;
+  cacheGeneration += 1;
+  getCache.clear();
+  inFlightGets.clear();
+}
+
 async function request(method, path, body) {
   if (method !== 'GET') {
     clearApiCache();
     return send(method, path, body);
   }
-  const session = await sessionAuth();
-  const key = `${session.userId}::${path}`;
+  const key = `${identity}::${path}`;
   const cached = getCache.get(key);
   if (cached && Date.now() - cached.at < GET_CACHE_TTL_MS) return cached.value;
   // An expired entry is useless; drop it so the map only holds live reads.
@@ -141,7 +132,7 @@ async function request(method, path, body) {
   const pending = inFlightGets.get(key);
   if (pending) return pending;
   const generation = cacheGeneration;
-  const promise = send(method, path, body, session);
+  const promise = send(method, path, body);
   inFlightGets.set(key, promise);
   const settle = () => inFlightGets.delete(key);
   promise.then(
@@ -154,24 +145,24 @@ async function request(method, path, body) {
   return promise;
 }
 
-async function send(method, path, body, session) {
+async function send(method, path, body) {
   const isForm = body instanceof FormData;
   const url = `${apiUrl()}/api/${path}`;
   const base = isForm ? {} : { 'Content-Type': 'application/json' };
   const payload = isForm ? body : body === undefined ? undefined : JSON.stringify(body);
-  const { headers: sent } = session || await sessionAuth();
   let res;
   try {
     res = await fetch(url, {
       method,
-      headers: { ...base, ...sent },
+      headers: base,
       body: payload,
+      credentials: 'include',
     });
   } catch {
     unreachable(url);
   }
-  res = await settleAuth(res, sent, url,
-    (fresh) => fetch(url, { method, headers: { ...base, ...fresh }, body: payload }));
+  res = await settleAuth(res, url,
+    () => fetch(url, { method, headers: base, body: payload, credentials: 'include' }));
   if (res.status === 204) return null;
   const text = await res.text();
   return text ? JSON.parse(text) : null;
@@ -179,14 +170,13 @@ async function send(method, path, body, session) {
 
 async function blob(path) {
   const url = `${apiUrl()}/api/${path}`;
-  const { headers: sent } = await sessionAuth();
   let res;
   try {
-    res = await fetch(url, { headers: sent });
+    res = await fetch(url, { credentials: 'include' });
   } catch {
     unreachable(url);
   }
-  res = await settleAuth(res, sent, url, (fresh) => fetch(url, { headers: fresh }));
+  res = await settleAuth(res, url, () => fetch(url, { credentials: 'include' }));
   if (!res.ok) {
     const text = await res.text().catch(() => '');
     let message = `Request failed (${res.status})`;

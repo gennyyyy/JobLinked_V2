@@ -1,18 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-vi.mock('../supabase', () => ({
-  supabase: {
-    auth: {
-      getSession: vi.fn(),
-      refreshSession: vi.fn(),
-      signOut: vi.fn(),
-    },
-  },
-}))
+vi.mock('../auth-client', async () => {
+  const { authClientMock } = await import('../../../test/authClientMock')
+  return { authClient: authClientMock }
+})
 
-import { supabase } from '../supabase'
-import { api, clearApiCache } from '../api'
-import { signOut } from '../../services/auth'
+import { authClientMock, resetAuthClient } from '../../../test/authClientMock'
+import { api, clearApiCache, setApiIdentity } from '../api'
 
 vi.stubEnv('VITE_API_URL', 'http://localhost:4000')
 Object.defineProperty(window, 'location', {
@@ -39,53 +33,82 @@ const html = (status) => ({
 })
 
 beforeEach(() => {
-  vi.clearAllMocks()
+  resetAuthClient()
   clearApiCache()
+  setApiIdentity('anon')
   window.location.href = 'http://localhost/'
-  supabase.auth.getSession.mockResolvedValue({ data: { session: { access_token: 'old', user: { id: 'u1' } } } })
-  supabase.auth.refreshSession.mockResolvedValue({ data: { session: { access_token: 'fresh' } }, error: null })
-  supabase.auth.signOut.mockResolvedValue({ error: null })
+})
+
+describe('cookie transport', () => {
+  it('sends cookies and no Authorization header on reads', async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue(json(200, { ok: true }))
+    await api.get('auth/me')
+    const [, init] = globalThis.fetch.mock.calls[0]
+    expect(init.credentials).toBe('include')
+    expect(init.headers.Authorization).toBeUndefined()
+  })
+
+  it('sends cookies and no Authorization header on writes', async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue(json(200, { ok: true }))
+    await api.post('auth/me', { name: 'x' })
+    const [, init] = globalThis.fetch.mock.calls[0]
+    expect(init.credentials).toBe('include')
+    expect(init.headers.Authorization).toBeUndefined()
+  })
+
+  it('blob() sends cookies and no Authorization header', async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue(json(200, { file: true }))
+    await api.blob('documents/x')
+    const [, init] = globalThis.fetch.mock.calls[0]
+    expect(init.credentials).toBe('include')
+    expect(init.headers?.Authorization).toBeUndefined()
+  })
 })
 
 describe('401 handling', () => {
-  it('refreshes once and retries with the fresh token', async () => {
+  it('probes the session once and retries the same request', async () => {
+    authClientMock.getSession.mockResolvedValue({ data: { user: { id: 'u1' } } })
     globalThis.fetch = vi.fn()
       .mockResolvedValueOnce(err401())
       .mockResolvedValueOnce(json(200, { ok: true }))
     const result = await api.get('auth/me')
     expect(result).toEqual({ ok: true })
-    expect(supabase.auth.refreshSession).toHaveBeenCalledTimes(1)
+    expect(authClientMock.getSession).toHaveBeenCalledTimes(1)
     expect(globalThis.fetch).toHaveBeenCalledTimes(2)
-    expect(globalThis.fetch.mock.calls[1][1].headers.Authorization).toBe('Bearer fresh')
+    expect(globalThis.fetch.mock.calls[1][1].credentials).toBe('include')
+    expect(globalThis.fetch.mock.calls[1][1].headers.Authorization).toBeUndefined()
   })
 
   it('bounces to /login when the retry still 401s (no further retries)', async () => {
+    authClientMock.getSession.mockResolvedValue({ data: { user: { id: 'u1' } } })
     globalThis.fetch = vi.fn().mockResolvedValue(err401())
     await expect(api.get('auth/me')).rejects.toMatchObject({ status: 401 })
     expect(globalThis.fetch).toHaveBeenCalledTimes(2)
-    expect(supabase.auth.refreshSession).toHaveBeenCalledTimes(1)
-    expect(supabase.auth.signOut).toHaveBeenCalledTimes(1)
+    expect(authClientMock.getSession).toHaveBeenCalledTimes(1)
+    expect(authClientMock.signOut).toHaveBeenCalledTimes(1)
     expect(window.location.href).toBe('/login')
   })
 
-  it('bounces when refresh itself throws', async () => {
-    supabase.auth.refreshSession.mockRejectedValue(new Error('refresh failed'))
+  it('never bounces a 401 when there is no session user', async () => {
+    authClientMock.getSession.mockResolvedValue({ data: null })
     globalThis.fetch = vi.fn().mockResolvedValue(err401())
     await expect(api.get('auth/me')).rejects.toMatchObject({ status: 401 })
     expect(globalThis.fetch).toHaveBeenCalledTimes(1)
-    expect(window.location.href).toBe('/login')
-  })
-
-  it('never bounces public (tokenless) calls on 401', async () => {
-    supabase.auth.getSession.mockResolvedValue({ data: { session: null } })
-    globalThis.fetch = vi.fn().mockResolvedValue(err401())
-    await expect(api.get('auth/me')).rejects.toMatchObject({ status: 401 })
-    expect(supabase.auth.refreshSession).not.toHaveBeenCalled()
-    expect(supabase.auth.signOut).not.toHaveBeenCalled()
+    expect(authClientMock.signOut).not.toHaveBeenCalled()
     expect(window.location.href).toBe('http://localhost/')
   })
 
-  it('blob() retries once after refresh', async () => {
+  it('treats a failed session probe as signed out (no bounce)', async () => {
+    authClientMock.getSession.mockRejectedValue(new Error('probe failed'))
+    globalThis.fetch = vi.fn().mockResolvedValue(err401())
+    await expect(api.get('auth/me')).rejects.toMatchObject({ status: 401 })
+    expect(globalThis.fetch).toHaveBeenCalledTimes(1)
+    expect(authClientMock.signOut).not.toHaveBeenCalled()
+    expect(window.location.href).toBe('http://localhost/')
+  })
+
+  it('blob() retries once after the session probe', async () => {
+    authClientMock.getSession.mockResolvedValue({ data: { user: { id: 'u1' } } })
     globalThis.fetch = vi.fn()
       .mockResolvedValueOnce(err401())
       .mockResolvedValueOnce(json(200, { file: true }))
@@ -132,16 +155,26 @@ describe('in-flight GET dedupe', () => {
   })
 
   it('never serves one identity\'s cached entry to another', async () => {
-    supabase.auth.getSession
-      .mockResolvedValueOnce({ data: { session: { access_token: 'a', user: { id: 'u1' } } } })
-      .mockResolvedValueOnce({ data: { session: { access_token: 'b', user: { id: 'u2' } } } })
-      .mockResolvedValueOnce({ data: { session: { access_token: 'a', user: { id: 'u1' } } } })
     globalThis.fetch = vi.fn()
       .mockResolvedValueOnce(json(200, { user: 'u1' }))
       .mockResolvedValueOnce(json(200, { user: 'u2' }))
+      .mockResolvedValueOnce(json(200, { user: 'u1' }))
+    setApiIdentity('u1')
     await expect(api.get('auth/me')).resolves.toEqual({ user: 'u1' })
+    setApiIdentity('u2')
     await expect(api.get('auth/me')).resolves.toEqual({ user: 'u2' })
+    // Returning to the first identity refetches: its old entry was cleared.
+    setApiIdentity('u1')
     await expect(api.get('auth/me')).resolves.toEqual({ user: 'u1' })
+    expect(globalThis.fetch).toHaveBeenCalledTimes(3)
+  })
+
+  it('clears the cache when the identity changes', async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue(json(200, { ok: true }))
+    setApiIdentity('u1')
+    await api.get('auth/me')
+    setApiIdentity('u2')
+    await api.get('auth/me')
     expect(globalThis.fetch).toHaveBeenCalledTimes(2)
   })
 
@@ -183,21 +216,6 @@ describe('in-flight GET dedupe', () => {
   it('does not dedupe writes', async () => {
     globalThis.fetch = vi.fn().mockResolvedValue(json(200, { ok: true }))
     await Promise.all([api.post('notifications/read-all'), api.post('notifications/read-all')])
-    expect(globalThis.fetch).toHaveBeenCalledTimes(2)
-  })
-})
-
-describe('signOut', () => {
-  it('resolves even when the server revoke fails', async () => {
-    supabase.auth.signOut.mockResolvedValue({ error: { message: 'revoked', status: 403 } })
-    await expect(signOut()).resolves.toBeUndefined()
-  })
-
-  it('drops cached reads so the next user never sees the previous identity\'s data', async () => {
-    globalThis.fetch = vi.fn().mockResolvedValue(json(200, { ok: true }))
-    await api.get('auth/me')
-    await signOut()
-    await api.get('auth/me')
     expect(globalThis.fetch).toHaveBeenCalledTimes(2)
   })
 })

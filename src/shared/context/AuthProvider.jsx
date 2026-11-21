@@ -1,15 +1,16 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { AuthContext } from '../hooks/useAuth';
-import { supabase } from '../lib/supabase';
-import { getProfile, signOut as apiSignOut } from '../services/auth';
+import { authClient } from '../lib/auth-client';
+import { setApiIdentity } from '../lib/api';
+import { getProfile } from '../services/auth';
 
 function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   // Distinguish "no session" from "session exists but no local profile row yet".
   // The recovery page (/complete-registration) needs to know both: there IS a
-  // Supabase session (don't sign out) but there is no profile (can't route to a
-  // portal). `needsProvisioning` is true only in that exact gap.
+  // session (don't sign out) but there is no profile (can't route to a portal).
+  // `needsProvisioning` is true only in that exact gap.
   const [needsProvisioning, setNeedsProvisioning] = useState(false);
   const [sessionUser, setSessionUser] = useState(null);
   const signedInId = useRef(null);
@@ -73,46 +74,52 @@ function AuthProvider({ children }) {
     }
   }, []);
 
+  // The BA client owns the session (signed cookie); useSession re-renders on
+  // every transition. isPending holds the loading screen until the first
+  // resolve, so ProtectedRoute never sees user=null mid-restore.
+  const { data: session, isPending } = authClient.useSession();
+
   useEffect(() => {
-    let active = true;
-    // Session is not persisted — no localStorage restore needed.
-    // onAuthStateChange fires INITIAL_SESSION on mount with null when there
-    // is no active session, so loading is driven entirely from there.
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (!active) return;
-      if (event === 'SIGNED_OUT' || !session?.user) {
-        signedInId.current = null;
-        // Supersede any in-flight profile fetch so a late response can't
-        // resurrect the signed-out user.
-        loadSeq.current += 1;
-        setUser(null);
-        setNeedsProvisioning(false);
-        setSessionUser(null);
-        setLoading(false);
-        return;
-      }
-      // Supabase re-emits SIGNED_IN on every tab focus. When the signed-in user
-      // is unchanged we already have the profile: skip it. Emitting a new `user`
-      // object would restart every page's `useEffect([user])` refetch and flash
-      // the loading screen for data that is already on screen.
-      if (signedInId.current === session.user.id) return;
-      signedInId.current = session.user.id;
-      // Hold guards on the loading screen until the profile arrives. Without
-      // this, a fresh sign-in leaves `loading` false (it was settled by the
-      // initial anonymous session), so ProtectedRoute sees user=null and
-      // bounces straight back to the login page before /auth/me resolves.
-      setLoading(true);
-      loadProfile(session.user).finally(() => active && setLoading(false));
-    });
-    return () => { active = false; signedInId.current = null; subscription.unsubscribe(); };
-  }, [loadProfile]);
+    if (isPending) return;
+    const sessUser = session?.user;
+    if (!sessUser) {
+      signedInId.current = null;
+      setApiIdentity('anon');
+      // Supersede any in-flight profile fetch so a late response can't
+      // resurrect the signed-out user.
+      loadSeq.current += 1;
+      // Synchronous by contract: the sign-out render must not expose the
+      // previous identity for a tick (ProtectedRoute reads these directly).
+      /* eslint-disable react-hooks/set-state-in-effect */
+      setUser(null);
+      setNeedsProvisioning(false);
+      setSessionUser(null);
+      setLoading(false);
+      /* eslint-enable react-hooks/set-state-in-effect */
+      return;
+    }
+    // The same user again (a focus/refetch re-emit): the profile is already
+    // loaded or loading. Emitting a new `user` object would restart every
+    // page's `useEffect([user])` refetch and flash the loading screen.
+    if (signedInId.current === sessUser.id) return;
+    signedInId.current = sessUser.id;
+    // Before any profile/API read, scope the GET cache to this identity.
+    setApiIdentity(sessUser.id);
+    // Hold guards on the loading screen until the profile arrives. Without
+    // this, a fresh sign-in leaves `loading` false (it was settled by the
+    // initial anonymous session), so ProtectedRoute sees user=null and
+    // bounces straight back to the login page before /auth/me resolves.
+    setLoading(true);
+    loadProfile(sessUser).finally(() => setLoading(false));
+  }, [isPending, session, loadProfile]);
 
   // Seed the provider with a profile the caller already resolved (signIn).
-  // Supersedes any in-flight SIGNED_IN fetch so a stale null cannot win, and
-  // avoids a second /auth/me round-trip on the critical login path.
+  // Supersedes any in-flight load so a stale null cannot win, and avoids a
+  // second /auth/me round-trip on the critical login path.
   const authenticate = useCallback((nextUser) => {
     loadSeq.current += 1;
     signedInId.current = nextUser?.id || null;
+    setApiIdentity(nextUser?.id || 'anon');
     setUser(nextUser || null);
     // A seeded profile means provisioning is complete (or was never needed).
     setNeedsProvisioning(false);
@@ -122,12 +129,13 @@ function AuthProvider({ children }) {
 
   const logout = useCallback(async () => {
     try {
-      await apiSignOut();
+      await authClient.signOut();
     } finally {
       // Supersede any in-flight profile fetch so a late response can't
       // resurrect the signed-out user (Task 3).
       loadSeq.current += 1;
       signedInId.current = null;
+      setApiIdentity('anon');
       setUser(null);
       setNeedsProvisioning(false);
       setSessionUser(null);

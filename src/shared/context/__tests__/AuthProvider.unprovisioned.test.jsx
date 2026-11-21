@@ -1,26 +1,22 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, act } from '@testing-library/react';
+import { authClientMock, resetAuthClient, setAuthSession } from '../../../test/authClientMock';
 
-let mockAuthCallback = null;
 const getProfile = vi.fn();
 
-vi.mock('../../lib/supabase', () => ({
-  supabase: {
-    auth: {
-      onAuthStateChange: (cb) => {
-        mockAuthCallback = cb;
-        return { data: { subscription: { unsubscribe: vi.fn() } } };
-      },
-    },
-  },
-}));
-vi.mock('../../services/auth', () => ({ getProfile, signOut: vi.fn() }));
+vi.mock('../../lib/auth-client', async () => {
+  const { authClientMock: client } = await import('../../../test/authClientMock');
+  return { authClient: client };
+});
+vi.mock('../../lib/api', () => ({ setApiIdentity: vi.fn() }));
+vi.mock('../../services/auth', () => ({ getProfile }));
 
 const { default: AuthProvider } = await import('../AuthProvider');
 const { default: useAuth } = await import('../../hooks/useAuth');
 
-const emit = (event, userId, email = 'test@example.com') =>
-  mockAuthCallback(event, userId ? { user: { id: userId, email } } : null);
+const signIn = (userId, email = 'test@example.com') =>
+  act(() => setAuthSession({ user: { id: userId, email } }));
+const signOutSession = () => act(() => setAuthSession(null));
 
 function Child() {
   const { user, loading, needsProvisioning, sessionUser } = useAuth();
@@ -35,7 +31,10 @@ function Child() {
   );
 }
 
-beforeEach(() => getProfile.mockReset());
+beforeEach(() => {
+  getProfile.mockReset();
+  resetAuthClient();
+});
 
 describe('AuthProvider unprovisioned account handling', () => {
   it('sets needsProvisioning when session exists but profile returns null', async () => {
@@ -45,11 +44,13 @@ describe('AuthProvider unprovisioned account handling', () => {
         <Child />
       </AuthProvider>,
     );
-    emit('SIGNED_IN', 'u1', 'unprovisioned@example.com');
+    signIn('u1', 'unprovisioned@example.com');
     await waitFor(() => expect(screen.getByTestId('auth-loading')).toHaveTextContent('no'));
     expect(screen.getByTestId('needs-provisioning')).toHaveTextContent('yes');
     expect(screen.getByTestId('session-user')).toHaveTextContent('u1');
     expect(screen.getByTestId('auth-role')).toHaveTextContent('anon');
+    // The session is valid — a missing profile must never sign the user out.
+    expect(authClientMock.signOut).not.toHaveBeenCalled();
   });
 
   it('clears needsProvisioning when profile is later loaded', async () => {
@@ -59,15 +60,15 @@ describe('AuthProvider unprovisioned account handling', () => {
         <Child />
       </AuthProvider>,
     );
-    emit('SIGNED_IN', 'u1', 'unprovisioned@example.com');
+    signIn('u1', 'unprovisioned@example.com');
     await waitFor(() => expect(screen.getByTestId('needs-provisioning')).toHaveTextContent('yes'));
 
     // Sign out to clear the state, then sign in again with a profile.
-    emit('SIGNED_OUT', null);
+    signOutSession();
     await waitFor(() => expect(screen.getByTestId('needs-provisioning')).toHaveTextContent('no'));
 
     getProfile.mockResolvedValueOnce({ id: 'u1', role: 'job-seeker' });
-    emit('SIGNED_IN', 'u1', 'unprovisioned@example.com');
+    signIn('u1', 'unprovisioned@example.com');
     await waitFor(() => expect(screen.getByTestId('needs-provisioning')).toHaveTextContent('no'));
     expect(screen.getByTestId('auth-role')).toHaveTextContent('job-seeker');
   });
@@ -79,10 +80,10 @@ describe('AuthProvider unprovisioned account handling', () => {
         <Child />
       </AuthProvider>,
     );
-    emit('SIGNED_IN', 'u1', 'unprovisioned@example.com');
+    signIn('u1', 'unprovisioned@example.com');
     await waitFor(() => expect(screen.getByTestId('needs-provisioning')).toHaveTextContent('yes'));
 
-    emit('SIGNED_OUT', null);
+    signOutSession();
     await waitFor(() => expect(screen.getByTestId('needs-provisioning')).toHaveTextContent('no'));
     expect(screen.getByTestId('session-user')).toHaveTextContent('none');
   });
