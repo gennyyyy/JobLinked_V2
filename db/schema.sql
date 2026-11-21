@@ -727,3 +727,39 @@ These terms are governed by Philippine law and applicable municipal issuances.
 Privacy matters are governed by RA 10173 and the Privacy Notice, which forms part
 of these terms.$terms$)
 on conflict (key) do nothing;
+
+-- =============================================================================
+-- Better Auth (auth schema) — db/migrations/017_better_auth_tables.sql, ADR-056.
+-- Owned by better-auth (server/src/ba.js); names/columns exactly as
+-- `npx auth generate` emits. public.admin_invites is the only app-side object.
+-- =============================================================================
+
+create schema if not exists "auth";
+
+create table if not exists "auth"."user" ("id" uuid default pg_catalog.gen_random_uuid() not null primary key, "name" text not null, "email" text not null unique, "emailVerified" boolean not null, "image" text, "createdAt" timestamptz default CURRENT_TIMESTAMP not null, "updatedAt" timestamptz default CURRENT_TIMESTAMP not null, "role" text, "banned" boolean, "banReason" text, "banExpires" timestamptz, "twoFactorEnabled" boolean);
+
+create table if not exists "auth"."session" ("id" uuid default pg_catalog.gen_random_uuid() not null primary key, "expiresAt" timestamptz not null, "token" text not null unique, "createdAt" timestamptz default CURRENT_TIMESTAMP not null, "updatedAt" timestamptz not null, "ipAddress" text, "userAgent" text, "userId" uuid not null references "auth"."user" ("id") on delete cascade, "impersonatedBy" text);
+
+create table if not exists "auth"."account" ("id" uuid default pg_catalog.gen_random_uuid() not null primary key, "accountId" text not null, "providerId" text not null, "userId" uuid not null references "auth"."user" ("id") on delete cascade, "accessToken" text, "refreshToken" text, "idToken" text, "accessTokenExpiresAt" timestamptz, "refreshTokenExpiresAt" timestamptz, "scope" text, "password" text, "createdAt" timestamptz default CURRENT_TIMESTAMP not null, "updatedAt" timestamptz not null);
+
+create table if not exists "auth"."verification" ("id" uuid default pg_catalog.gen_random_uuid() not null primary key, "identifier" text not null, "value" text not null, "expiresAt" timestamptz not null, "createdAt" timestamptz default CURRENT_TIMESTAMP not null, "updatedAt" timestamptz default CURRENT_TIMESTAMP not null);
+
+create table if not exists "auth"."twoFactor" ("id" uuid default pg_catalog.gen_random_uuid() not null primary key, "secret" text not null, "backupCodes" text not null, "userId" uuid not null references "auth"."user" ("id") on delete cascade, "verified" boolean, "failedVerificationCount" integer, "lockedUntil" timestamptz);
+
+create index if not exists "session_userId_idx" on "auth"."session" ("userId");
+
+create index if not exists "account_userId_idx" on "auth"."account" ("userId");
+
+create index if not exists "verification_identifier_idx" on "auth"."verification" ("identifier");
+
+create index if not exists "twoFactor_secret_idx" on "auth"."twoFactor" ("secret");
+
+create index if not exists "twoFactor_userId_idx" on "auth"."twoFactor" ("userId");
+
+create table if not exists public.admin_invites (
+  user_id uuid primary key references auth."user"(id) on delete cascade,
+  role text not null check (role in ('job-seeker','employer','super-admin')),
+  custom_role_id bigint null references public.reference_data(id) on delete set null,
+  profile jsonb not null default '{}'::jsonb,
+  created_at timestamptz not null default now()
+);
