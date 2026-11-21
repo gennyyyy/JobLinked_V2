@@ -174,19 +174,18 @@ export const auth = betterAuth({
 ### Task 3: Supabase → Better Auth data migration script
 
 **Files:**
-- Create: `scripts/migrate-supabase-auth.mjs` (adapts the [official guide script](https://better-auth.com/docs/guides/supabase-migration-guide) to this repo: reads Supabase via service-role admin API, writes `auth.*` through the BA internal adapter or direct SQL)
-- Modify: `vite.config.js` (add `"scripts/**/*.test.js"` to the Node project's include; it currently covers `server/**` and `db/**` only)
-- Test: `scripts/__tests__/migrate-supabase-auth.test.js` with fixture rows
+- Create: `server/scripts/migrate-supabase-auth.mjs` (adapts the [official guide script](https://better-auth.com/docs/guides/supabase-migration-guide) to this repo: reads Supabase via service-role admin API, writes `auth.*` through direct SQL; the server package owns `pg` and `@supabase/supabase-js`, the root package has no `pg`)
+- Test: `server/src/__tests__/migrate-supabase-auth.test.js` (covered by the existing server Vitest include; imports the script — no `vite.config.js` change)
 
 **Interfaces:**
 - Consumes: `SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY` (source, still present), `DATABASE_URL` (target).
-- Produces: `auth.user` rows (uuid ids = Supabase user ids, `email_verified` carried over), `auth.account` rows (`providerId: 'credential'`, `password` = Supabase bcrypt hash verbatim), CLI flags `--dry-run` (counts only), `--batch=500`, `--resume=<userId>` (keyset pagination per the guide).
+- Produces: `auth."user"` rows (uuid ids = Supabase user ids, `emailVerified` carried over, `role` copied from `app_metadata.role` when present), `auth."account"` rows (`providerId: 'credential'`, `password` = Supabase bcrypt hash verbatim). CLI flags `--dry-run` (default; counts only), `--apply` (required to write), `--batch=500`, `--resume=<userId>`. Logs counts only — never emails, hashes, or tokens.
 
-- [ ] **Step 1: Write the failing test** — fixture: one Supabase user (bcrypt `$2a$` hash, email verified), one unverified; dry-run reports `{ total: 2, verified: 1 }` and writes nothing; run inserts both, is idempotent on re-run (upsert by id), preserves hash bytes exactly (assert stored `password === fixture hash`).
+- [ ] **Step 1: Write the failing test** — fixture: one Supabase user (bcrypt `$2a$` hash, email verified, `app_metadata.role = 'super-admin'`), one unverified, one with no password hash; dry-run reports `{ total: 3, verified: 1, withPassword: 1 }` and writes nothing; `--apply` inserts the users, copies the role, writes one credential account for the hashed user and none for the hashless one, preserves hash bytes exactly (assert stored `password === fixture hash`), and a second `--apply` does **not** overwrite a password changed after the first run (account id = user id; insert guarded by `where not exists (userId, providerId)`). No log line contains an email or hash.
 - [ ] **Step 2:** Test → FAIL.
-- [ ] **Step 3:** Implement per the guide (batched, resumable, never logs emails+tokens together).
-- [ ] **Step 4:** Test → PASS. Also one live check against a local Supabase copy if available (deferred to Task 15 if not).
-- [ ] **Step 5:** Commit `scripts: supabase→better-auth user migration (bcrypt, resumable)`.
+- [ ] **Step 3:** Implement per the guide (batched, resumable). Writes happen only with `--apply`; the default is dry-run. Never log emails, hashes, or tokens together.
+- [ ] **Step 4:** Test → PASS. A live rehearsal against real Supabase data is Task 7; do not run `--apply` against production in this task.
+- [ ] **Step 5:** Commit `chore(server): supabase→better-auth user migration (bcrypt, resumable)`.
 
 ### Task 4: Mount BA in Express (ordering-critical)
 
@@ -311,7 +310,7 @@ const resolveSession = (req) => (req._session ??= (async () => {
 
 **Files:** `docs/ops/deploy-runbook.md` (§1 env table + §2 procedure gain the BA env and the migration step)
 
-- [ ] **Step 1 (pre-deploy, operator):** set `BETTER_AUTH_SECRET`/`BETTER_AUTH_URL`/`SMTP_*`/`TURNSTILE_SECRET_KEY` in `server/.env`; run `scripts/migrate-supabase-auth.mjs` against production (dry-run → counts match `auth.users` of Supabase → run); verify spot logins with old passwords (3 roles).
+- [ ] **Step 1 (pre-deploy, operator):** set `BETTER_AUTH_SECRET`/`BETTER_AUTH_URL`/`SMTP_*`/`TURNSTILE_SECRET_KEY` in `server/.env`; run `server/scripts/migrate-supabase-auth.mjs --dry-run` against production (counts match Supabase `auth.users`), then `--apply`; verify spot logins with old passwords (3 roles).
 - [ ] **Step 2:** deploy server + client together (dual window makes server-first safe).
 - [ ] **Step 3 (verify, owner):** login per role → portal; admin invite → email arrives (SMTP live) → accept link sets password; forgot-password → reset link; Turnstile solves and rejects a scripted bot token; MFA banner prompts re-enrollment for prior Supabase-MFA users; `GET /api/health?deep=true` OK; logs show no Supabase round-trips.
 - [ ] **Step 4:** comms: "sign in again once; re-enroll TOTP" (existing MFA users), via the existing Broadcast channel.
