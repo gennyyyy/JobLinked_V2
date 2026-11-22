@@ -34,6 +34,7 @@ afterAll(() => {
   return new Promise((r) => server.close(r));
 });
 beforeEach(() => {
+  process.env.SUPABASE_SERVICE_ROLE_KEY = 'service-key';
   upstream.mockReset().mockResolvedValue({ ok: true, status: 200, body: { cancel: vi.fn() } });
   mocks.poolQuery.mockReset().mockResolvedValue({ rows: [], rowCount: 1 });
   mocks.resolveRole.mockReset().mockResolvedValue({ role: 'employer', profile: { id: 'user-1', status: 'active' } });
@@ -46,6 +47,8 @@ const post = (body) => fetch(`${base}/account/deactivate`, {
 });
 const auditCalls = () => mocks.poolQuery.mock.calls.filter((c) => /insert into audit_logs/.test(String(c[0])));
 const updateCalls = () => mocks.poolQuery.mock.calls.filter((c) => /update .* set status = 'inactive'/.test(String(c[0])));
+const baDelete = () => mocks.poolQuery.mock.calls.filter(
+  ([sql]) => /delete from auth\."session" where "userId" = \$1/.test(String(sql)));
 
 describe('POST /account/deactivate', () => {
   it('400 CONFIRM_REQUIRED when confirm is missing', async () => {
@@ -92,7 +95,22 @@ describe('POST /account/deactivate', () => {
     expect(params[2]).toBe('employers');
     expect(params[3]).toBe('user-1');
 
+    // ADR-056: deactivation kills the BA sessions on every device too.
+    expect(baDelete()).toHaveLength(1);
+    expect(baDelete()[0][1]).toEqual(['user-1']);
+
     expect(upstream).toHaveBeenCalledTimes(1);
+  });
+
+  it('deactivates and revokes BA sessions with no Supabase key: 200, no 503, no legacy call', async () => {
+    delete process.env.SUPABASE_SERVICE_ROLE_KEY;
+    const r = await post({ confirm: 'DEACTIVATE' });
+    expect(r.status).toBe(200);
+    expect(await r.json()).toEqual({ deactivated: true });
+    expect(updateCalls()).toHaveLength(1);
+    expect(baDelete()).toHaveLength(1);
+    expect(upstream).not.toHaveBeenCalled();
+    expect(auditCalls()).toHaveLength(1);
   });
 
   it('does not fail when GoTrue logout fails', async () => {
@@ -100,5 +118,6 @@ describe('POST /account/deactivate', () => {
     const r = await post({ confirm: 'DEACTIVATE' });
     expect(r.status).toBe(200);
     expect(await r.json()).toEqual({ deactivated: true });
+    expect(baDelete()).toHaveLength(1);
   });
 });

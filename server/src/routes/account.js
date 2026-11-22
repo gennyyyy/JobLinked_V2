@@ -46,25 +46,28 @@ router.patch('/account/preferences', tokenAuth, ah(async (req, res) => {
 }));
 
 router.post('/account/sessions/revoke-all', tokenAuth, ah(async (req, res) => {
+  // Better Auth owns sessions (ADR-056): deleting the rows signs the user out
+  // on every device. Dual window only — the legacy logout below is best-effort.
+  await pool.query('delete from auth."session" where "userId" = $1', [req.user.id]);
+
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!key) return err(res, 503, 'SERVICE_UNAVAILABLE', 'Session revocation is not configured. Please try again later.');
-  const url = `${String(process.env.SUPABASE_URL || '').replace(/\/+$/, '')}/auth/v1/admin/users/${encodeURIComponent(req.user.id)}/logout`;
-  let upstream;
-  try {
-    upstream = await fetch(url, {
-      method: 'POST',
-      headers: { apikey: key, Authorization: `Bearer ${key}` },
-      signal: AbortSignal.timeout(10_000),
-    });
-  } catch (e) {
-    logger.error('revoke_all_sessions_failed', { reason: e?.name === 'TimeoutError' ? 'timeout' : 'network' });
-    return err(res, 502, 'UPSTREAM_ERROR', 'The sessions could not be revoked. Please try again later.');
+  if (key) {
+    const url = `${String(process.env.SUPABASE_URL || '').replace(/\/+$/, '')}/auth/v1/admin/users/${encodeURIComponent(req.user.id)}/logout`;
+    try {
+      const upstream = await fetch(url, {
+        method: 'POST',
+        headers: { apikey: key, Authorization: `Bearer ${key}` },
+        signal: AbortSignal.timeout(10_000),
+      });
+      if (!upstream.ok) {
+        try { await upstream.body?.cancel?.(); } catch { /* already gone */ }
+        logger.error('revoke_all_sessions_failed', { status: upstream.status });
+      }
+    } catch (e) {
+      logger.error('revoke_all_sessions_failed', { reason: e?.name === 'TimeoutError' ? 'timeout' : 'network' });
+    }
   }
-  if (!upstream.ok) {
-    try { await upstream.body?.cancel?.(); } catch { /* already gone */ }
-    logger.error('revoke_all_sessions_failed', { status: upstream.status });
-    return err(res, 502, 'UPSTREAM_ERROR', 'The sessions could not be revoked. Please try again later.');
-  }
+
   void audit(req.user.id, 'account.sessions.revoke', 'user_preferences', req.user.id);
   res.json({ revoked: true });
 }));
@@ -89,21 +92,25 @@ router.post('/account/deactivate', tokenAuth, ah(async (req, res) => {
   }
 
   await pool.query(`update ${table} set status = 'inactive' where id = $1`, [req.user.id]);
+  // Better Auth owns sessions (ADR-056): deactivation signs out every device.
+  await pool.query('delete from auth."session" where "userId" = $1', [req.user.id]);
   void audit(req.user.id, 'account.deactivate', table, req.user.id);
 
-  // Best-effort: revoke sessions via GoTrue admin logout, swallowing errors.
+  // Dual window: legacy GoTrue logout is best-effort and only when configured.
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  const url = `${String(process.env.SUPABASE_URL || '').replace(/\/+$/, '')}/auth/v1/admin/users/${encodeURIComponent(req.user.id)}/logout`;
-  try {
-    const upstream = await fetch(url, {
-      method: 'POST',
-      headers: { apikey: key, Authorization: `Bearer ${key}` },
-      signal: AbortSignal.timeout(10_000),
-    });
-    if (upstream && !upstream.ok) {
-      try { await upstream.body?.cancel?.(); } catch { /* already gone */ }
-    }
-  } catch { /* best-effort */ }
+  if (key) {
+    const url = `${String(process.env.SUPABASE_URL || '').replace(/\/+$/, '')}/auth/v1/admin/users/${encodeURIComponent(req.user.id)}/logout`;
+    try {
+      const upstream = await fetch(url, {
+        method: 'POST',
+        headers: { apikey: key, Authorization: `Bearer ${key}` },
+        signal: AbortSignal.timeout(10_000),
+      });
+      if (!upstream.ok) {
+        try { await upstream.body?.cancel?.(); } catch { /* already gone */ }
+      }
+    } catch { /* best-effort */ }
+  }
 
   res.json({ deactivated: true });
 }));

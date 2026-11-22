@@ -1,5 +1,5 @@
 import { api, clearApiCache } from '../lib/api'
-import { supabase } from '../lib/supabase'
+import { authClient } from '../lib/auth-client'
 
 export function getPreferences() {
   return api.get('account/preferences')
@@ -11,12 +11,12 @@ export function updatePreferences(patch) {
 
 export async function revokeAllSessions() {
   await api.post('account/sessions/revoke-all')
-  try { await supabase.auth.signOut({ scope: 'global' }) } catch { /* best-effort */ }
+  try { await authClient.signOut() } catch { /* best-effort */ }
   clearApiCache()
 }
 
 export async function deactivateAccount() {
   await api.post('account/deactivate', { confirm: 'DEACTIVATE' })
-  try { await supabase.auth.signOut({ scope: 'global' }) } catch { /* best-effort */ }
+  try { await authClient.signOut() } catch { /* best-effort */ }
   clearApiCache()
 }
