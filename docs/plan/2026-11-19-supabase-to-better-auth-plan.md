@@ -16,6 +16,8 @@
 
 **Progress (2026-11-21):** Tasks 1, 2, 3, 4, 5, 6a, 6b, 6c, 8, 9, 10, 11 implemented and verified (900+ server tests, 800+ client tests, lint/build green). Task 7/12 are blocked on operator secrets: `SUPABASE_DATABASE_URL` (read-only Supabase Postgres — the admin API omits password hashes) and `SMTP_*` (Resend), plus `TURNSTILE_SECRET_KEY`/`BETTER_AUTH_URL`/`BETTER_AUTH_SECRET` for production. Task 13 cleanup and Task 14 docs follow the cutover.
 
+**Rehearsal (2026-11-22):** dry-run `{total:161, verified:161, withPassword:161}`. `--apply` wrote 161 `auth."user"` + 161 `auth."account"` rows to the VPS DB; the target `md5(string_agg(password …))` matches the Supabase source byte-for-byte. Local API + client (cookie transport, `VITE_API_URL=http://localhost:4000`) sign in with an existing Supabase password. No deploy yet — production still runs the Supabase-auth server/client.
+
 **Scope guard (confirmed 2026-11-22):** the only functional change is Supabase Auth → Better Auth. `public.admin_invites`, `public.pending_signups`, and `POST /auth/verify-password` are retained as auth-flow support (invite grant, registration data across verification, email-change re-auth), not new product features. Migrations 015/016 remain applied on the VPS DB (committed, additive). No changes to roles, permissions, audit, jobs, applications, profiles, reports, AI, uploads, or page design.
 
 **Target environment:** `server/.env` `DATABASE_URL` is an SSH `LocalForward` to the **VPS database** (`docs/ops/deploy-runbook.md` §"Local dev against the VPS database"). Migrations 015–018 are applied there; `auth."user"` is still empty until the Task 7 data migration runs.
