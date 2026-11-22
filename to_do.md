@@ -1,4 +1,4 @@
-﻿> **Stale-premise banner (added 2026-11-09 by the system gap analysis,
+﻿I know pink automatic sets may cool typing meth> **Stale-premise banner (added 2026-11-09 by the system gap analysis,
 > `plan/2026-11-04-01-system-gap-analysis.md`).** This checklist is a
 > product-spec artifact, not a status tracker. It still lists features that
 > were removed on purpose (for example "Shortlisted", purged by
