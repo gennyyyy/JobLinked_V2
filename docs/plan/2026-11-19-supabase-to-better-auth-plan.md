@@ -20,6 +20,8 @@
 
 **Target environment:** `server/.env` `DATABASE_URL` is an SSH `LocalForward` to the **VPS database** (`docs/ops/deploy-runbook.md` §"Local dev against the VPS database"). Migrations 015–018 are applied there; `auth."user"` is still empty until the Task 7 data migration runs.
 
+**Data hygiene before the auth migration (audited 2026-11-22, not yet changed):** the VPS DB holds load-test data from 2026-11-04. `job_vacancies` has 102 published rows: 100 are 50 `spike.employer.*@joblinked-spike.test` employers × 2 jobs, with locations hardcoded as `<barangay>, Santa Maria, **La Union**` in `server/scripts/seed-jobs-spike.mjs`; 1 is a smoke-test job (`smoke.employer@joblinked.test`); 1 is real (Jollibee Crew, Pulong Buhangin). The spike set also includes 100 seeker accounts, 102 applications, and 1,867 notifications. The source scripts say "Data is meant to stay", which is why it reached the VPS. These 152 test identities would be copied by the auth migration. Recommended before Task 7: back up the affected tables, purge the spike/smoke rows and their Supabase users, then harden the seed scripts (test-only location, cleanup mode, remote guard). No deletion has been performed; it needs explicit operator approval.
+
 ## Global Constraints
 
 - **No TypeScript.** BA config and clients are plain ESM JavaScript (`.js`); BA works without TS (repo rule).
