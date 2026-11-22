@@ -18,7 +18,7 @@ const SEEKER_ALLOW = ['first_name', 'middle_name', 'last_name', 'suffix', 'full_
 const EMPLOYER_ALLOW = ['first_name', 'middle_name', 'last_name', 'suffix', 'full_name', 'phone',
   'company_name', 'company_email', 'industry', 'house_number_unit', 'street_address',
   'subdivision_building', 'barangay_district', 'city_municipality', 'province_state',
-  'postal_code', 'country', 'representative_email', 'representative_position',
+  'postal_code', 'country', 'representative_email', 'representative_position', 'representative_phone',
   'website', 'description', 'logo_path'];
 const LOWERCASE_FIELDS = new Set(['first_name', 'middle_name', 'last_name', 'suffix', 'full_name',
   'company_name', 'house_number_unit', 'lot', 'block', 'street_address', 'subdivision_building',

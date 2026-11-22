@@ -19,7 +19,7 @@ insert into public.job_seekers
   (id, first_name, last_name, full_name, email, barangay_district, city_municipality, province_state,
    skills, employment_status, preferred_position, preferred_location)
 values
-  ('5eed0000-0000-4000-8000-000000000001', 'smoke', 'seeker', 'smoke seeker', 'smoke.seeker@joblinked.test',
+  ('5eed0000-0000-4000-8000-000000000001', 'Maria', 'Santos', 'Maria Santos', 'smoke.seeker@joblinked.test',
    'Poblacion', 'Santa Maria', 'Bulacan', '{customer service}', 'Unemployed', 'service crew', 'Poblacion')
 on conflict (id) do nothing;
 
@@ -29,8 +29,8 @@ insert into public.employers
   (id, first_name, last_name, full_name, email, company_name, company_email, industry,
    barangay_district, city_municipality, province_state, representative_position)
 values
-  ('5eed0000-0000-4000-8000-000000000002', 'smoke', 'employer', 'smoke employer', 'smoke.employer@joblinked.test',
-   'smoke test company', 'smoke.employer@joblinked.test', 'Food & Beverage',
+  ('5eed0000-0000-4000-8000-000000000002', 'Jose', 'Dela Cruz', 'Jose Dela Cruz', 'smoke.employer@joblinked.test',
+   'Santa Maria Food Services', 'smoke.employer@joblinked.test', 'Food & Beverage',
    'Poblacion', 'Santa Maria', 'Bulacan', 'store manager')
 on conflict (id) do nothing;
 
@@ -39,15 +39,15 @@ insert into public.employers
   (id, first_name, last_name, full_name, email, company_name, company_email, industry,
    barangay_district, city_municipality, province_state, representative_position)
 values
-  ('5eed0000-0000-4000-8000-000000000003', 'smoke', 'pending', 'smoke pending', 'smoke.pending@joblinked.test',
-   'smoke pending fixture co.', 'smoke.pending@joblinked.test', 'Retail / Construction Supply',
+  ('5eed0000-0000-4000-8000-000000000003', 'Ana', 'Reyes', 'Ana Reyes', 'smoke.pending@joblinked.test',
+   'Bulacan Retail Supply Co.', 'smoke.pending@joblinked.test', 'Retail / Construction Supply',
    'San Jose', 'Santa Maria', 'Bulacan', 'branch supervisor')
 on conflict (id) do nothing;
 
 -- Smoke super-admin (approve + CSV download).
 insert into public.super_admins (id, first_name, last_name, full_name, email)
 values
-  ('5eed0000-0000-4000-8000-000000000004', 'smoke', 'admin', 'smoke admin', 'smoke.admin@joblinked.test')
+  ('5eed0000-0000-4000-8000-000000000004', 'Elena', 'Cruz', 'Elena Cruz', 'smoke.admin@joblinked.test')
 on conflict (id) do nothing;
 
 -- Accreditation state; the sync trigger mirrors these onto employers.
@@ -69,9 +69,9 @@ insert into public.job_vacancies
   (id, company_id, title, office, location, employment_type, work_arrangement, salary_min, salary_max,
    description, requirements, benefits, vacancies, deadline, instructions, tags, field, skills, status, published_at)
 values
-  ('5eed0000-0000-4000-8000-000000000011', '5eed0000-0000-4000-8000-000000000002', 'Smoke Test Service Crew',
-   'smoke test company', 'Poblacion', 'Full-time', 'On-site', 15000, 18000,
-   'Fixture vacancy driven by scripts/system-check.mjs. Safe to close or delete on a real deployment.',
+  ('5eed0000-0000-4000-8000-000000000011', '5eed0000-0000-4000-8000-000000000002', 'Service Crew',
+   'Santa Maria Food Services', 'Poblacion', 'Full-time', 'On-site', 15000, 18000,
+   'Serve customers, prepare orders, and keep the store clean. Entry-level applicants welcome.',
    'No experience required; willing to learn.', 'SSS, PhilHealth, Pag-IBIG', 1, current_date + 30,
    'Apply through JobLinked and attach your resume.', '{customer service}', 'Customer Service',
    '{Customer Service,Communication,Teamwork}', 'published', now())

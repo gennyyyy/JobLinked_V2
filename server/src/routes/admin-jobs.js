@@ -3,7 +3,7 @@ import { pool } from '../db.js';
 import { auth, requireRole } from '../auth.js';
 import { requirePermission } from '../middleware/permissions.js';
 import { ah, err, audit, notifyUser, isUuid, pageParams, withTransaction, normalizeTags } from '../util.js';
-import { notifyMatchingSeekers, EMPLOYMENT_TYPES } from './jobs.js';
+import { notifyMatchingSeekers, EMPLOYMENT_TYPES, JOB_LOCATIONS, isValidJobLocation } from './jobs.js';
 import { validateJobVocabulary } from '../vocabulary.js';
 
 const router = Router();
@@ -70,6 +70,9 @@ router.patch('/admin/jobs/:id', ...admin, ah(async (req, res) => {
   }
   if (patch.employment_type != null && !EMPLOYMENT_TYPES.includes(patch.employment_type)) {
     return err(res, 400, 'BAD_REQUEST', `employment_type must be one of ${EMPLOYMENT_TYPES.join(', ')}`);
+  }
+  if (patch.location !== undefined && !isValidJobLocation(patch.location)) {
+    return err(res, 400, 'BAD_REQUEST', `location must be one of ${JOB_LOCATIONS.join(', ')}`);
   }
   if (patch.vacancies !== undefined && (patch.vacancies === null || !Number.isInteger(Number(patch.vacancies)) || Number(patch.vacancies) <= 0)) {
     return err(res, 400, 'BAD_REQUEST', 'vacancies must be a positive integer');

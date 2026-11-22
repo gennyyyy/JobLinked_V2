@@ -89,6 +89,7 @@ create table if not exists public.employers (
   country                text        not null default 'Philippines',
   representative_email   text,
   representative_position text,
+  representative_phone   text,
   website                text,
   description            text,
   logo_path              text,

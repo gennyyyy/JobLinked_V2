@@ -121,7 +121,7 @@ describe('POST /api/jobs field + skills', () => {
     const token = loginAs({ id: EMPLOYER, role: 'employer' });
     employerReady();
 
-    const res = await create(token, { title: 'Legacy posting', location: 'Manila' });
+    const res = await create(token, { title: 'Legacy posting', location: 'Poblacion' });
 
     expect(res.status).toBe(201);
     expect(callsOf(/from reference_data/)).toHaveLength(0);

@@ -253,15 +253,15 @@ router.post('/auth/provision', tokenAuth, express.json(), ah(async (req, res) =>
           `insert into employers (id, email, first_name, middle_name, last_name, suffix, full_name, phone,
             company_name, company_email, industry, house_number_unit, street_address, subdivision_building,
             barangay_district, city_municipality, province_state, postal_code, country,
-            representative_email, representative_position, custom_role_id)
-           values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22) returning *`,
+            representative_email, representative_position, custom_role_id, representative_phone)
+           values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23) returning *`,
           [req.user.id, email, person.first_name, person.middle_name, person.last_name, person.suffix,
             person.full_name, person.phone,
             typeof p.company_name === 'string' ? p.company_name.trim().toLowerCase() : '', p.company_email ?? null,
             p.industry ?? null, person.house_number_unit, person.street_address, person.subdivision_building,
             person.barangay_district, person.city_municipality, person.province_state, person.postal_code,
             person.country ?? 'Philippines', p.representative_email ?? null,
-            p.representative_position ?? null, tag]
+            p.representative_position ?? null, tag, p.representative_phone ?? null]
         );
         created = r.rows[0];
         // Mirror handle_new_user: employer signup opens a pending accreditation row.
@@ -373,6 +373,14 @@ router.get('/auth/me', tokenAuth, ah(async (req, res) => {
       `select updated_at from profile_images where owner_id = $1 and kind = 'seeker-avatar'`,
       [req.user.id]);
     return res.json({ ...found.profile, role: found.role, has_avatar: Boolean(img), avatar_updated_at: img?.updated_at || null, permissions, custom_role_id: customRoleId, aal });
+  }
+  // The employer's account picture is the company logo; same rule as ADR-040:
+  // report existence and version, never the bytes.
+  if (found.role === 'employer') {
+    const { rows: [img] } = await pool.query(
+      `select updated_at from profile_images where owner_id = $1 and kind = 'employer-logo'`,
+      [req.user.id]);
+    return res.json({ ...found.profile, role: found.role, has_logo: Boolean(img), logo_updated_at: img?.updated_at || null, permissions, custom_role_id: customRoleId, aal });
   }
   res.json({ ...found.profile, role: found.role, permissions, custom_role_id: customRoleId, aal });
 }));

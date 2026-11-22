@@ -205,15 +205,24 @@ describe('provision claims the pending self-signup row', () => {
     pendingClaimed();
     employerInsert();
 
-    const res = await provision(cookie, { role: 'employer', first_name: 'Ben', company_name: 'Acme' });
+    const res = await provision(cookie, {
+      role: 'employer', first_name: 'Ben', company_name: 'Acme',
+      phone: '440000000', representative_phone: '09171234567',
+    });
 
     expect(res.status).toBe(201);
     expect(res.body.role).toBe('employer');
     expect(callsOf(/insert into job_seekers/)).toHaveLength(0);
-    const params = callsOf(/insert into employers/)[0].params;
+    const insert = callsOf(/insert into employers/)[0];
+    const params = insert.params;
     expect(params.slice(2, 7)).toEqual(['ben', 'b', 'cruz', 'jr', 'ben b cruz jr']);
     expect(params[8]).toBe('acme');
     expect(params.slice(14, 19)).toEqual(['poblacion', 'cebu city', null, null, 'philippines']);
+    // The two numbers land in separate columns: phone stays $8, the new
+    // representative_phone is appended last so earlier parameter indices hold.
+    expect(params[7]).toBe('440000000');
+    expect(insert.sql).toMatch(/representative_phone\)\s+values/);
+    expect(params.at(-1)).toBe('09171234567');
     expect(callsOf(/^delete from public\.pending_signups/)[0].via).toBe('tx');
   });
 

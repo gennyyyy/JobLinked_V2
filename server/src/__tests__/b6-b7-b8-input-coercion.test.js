@@ -18,7 +18,7 @@ beforeEach(() => { reset(); resetAuth(); });
 let listParams;
 const stubList = () => {
   on(/select count\(\*\)::int c from job_vacancies/, () => ({ rows: [{ c: 1 }] }));
-  on(/select j\.\*, e\.company_name, e\.logo_path from job_vacancies/, (params) => {
+  on(/select j\.\*, e\.company_name, e\.logo_path.* from job_vacancies/, (params) => {
     listParams = params;
     return { rows: [{ id: 'j1', company_id: EMPLOYER, company_name: 'Acme', logo_path: null, title: 'Dev', tags: [] }] };
   });

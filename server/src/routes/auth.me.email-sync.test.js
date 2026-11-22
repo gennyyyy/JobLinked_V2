@@ -112,10 +112,10 @@ describe('auth/me aal', () => {
     expect((await r.json()).aal).toBe('aal2');
   });
 
-  it('keeps the response shape (profile + role + permissions + custom_role_id + aal)', async () => {
+  it('keeps the response shape (profile + role + permissions + custom_role_id + aal + logo flags)', async () => {
     const r = await me();
     const body = await r.json();
     expect(Object.keys(body).sort()).toEqual(
-      ['aal', 'custom_role_id', 'email', 'id', 'permissions', 'role', 'status']);
+      ['aal', 'custom_role_id', 'email', 'has_logo', 'id', 'logo_updated_at', 'permissions', 'role', 'status']);
   });
 });

@@ -50,7 +50,7 @@ describe('integration slice — real Postgres', () => {
     await addEmployer(102, 'Paused Co', 'paused@it.local', 'suspended');
     await addSeeker(102, 'paused-s@it.local', 'active');
     // both active -> super-admin outranks employer
-    await pool.query(`insert into super_admins (id, full_name, email, status) values ($1, 'Root', $2, 'active')`, [id(103), 'root@it.local']);
+    await pool.query(`insert into super_admins (id, full_name, email, status) values ($1, 'Rafael Santos', $2, 'active')`, [id(103), 'root@it.local']);
     await addEmployer(103, 'Second Co', 'second@it.local');
 
     await expect(resolveRole(id(101))).resolves.toMatchObject({ role: 'employer', profile: { status: 'active' } });

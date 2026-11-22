@@ -48,7 +48,7 @@ describe('B12 — audit-log date filters are validated', () => {
 describe('B15 — LIKE wildcards are escaped', () => {
   it('GET /api/jobs?employer=% passes an escaped literal', async () => {
     on(/select count\(\*\)::int c from job_vacancies/, () => ({ rows: [{ c: 0 }] }));
-    on(/select j\.\*, e\.company_name, e\.logo_path from job_vacancies/, () => ({ rows: [] }));
+    on(/select j\.\*, e\.company_name, e\.logo_path.* from job_vacancies/, () => ({ rows: [] }));
     const res = await request(app).get('/api/jobs?employer=%');
     expect(res.status).toBe(200);
     expect(callsOf(/e\.company_name ilike/)[0].params).toContain('%\\%%');
@@ -56,7 +56,7 @@ describe('B15 — LIKE wildcards are escaped', () => {
 
   it('GET /api/jobs?search=a_b escapes the underscore', async () => {
     on(/select count\(\*\)::int c from job_vacancies/, () => ({ rows: [{ c: 0 }] }));
-    on(/select j\.\*, e\.company_name, e\.logo_path from job_vacancies/, () => ({ rows: [] }));
+    on(/select j\.\*, e\.company_name, e\.logo_path.* from job_vacancies/, () => ({ rows: [] }));
     const res = await request(app).get('/api/jobs?search=a_b');
     expect(res.status).toBe(200);
     expect(callsOf(/j\.title ilike/)[0].params).toContain('%a\\_b%');

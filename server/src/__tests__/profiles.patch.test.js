@@ -56,10 +56,12 @@ describe('PATCH /api/employers/me', () => {
     on((sql) => /update employers set/.test(sql), () => ({ rows: [{ id: EMPLOYER, company_name: '' }] }));
     const res = await request(app).patch('/api/employers/me')
       .set('Cookie', token)
-      .send({ company_name: '', id: EMPLOYER + '-hack' });
+      .send({ company_name: '', representative_phone: '09171234567', id: EMPLOYER + '-hack' });
     expect(res.status).toBe(200);
     const update = callsOf(/update employers set/)[0];
     expect(update.params).toContain('');
+    expect(update.sql).toMatch(/representative_phone = \$\d+/);
+    expect(update.params).toContain('09171234567');
     expect(update.sql).not.toMatch(/\bid = \$2/); // id never lands in the SET list
     expect(update.params[0]).toBe(EMPLOYER); // row keyed by the token id
   });

@@ -27,7 +27,7 @@ const COPY = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
 // A live job with the columns a duplicate would otherwise drag along.
 const origJob = {
   id: JOB, title: 'Dev', status: 'published', company_id: EMPLOYER,
-  company_name: 'Acme', logo_path: null, deadline: '2099-01-01', tags: [],
+  company_name: 'Acme', logo_path: null, logo_updated_at: '2026-01-01T00:00:00.000Z', deadline: '2099-01-01', tags: [],
   field: 'Information Technology', skills: ['MS Excel', 'Teamwork'], description: 'Build things',
 };
 
@@ -74,7 +74,7 @@ describe('POST /jobs/:id/duplicate', () => {
     expect(insert.params).toContain('Information Technology');
     expect(insert.params).toContainEqual(['MS Excel', 'Teamwork']);
     // Stripped columns never become INSERT columns.
-    expect(insert.sql).not.toMatch(/\b(created_at|updated_at|published_at|closed_at|archived_at|remarks|company_name|logo_path)\b/);
+    expect(insert.sql).not.toMatch(/\b(created_at|updated_at|published_at|closed_at|archived_at|remarks|company_name|logo_path|logo_updated_at)\b/);
     expect(insert.params).not.toContain(JOB);       // the source id is not reused
   });
 

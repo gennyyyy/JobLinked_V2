@@ -263,6 +263,35 @@ describe('auth/me status gate', () => {
     expect(JSON.stringify(body)).not.toContain('bytes');
   });
 
+  // The employer's account picture is the company logo: same signal, same
+  // rule — existence and version only, never the stored bytes.
+  it('reports no logo for an employer without one', async () => {
+    mocks.resolveRole.mockResolvedValue({ role: 'employer', profile: { id: 'user-1', status: 'active' } });
+    const r = await me();
+    expect(r.status).toBe(200);
+    expect(await r.json()).toEqual({
+      id: 'user-1', status: 'active', role: 'employer', has_logo: false, logo_updated_at: null, email: 'u@x.com',
+      permissions: [], custom_role_id: null, aal: 'aal1',
+    });
+  });
+
+  it('reports has_logo for an employer with a logo, never the bytes', async () => {
+    mocks.resolveRole.mockResolvedValue({ role: 'employer', profile: { id: 'user-1', status: 'active' } });
+    mocks.poolQuery.mockResolvedValueOnce({ rows: [], rowCount: 1 }); // update
+    mocks.poolQuery.mockResolvedValueOnce({ rows: [], rowCount: 1 }); // audit
+    // A row that did carry bytes still contributes only updated_at to the JSON.
+    mocks.poolQuery.mockResolvedValueOnce({
+      rows: [{ updated_at: '2026-01-01T00:00:00.000Z', bytes: Buffer.from('secret-bytes') }],
+    }); // logo
+    const r = await me();
+    expect(r.status).toBe(200);
+    const body = await r.json();
+    expect(body).toMatchObject({ has_logo: true, logo_updated_at: '2026-01-01T00:00:00.000Z' });
+    expect(JSON.stringify(body)).not.toContain('secret-bytes');
+    expect(mocks.poolQuery).toHaveBeenCalledWith(
+      expect.stringContaining("kind = 'employer-logo'"), ['user-1']);
+  });
+
   it('403 for an inactive profile (no stale role leak)', async () => {
     mocks.resolveRole.mockResolvedValue({ role: 'super-admin', profile: { id: 'user-1', status: 'inactive' } });
     const r = await me();

@@ -20,15 +20,26 @@ const JOB_ARRANGEMENTS = ['On-site', 'Remote / Work from home', 'Hybrid'];
 // admin-jobs.js and the employer form import this constant — change the list
 // only via a migration plus its schema.sql sync, never a lone app edit.
 export const EMPLOYMENT_TYPES = ['Full-time', 'Part-time', 'Contractual', 'Seasonal', 'Casual', 'Job Order', 'Project-based', 'Internship'];
+// 24 Santa Maria, Bulacan barangays — mirror of frontend SANTA_MARIA_BARANGAYS.
+export const JOB_LOCATIONS = ['Bagbaguin', 'Balasing', 'Buenavista', 'Bulac', 'Camangyanan', 'Catmon', 'Cay Pombo', 'Caysio', 'Guyong', 'Lalakhan', 'Mag-asawang Sapa', 'Mahabang Parang', 'Manggahan', 'Parada', 'Poblacion', 'Pulong Buhangin', 'San Gabriel', 'San Jose Patag', 'San Vicente', 'Santa Clara', 'Santa Cruz', 'Silangan', 'Tabing Bakod', 'Tumana'];
+export function isValidJobLocation(loc) {
+  if (loc == null || loc === '') return true;
+  const part = String(loc).split(',')[0].trim().toLowerCase();
+  return JOB_LOCATIONS.some((b) => b.toLowerCase() === part);
+}
 const ORDER_COLS = ['created_at', 'updated_at', 'salary_min', 'salary_max', 'title', 'deadline', 'published_at'];
 
-const embed = (j) => ({ ...j, employers: j.company_id ? { id: j.company_id, company_name: j.company_name, logo_path: j.logo_path } : null });
+// profile_images.updated_at is the logo version: a replaced/removed logo moves
+// the URL, so cards never serve a stale cached image.
+const embed = (j) => ({ ...j, employers: j.company_id ? { id: j.company_id, company_name: j.company_name, logo_path: j.logo_path, logo_updated_at: j.logo_updated_at } : null });
 
 async function loadJob(id) {
   if (!isUuid(id)) return null; // S1: 404, not a 22P02 500
   const { rows } = await pool.query(
-    `select j.*, e.company_name, e.logo_path from job_vacancies j
-     left join employers e on e.id = j.company_id where j.id = $1`, [id]);
+    `select j.*, e.company_name, e.logo_path, i.updated_at as logo_updated_at from job_vacancies j
+     left join employers e on e.id = j.company_id
+     left join profile_images i on i.owner_id = e.id and i.kind = 'employer-logo'
+     where j.id = $1`, [id]);
   return rows[0] || null;
 }
 
@@ -136,8 +147,10 @@ router.get('/jobs', optionalAuth, ah(async (req, res) => {
   const total = (await pool.query(
     `select count(*)::int c from job_vacancies j left join employers e on e.id = j.company_id ${whereSql}`, vals)).rows[0].c;
   const { rows } = await pool.query(
-    `select j.*, e.company_name, e.logo_path from job_vacancies j
-     left join employers e on e.id = j.company_id ${whereSql}
+    `select j.*, e.company_name, e.logo_path, i.updated_at as logo_updated_at from job_vacancies j
+     left join employers e on e.id = j.company_id
+     left join profile_images i on i.owner_id = e.id and i.kind = 'employer-logo'
+     ${whereSql}
      order by j.${orderCol} ${orderDir} limit $${vals.length + 1} offset $${vals.length + 2}`,
     [...vals, safeSize, (safePage - 1) * safeSize]);
   const jobs = rows.map(embed);
@@ -176,11 +189,14 @@ router.get('/employers/:employerId/jobs', optionalAuth, ah(async (req, res) => {
   } else {
     vals.push('published'); statusSql = `and j.status = $${vals.length}`;
   }
+  // profile_images is unique per (owner, kind), so the join cannot multiply
+  // rows and the count below stays exact.
   const base = `from job_vacancies j left join employers e on e.id = j.company_id
+      left join profile_images i on i.owner_id = e.id and i.kind = 'employer-logo'
       where j.company_id = $1 ${statusSql}`;
   const total = (await pool.query(`select count(*)::int c ${base}`, vals)).rows[0]?.c ?? 0;
   const { rows } = await pool.query(
-    `select j.*, e.company_name, e.logo_path,
+    `select j.*, e.company_name, e.logo_path, i.updated_at as logo_updated_at,
        (select count(*)::int from job_applications a where a.job_id = j.id) as applicant_count ${base}
       order by j.created_at desc limit $${vals.length + 1} offset $${vals.length + 2}`,
     [...vals, pg.pageSize, (pg.page - 1) * pg.pageSize]);
@@ -295,6 +311,9 @@ router.post('/jobs', auth, requireRole('employer'), ah(async (req, res) => {
   if (b.employment_type != null && b.employment_type !== '' && !EMPLOYMENT_TYPES.includes(b.employment_type)) {
     return err(res, 400, 'BAD_REQUEST', `employment_type must be one of ${EMPLOYMENT_TYPES.join(', ')}`);
   }
+  if (!isValidJobLocation(b.location)) {
+    return err(res, 400, 'BAD_REQUEST', `location must be one of ${JOB_LOCATIONS.join(', ')}`);
+  }
   if (b.vacancies !== undefined && b.vacancies !== null && b.vacancies !== '' &&
       (!Number.isInteger(Number(b.vacancies)) || Number(b.vacancies) <= 0)) {
     return err(res, 400, 'BAD_REQUEST', 'vacancies must be a positive integer');
@@ -379,6 +398,9 @@ router.patch('/jobs/:id', auth, ah(async (req, res) => {
   }
   if (patch.employment_type != null && !EMPLOYMENT_TYPES.includes(patch.employment_type)) {
     return err(res, 400, 'BAD_REQUEST', `employment_type must be one of ${EMPLOYMENT_TYPES.join(', ')}`);
+  }
+  if (patch.location !== undefined && !isValidJobLocation(patch.location)) {
+    return err(res, 400, 'BAD_REQUEST', `location must be one of ${JOB_LOCATIONS.join(', ')}`);
   }
   if (patch.vacancies !== undefined && (patch.vacancies === null || !Number.isInteger(Number(patch.vacancies)) || Number(patch.vacancies) <= 0)) {
     return err(res, 400, 'BAD_REQUEST', 'vacancies must be a positive integer');
@@ -545,7 +567,7 @@ router.post('/jobs/:id/duplicate', auth, ah(async (req, res) => {
   if (openFlags.length) {
     return err(res, 422, 'FEE_POLICY_BLOCKED', 'This job post is held for PESO review and cannot be duplicated.');
   }
-  const strip = new Set(['id', 'created_at', 'updated_at', 'published_at', 'closed_at', 'archived_at', 'status', 'remarks', 'company_name', 'logo_path']);
+  const strip = new Set(['id', 'created_at', 'updated_at', 'published_at', 'closed_at', 'archived_at', 'status', 'remarks', 'company_name', 'logo_path', 'logo_updated_at']);
   const rest = Object.fromEntries(Object.entries(job).filter(([k, v]) => !strip.has(k) && v !== undefined));
   rest.title = `${job.title} (Copy)`;
   rest.status = 'draft';
