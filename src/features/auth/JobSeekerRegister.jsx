@@ -19,12 +19,17 @@ import {
   buildJobSeekerSignUpPayload,
 } from "./jobSeekerRegistration";
 
+const TOTAL_STEPS = 3;
+const STEP_FIELDS = [
+  ["firstName", "lastName", "email", "mobileNumber", "birthdate", "employmentStatus", "password", "confirmPassword", "resumeReviewConfirmed"],
+  ["streetAddress", "barangayDistrict", "cityMunicipality", "provinceState", "postalCode"],
+  ["agree", "confirmAccurate"],
+];
+
 function JobSeekerRegister() {
   const [error, setError] = useState("");
   const [errors, setErrors] = useState({});
   const [form, setForm] = useState(EMPTY_FORM);
-  // Optional education is stored with signup metadata and provisioned after
-  // email verification when a session becomes available.
   const [education, setEducation] = useState({ level: "", school: "", field: "", year: "", studying: false });
   const { autofillStatus, unrecognizedSkills, touched, handleResumeChange } = useResumeAutofill({ form, setForm, setEducation });
   const [eduError, setEduError] = useState("");
@@ -34,6 +39,7 @@ function JobSeekerRegister() {
   const [busy, setBusy] = useState(false);
   const [termsOpen, setTermsOpen] = useState(false);
   const [termsRead, setTermsRead] = useState(false);
+  const [step, setStep] = useState(0);
   const captcha = useCaptcha();
   const formRef = useRef(null);
   const navigate = useNavigate();
@@ -44,14 +50,37 @@ function JobSeekerRegister() {
     }
   }, [submitted, needsConfirmation, navigate]);
 
-  // Single setter: updates the field and clears its error once the user edits it.
   function set(field, value) {
     setForm((prev) => ({ ...prev, [field]: value }));
     setErrors((prev) => (prev[field] ? { ...prev, [field]: undefined } : prev));
   }
 
+
+  function handleNext() {
+    const validationErrors = validate(form);
+    const filtered = {};
+    for (const key of Object.keys(validationErrors)) {
+      if (STEP_FIELDS[step].includes(key)) filtered[key] = validationErrors[key];
+    }
+    setErrors(filtered);
+    if (Object.keys(filtered).length > 0) {
+      focusFirstError(firstErrorKey(filtered, null));
+      return;
+    }
+    setStep((s) => Math.min(TOTAL_STEPS - 1, s + 1));
+  }
+
+  function handleBack() {
+    setStep((s) => Math.max(0, s - 1));
+  }
+
   async function handleSubmit(event) {
+    console.log("HANDLE SUBMIT step=", step);
     event.preventDefault();
+    if (step !== TOTAL_STEPS - 1) {
+      handleNext();
+      return;
+    }
     const validationErrors = validate(form);
     const eduValidationError = validateEducation(education);
     if (Object.keys(validationErrors).length > 0 || eduValidationError) {
@@ -74,7 +103,7 @@ function JobSeekerRegister() {
       setSubmittedEmail(account.email);
       setSubmitted(true);
     } catch (err) {
-      captcha.reset(); // single-use token: the next attempt needs a fresh one
+      captcha.reset();
       setError(err.message || "Registration failed. Please try again.");
     } finally {
       setBusy(false);
@@ -96,8 +125,6 @@ function JobSeekerRegister() {
     });
   }
 
-  // First error in visual (DOM) order, so scroll never jumps past an
-  // empty field above to a later one (e.g. birthday skipped for email).
   function firstErrorKey(errors, fallbackKey) {
     const formEl = formRef.current;
     if (formEl) {
@@ -133,58 +160,75 @@ function JobSeekerRegister() {
             <p className="mt-2 text-sm text-muted-foreground">Fill in your details to create your verified municipal applicant account</p>
           </header>
 
+          <p className="mb-4 font-mono text-[11px] tracking-widest uppercase text-muted-foreground">Step {step + 1} of {TOTAL_STEPS}</p>
+
           <form ref={formRef} onSubmit={handleSubmit} noValidate className="space-y-6 register-form">
-            <JobSeekerPersonalStep
-              form={form}
-              errors={errors}
-              set={set}
-              autofillStatus={autofillStatus}
-              autofillTouched={touched}
-              handleResumeChange={handleResumeChange}
-              inputClass={inputClass}
-              labelClass={labelClass}
-              reqMark={reqMark}
-            />
+            {step === 0 && (
+              <JobSeekerPersonalStep
+                form={form}
+                errors={errors}
+                set={set}
+                autofillStatus={autofillStatus}
+                autofillTouched={touched}
+                handleResumeChange={handleResumeChange}
+                inputClass={inputClass}
+                labelClass={labelClass}
+                reqMark={reqMark}
+              />
+            )}
 
-            <JobSeekerAddressStep
-              form={form}
-              errors={errors}
-              set={set}
-              inputClass={inputClass}
-              labelClass={labelClass}
-              reqMark={reqMark}
-            />
+            {step === 1 && (
+              <JobSeekerAddressStep
+                form={form}
+                errors={errors}
+                set={set}
+                inputClass={inputClass}
+                labelClass={labelClass}
+                reqMark={reqMark}
+              />
+            )}
 
-            <JobSeekerBackgroundStep
-              form={form}
-              errors={errors}
-              set={set}
-              education={education}
-              setEducation={setEducation}
-              eduError={eduError}
-              unrecognizedSkills={unrecognizedSkills}
-              setTermsOpen={setTermsOpen}
-              termsRead={termsRead}
-              reqMark={reqMark}
-            />
+            {step === 2 && (
+              <>
+                <JobSeekerBackgroundStep
+                  form={form}
+                  errors={errors}
+                  set={set}
+                  education={education}
+                  setEducation={setEducation}
+                  eduError={eduError}
+                  unrecognizedSkills={unrecognizedSkills}
+                  setTermsOpen={setTermsOpen}
+                  termsRead={termsRead}
+                  reqMark={reqMark}
+                />
+                {captcha.required && <Turnstile onToken={captcha.setToken} resetKey={captcha.round} />}
+              </>
+            )}
 
             {error && (
               <div role="alert" className="p-3.5 rounded-xl bg-danger/10 border border-danger/20 text-danger text-xs font-medium">{error}</div>
             )}
 
-            {captcha.required && <Turnstile onToken={captcha.setToken} resetKey={captcha.round} />}
-
-            <Button
-              type="submit"
-              disabled={busy}
-              className="w-full min-h-[44px] px-6 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-primary-hover active:scale-[0.98] transition-all shadow-md disabled:opacity-60"
-            >
-              {busy ? "Creating account…" : "Create Account"}
-            </Button>
+            <div className="flex gap-3">
+              {step > 0 && (
+                <button type="button" onClick={handleBack} className="flex-1 min-h-[44px] px-6 rounded-xl border border-border text-sm font-semibold hover:bg-muted transition-all">
+                  Back
+                </button>
+              )}
+              <button key={step} type="button" onClick={handleNext} className="flex-1 min-h-[44px] px-6 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-primary-hover active:scale-[0.98] transition-all shadow-md">
+                Next
+              </button>
+              {step === TOTAL_STEPS - 1 && (
+                <Button type="submit" disabled={busy} className="flex-1 min-h-[44px] px-6 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-primary-hover active:scale-[0.98] transition-all shadow-md disabled:opacity-60">
+                  {busy ? "Creating account…" : "Create Account"}
+                </Button>
+              )}
+            </div>
           </form>
 
           <p className="mt-8 text-center text-xs text-muted-foreground">
-            Already registered?{" "}
+            Already have an account?{" "}
             <Link to="/login" className="text-primary hover:underline underline-offset-4 font-medium">
               Log in here
             </Link>

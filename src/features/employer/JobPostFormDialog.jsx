@@ -8,6 +8,9 @@ import { JOB_TAGS, JOB_BENEFITS, JOB_EDUCATION_LEVELS, JOB_EXPERIENCE_PRESETS, S
 import useDialog from "../../shared/hooks/useDialog";
 import { TextField, SelectField } from "../../shared/components/design";
 import VocabularyPicker from "../../shared/components/VocabularyPicker";
+import TagField from "../job-seeker/TagField";
+import useVocabulary from "../../shared/hooks/useVocabulary";
+import { matchSkills } from "../../shared/utils/resumeAutofill";
 import { EXPERIENCE_OPTIONS, applyEducation, applyExperience, parseEducation, parseExperience } from "./jobPostFields";
 import { getFeeTerms } from "../../shared/services/feeFilter";
 import { findFeeMatches } from "../../shared/utils/feeTerms";
@@ -31,6 +34,16 @@ export default function JobPostFormDialog({ form, setForm, setErrors, errors, sa
   }, []);
   const feeTermsList = feeTerms ? [...(feeTerms.block || []), ...(feeTerms.hold || [])] : [];
   const feeMatches = findFeeMatches(form.description || '', feeTermsList);
+
+  const skillVocabulary = useVocabulary('skill');
+  const skillByLower = new Map(skillVocabulary.values.map((entry) => [String(entry).toLowerCase(), entry]));
+  const skillChips = (Array.isArray(form.skills) ? form.skills : []).map((chip) => skillByLower.get(String(chip).toLowerCase()) ?? chip);
+  const { unrecognized: unrecognizedSkills } = matchSkills(skillChips, skillVocabulary.values);
+
+  function updateSkills(chips) {
+    setForm((f) => ({ ...f, skills: chips.map((chip) => skillByLower.get(String(chip).toLowerCase()) ?? chip) }));
+    if (errors.skills) setErrors((prev) => ({ ...prev, skills: undefined }));
+  }
   const experienceYears = parseExperience(form.requirements);
   const experienceIsCustom = experienceCustom || (experienceYears !== "" && !JOB_EXPERIENCE_PRESETS.includes(Number(experienceYears)));
 
@@ -121,19 +134,28 @@ export default function JobPostFormDialog({ form, setForm, setErrors, errors, sa
               error={errors.field}
               help={editingId && !form.field ? "Existing postings may keep 'Not set'." : undefined}
             />
-            <VocabularyPicker
-              id="job-skills"
+            <TagField
               label="Skills required"
-              category="skill"
+              value={skillChips}
+              onChange={updateSkills}
+              suggestions={skillVocabulary.values}
               max={20}
-              value={form.skills}
-              onChange={(value) => {
-                setForm((f) => ({ ...f, skills: value }));
-                if (errors.skills) setErrors((prev) => ({ ...prev, skills: undefined }));
-              }}
-              error={errors.skills}
+              placeholder="Type a skill and press Enter"
               help="Only these skills count towards matching."
+              error={errors.skills}
             />
+            {skillVocabulary.loading && <p role="status" className="text-xs text-muted-foreground">Loading skills…</p>}
+            {skillVocabulary.error && (
+              <p role="alert" className="flex flex-wrap items-center gap-2 text-xs text-destructive">
+                <span>{skillVocabulary.error}</span>
+                <Button type="button" variant="outline" size="sm" onClick={skillVocabulary.reload}>Retry</Button>
+              </p>
+            )}
+            {!skillVocabulary.loading && !skillVocabulary.error && unrecognizedSkills.length > 0 && (
+              <p className="text-xs leading-5 text-muted-foreground">
+                Unrecognized skills: {unrecognizedSkills.join(', ')}. They are not in PESO’s list, so they are not saved.
+              </p>
+            )}
           </section>
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">

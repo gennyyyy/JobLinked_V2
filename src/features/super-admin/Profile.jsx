@@ -79,13 +79,13 @@ export default function Profile() {
       sidebar={<PrivacyPanel />}
     >
       <TabsContent value="account" id="personal-details">
-        <div className="flex flex-col gap-5">
-          <div className="grid gap-5 sm:grid-cols-2">
-            <TextField label="Full name" required value={name} onChange={(event) => setName(event.target.value)} />
-            <TextField label="Email address" type="email" value={email} readOnly />
+        <div className="flex flex-col gap-4">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <TextField label="Full Name" required value={name} onChange={(event) => setName(event.target.value)} />
+            <TextField label="Email Address" type="email" value={email} readOnly />
           </div>
-          <Panel id="administrator-access" title="Administrator access" description="Your role and access level are managed by the system." action={<ShieldCheck className="size-5 text-teal" />}>
-            <dl className="grid grid-cols-[100px_1fr] gap-4 text-xs">
+          <Panel id="administrator-access" title="Administrator access" description="Your role and access level are managed by the system." action={<ShieldCheck className="size-5 text-teal" />} size="sm">
+            <dl className="grid grid-cols-[100px_1fr] gap-3 text-xs">
               <dt className="text-muted-foreground">Role</dt>
               <dd className="font-medium">{ROLE_LABELS['super-admin']}</dd>
               <dt className="text-muted-foreground">Access</dt>
@@ -98,13 +98,13 @@ export default function Profile() {
         </div>
       </TabsContent>
       <TabsContent value="security" id="security" keepMounted>
-        <div className="flex flex-col gap-5">
+        <div className="flex flex-col gap-4">
           <ChangePassword embedded />
-          <div className="grid items-start gap-6 md:grid-cols-2">
+          <div className="grid items-start gap-4 md:grid-cols-2">
             <MfaPanel />
             <Panel id="sessions" title="Sessions" description="Sign out every active device.">
               <p className="text-xs text-muted-foreground">If you think your account is compromised, revoke all sessions and sign back in.</p>
-              <Button type="button" variant="outline" className="mt-4" disabled={revoking} onClick={handleSignOutAll}>
+              <Button type="button" variant="outline" className="mt-3" disabled={revoking} onClick={handleSignOutAll}>
                 {revoking ? 'Signing out…' : 'Sign out all devices'}
               </Button>
               {revokeMessage && <p role="status" className="mt-3 text-xs text-success">{revokeMessage}</p>}

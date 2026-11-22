@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { render, screen, within, cleanup } from '@testing-library/react'
+import { render, screen, within, cleanup, fireEvent } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import JobCard from '../JobCard'
 import { matchJob } from '../../utils/jobDisplay'
@@ -96,5 +96,38 @@ describe('JobCard display separation', () => {
   it('falls back to the legacy office label when a vacancy has no field', () => {
     const card = renderCard({ field: null, office: 'Santa Maria Office' })
     expect(within(card).getByText('Santa Maria Office')).toBeInTheDocument()
+  })
+})
+
+describe('JobCard company logo', () => {
+  const EMPLOYER_ID = '22222222-2222-2222-2222-222222222222'
+  const LOGO_AT = '2026-01-01T00:00:00.000Z'
+  const withLogo = { id: EMPLOYER_ID, company_name: 'santa maria logistics', logo_updated_at: LOGO_AT }
+
+  it('shows the versioned employer logo when the embed carries one', () => {
+    const card = renderCard({ employers: withLogo })
+
+    const img = card.querySelector('img')
+    expect(img).not.toBeNull()
+    expect(img.getAttribute('src')).toContain(`/employers/${EMPLOYER_ID}/logo`)
+    expect(img.getAttribute('src')).toContain('?v=')
+    expect(img).toHaveAttribute('alt', '')
+  })
+
+  it('renders initials when the employer has no logo', () => {
+    const card = renderCard()
+
+    expect(card.querySelector('img')).toBeNull()
+    expect(within(card).getByText('S')).toBeInTheDocument()
+  })
+
+  it('falls back to initials when the logo image errors', () => {
+    const card = renderCard({ employers: withLogo })
+    const img = card.querySelector('img')
+
+    fireEvent.error(img)
+
+    expect(card.querySelector('img')).toBeNull()
+    expect(within(card).getByText('S')).toBeInTheDocument()
   })
 })

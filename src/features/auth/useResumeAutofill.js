@@ -111,6 +111,7 @@ export function useResumeAutofill({ form, setForm, setEducation }) {
                 })(),
               }
             : {}),
+          resumeAttached: true,
         };
       });
 

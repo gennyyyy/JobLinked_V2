@@ -99,14 +99,14 @@ export function CommunitySections() {
           <Accordion>
             {FAQS.slice(0, 4).map((faq, index) => (
               <AccordionItem value={`faq-${index}`} key={faq.question} className="border-b border-border last:border-b-0">
-                <AccordionTrigger className="min-h-16 py-4 text-base font-medium text-navy"><RevealText as="span">{faq.question}</RevealText></AccordionTrigger>
+                <AccordionTrigger className="min-h-16 py-4 text-base font-medium text-navy">{faq.question}</AccordionTrigger>
                 <AccordionContent className="pb-4 text-sm leading-7 text-muted-foreground">{faq.answer}</AccordionContent>
               </AccordionItem>
             ))}
           </Accordion>
           <div className="mt-6">
             <Link to="/faq" className="text-link text-sm">
-              <RevealText as="span">Explore all FAQs</RevealText><ArrowRight aria-hidden="true" className="size-4" />
+              Explore all FAQs<ArrowRight aria-hidden="true" className="size-4" />
             </Link>
           </div>
         </div>

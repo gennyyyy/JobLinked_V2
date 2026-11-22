@@ -1,10 +1,13 @@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import VocabularyPicker from "@/shared/components/VocabularyPicker";
+import TagField from "@/features/job-seeker/TagField";
+import useVocabulary from "@/shared/hooks/useVocabulary";
 import { EDUCATION_LEVELS } from "./jobSeekerRegistration";
 import FormSelect from "@/shared/components/FormSelect";
 
 function JobSeekerBackgroundStep({ form, errors, set, education, setEducation, eduError, setTermsOpen, termsRead, reqMark, unrecognizedSkills = [] }) {
+  const skillVocabulary = useVocabulary('skill');
   return (
             <section className="surface p-5">
               <p className="font-mono text-[11px] tracking-[0.2em] text-primary uppercase mb-4 font-semibold">Step 3 — Background & Consent</p>
@@ -13,13 +16,13 @@ function JobSeekerBackgroundStep({ form, errors, set, education, setEducation, e
               <p className="font-mono text-[11px] tracking-[0.2em] text-primary uppercase mb-4 font-semibold">Education History</p>
               <div className="grid gap-3 sm:grid-cols-2">
                 <FormSelect aria-label="Education level" id="educationLevel" value={education.level} onChange={(e) => setEducation({ ...education, level: e.target.value })} className="px-4 py-2.5 rounded-xl text-sm bg-muted border border-border text-foreground focus:outline-none focus:border-primary/60 transition-all">
-                  <option value="">Education level</option>
+
                   {EDUCATION_LEVELS.map((l) => <option key={l} value={l}>{l}</option>)}
                 </FormSelect>
                 <Input aria-label="School name" placeholder="School name" value={education.school} onChange={(e) => setEducation({ ...education, school: e.target.value })} className="px-4 py-2.5 rounded-xl text-sm bg-muted border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/60 transition-all" />
                 <div className="flex gap-2 sm:col-span-2">
                   <Input aria-label="Course / field of study" placeholder="Course / field" value={education.field} onChange={(e) => setEducation({ ...education, field: e.target.value })} className="flex-1 px-4 py-2.5 rounded-xl text-sm bg-muted border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/60 transition-all" />
-                  <Input aria-label="Graduation year" placeholder="Year" inputMode="numeric" disabled={education.studying} value={education.year} onChange={(e) => setEducation({ ...education, year: e.target.value })} className="w-20 px-3 py-2.5 rounded-xl text-sm bg-muted border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/60 transition-all disabled:opacity-50" />
+                  <Input aria-label="Graduation year" placeholder="Year" inputMode="numeric" disabled={education.studying} value={education.year} onChange={(e) => setEducation({ ...education, year: e.target.value })} className="!w-40 px-3 py-2.5 rounded-xl text-sm bg-muted border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/60 transition-all disabled:opacity-50" />
                 </div>
               </div>
               <Label className="mt-2 flex items-center gap-2 text-xs text-muted-foreground select-none cursor-pointer">
@@ -29,6 +32,7 @@ function JobSeekerBackgroundStep({ form, errors, set, education, setEducation, e
               {eduError && <p className="mt-2 text-xs text-danger">{eduError}</p>}
               </div>
 
+              <div className="grid gap-3 sm:grid-cols-2">
               <div>
               <VocabularyPicker
                 id="job-field"
@@ -42,19 +46,26 @@ function JobSeekerBackgroundStep({ form, errors, set, education, setEducation, e
               </div>
 
               <div>
-              <VocabularyPicker
-                id="skills"
+              <TagField
                 label="Skills"
-                category="skill"
                 value={form.skills}
                 onChange={(v) => set("skills", v)}
+                suggestions={skillVocabulary.values}
+                placeholder="Type a skill and press Enter"
                 help="Pick the skills employers should match you on. Optional."
               />
+              {skillVocabulary.loading && <p role="status" className="text-xs text-muted-foreground">Loading skills…</p>}
+              {skillVocabulary.error && (
+                <p role="alert" className="flex flex-wrap items-center gap-2 text-xs text-destructive">
+                  <span>{skillVocabulary.error}</span>
+                </p>
+              )}
               {unrecognizedSkills.length > 0 && (
                 <p className="mt-2 text-xs text-muted-foreground">
                   Unrecognized skills: {unrecognizedSkills.join(", ")}. They are not in PESO’s list, so they are not saved.
                 </p>
               )}
+              </div>
               </div>
 
               <div>

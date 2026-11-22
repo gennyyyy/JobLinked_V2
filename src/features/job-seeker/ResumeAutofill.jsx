@@ -7,13 +7,13 @@ import { mapResumeText } from '@/shared/utils/resumeAutofill'
 import { H3 } from '@/shared/components/design'
 
 const LABELS = {
-  name: 'Full name',
-  phone: 'Contact number',
-  headline: 'Professional headline',
-  address: 'Street address',
+  name: 'Full Name',
+  phone: 'Contact Number',
+  headline: 'Professional Headline',
+  address: 'Street Address',
   barangay: 'Barangay',
   education: 'Education',
-  experience: 'Work experience',
+  experience: 'Work Experience',
   skills: 'Skills',
 }
 
@@ -79,7 +79,7 @@ export default function ResumeAutofill({ onApply, onFileSelected, uploadError, u
       <div className="flex items-center gap-2"><FileText className="size-4 text-muted-foreground" aria-hidden="true" /><H3 className="text-sm font-medium">Autofill from your resume</H3><span className="text-xs text-muted-foreground">Optional</span></div>
       <ResumePicker
         id={id}
-        label="Choose a resume to autofill"
+        label="Choose a Resume to Autofill"
         accept=".pdf,.doc,.docx"
         disabled={busy}
         onChange={(event) => { void select(event.target.files?.[0]) }}

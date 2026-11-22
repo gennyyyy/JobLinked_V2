@@ -26,3 +26,9 @@ export function withPrefix(value) {
   const l = toLocalDigits(value);
   return l ? `+63${l}` : "";
 }
+
+// Display-only grouping (917 123 4567); form state and payloads stay digits.
+export function formatPhoneDisplay(value) {
+  const d = toLocalDigits(value);
+  return [d.slice(0, 3), d.slice(3, 6), d.slice(6)].filter(Boolean).join(" ");
+}

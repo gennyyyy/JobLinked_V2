@@ -181,9 +181,9 @@ describe('OpportunityList AI matching', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Close' }))
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
 
-    // The non-compact panel and the results status line both disclose the mode,
-    // and the results line outlives the closable dialog.
-    expect(screen.getAllByText('Skills-based ranking')).toHaveLength(2)
+    // The results status line is the only disclosure left now that the sidebar
+    // trigger is compact; it outlives the closable dialog.
+    expect(screen.getAllByText('Skills-based ranking')).toHaveLength(1)
     await waitFor(() => expect(cardTitles()).toEqual(['Junior Web Developer', 'Administrative Assistant', 'Warehouse Helper']))
 
     matchJobs.mockResolvedValue({ mode: 'ai', ranking: ['j3', 'j1', 'j2'], reasons: [] })
@@ -191,7 +191,7 @@ describe('OpportunityList AI matching', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Close' }))
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
 
-    expect(screen.getAllByText('AI-assisted ranking active')).toHaveLength(2)
+    expect(screen.getAllByText('AI-assisted ranking active')).toHaveLength(1)
     expect(screen.queryByText('Skills-based ranking')).toBeNull()
   })
 })

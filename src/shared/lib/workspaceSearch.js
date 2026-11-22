@@ -5,7 +5,7 @@ const PASSWORD_KEYWORDS = ['password', 'change password', 'security', 'credentia
 // ponytail: hand-maintained index — a new settings section needs one line here.
 // Upgrade path: generate these from the rendered section headings if it ever drifts.
 const WORKSPACE_SECTIONS = [
-  { title: 'Password settings', path: '/job-seeker/profile', sectionId: 'password-settings', keywords: PASSWORD_KEYWORDS, roles: ['job-seeker'] },
+  { title: 'Credentials', path: '/job-seeker/profile', sectionId: 'password-settings', keywords: PASSWORD_KEYWORDS, roles: ['job-seeker'] },
   { title: 'Personal & contact details', path: '/job-seeker/profile', sectionId: 'personal-details', keywords: ['name', 'phone', 'address', 'birthdate', 'contact', 'email'], roles: ['job-seeker'] },
   { title: 'Skills & competencies', path: '/job-seeker/profile', sectionId: 'skills', keywords: ['skills', 'competencies', 'tags'], roles: ['job-seeker'] },
   { title: 'Experience', path: '/job-seeker/profile', sectionId: 'experience', keywords: ['work history', 'jobs', 'employment'], roles: ['job-seeker'] },
@@ -15,12 +15,12 @@ const WORKSPACE_SECTIONS = [
   { title: 'Notification preferences', path: '/job-seeker/profile', sectionId: 'notification-preferences', keywords: ['notifications', 'alerts', 'updates', 'announcements', 'preferences'], roles: ['job-seeker'] },
   { title: 'Privacy', path: '/job-seeker/profile', sectionId: 'privacy', keywords: ['privacy', 'data', 'terms'], roles: ['job-seeker'] },
 
-  { title: 'Password settings', path: '/employer/company', sectionId: 'password-settings', keywords: PASSWORD_KEYWORDS, roles: ['employer'] },
+  { title: 'Credentials', path: '/employer/company', sectionId: 'password-settings', keywords: PASSWORD_KEYWORDS, roles: ['employer'] },
   { title: 'Company details', path: '/employer/company', sectionId: 'company-details', keywords: ['company', 'business', 'industry', 'description'], roles: ['employer'] },
   { title: 'Contact & location', path: '/employer/company', sectionId: 'contact-location', keywords: ['address', 'barangay', 'contact', 'phone', 'location'], roles: ['employer'] },
   { title: 'Authorized representative', path: '/employer/company', sectionId: 'authorized-representative', keywords: ['representative', 'contact person', 'signatory'], roles: ['employer'] },
 
-  { title: 'Password settings', path: '/super-admin/profile', sectionId: 'password-settings', keywords: PASSWORD_KEYWORDS, roles: ['super-admin'] },
+  { title: 'Credentials', path: '/super-admin/profile', sectionId: 'password-settings', keywords: PASSWORD_KEYWORDS, roles: ['super-admin'] },
   { title: 'Personal details', path: '/super-admin/profile', sectionId: 'personal-details', keywords: ['name', 'email', 'profile'], roles: ['super-admin'] },
   { title: 'Administrator access', path: '/super-admin/profile', sectionId: 'administrator-access', keywords: ['role', 'access', 'permissions'], roles: ['super-admin'] },
   { title: 'Reference data', path: '/super-admin/settings', sectionId: 'reference-data', keywords: ['reference', 'data', 'values'], roles: ['super-admin'] },

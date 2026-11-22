@@ -78,4 +78,43 @@ describe('UserManagement add-user invite', () => {
       expect.objectContaining({ custom_role_id: 7, role: 'employer' })
     )
   })
+
+  it('groups the invite phone on screen and sends it without spaces', async () => {
+    render(<UserManagement />)
+    fireEvent.click(await screen.findByRole('button', { name: /add user/i }))
+
+    fireEvent.change(screen.getByLabelText('Role'), { target: { value: 'job-seeker' } })
+    fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'seeker@acme.test' } })
+    fireEvent.change(screen.getByLabelText(/first name/i), { target: { value: 'Ana' } })
+    fireEvent.change(screen.getByLabelText(/last name/i), { target: { value: 'Cruz' } })
+
+    const phone = screen.getByLabelText('Phone')
+    fireEvent.change(phone, { target: { value: '0917 123 4567' } })
+    expect(phone).toHaveValue('917 123 4567')
+    fireEvent.click(screen.getByRole('button', { name: /send invite/i }))
+
+    expect(inviteUser).toHaveBeenCalledWith(
+      expect.objectContaining({ phone: '+639171234567', role: 'job-seeker' })
+    )
+  })
+
+  it('keeps a partial invite phone digit-only after blur', async () => {
+    render(<UserManagement />)
+    fireEvent.click(await screen.findByRole('button', { name: /add user/i }))
+
+    fireEvent.change(screen.getByLabelText('Role'), { target: { value: 'job-seeker' } })
+    fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'seeker@acme.test' } })
+    fireEvent.change(screen.getByLabelText(/first name/i), { target: { value: 'Ana' } })
+    fireEvent.change(screen.getByLabelText(/last name/i), { target: { value: 'Cruz' } })
+
+    const phone = screen.getByLabelText('Phone')
+    fireEvent.change(phone, { target: { value: '91712' } })
+    fireEvent.blur(phone)
+    expect(phone).toHaveValue('917 12')
+    fireEvent.click(screen.getByRole('button', { name: /send invite/i }))
+
+    const payload = inviteUser.mock.calls[0][0]
+    expect(payload.phone).toBe('+6391712')
+    expect(payload.phone).not.toMatch(/\s/)
+  })
 })

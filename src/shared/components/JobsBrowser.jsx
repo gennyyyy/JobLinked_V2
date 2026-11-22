@@ -1,10 +1,10 @@
-import { useEffect, useId, useMemo, useRef, useState } from 'react'
-import { ChevronDown, SlidersHorizontal } from 'lucide-react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { SlidersHorizontal } from 'lucide-react'
 import useAuth from '@/shared/hooks/useAuth'
 import { listJobs } from '@/shared/services/jobs'
 import { matchJobs } from '@/shared/services/ai'
 import { getSavedJobIds, subscribeSavedJobs, toggleSavedJob } from '@/shared/lib/savedJobs'
-import { PageHeading, Notice, EmptyState, SearchInput, SelectField } from '@/shared/components/design'
+import { PageHeading, EmptyState, SearchInput, SelectField } from '@/shared/components/design'
 import { Button } from '@/components/ui/button'
 import JobCard from '@/shared/components/JobCard'
 import PreferenceMatching from './PreferenceMatching'
@@ -12,9 +12,13 @@ import { JobListSkeleton } from '@/shared/components/Skeletons'
 import { InlineError, Pager } from '@/shared/components/dashboard'
 import { SANTA_MARIA_BARANGAYS } from '@/shared/constants'
 import { experienceLevel, isJobOpen, jobType, matchJob, preferenceScore } from '@/shared/utils/jobDisplay'
-import { MATCH_UNAVAILABLE, MATCHING_NOTICE, matchModeLabel } from '@/shared/content/matching'
+import { MATCH_UNAVAILABLE, matchModeLabel } from '@/shared/content/matching'
 
 const PAGE_SIZE = 15
+// The list is filtered and ranked in memory, so it needs the whole published
+// set. The API clamps pageSize to 100, hence the paged load below.
+const LOAD_PAGE_SIZE = 100
+const MAX_LOAD_PAGES = 10
 const EMPTY_FILTERS = { barangay: '', field: '', type: '', salary: '', experience: '' }
 const SALARY_OPTIONS = [
   { label: 'Below ₱15,000', value: '0-15000' },
@@ -53,21 +57,31 @@ export default function JobsBrowser({
   const [savedIds, setSavedIds] = useState(() => getSavedJobIds())
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  // Refinement is secondary: open on wide screens, collapsed on phones. The
-  // viewport is read once; a toggle afterwards always wins.
-  const [refineOpen, setRefineOpen] = useState(
-    () => typeof window !== 'undefined'
-      && typeof window.matchMedia === 'function'
-      && window.matchMedia('(min-width: 1024px)').matches,
-  )
-  const refineId = useId()
 
   useEffect(() => subscribeSavedJobs(() => setSavedIds(getSavedJobIds())), [])
 
   useEffect(() => {
     let cancelled = false
-    listJobs({ pageSize: 200, order: 'created_at.desc' })
-      .then((result) => { if (!cancelled) setJobs(Array.isArray(result?.jobs) ? result.jobs : []) })
+
+    async function loadAll() {
+      const collected = []
+      const seen = new Set()
+      for (let pageNumber = 1; pageNumber <= MAX_LOAD_PAGES; pageNumber += 1) {
+        const result = await listJobs({ page: pageNumber, pageSize: LOAD_PAGE_SIZE, order: 'created_at.desc' })
+        if (cancelled) return
+        const rows = Array.isArray(result?.jobs) ? result.jobs : []
+        // A stubbed endpoint that repeats the same page must not loop.
+        const fresh = rows.filter((job) => !seen.has(job.id))
+        if (!fresh.length) break
+        fresh.forEach((job) => seen.add(job.id))
+        collected.push(...fresh)
+        const total = Number(result?.total)
+        if (!Number.isFinite(total) || collected.length >= total) break
+      }
+      setJobs(collected)
+    }
+
+    loadAll()
       .catch((err) => { if (!cancelled) setError(err.message || 'Failed to load jobs') })
       .finally(() => { if (!cancelled) setLoading(false) })
     return () => { cancelled = true }
@@ -182,7 +196,7 @@ export default function JobsBrowser({
   }
 
   const filterFields = (prefix) => (
-    <>
+    <div className="flex flex-col gap-4">
       <SelectField
         id={`${prefix}-barangay`}
         label="Barangay"
@@ -226,7 +240,7 @@ export default function JobsBrowser({
       <button type="button" onClick={resetFilters} className="self-start text-xs font-medium text-muted-foreground transition-colors hover:text-primary">
         Reset all filters
       </button>
-    </>
+    </div>
   )
 
   return (
@@ -238,107 +252,90 @@ export default function JobsBrowser({
           ? 'Your saved vacancies, together in one place. Closed roles may no longer accept applications.'
           : (description || 'Explore local roles ranked by the skills you have added to your profile.')}
       />
-      {!saved && (
-        <PreferenceMatching
-          prompt={matchingPrompt}
-          mode={ranking?.mode ?? null}
-          busy={matchBusy}
-          onSubmit={applyMatching}
-        />
-      )}
-      {saved && (
-        <div className="mb-5 max-w-lg">
-          <SearchInput
-            value={query}
-            onChange={(value) => { setQuery(value); setPage(1) }}
-            label="Search saved opportunities"
-            placeholder="Search saved opportunities…"
-          />
-        </div>
-      )}
-      <p className="mb-4 text-xs text-muted-foreground" aria-live="polite">
-        {records.length} {saved ? 'saved opportunities' : 'matching vacancies'}
-      </p>
-      {matchingPrompt && (
-        <p role="status" className="mb-4 text-xs text-muted-foreground">{matchModeLabel(ranking?.mode)}</p>
-      )}
-      {matchNotice && (
-        <p role="status" className="mb-4 text-xs text-muted-foreground">{matchNotice}</p>
-      )}
-      {!saved && (
-        <div className="mb-5">
-          <Notice title="A match you can understand">
-            {MATCHING_NOTICE}
-          </Notice>
-        </div>
-      )}
-      {!saved && (
-        <div className="mb-6">
-          <button
-            type="button"
-            aria-expanded={refineOpen}
-            aria-controls={refineId}
-            onClick={() => setRefineOpen((open) => !open)}
-            className="inline-flex items-center gap-2 rounded-lg border bg-card px-3.5 py-2 text-sm font-medium text-muted-foreground transition-colors hover:text-primary"
-          >
-            <SlidersHorizontal className="size-4" aria-hidden="true" />
-            Refine results
-            <ChevronDown aria-hidden="true" className={refineOpen ? 'size-4 rotate-180 transition-transform' : 'size-4 transition-transform'} />
-          </button>
-          <div
-            id={refineId}
-            role="region"
-            aria-label="Refine results"
-            hidden={!refineOpen}
-            className="mt-3 grid gap-4 rounded-xl border bg-card p-4 sm:grid-cols-2 lg:grid-cols-3"
-          >
-            <div className="sm:col-span-2 lg:col-span-3">
+      <div className="flex flex-col gap-7 lg:flex-row">
+        {!saved && (
+          <aside className="surface h-fit w-full shrink-0 lg:sticky lg:top-[90px] lg:z-10 lg:max-h-[calc(100vh-110px)] lg:w-[235px] lg:self-start lg:overflow-y-auto">
+            {/* Search + AI live in the same floating panel as the filters, so the
+                whole refinement stack rides along while the results scroll. */}
+            <div className="mb-4 flex items-center gap-2">
               <SearchInput
                 value={query}
                 onChange={(value) => { setQuery(value); setPage(1) }}
                 label="Search your recommendations"
                 placeholder="Search jobs…"
               />
+              <PreferenceMatching
+                compact
+                prompt={matchingPrompt}
+                mode={ranking?.mode ?? null}
+                busy={matchBusy}
+                onSubmit={applyMatching}
+              />
             </div>
-            {filterFields('refine')}
-          </div>
-        </div>
-      )}
-      {loading ? (
-        <JobListSkeleton count={4} />
-      ) : error ? (
-        <InlineError message={error} />
-      ) : records.length ? (
-        <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-          {visible.map((job) => (
-            <JobCard
-              key={job.id}
-              job={job}
-              href={jobHref(job.id)}
-              showMatch={!saved && Boolean(user?.skills?.length)}
-              match={matchJob(job, user)}
-              matchReason={ranking?.reasons.get(String(job.id))}
-              saved={savedIds.includes(job.id)}
-              canSave={user?.role === 'job-seeker'}
-              onToggleSave={toggleSave}
+            <div className="mb-4 flex items-center gap-2 border-t pt-4">
+              <SlidersHorizontal className="size-4 text-primary" aria-hidden="true" />
+              <h2 className="text-sm font-semibold">Narrow your search</h2>
+            </div>
+            {filterFields('sidebar')}
+          </aside>
+        )}
+        <div className="min-w-0 flex-1">
+          {saved && (
+            <div className="mb-5 max-w-lg">
+              <SearchInput
+                value={query}
+                onChange={(value) => { setQuery(value); setPage(1) }}
+                label="Search saved opportunities"
+                placeholder="Search saved opportunities…"
+              />
+            </div>
+          )}
+          <p className="mb-4 text-xs text-muted-foreground" aria-live="polite">
+            {records.length} {saved ? 'saved opportunities' : 'matching vacancies'}
+          </p>
+          {matchingPrompt && (
+            <p role="status" className="mb-4 text-xs text-muted-foreground">{matchModeLabel(ranking?.mode)}</p>
+          )}
+          {matchNotice && (
+            <p role="status" className="mb-4 text-xs text-muted-foreground">{matchNotice}</p>
+          )}
+          {loading ? (
+            <JobListSkeleton count={4} />
+          ) : error ? (
+            <InlineError message={error} />
+          ) : records.length ? (
+            <div className="grid gap-5 md:grid-cols-2 2xl:grid-cols-3">
+              {visible.map((job) => (
+                <JobCard
+                  key={job.id}
+                  job={job}
+                  href={jobHref(job.id)}
+                  showMatch={!saved && Boolean(user?.skills?.length)}
+                  match={matchJob(job, user)}
+                  matchReason={ranking?.reasons.get(String(job.id))}
+                  saved={savedIds.includes(job.id)}
+                  canSave={user?.role === 'job-seeker'}
+                  onToggleSave={toggleSave}
+                />
+              ))}
+            </div>
+          ) : matchingPrompt ? (
+            <EmptyState
+              title="No matching opportunities in this view."
+              description="Nothing matched that request. Clear it to go back to skills-based ranking."
+              action={<Button variant="outline" onClick={() => applyMatching('')}>Clear matching</Button>}
             />
-          ))}
+          ) : (
+            <EmptyState
+              title={saved ? 'Make room for your next chapter.' : 'No matching opportunities in this view.'}
+              description={saved
+                ? 'Tap the bookmark on a vacancy to save it here, or clear your search.'
+                : 'Try another search or explore all local vacancies.'}
+              href="/jobs"
+            />
+          )}
         </div>
-      ) : matchingPrompt ? (
-        <EmptyState
-          title="No matching opportunities in this view."
-          description="Nothing matched that request. Clear it to go back to skills-based ranking."
-          action={<Button variant="outline" onClick={() => applyMatching('')}>Clear matching</Button>}
-        />
-      ) : (
-        <EmptyState
-          title={saved ? 'Make room for your next chapter.' : 'No matching opportunities in this view.'}
-          description={saved
-            ? 'Tap the bookmark on a vacancy to save it here, or clear your search.'
-            : 'Try another search or explore all local vacancies.'}
-          href="/jobs"
-        />
-      )}
+      </div>
       {!saved && records.length > 0 && (
         <Pager page={currentPage} pageSize={PAGE_SIZE} total={records.length} onChange={setPage} align="center" />
       )}

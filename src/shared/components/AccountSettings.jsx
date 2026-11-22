@@ -126,14 +126,14 @@ export default function AccountSettings({ embedded = false, children, childrenBe
           {prefsError && <p role="alert" className="text-xs text-destructive">{prefsError}</p>}
           <Field orientation="horizontal">
             <Field>
-              <FieldLabel htmlFor="application-updates">Application & recruitment updates</FieldLabel>
+              <FieldLabel htmlFor="application-updates">Application &amp; Recruitment Updates</FieldLabel>
               <FieldDescription>Application, interview, and accreditation notices.</FieldDescription>
             </Field>
             <Switch id="application-updates" checked={updates} disabled={loadingPrefs} onCheckedChange={(v) => togglePref('application_updates', v)} />
           </Field>
           <Field orientation="horizontal">
             <Field>
-              <FieldLabel htmlFor="community-notices">Community announcements</FieldLabel>
+              <FieldLabel htmlFor="community-notices">Community Announcements</FieldLabel>
               <FieldDescription>PESO programs and employment notices.</FieldDescription>
             </Field>
             <Switch id="community-notices" checked={announcements} disabled={loadingPrefs} onCheckedChange={(v) => togglePref('community_announcements', v)} />

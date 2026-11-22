@@ -32,11 +32,11 @@ async function openProfile() {
   render(<MemoryRouter><Profile /></MemoryRouter>)
   await screen.findByRole('button', { name: /save my profile/i })
   fireEvent.click(screen.getByRole('tab', { name: /my resumes/i }))
-  await screen.findByLabelText('Choose a resume to autofill')
+  await screen.findByLabelText('Choose a Resume to Autofill')
 }
 
 function selectResume() {
-  fireEvent.change(screen.getByLabelText('Choose a resume to autofill'), {
+  fireEvent.change(screen.getByLabelText('Choose a Resume to Autofill'), {
     target: { files: [new File(['x'], 'resume.pdf', { type: 'application/pdf' })] },
   })
 }
@@ -59,7 +59,7 @@ describe('Profile resume autofill', () => {
     await openProfile()
     selectResume()
 
-    expect(await screen.findByText('Full name')).toBeInTheDocument()
+    expect(await screen.findByText('Full Name')).toBeInTheDocument()
     expect(screen.getByText('Juan Dela Cruz')).toBeInTheDocument()
     expect(screen.getByText(/fields detected/i)).toBeInTheDocument()
     fireEvent.click(screen.getByRole('tab', { name: /personal/i }))
@@ -81,7 +81,7 @@ describe('Profile resume autofill', () => {
 
     fireEvent.click(screen.getByRole('tab', { name: /personal/i }))
     expect(await screen.findByLabelText(/full name/i)).toHaveValue('Juan Dela Cruz')
-    expect(screen.getByLabelText(/contact number/i)).toHaveValue('+639171234567')
+    expect(screen.getByLabelText(/contact number/i)).toHaveValue('917 123 4567')
 
     fireEvent.click(screen.getByRole('tab', { name: /address/i }))
     await screen.findByLabelText('Barangay')
@@ -91,8 +91,8 @@ describe('Profile resume autofill', () => {
     fireEvent.click(screen.getByRole('tab', { name: /education/i }))
     await screen.findByRole('combobox', { name: /level/i })
     expect(screen.getByRole('combobox', { name: /level/i })).toHaveValue('College')
-    expect(await screen.findByRole('checkbox', { name: 'Data Entry' })).toBeChecked()
-    expect(screen.getByRole('checkbox', { name: 'Communication' })).toBeChecked()
+    expect(await screen.findByRole('button', { name: 'Remove Data Entry' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Remove Communication' })).toBeInTheDocument()
   })
 
   it('explains when the resume has nothing it can read', async () => {

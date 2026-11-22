@@ -72,12 +72,14 @@ function fillRequired() {
   fireEvent.change(screen.getByLabelText(/company \/ trade name/i), { target: { value: 'Santa Maria Logistics Inc.' } })
   fireEvent.change(screen.getByLabelText(/company industry/i), { target: { value: 'IT' } })
   fireEvent.change(screen.getByLabelText(/street address/i), { target: { value: 'Norzagaray-Santa Maria Road' } })
+  fireEvent.change(screen.getByLabelText(/barangay/i), { target: { value: 'Pulong Buhangin' } })
   fireEvent.change(screen.getByLabelText(/city \/ municipality/i), { target: { value: 'Santa Maria' } })
   fireEvent.change(screen.getByLabelText(/province/i), { target: { value: 'Bulacan' } })
   fireEvent.change(screen.getByLabelText(/company contact no/i), { target: { value: '440000000' } })
   fireEvent.change(screen.getByLabelText(/official company email/i), { target: { value: 'hr@company.com' } })
   fireEvent.change(screen.getByLabelText(/^password/i, { selector: 'input' }), { target: { value: 'password123!' } })
   fireEvent.change(screen.getByLabelText(/confirm password/i), { target: { value: 'password123!' } })
+  fireEvent.click(screen.getByRole('button', { name: /^next$/i }))
   fireEvent.change(screen.getByLabelText(/^first name/i), { target: { value: 'Maria' } })
   fireEvent.change(screen.getByLabelText(/last name/i), { target: { value: 'Reyes' } })
   fireEvent.change(screen.getByLabelText(/designation \/ position/i), { target: { value: 'HR Manager' } })
@@ -103,7 +105,7 @@ async function openTermsAndAgree() {
 describe('EmployerRegister address', () => {
   beforeEach(() => vi.clearAllMocks())
 
-  it('renders open address fields with optional barangay and postal', () => {
+  it('renders the barangay select and numeric postal field', () => {
     renderPage()
     expect(screen.getByLabelText(/barangay/i).tagName).toBe('SELECT')
     expect(screen.getByLabelText(/postal/i)).toHaveAttribute('inputMode', 'numeric')
@@ -123,8 +125,10 @@ describe('EmployerRegister address', () => {
     signedUp({ id: 'employer-1' })
     renderPage()
     fillRequired()
+    fireEvent.click(screen.getByRole('button', { name: /^back$/i }))
     fireEvent.change(screen.getByLabelText(/barangay/i), { target: { value: 'Pulong Buhangin' } })
     fireEvent.change(screen.getByLabelText(/postal/i), { target: { value: '3022' } })
+    fireEvent.click(screen.getByRole('button', { name: /^next$/i }))
     // Term gate ships disabled until the notice is opened and read.
     await openTermsAndAgree()
     submit()
@@ -138,30 +142,32 @@ describe('EmployerRegister address', () => {
       province_state: 'bulacan',
       postal_code: '3022',
       country: 'philippines',
+      phone: '+63440000000',
+      representative_phone: '+639171234567',
     })
   })
 
-  it('submits with blank barangay and postal', async () => {
+  it('groups the representative mobile while parking the digits without spaces', async () => {
     signedUp({ id: 'employer-1' })
     renderPage()
     fillRequired()
+
+    expect(screen.getByLabelText(/representative mobile/i)).toHaveValue('917 123 4567')
+
     await openTermsAndAgree()
     submit()
 
     await waitFor(() => expect(api.post).toHaveBeenCalled())
-    expect(parked()).toMatchObject({
-      barangay_district: null,
-      city_municipality: 'santa maria',
-      province_state: 'bulacan',
-      postal_code: null,
-    })
+    expect(parked().representative_phone).toBe('+639171234567')
+    expect(parked().representative_phone).not.toMatch(/\s/)
   })
 
   it('blocks a non-4-digit postal code', async () => {
     renderPage()
     fillRequired()
+    fireEvent.click(screen.getByRole('button', { name: /^back$/i }))
     fireEvent.change(screen.getByLabelText(/postal/i), { target: { value: '302' } })
-    submit()
+    fireEvent.click(screen.getByRole('button', { name: /^next$/i }))
 
     await waitFor(() => expect(screen.getByText(/postal code must be 4 digits/i)).toBeInTheDocument())
     expect(authClientMock.signUp.email).not.toHaveBeenCalled()
@@ -170,12 +176,10 @@ describe('EmployerRegister address', () => {
   it('rejects a weak password and does not submit', async () => {
     renderPage()
     fillRequired()
+    fireEvent.click(screen.getByRole('button', { name: /^back$/i }))
     fireEvent.change(screen.getByLabelText(/^password/i, { selector: 'input' }), { target: { value: 'password' } })
     fireEvent.change(screen.getByLabelText(/confirm password/i), { target: { value: 'password' } })
-    // Term gate ships disabled until the modal is opened: open + agree first.
-    fireEvent.click(screen.getByRole('button', { name: /view terms/i }))
-    fireEvent.click(screen.getByLabelText(/agree to the municipal data collection terms/i))
-    submit()
+    fireEvent.click(screen.getByRole('button', { name: /^next$/i }))
 
     expect(await screen.findByText('Password must include at least one letter, one number, and one symbol.')).toBeInTheDocument()
     expect(authClientMock.signUp.email).not.toHaveBeenCalled()
@@ -184,9 +188,10 @@ describe('EmployerRegister address', () => {
   it('requires city and province', async () => {
     renderPage()
     fillRequired()
+    fireEvent.click(screen.getByRole('button', { name: /^back$/i }))
     fireEvent.change(screen.getByLabelText(/city \/ municipality/i), { target: { value: '' } })
     fireEvent.change(screen.getByLabelText(/province/i), { target: { value: '' } })
-    submit()
+    fireEvent.click(screen.getByRole('button', { name: /^next$/i }))
 
     await waitFor(() => expect(screen.getByText(/city \/ municipality is required/i)).toBeInTheDocument())
     expect(screen.getByText(/province is required/i)).toBeInTheDocument()

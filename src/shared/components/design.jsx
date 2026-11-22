@@ -73,14 +73,14 @@ export function Panel({ title, description, action, children, footer, className,
       {footer && <CardFooter>{footer}</CardFooter>}
     </Card>);
 }
-export function PageHeading({ title, description, action, eyebrow, }) {
-    return (<div className="mb-7 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
+export function PageHeading({ title, description, action, eyebrow, compact = false, }) {
+    return (<div className={cn("flex flex-col justify-between gap-4 sm:flex-row sm:items-end", compact ? "mb-4" : "mb-7")}>
       <div>
         {eyebrow && <p className="eyebrow mb-2">{eyebrow}</p>}
         <h1 className="text-2xl font-semibold tracking-[-.035em] md:text-[30px]">
           {title}
         </h1>
-        {description && (<p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
+        {description && (<p className={cn("max-w-2xl text-sm text-muted-foreground", compact ? "mt-1.5 leading-5" : "mt-2 leading-6")}>
             {description}
           </p>)}
       </div>
@@ -147,14 +147,18 @@ export function StatCards({ stats, countUp = false, }) {
         </div>))}
     </div>);
 }
-export function TextField({ label, error, help, multiline, ...props }) {
+export function TextField({ label, error, help, multiline, prefix, ...props }) {
     const fieldId = props.id ?? props.name ?? label.toLowerCase().replaceAll(" ", "-");
+    const describedBy = error ? `${fieldId}-error` : help ? `${fieldId}-help` : undefined;
     return (<Field data-invalid={!!error}>
       <FieldLabel htmlFor={fieldId}>
         {label}
         {props.required && <span className="text-destructive">*</span>}
       </FieldLabel>
-      {multiline ? (<Textarea {...props} id={fieldId} aria-invalid={!!error} aria-describedby={error ? `${fieldId}-error` : help ? `${fieldId}-help` : undefined}/>) : (<Input {...props} id={fieldId} aria-invalid={!!error} aria-describedby={error ? `${fieldId}-error` : help ? `${fieldId}-help` : undefined}/>)}
+      {multiline ? (<Textarea {...props} id={fieldId} aria-invalid={!!error} aria-describedby={describedBy}/>) : prefix ? (<InputGroup>
+          <InputGroupAddon>{prefix}</InputGroupAddon>
+          <InputGroupInput {...props} id={fieldId} aria-invalid={!!error} aria-describedby={describedBy}/>
+        </InputGroup>) : (<Input {...props} id={fieldId} aria-invalid={!!error} aria-describedby={describedBy}/>)}
       {help && (<FieldDescription id={`${fieldId}-help`}>{help}</FieldDescription>)}
       {error && <FieldError id={`${fieldId}-error`}>{error}</FieldError>}
     </Field>);
@@ -178,9 +182,13 @@ export function SelectField({ label, options, placeholder, error, ...props }) {
       {error && <FieldError id={`${fieldId}-error`}>{error}</FieldError>}
     </Field>);
 }
-export function CompanyMark({ initials, color = "blue", large = false, }) {
-    return (<span aria-hidden="true" className={cn("flex size-11 shrink-0 items-center justify-center rounded-xl text-xl font-bold tracking-tight", `company-${color}`, large && "size-16 rounded-2xl text-3xl")}>
-      {initials}
+export function CompanyMark({ initials, color = "blue", large = false, src }) {
+    // Remember which URL failed instead of a boolean: a replaced logo arrives
+    // as a new versioned src, so the mark retries it with no reset effect.
+    const [failedSrc, setFailedSrc] = useState(null);
+    const showImage = Boolean(src) && failedSrc !== src;
+    return (<span aria-hidden="true" className={cn("flex size-11 shrink-0 items-center justify-center overflow-hidden rounded-xl text-xl font-bold tracking-tight", `company-${color}`, large && "size-16 rounded-2xl text-3xl")}>
+      {showImage ? (<img src={src} alt="" className="size-full object-cover" loading="lazy" decoding="async" onError={() => setFailedSrc(src)}/>) : (initials)}
     </span>);
 }
 export function SuccessMark() {

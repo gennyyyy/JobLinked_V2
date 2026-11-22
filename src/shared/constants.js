@@ -119,6 +119,27 @@ export const BULACAN_MUNICIPALITIES = [
   'Santa Maria',
 ];
 
+// PESO service scope: this portal only serves Bulacan.
+export const BULACAN_PROVINCES = ['Bulacan'];
+
+export const INDUSTRIES = [
+  'Agriculture',
+  'Banking & Finance',
+  'Construction',
+  'Education',
+  'Food & Beverage',
+  'Healthcare',
+  'Hospitality / Tourism',
+  'Information Technology',
+  'IT',
+  'Logistics / Transport',
+  'Manufacturing',
+  'Retail',
+  'Security Services',
+  'Utilities',
+  'Other',
+];
+
 export const JOB_TAGS = [
   'Urgent Hiring',
   'Fresh Grad Friendly',
@@ -199,7 +220,7 @@ export const FAQS = [
   {
     question: "How are employers verified?",
     answer:
-      "Employers submit accreditation requirements for PESO review. A PESO administrator can approve, reject with feedback, or request resubmission. A verified badge represents a sample approval, not actual municipal accreditation.",
+      "Employers submit accreditation requirements for PESO review. A PESO administrator can approve, reject with feedback, or request resubmission. Accreditation takes about three business days. A verified badge represents a sample approval, not actual municipal accreditation.",
   },
   {
     question: "How can I track my application?",

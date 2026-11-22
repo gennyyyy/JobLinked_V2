@@ -6,7 +6,7 @@ import FormSelect from "./FormSelect";
 import useVocabulary from "../hooks/useVocabulary";
 
 const CHIP = "inline-flex items-center rounded-full border border-border bg-muted px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-secondary peer-checked:border-primary peer-checked:bg-primary peer-checked:text-primary-foreground peer-focus-visible:ring-2 peer-focus-visible:ring-ring peer-focus-visible:ring-offset-2 peer-disabled:cursor-not-allowed peer-disabled:opacity-50";
-const FIELD = "min-h-[44px] rounded-xl bg-muted px-3 py-2.5 text-sm text-foreground disabled:cursor-not-allowed disabled:opacity-60";
+
 
 const byLower = (list) => new Map(list.map((value) => [String(value).toLowerCase(), value]));
 const positionOf = (list) => new Map(list.map((value, index) => [String(value).toLowerCase(), index]));
@@ -163,6 +163,7 @@ export default function VocabularyPicker({
         {label}
         {required && <span aria-hidden="true" className="text-destructive">*</span>}
       </Label>
+      <div className="flex min-h-[44px] items-center rounded-xl border border-border bg-muted px-4 py-2">
       <FormSelect
         id={fieldId}
         required={required}
@@ -171,11 +172,12 @@ export default function VocabularyPicker({
         onChange={(event) => onChange(event.target.value || null)}
         aria-invalid={error ? true : undefined}
         aria-describedby={describedBy}
-        className={FIELD}
+        className="w-full border-0 bg-transparent text-sm text-foreground outline-none disabled:cursor-not-allowed disabled:opacity-60"
       >
         <option value="">Not set</option>
         {options.map((option) => <option key={option} value={option}>{option}</option>)}
       </FormSelect>
+      </div>
       {feedback}
     </div>
   );

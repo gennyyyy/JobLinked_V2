@@ -4,7 +4,7 @@ import { searchWorkspace } from '../workspaceSearch'
 describe('searchWorkspace', () => {
   it('finds a settings section with its page subtitle and hash href', () => {
     expect(searchWorkspace('password', 'job-seeker')[0]).toEqual({
-      title: 'Password settings',
+      title: 'Credentials',
       subtitle: 'in My profile',
       href: '/job-seeker/profile#password-settings',
     })

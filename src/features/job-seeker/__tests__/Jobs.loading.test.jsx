@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import Jobs from '../Jobs'
 import { listJobs } from '../../../shared/services/jobs'
@@ -23,7 +23,7 @@ describe('Jobs loading state', () => {
     matchJobs.mockResolvedValue({ mode: 'deterministic', ranking: [], reasons: [] })
   })
 
-  it('keeps the header, matching panel, and a reachable search while the list loads', async () => {
+  it('keeps the header, sidebar controls, and a reachable search while the list loads', async () => {
     // Never resolves, so the fetch stays in-flight (loading) for the assertion.
     listJobs.mockReturnValue(new Promise(() => {}))
 
@@ -39,15 +39,11 @@ describe('Jobs loading state', () => {
     expect(busy.querySelectorAll('.surface').length).toBeGreaterThan(0)
     // The page chrome stays mounted instead of an early return.
     expect(screen.getByRole('heading', { name: /browse jobs/i })).toBeInTheDocument()
-    expect(screen.getByRole('region', { name: 'Job matching mode' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Skills-based matching' })).toBeInTheDocument()
-    // jsdom has no matchMedia, so refinement is collapsed until asked for.
-    const refine = screen.getByRole('button', { name: /refine results/i })
-    expect(refine).toHaveAttribute('aria-expanded', 'false')
-
-    fireEvent.click(refine)
-
-    expect(refine).toHaveAttribute('aria-expanded', 'true')
-    expect(screen.getByLabelText('Search your recommendations')).toBeInTheDocument()
+    const sidebar = screen.getByRole('complementary')
+    expect(within(sidebar).getByLabelText('Search your recommendations')).toBeEnabled()
+    expect(within(sidebar).getByRole('button', { name: 'Skills-based matching' })).toBeInTheDocument()
+    expect(within(sidebar).getByRole('heading', { name: /narrow your search/i })).toBeInTheDocument()
+    expect(within(sidebar).getByLabelText('Barangay')).toBeEnabled()
+    expect(within(sidebar).getByRole('button', { name: /reset all filters/i })).toBeEnabled()
   })
 })

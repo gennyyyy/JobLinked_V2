@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import Profile from '../Profile'
 
@@ -72,7 +72,7 @@ describe('Profile fields and save', () => {
     await openProfile()
 
     expect(screen.getByLabelText(/full name/i)).toHaveValue('Juana Santos')
-    expect(screen.getByLabelText(/contact number/i)).toHaveValue('09171234567')
+    expect(screen.getByLabelText(/contact number/i)).toHaveValue('917 123 4567')
     expect(screen.getByLabelText(/professional headline/i)).toHaveValue('Cashier')
 
     fireEvent.click(screen.getByRole('tab', { name: /address/i }))
@@ -101,15 +101,19 @@ describe('Profile fields and save', () => {
     fireEvent.change(screen.getByLabelText(/street or local address/i), { target: { value: '48 Rizal Street' } })
 
     fireEvent.click(screen.getByRole('tab', { name: /education/i }))
-    await screen.findByRole('checkbox', { name: 'Customer Service' })
-    fireEvent.click(screen.getByRole('checkbox', { name: 'Customer Service' }))
+    const skillsInput = await screen.findByRole('combobox', { name: /your skills/i })
+    // The autocomplete list appears once the skill vocabulary has loaded.
+    await waitFor(() => expect(skillsInput).toHaveAttribute('list'))
+    fireEvent.change(skillsInput, { target: { value: 'Customer Service' } })
+    fireEvent.keyDown(skillsInput, { key: 'Enter' })
+    expect(await screen.findByRole('button', { name: 'Remove Customer Service' })).toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('button', { name: /save my profile/i }))
 
     await waitFor(() => expect(updateProfile).toHaveBeenCalled())
     expect(updateProfile).toHaveBeenCalledWith('u1', expect.objectContaining({
       full_name: 'Juana S. Santos',
-      phone: '09171234567',
+      phone: '+639171234567',
       headline: 'Head cashier',
       barangay_district: 'Bagbaguin',
       street_address: '48 Rizal Street',
@@ -117,6 +121,45 @@ describe('Profile fields and save', () => {
       skills: ['Data Entry', 'Customer Service'],
     }))
     expect(updateProfile.mock.calls[0][1]).not.toHaveProperty('education_summary')
+  })
+
+  it('blocks the save and explains an invalid contact number', async () => {
+    await openProfile()
+
+    fireEvent.change(screen.getByLabelText(/contact number/i), { target: { value: '12345' } })
+    fireEvent.click(screen.getByRole('button', { name: /save my profile/i }))
+
+    expect(await screen.findByText('Enter a valid Philippine contact number.')).toBeInTheDocument()
+    expect(updateProfile).not.toHaveBeenCalled()
+  })
+
+  it('saves a spaced contact number in +63 form', async () => {
+    await openProfile()
+
+    fireEvent.change(screen.getByLabelText(/contact number/i), { target: { value: '0917 123 4567' } })
+    fireEvent.click(screen.getByRole('button', { name: /save my profile/i }))
+
+    await waitFor(() => expect(updateProfile).toHaveBeenCalled())
+    expect(updateProfile).toHaveBeenCalledWith('u1', expect.objectContaining({ phone: '+639171234567' }))
+    expect(screen.getByLabelText(/contact number/i)).toHaveValue('917 123 4567')
+  })
+
+  it('validates the contact number on blur before saving', async () => {
+    await openProfile()
+    const phone = screen.getByLabelText(/contact number/i)
+    // The fixed prefix is outside the editable input.
+    expect(within(phone.closest('[data-slot="input-group"]')).getByText('+63')).toBeVisible()
+    expect(phone).toHaveValue('917 123 4567')
+
+    fireEvent.change(phone, { target: { value: '12345' } })
+    fireEvent.blur(phone)
+
+    expect(await screen.findByText('Enter a valid Philippine contact number.')).toBeInTheDocument()
+    expect(updateProfile).not.toHaveBeenCalled()
+
+    fireEvent.change(phone, { target: { value: '0917 123 4567' } })
+    expect(screen.queryByText('Enter a valid Philippine contact number.')).not.toBeInTheDocument()
+    expect(phone).toHaveValue('917 123 4567')
   })
 
   it('updates education status when education history is added and removed', async () => {
@@ -135,7 +178,7 @@ describe('Profile fields and save', () => {
 
     fireEvent.change(screen.getByLabelText('Level'), { target: { value: 'College' } })
     fireEvent.change(screen.getByLabelText('School'), { target: { value: 'Metro College' } })
-    fireEvent.change(screen.getByLabelText('Graduation year'), { target: { value: '2025' } })
+    fireEvent.change(screen.getByLabelText('Graduation Year'), { target: { value: '2025' } })
     fireEvent.click(screen.getByRole('button', { name: /add education/i }))
     expect(await screen.findByText('Completed — College')).toBeInTheDocument()
 
@@ -207,7 +250,7 @@ describe('Profile fields and save', () => {
     await screen.findByText('Choose your barangay.')
 
     fireEvent.click(screen.getByRole('tab', { name: /education/i }))
-    await screen.findByText('Add at least one skill.')
+    await screen.findByText("Add at least one skill from PESO's list.")
     expect(screen.getByText('Add your education history.')).toBeInTheDocument()
 
     expect(updateProfile).not.toHaveBeenCalled()
@@ -234,5 +277,65 @@ describe('Profile fields and save', () => {
     await screen.findByLabelText('Barangay')
     expect(screen.getByLabelText('Barangay')).toHaveValue('Poblacion')
     expect(screen.getByLabelText(/street or local address/i)).toHaveValue('12 Mabini Street')
+  })
+
+  it('renders city and province as dropdowns with the Bulacan options', async () => {
+    await openProfile()
+    fireEvent.click(screen.getByRole('tab', { name: /address/i }))
+
+    const city = screen.getByLabelText('City / Municipality')
+    const province = screen.getByLabelText('Province / State')
+    expect(city.tagName).toBe('SELECT')
+    expect(province.tagName).toBe('SELECT')
+    expect(within(city).getByRole('option', { name: 'Angat' })).toBeInTheDocument()
+    expect(within(city).getByRole('option', { name: 'Santa Maria' })).toBeInTheDocument()
+    expect(within(province).getByRole('option', { name: 'Bulacan' })).toBeInTheDocument()
+  })
+
+  it('loads listed stored city and province into the dropdowns', async () => {
+    useAuth.mockReturnValue({
+      user: { ...STORED, city_municipality: 'santa maria', province_state: 'bulacan' },
+      refreshUser: vi.fn(),
+    })
+    await openProfile()
+    fireEvent.click(screen.getByRole('tab', { name: /address/i }))
+
+    expect(screen.getByLabelText('City / Municipality')).toHaveValue('Santa Maria')
+    expect(screen.getByLabelText('Province / State')).toHaveValue('Bulacan')
+  })
+
+  it('loads an out-of-list city and province as blanks and saves the blanks', async () => {
+    useAuth.mockReturnValue({
+      user: { ...STORED, city_municipality: 'Quezon City', province_state: 'Metro Manila' },
+      refreshUser: vi.fn(),
+    })
+    await openProfile()
+    fireEvent.click(screen.getByRole('tab', { name: /address/i }))
+
+    expect(screen.getByLabelText('City / Municipality')).toHaveValue('')
+    expect(screen.getByLabelText('Province / State')).toHaveValue('')
+    expect(screen.getByRole('option', { name: 'Select city / municipality' })).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: /save my profile/i }))
+    await waitFor(() => expect(updateProfile).toHaveBeenCalled())
+    expect(updateProfile).toHaveBeenCalledWith('u1', expect.objectContaining({
+      city_municipality: null,
+      province_state: null,
+    }))
+  })
+
+  it('saves the picked city and province', async () => {
+    await openProfile()
+    fireEvent.click(screen.getByRole('tab', { name: /address/i }))
+
+    fireEvent.change(screen.getByLabelText('City / Municipality'), { target: { value: 'Angat' } })
+    fireEvent.change(screen.getByLabelText('Province / State'), { target: { value: 'Bulacan' } })
+    fireEvent.click(screen.getByRole('button', { name: /save my profile/i }))
+
+    await waitFor(() => expect(updateProfile).toHaveBeenCalled())
+    expect(updateProfile).toHaveBeenCalledWith('u1', expect.objectContaining({
+      city_municipality: 'Angat',
+      province_state: 'Bulacan',
+    }))
   })
 })

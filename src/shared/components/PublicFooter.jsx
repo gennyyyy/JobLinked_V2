@@ -1,3 +1,5 @@
+import PesoOfficeInfo from "./PesoOfficeInfo";
+
 const footerColumns = [
   {
     heading: "Employer",
@@ -63,6 +65,9 @@ function PublicFooter() {
               </div>
             </details>
           ))}
+        </div>
+        <div className="mt-4 flex justify-center">
+          <PesoOfficeInfo />
         </div>
         <p className="mt-1 text-center text-sm text-primary/70">
           Copyright © {new Date().getFullYear()} JobLinked. All Rights Reserved

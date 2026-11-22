@@ -19,17 +19,23 @@ function fillValid() {
   fireEvent.change(screen.getByLabelText(/email address/i), { target: { value: 'juan@example.com' } })
   fireEvent.change(screen.getByLabelText(/mobile number/i), { target: { value: '9171234567' } })
   fireEvent.change(screen.getByLabelText(/birthday/i), { target: { value: '1990-05-04' } })
-  fireEvent.change(screen.getByLabelText(/street address/i), { target: { value: 'Norzagaray-Santa Maria Road' } })
-  fireEvent.change(screen.getByLabelText(/barangay/i), { target: { value: 'Pulong Buhangin' } })
   fireEvent.change(screen.getByLabelText(/^password/i, { selector: 'input' }), { target: { value: 'password123!' } })
   fireEvent.change(screen.getByLabelText(/confirm password/i), { target: { value: 'password123!' } })
   fireEvent.change(screen.getByLabelText(/employment status/i), { target: { value: 'Unemployed' } })
+  fireEvent.click(screen.getByRole('checkbox', { name: /resume autofill can make mistakes/i }))
+  fireEvent.click(screen.getByRole('button', { name: /^next$/i }))
+  fireEvent.change(screen.getByLabelText(/street address/i), { target: { value: 'Norzagaray-Santa Maria Road' } })
+  fireEvent.change(screen.getByLabelText(/barangay/i), { target: { value: 'Pulong Buhangin' } })
+  fireEvent.change(screen.getByLabelText(/city \/ municipality/i), { target: { value: 'Santa Maria' } })
+  fireEvent.change(screen.getByLabelText(/province/i), { target: { value: 'Bulacan' } })
+  fireEvent.click(screen.getByRole('button', { name: /^next$/i }))
   fireEvent.click(screen.getByRole('checkbox', { name: /true and correct/i }))
 }
 
 describe('terms gate', () => {
   it('locks the agree box until terms are opened', async () => {
     renderPage()
+    fillValid()
     const agree = screen.getByRole('checkbox', { name: /agree to the municipal/i })
     expect(agree).toBeDisabled()
     expect(screen.getByText(/read the terms before agreeing/i)).toBeInTheDocument()

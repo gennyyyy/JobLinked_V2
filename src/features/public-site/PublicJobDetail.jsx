@@ -7,6 +7,7 @@ import { getJob } from '@/shared/services/jobs'
 import { PageSkeleton } from '@/shared/components/Skeletons'
 import PublicShell from '@/shared/components/PublicShell'
 import { CompanyMark, LinkButton, Panel, VerifiedBadge } from '@/shared/components/design'
+import { employerLogoUrl } from '@/shared/services/images'
 import { titleCase } from '@/shared/utils/titleCase'
 
 function money(value) {
@@ -69,7 +70,7 @@ export default function PublicJobDetail() {
           <div className="surface mt-5">
             <div className="flex flex-col justify-between gap-5 sm:flex-row">
               <div className="flex gap-5">
-                <CompanyMark initials={companyInitials(company)} large />
+                <CompanyMark initials={companyInitials(company)} src={employerLogoUrl(job.employers)} large />
                 <div>
                   <div className="flex flex-wrap items-center gap-2">
                     <VerifiedBadge />

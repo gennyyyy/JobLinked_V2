@@ -123,18 +123,7 @@ export function HomeHero() {
                 <Search aria-hidden="true" />Search all jobs
               </Button>
             </form>
-            <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
-              <span className="text-muted-foreground">Popular searches:</span>
-              {['Administrative', 'Sales', 'Production', 'No experience'].map((q) => (
-                <Link
-                  to={`/jobs?keyword=${encodeURIComponent(q)}`}
-                  className="inline-flex min-h-8 items-center text-navy underline decoration-border underline-offset-4 hover:decoration-primary"
-                  key={q}
-                >
-                  {q}
-                </Link>
-              ))}
-            </div>
+
           </div>
         </section>
         <section aria-label="Platform assurances" className="border-y border-border bg-card">

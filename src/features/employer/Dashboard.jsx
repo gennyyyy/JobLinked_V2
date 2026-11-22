@@ -49,7 +49,7 @@ export default function Dashboard() {
         eyebrow="Build something together"
         title={`Welcome back, ${firstName}.`}
         description={`Good people make great teams. Here’s what’s happening at ${titleCase(companyName)}.`}
-        action={<LinkButton href="/employer/job-posts"><Plus data-icon="inline-start" />Create a vacancy</LinkButton>}
+        action={<LinkButton href="/employer/job-posts"><Plus data-icon="inline-start" />Post a Job</LinkButton>}
       />
       {accreditation && accreditation !== 'approved' && (
         <Notice title={`Accreditation: ${accreditation}`} warning>

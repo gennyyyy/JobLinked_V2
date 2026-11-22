@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
@@ -92,6 +92,22 @@ describe('PublicShell footer', () => {
       ['Frequently asked questions', '/faq'],
     ]) {
       expect(screen.getByRole('link', { name })).toHaveAttribute('href', href)
+    }
+  })
+
+  it('renders the footer without duplicate-key console errors', () => {
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    try {
+      render(
+        <MemoryRouter>
+          <PublicShell><p>content</p></PublicShell>
+        </MemoryRouter>,
+      )
+
+      const duplicateKeyCalls = errorSpy.mock.calls.filter(([message]) => String(message).includes('same key'))
+      expect(duplicateKeyCalls).toEqual([])
+    } finally {
+      errorSpy.mockRestore()
     }
   })
 })

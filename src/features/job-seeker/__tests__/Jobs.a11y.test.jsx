@@ -55,10 +55,10 @@ describe('Jobs accessibility', () => {
     expect(alerts.some((alert) => alert.textContent.includes('Job board unreachable'))).toBe(true)
   })
 
-  it('shows the reference match notice and the vacancy count', async () => {
+  it('does not show the retired match notice and still reports the vacancy count', async () => {
     listJobs.mockResolvedValue({ jobs: [job()], total: 1 })
     await renderJobs()
-    expect(screen.getByText('A match you can understand')).toBeInTheDocument()
+    expect(screen.queryByText('A match you can understand')).not.toBeInTheDocument()
     expect(await screen.findByText('1 matching vacancies')).toBeInTheDocument()
   })
 
@@ -75,7 +75,7 @@ describe('Jobs accessibility', () => {
     expect(screen.getByText('Cashier')).toBeInTheDocument()
   })
 
-  it('filters the grid from the refine controls', async () => {
+  it('filters the grid from the sidebar controls', async () => {
     listJobs.mockResolvedValue({
       jobs: [
         job({ id: 'job-1', location: 'Poblacion', requirements: 'Experience: 1 year\nCommunication' }),
@@ -85,14 +85,13 @@ describe('Jobs accessibility', () => {
     })
     await renderJobs()
 
-    fireEvent.click(screen.getByRole('button', { name: /refine results/i }))
     fireEvent.change(screen.getByLabelText('Barangay'), { target: { value: 'Bagbaguin' } })
 
     expect(screen.queryByText('Barangay Health Worker')).not.toBeInTheDocument()
     expect(screen.getByText('Cashier')).toBeInTheDocument()
   })
 
-  it('clears every refine filter and the search with Reset all filters', async () => {
+  it('clears every filter and the search with Reset all filters', async () => {
     listJobs.mockResolvedValue({
       jobs: [
         job({ id: 'job-1', location: 'Poblacion', requirements: 'Experience: 1 year\nCommunication' }),
@@ -102,7 +101,6 @@ describe('Jobs accessibility', () => {
     })
     await renderJobs()
 
-    fireEvent.click(screen.getByRole('button', { name: /refine results/i }))
     fireEvent.change(screen.getByLabelText('Barangay'), { target: { value: 'Bagbaguin' } })
     fireEvent.change(screen.getByLabelText('Search your recommendations'), { target: { value: 'cashier' } })
     expect(screen.queryByText('Barangay Health Worker')).not.toBeInTheDocument()

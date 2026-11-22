@@ -12,26 +12,23 @@ import AccountSettings, { PrivacyPanel } from "../../shared/components/AccountSe
 import { TabsContent } from "../../components/ui/tabs";
 import { buildFullName } from "../../shared/utils/names";
 import { titleCase } from "../../shared/utils/titleCase";
-import { SANTA_MARIA_BARANGAYS } from "../../shared/constants";
+import { formatPhoneDisplay, isValidPhone, normalizePhone, withPrefix } from "../../shared/utils/phone";
+import { BULACAN_MUNICIPALITIES, BULACAN_PROVINCES, INDUSTRIES, SANTA_MARIA_BARANGAYS } from "../../shared/constants";
 import { SelectField, TextField } from "../../shared/components/design";
 
 const COMPANY_FIELDS = [
-  ["name", "Company name", "e.g. Santa Maria Trading"],
-  ["industry", "Industry", "e.g. Manufacturing, IT, Retail"],
+  ["name", "Company Name", "e.g. Santa Maria Trading"],
 ];
 
 const CONTACT_FIELDS = [
-  ["company_email", "Recruitment contact email", "hr@company.com"],
-  ["phone", "Business phone", "02-XXXX-XXXX / 0917 123 4567"],
+  ["company_email", "Recruitment Contact Email", "hr@company.com"],
+  ["phone", "Business Phone", "917 123 4567"],
 ];
 
 const ADDRESS_FIELDS = [
   ["house_number_unit", "House / Building / Unit No.", "e.g. Unit 402 or Bldg 3"],
-  ["street_address", "Street address", "Street address & lot / block"],
+  ["street_address", "Street Address", "Street address & lot / block"],
   ["subdivision_building", "Subdivision / Village / Building", "Subdivision name"],
-  ["city_municipality", "City / Municipality", "e.g. Santa Maria"],
-  ["province_state", "Province / State", "e.g. Bulacan"],
-  ["postal_code", "Postal Code", "e.g. 3022"],
 ];
 
 const REPRESENTATIVE_FIELDS = [
@@ -40,6 +37,7 @@ const REPRESENTATIVE_FIELDS = [
   ["last_name", "Last Name", "Reyes"],
   ["suffix", "Suffix", "Jr., Sr., III"],
   ["representative_position", "Designation / Position", "e.g. HR Manager"],
+  ["representative_phone", "Representative Mobile", "917 123 4567"],
   ["representative_email", "Representative Email", "maria@company.com"],
 ];
 
@@ -49,6 +47,10 @@ const TITLE_FIELDS = new Set([
   "barangay_district", "city_municipality", "province_state", "postal_code",
   "first_name", "middle_name", "last_name", "suffix",
 ]);
+
+// Numbers display without the fixed +63 prefix and are validated on blur.
+const PHONE_FIELDS = new Set(["phone", "representative_phone"]);
+const PHONE_ERROR = "Enter a valid Philippine contact number (e.g. 917 123 4567).";
 
 const COMPANY_PROFILE_TABS = [
   { value: "company", label: "Company", title: "Company details", description: "These details appear alongside your public vacancies." },
@@ -70,6 +72,23 @@ function companyAcronym(name) {
   return (words[0] || "C").slice(0, 2).toUpperCase();
 }
 
+// Legacy logo_path rows may hold local paths or file: URLs; only absolute http(s) images render.
+function remoteLogoUrl(value) {
+  try {
+    const url = new URL(typeof value === "string" ? value.trim() : "");
+    return url.protocol === "http:" || url.protocol === "https:" ? url.href : null;
+  } catch {
+    return null;
+  }
+}
+
+// Stored values outside PESO's predefined lists load blank, so saving a profile
+// always persists a value the user picked from the list.
+function pickListed(value, options) {
+  const text = titleCase(value);
+  return options.includes(text) ? text : "";
+}
+
 function CompanyProfile() {
   const { user, refreshUser } = useAuth();
   const { hash } = useLocation();
@@ -80,6 +99,7 @@ function CompanyProfile() {
   const [saved, setSaved] = useState(false);
   const [company, setCompany] = useState(null);
   const [form, setForm] = useState({});
+  const [errors, setErrors] = useState({});
   const [tab, setTab] = useState("company");
   const activeTab = ACCOUNT_SETTINGS_SECTIONS.has(hash.slice(1)) ? "account" : tab;
   const [logoFailed, setLogoFailed] = useState(false);
@@ -105,8 +125,8 @@ function CompanyProfile() {
             street_address: titleCase(data.street_address),
             subdivision_building: titleCase(data.subdivision_building),
             barangay_district: titleCase(data.barangay_district),
-            city_municipality: titleCase(data.city_municipality),
-            province_state: titleCase(data.province_state),
+            city_municipality: pickListed(data.city_municipality, BULACAN_MUNICIPALITIES),
+            province_state: pickListed(data.province_state, BULACAN_PROVINCES),
             postal_code: data.postal_code || "",
             phone: data.phone || "",
             email: data.email || "",
@@ -118,6 +138,7 @@ function CompanyProfile() {
             last_name: titleCase(data.last_name),
             suffix: titleCase(data.suffix),
             representative_email: data.representative_email || "",
+            representative_phone: data.representative_phone || "",
             representative_position: data.representative_position || "",
           });
         }
@@ -139,8 +160,21 @@ function CompanyProfile() {
   if (loading) return <PageSkeleton stats={0} panels={2} />;
   if (error && !company) return <p role="alert" className="py-8 text-center text-sm text-destructive">{error}</p>;
 
+  // Phone columns are optional, so a blank stays blank; a filled value must be a
+  // Philippine number, same rules as registration.
+  function validate() {
+    const next = {};
+    for (const key of ["phone", "representative_phone"]) {
+      const value = String(form[key] ?? "").trim();
+      if (value && !isValidPhone(value)) next[key] = PHONE_ERROR;
+    }
+    setErrors(next);
+    return Object.keys(next).length === 0;
+  }
+
   async function handleSubmit(e) {
     e.preventDefault();
+    if (!validate()) return;
     setSaving(true);
     setError("");
     try {
@@ -149,7 +183,9 @@ function CompanyProfile() {
       const { name, email: _email, ...rest } = form;
       void _email;
       const full_name = buildFullName(rest.first_name, rest.middle_name, rest.last_name, rest.suffix);
-      const patch = { ...rest, company_name: name, full_name };
+      const phone = normalizePhone(rest.phone);
+      const representative_phone = normalizePhone(rest.representative_phone);
+      const patch = { ...rest, company_name: name, full_name, phone, representative_phone };
 
       if (company) {
         // Route through updateProfile so the audit log is written and the
@@ -166,6 +202,7 @@ function CompanyProfile() {
         if (refreshUser) await refreshUser(user);
       }
 
+      setForm((previous) => ({ ...previous, phone, representative_phone }));
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
     } catch (err) {
@@ -197,6 +234,9 @@ function CompanyProfile() {
     try {
       await uploadLogo(file); // resized client-side, bytes persisted in Postgres
       await refreshCompany();
+      // has_logo/logo_updated_at live on the auth user; refresh so the header
+      // image changes without a reload (same pattern as the seeker picture).
+      if (refreshUser) await refreshUser(user);
       setLogoStatus("Logo saved.");
     } catch (err) {
       setLogoError(err.message || "Could not save the logo");
@@ -212,6 +252,7 @@ function CompanyProfile() {
     try {
       await removeLogo();
       await refreshCompany();
+      if (refreshUser) await refreshUser(user);
       setLogoStatus("Logo removed.");
       setLogoActionsOpen(false);
     } catch (err) {
@@ -224,7 +265,7 @@ function CompanyProfile() {
   const companyLogo = !logoFailed && company
     ? (company.has_logo
       ? logoUrl(company.id, company.logo_updated_at)
-      : (typeof company.logo_path === "string" && company.logo_path ? company.logo_path : null))
+      : remoteLogoUrl(company.logo_path))
     : null;
   const barangayOptions = [
     ...(!form.barangay_district || SANTA_MARIA_BARANGAYS.includes(form.barangay_district)
@@ -234,8 +275,26 @@ function CompanyProfile() {
   ];
   const field = (name) => ({
     id: name,
-    value: TITLE_FIELDS.has(name) ? titleCase(form[name]) : (form[name] || ""),
-    onChange: (e) => setForm({ ...form, [name]: e.target.value }),
+    value: PHONE_FIELDS.has(name)
+      ? formatPhoneDisplay(form[name])
+      : TITLE_FIELDS.has(name) ? titleCase(form[name]) : (form[name] || ""),
+    onChange: (e) => {
+      const next = PHONE_FIELDS.has(name) ? withPrefix(e.target.value) : e.target.value;
+      setForm({ ...form, [name]: next });
+      // Keep an existing phone error only while the edited value is still invalid.
+      setErrors((previous) => (!PHONE_FIELDS.has(name) || !previous[name] || isValidPhone(next)
+        ? { ...previous, [name]: undefined }
+        : previous));
+    },
+    ...(PHONE_FIELDS.has(name) && {
+      prefix: "+63",
+      inputMode: "numeric",
+      onBlur: () => {
+        const next = normalizePhone(form[name]);
+        setForm((previous) => ({ ...previous, [name]: next }));
+        setErrors((previous) => ({ ...previous, [name]: next && !isValidPhone(next) ? PHONE_ERROR : undefined }));
+      },
+    }),
   });
   function handleTabChange(nextTab) {
     setTab(nextTab);
@@ -260,7 +319,7 @@ function CompanyProfile() {
         sidebar={<PrivacyPanel />}
       >
         <TabsContent value="company" id="company-details">
-          <div className="mb-5 flex flex-wrap items-center gap-4 rounded-lg border border-dashed border-border bg-muted/30 p-4">
+          <div className="mb-4 flex flex-wrap items-center gap-3 rounded-lg border border-dashed border-border bg-muted/30 p-3">
             <div ref={logoActionsRef} className="group relative size-30 shrink-0">
               <div className="flex size-full items-center justify-center overflow-hidden rounded-full bg-primary/10 text-primary">
                 {companyLogo ? (
@@ -316,7 +375,7 @@ function CompanyProfile() {
               </div>
             </div>
             <div className="flex min-w-0 flex-1 flex-col gap-1">
-              <label htmlFor="company-logo-picker" className="text-sm font-semibold text-foreground">Company logo</label>
+              <label htmlFor="company-logo-picker" className="text-sm font-semibold text-foreground">Company Logo</label>
               <p className="text-xs leading-5 text-muted-foreground">Upload a logo to appear with your company details and public job listings.</p>
               <input id="company-logo-picker" type="file" accept="image/png,image/jpeg,image/webp" disabled={logoBusy} className="sr-only" aria-label="Upload company logo" onChange={handleLogo} />
               {logoBusy && <p role="status" className="text-[11px] text-muted-foreground">Uploading…</p>}
@@ -324,30 +383,40 @@ function CompanyProfile() {
               {logoError && <p role="alert" className="text-[11px] text-destructive">{logoError}</p>}
             </div>
           </div>
-          <div className="grid gap-5 sm:grid-cols-2">
+          <div className="grid gap-4 sm:grid-cols-2">
             {COMPANY_FIELDS.map(([name, label, placeholder]) => (
               <TextField key={name} label={label} placeholder={placeholder} required {...field(name)} />
             ))}
+            <SelectField
+              label="Industry"
+              id="industry"
+              placeholder="Select industry"
+              options={INDUSTRIES}
+              required
+              {...field("industry")}
+            />
           </div>
-          <div className="mt-5">
-              <TextField label="About the company" multiline rows={5} required placeholder="Brief description of your company…" {...field("description")} />
+          <div className="mt-4">
+              <TextField label="About the Company" multiline rows={5} required placeholder="Brief description of your company…" {...field("description")} />
           </div>
-          <div className="mt-5">
-              <TextField label="Website (optional)" placeholder="https://…" {...field("website")} />
+          <div className="mt-4">
+              <TextField label="Website (Optional)" placeholder="https://…" {...field("website")} />
           </div>
         </TabsContent>
         <TabsContent value="contact" id="contact-location">
-            <div className="grid gap-5 sm:grid-cols-2">
+            <div className="grid gap-4 sm:grid-cols-2">
               {CONTACT_FIELDS.map(([name, label, placeholder]) => (
-                <TextField key={name} label={label} placeholder={placeholder} required type={name === "company_email" ? "email" : "text"} {...field(name)} />
+                <TextField key={name} label={label} placeholder={placeholder} required type={name === "company_email" ? "email" : name === "phone" ? "tel" : "text"} error={errors[name]} {...field(name)} />
               ))}
             </div>
-            <div className="mt-5 grid gap-5 sm:grid-cols-2">
+            <div className="mt-4 grid gap-4 sm:grid-cols-2">
               {ADDRESS_FIELDS.map(([name, label, placeholder]) => (
-                <TextField key={name} label={label} placeholder={placeholder} required={name === "street_address"} {...field(name)} />
+                <div key={name} className={name === "subdivision_building" ? "sm:col-span-2" : undefined}>
+                  <TextField label={label} placeholder={placeholder} required={name === "street_address"} {...field(name)} />
+                </div>
               ))}
             </div>
-            <div className="mt-5">
+            <div className="mt-4 grid gap-4 sm:grid-cols-2">
               <SelectField
                 label="Barangay / District"
                 id="barangay_district"
@@ -355,22 +424,35 @@ function CompanyProfile() {
                 options={barangayOptions}
                 {...field("barangay_district")}
               />
+              <SelectField
+                label="City / Municipality"
+                placeholder="Select city / municipality"
+                options={BULACAN_MUNICIPALITIES}
+                {...field("city_municipality")}
+              />
+            </div>
+            <div className="mt-4 grid gap-4 sm:grid-cols-2">
+              <SelectField
+                label="Province / State"
+                placeholder="Select province"
+                options={BULACAN_PROVINCES}
+                {...field("province_state")}
+              />
+              <TextField label="Postal Code" placeholder="e.g. 3022" {...field("postal_code")} />
             </div>
         </TabsContent>
         <TabsContent value="representative" id="authorized-representative">
-            <div className="grid gap-5 sm:grid-cols-2">
+            <div className="grid gap-4 sm:grid-cols-2">
               {REPRESENTATIVE_FIELDS.map(([name, label, placeholder]) => (
                 <TextField
                   key={name}
                   label={label}
                   placeholder={placeholder}
-                  type={name === "representative_email" ? "email" : "text"}
+                  type={name === "representative_email" ? "email" : name === "representative_phone" ? "tel" : "text"}
+                  error={errors[name]}
                   {...field(name)}
                 />
               ))}
-            </div>
-            <div className="mt-5">
-              <TextField label="Login Email (read-only)" value={form.email || ""} disabled />
             </div>
         </TabsContent>
         <TabsContent value="account">

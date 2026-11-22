@@ -1,26 +1,38 @@
-import { useState } from 'react'
+import { useId, useState } from 'react'
 import { Plus, X } from 'lucide-react'
 
 // Tag-list field from the reference profile (education, experience, skills).
-export default function TagField({ label, value, onChange, placeholder, help, error, required }) {
-  const tags = value.split(',').map((tag) => tag.trim()).filter(Boolean)
+// `value` is a comma-separated string (Work experience) or an array (skills);
+// onChange emits the same shape. `suggestions` feeds a native <datalist>;
+// `max` caps the chip count.
+export default function TagField({ label, value, onChange, placeholder, help, error, required, suggestions, max }) {
+  const listId = useId()
+  const arrayMode = Array.isArray(value)
+  const tags = (arrayMode ? value : String(value ?? '').split(','))
+    .map((tag) => String(tag).trim())
+    .filter(Boolean)
   const [draft, setDraft] = useState('')
+  const limit = Number.isFinite(max) ? max : null
+
+  const emit = (next) => onChange(arrayMode ? next : next.join(', '))
 
   const addTag = () => {
     const tag = draft.trim()
-    if (!tag || tags.includes(tag)) { setDraft(''); return }
-    onChange([...tags, tag].join(', '))
+    const atLimit = limit != null && tags.length >= limit
+    if (!tag || atLimit || tags.some((entry) => entry.toLowerCase() === tag.toLowerCase())) { setDraft(''); return }
+    emit([...tags, tag])
     setDraft('')
   }
 
-  const removeTag = (tagToRemove) => onChange(tags.filter((tag) => tag !== tagToRemove).join(', '))
+  const removeTag = (tagToRemove) => emit(tags.filter((tag) => tag !== tagToRemove))
+  const helpText = [help, limit != null ? `Up to ${limit}.` : ''].filter(Boolean).join(' ')
 
   return (
-    <div className="flex flex-col gap-2">
-      <label className="text-sm font-medium text-foreground">
+    <div className="flex flex-col">
+      <label className="mb-2 text-sm font-medium leading-none text-foreground">
         {label}{required ? <span className="ml-1 text-destructive">*</span> : null}
       </label>
-      <div className="flex min-h-11 flex-wrap items-center gap-2 rounded-lg border border-input bg-background px-3 py-2 focus-within:border-ring focus-within:ring-2 focus-within:ring-ring/20">
+      <div className="flex min-h-[44px] flex-wrap items-center gap-2 rounded-xl border border-border bg-muted px-4 py-1 focus-within:border-ring focus-within:ring-2 focus-within:ring-ring/20">
         {tags.map((tag) => (
           <span key={tag} className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary">
             {tag}
@@ -39,6 +51,7 @@ export default function TagField({ label, value, onChange, placeholder, help, er
               addTag()
             }
           }}
+          list={suggestions ? listId : undefined}
           placeholder={tags.length ? 'Add another…' : placeholder}
           aria-label={label}
           aria-invalid={!!error}
@@ -48,7 +61,12 @@ export default function TagField({ label, value, onChange, placeholder, help, er
           <Plus className="size-4" />
         </button>
       </div>
-      {help ? <p className="text-xs text-muted-foreground">{help}</p> : null}
+      {suggestions?.length ? (
+        <datalist id={listId}>
+          {suggestions.map((suggestion) => <option key={suggestion} value={suggestion} />)}
+        </datalist>
+      ) : null}
+      {helpText ? <p className="mt-2 text-xs text-muted-foreground">{helpText}</p> : null}
       {error ? <p className="text-xs text-destructive">{error}</p> : null}
     </div>
   )

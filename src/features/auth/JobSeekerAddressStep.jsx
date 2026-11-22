@@ -8,7 +8,7 @@ function JobSeekerAddressStep({ form, errors, set, inputClass, labelClass, reqMa
             <section className="surface p-5">
               <p className="font-mono text-[11px] tracking-[0.2em] text-primary uppercase mb-4 font-semibold">Step 2 — Address Information</p>
               <div className="space-y-4">
-              <div className="grid grid-cols-1 gap-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <div>
                   <Label htmlFor="lot" className={labelClass}>Lot <span className="text-muted-foreground font-normal">(optional)</span></Label>
                   <Input id="lot" name="lot" type="text" placeholder="e.g. 12" value={form.lot} onChange={(e) => set("lot", e.target.value)} className={inputClass} />
@@ -27,7 +27,7 @@ function JobSeekerAddressStep({ form, errors, set, inputClass, labelClass, reqMa
                   <Input id="subdivisionBuilding" name="subdivisionBuilding" type="text" placeholder="e.g. Greenview Heights" value={form.subdivisionBuilding} onChange={(e) => set("subdivisionBuilding", e.target.value)} className={inputClass} />
                 </div>
                 <div>
-                  <Label htmlFor="barangayDistrict" className={labelClass}>Barangay / District <span className="text-muted-foreground font-normal">(optional)</span></Label>
+                  <Label htmlFor="barangayDistrict" className={labelClass}>Barangay / District <span className="text-danger">*</span></Label>
                   <FormSelect id="barangayDistrict" name="barangayDistrict" value={form.barangayDistrict} onChange={(e) => set("barangayDistrict", e.target.value)} className={inputClass}>
                     <option value="">Select barangay</option>
                     {form.barangayDistrict && !SANTA_MARIA_BARANGAYS.includes(form.barangayDistrict) && (

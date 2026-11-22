@@ -1,5 +1,6 @@
 import SkipLink from '@/shared/components/SkipLink'
 import PublicShell from '@/shared/components/PublicShell'
+import landingBg from '@/assets/landing_page_bg.png'
 import { AudienceCards } from './AudienceCards'
 
 export default function About() {
@@ -7,7 +8,7 @@ export default function About() {
     <>
       <SkipLink />
       <PublicShell>
-        <header className="page-hero">
+        <header className="page-hero bg-cover bg-center border-b border-border" style={{ backgroundImage: `linear-gradient(180deg, rgba(247,250,255,0.88) 0%, rgba(247,250,255,0.72) 100%), url(${landingBg})` }}>
           <div className="page-container py-14 md:py-16">
             <div>
               <p className="eyebrow mb-4">One platform. A stronger community.</p>

@@ -26,6 +26,7 @@ export const EMPTY_FORM = {
   employmentStatus: "",
   field: "",
   skills: [],
+  resumeAttached: false,
   resumeReviewConfirmed: false,
   agree: false,
   confirmAccurate: false,
@@ -41,6 +42,7 @@ export function validate(values) {
   else if (!isValidPhone(values.mobileNumber)) e.mobileNumber = "Enter a valid number (e.g. 917 123 4567)";
   if (!values.birthdate) e.birthdate = "Birthday is required";
   if (!values.streetAddress?.trim()) e.streetAddress = "Street address is required";
+  if (!values.barangayDistrict?.trim()) e.barangayDistrict = "Barangay / District is required";
   if (!values.cityMunicipality?.trim()) e.cityMunicipality = "City / Municipality is required";
   if (!values.provinceState?.trim()) e.provinceState = "Province is required";
   if (values.postalCode?.trim() && !/^\d{4}$/.test(values.postalCode.trim())) e.postalCode = "Postal code must be 4 digits";
@@ -49,7 +51,7 @@ export function validate(values) {
   if (!values.confirmPassword) e.confirmPassword = "Please confirm your password";
   else if (values.password !== values.confirmPassword) e.confirmPassword = "Passwords do not match";
   if (!values.employmentStatus) e.employmentStatus = "Employment status is required";
-  if (!values.resumeReviewConfirmed) e.resumeReviewConfirmed = "Please confirm you will review the resume autofill information";
+  if (values.resumeAttached && !values.resumeReviewConfirmed) e.resumeReviewConfirmed = "Please confirm you will review the resume autofill information";
   if (!values.agree) e.agree = "You must agree to the terms";
   if (!values.confirmAccurate) e.confirmAccurate = "Please confirm your information is true and correct";
   return e;

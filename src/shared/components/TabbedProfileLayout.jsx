@@ -24,9 +24,9 @@ export default function TabbedProfileLayout({
 
   return (
     <>
-      <PageHeading title={pageTitle} description={pageDescription} />
-      <div className="grid items-start gap-6 xl:grid-cols-[1fr_280px]">
-        <form onSubmit={onSubmit} className="flex min-w-0 flex-col gap-6" noValidate>
+      <PageHeading title={pageTitle} description={pageDescription} compact />
+      <div className="grid items-start gap-4 xl:grid-cols-[1fr_280px]">
+        <form onSubmit={onSubmit} className="flex min-w-0 flex-col gap-4" noValidate>
           {status && (
             <p role="status" className="rounded-lg border border-success/20 bg-success-soft px-4 py-3 text-xs font-medium text-success">
               {status}
@@ -34,8 +34,8 @@ export default function TabbedProfileLayout({
           )}
           {error && <p role="alert" className="text-xs text-destructive">{error}</p>}
           <Tabs value={activeTab} onValueChange={onTabChange} className="gap-0">
-            <Panel title={activeSection.title} description={activeSection.description}>
-              <TabsList className="mb-5 h-auto w-full flex-wrap group-data-horizontal/tabs:h-auto">
+            <Panel title={activeSection.title} description={activeSection.description} size="sm">
+              <TabsList className="mb-3 h-auto w-full flex-wrap group-data-horizontal/tabs:h-auto">
                 {tabs.map((tab) => (
                   <TabsTrigger key={tab.value} value={tab.value}>{tab.label}</TabsTrigger>
                 ))}
@@ -44,7 +44,7 @@ export default function TabbedProfileLayout({
             </Panel>
           </Tabs>
           {showSave && (
-            <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex flex-wrap items-center justify-between gap-2">
               {saveHint && <p role="status" className="text-[11px] text-muted-foreground">{saveHint}</p>}
               <Button type="submit" disabled={saving}>
                 <Save data-icon="inline-start" />
@@ -53,7 +53,7 @@ export default function TabbedProfileLayout({
             </div>
           )}
         </form>
-        {sidebar && <aside className="flex min-w-0 flex-col gap-5">{sidebar}</aside>}
+        {sidebar && <aside className="flex min-w-0 flex-col gap-4">{sidebar}</aside>}
       </div>
     </>
   )

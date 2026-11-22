@@ -58,3 +58,11 @@ export async function fetchAvatarObjectUrl(userId) {
 export const logoUrl = (employerId, version) => apiAssetUrl(
   `employers/${employerId}/logo${version ? `?v=${encodeURIComponent(version)}` : ''}`,
 );
+
+// A job's embedded employer: versioned logo URL when profile_images.updated_at
+// came along, else a legacy absolute logo_path. Null means initials.
+export function employerLogoUrl(employer = {}) {
+  if (!employer) return null;
+  if (employer.id && employer.logo_updated_at) return logoUrl(employer.id, employer.logo_updated_at);
+  return /^https?:\/\//i.test(employer.logo_path || '') ? employer.logo_path : null;
+}

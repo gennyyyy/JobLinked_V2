@@ -3,6 +3,7 @@ import { ArrowRight, ShieldCheck } from 'lucide-react'
 import SkipLink from '@/shared/components/SkipLink'
 import PublicShell from '@/shared/components/PublicShell'
 import { H3, LinkButton } from '@/shared/components/design'
+import landingBg from '@/assets/landing_page_bg.png'
 
 const TABS = [
   { id: 'jobseeker', label: 'For job seekers' },
@@ -59,7 +60,7 @@ const CONTENT = {
       {
         step: '03',
         title: 'Wait for PESO demo approval',
-        desc: 'Your account starts at Pending Review. You may draft jobs, but cannot publish before approval.',
+        desc: 'Your account starts at Pending Review. You may draft jobs, but cannot publish before approval. Accreditation takes about three business days.',
       },
       {
         step: '04',
@@ -78,7 +79,7 @@ export default function HowItWorks() {
     <>
       <SkipLink />
       <PublicShell>
-        <header className="page-hero">
+        <header className="page-hero bg-cover bg-center border-b border-border" style={{ backgroundImage: `linear-gradient(180deg, rgba(247,250,255,0.88) 0%, rgba(247,250,255,0.72) 100%), url(${landingBg})` }}>
           <div className="page-container py-14 md:py-16">
             <div>
               <p className="eyebrow mb-4">Less paperwork. More possibility.</p>

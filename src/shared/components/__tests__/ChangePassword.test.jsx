@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react'
 import ChangePassword from '../ChangePassword'
+import { AuthContext } from '../../hooks/useAuth'
 import { changePassword } from '../../services/auth'
 
 vi.mock('../../services/auth', () => ({
@@ -21,11 +22,31 @@ describe('ChangePassword', () => {
 
   it('renders the three password fields and submit button', () => {
     render(<ChangePassword />)
-    expect(screen.getByText('Password settings')).toBeInTheDocument()
+    expect(screen.getByText('Credentials')).toBeInTheDocument()
     expect(screen.getByLabelText(/current password/i)).toBeInTheDocument()
     expect(screen.getByLabelText(/^new password/i)).toBeInTheDocument()
     expect(screen.getByLabelText(/confirm new password/i)).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /update password/i })).toBeInTheDocument()
+    const checklist = screen.getByRole('list', { name: /password requirements/i })
+    expect(within(checklist).getByText('At least 8 characters')).toBeInTheDocument()
+    expect(within(checklist).getByText('One letter')).toBeInTheDocument()
+    expect(within(checklist).getByText('One number')).toBeInTheDocument()
+    expect(within(checklist).getByText('One symbol (e.g. ! @ # $)')).toBeInTheDocument()
+    expect(screen.queryByText(/including one letter, one number, and one symbol/i)).not.toBeInTheDocument()
+  })
+
+  it('shows the signed-in login email in a disabled field', () => {
+    render(
+      <AuthContext.Provider value={{ user: { email: 'maria@company.ph' } }}>
+        <ChangePassword />
+      </AuthContext.Provider>,
+    )
+
+    const email = screen.getByLabelText(/login email/i)
+    expect(email).toBeDisabled()
+    expect(email).toHaveValue('maria@company.ph')
+    expect(screen.getByText('(read only)')).toBeVisible()
+    expect(screen.getByText(/this is the email you use to sign in/i)).toBeVisible()
   })
 
   it('rejects a new password shorter than 8 characters', async () => {

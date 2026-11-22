@@ -47,35 +47,12 @@ const JOBS = [
   },
 ]
 
-// jsdom ships no matchMedia; the component reads it once at mount and the
-// tests decide the starting state.
-function setViewport(matches) {
-  window.matchMedia = vi.fn().mockImplementation((query) => ({
-    matches,
-    media: query,
-    onchange: null,
-    addListener: vi.fn(),
-    removeListener: vi.fn(),
-    addEventListener: vi.fn(),
-    removeEventListener: vi.fn(),
-    dispatchEvent: vi.fn(),
-  }))
-}
-
 function renderBrowser(props = {}) {
   return render(
     <MemoryRouter>
       <JobsBrowser jobHref={(id) => `/jobs/${id}`} {...props} />
     </MemoryRouter>,
   )
-}
-
-function refineToggle() {
-  return screen.getByRole('button', { name: /refine results/i })
-}
-
-function refinePanel() {
-  return document.getElementById(refineToggle().getAttribute('aria-controls'))
 }
 
 function cardTitles() {
@@ -87,70 +64,31 @@ describe('JobsBrowser layout', () => {
     window.localStorage.clear()
     vi.clearAllMocks()
     listJobs.mockResolvedValue({ jobs: JOBS, total: JOBS.length })
-    setViewport(false)
   })
 
-  it('renders the skills-based matching panel before the results', async () => {
+  it('keeps the search, matching, and every filter in the sidebar beside the results', async () => {
     renderBrowser()
+    expect(await screen.findByText('Administrative Assistant')).toBeInTheDocument()
 
-    const matching = screen.getByRole('region', { name: 'Job matching mode' })
-    const toggle = refineToggle()
-    await screen.findByText('Administrative Assistant')
-    const firstCard = document.querySelector('.job-card')
-
-    expect(matching.compareDocumentPosition(toggle) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
-    expect(matching.compareDocumentPosition(firstCard) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
-    expect(screen.queryByRole('heading', { name: /narrow your search/i })).toBeNull()
-  })
-
-  it('starts with refinement collapsed below 1024px', async () => {
-    renderBrowser()
-    await screen.findByText('Administrative Assistant')
-
-    const toggle = refineToggle()
-    expect(toggle).toHaveAttribute('aria-expanded', 'false')
-    expect(screen.queryByRole('region', { name: 'Refine results' })).toBeNull()
-    expect(refinePanel()).not.toBeVisible()
-  })
-
-  it('starts with refinement open at 1024px and above', async () => {
-    setViewport(true)
-    renderBrowser()
-    await screen.findByText('Administrative Assistant')
-
-    const toggle = refineToggle()
-    expect(toggle).toHaveAttribute('aria-expanded', 'true')
-    const panel = screen.getByRole('region', { name: 'Refine results' })
-    expect(panel).toBeVisible()
-
-    // Every search and filter control is present, labelled, and enabled.
-    expect(within(panel).getByLabelText('Search your recommendations')).toBeEnabled()
+    const sidebar = screen.getByRole('complementary')
+    expect(within(sidebar).getByLabelText('Search your recommendations')).toBeEnabled()
+    expect(within(sidebar).getByRole('button', { name: 'Skills-based matching' })).toBeInTheDocument()
+    expect(within(sidebar).getByRole('heading', { level: 2, name: 'Narrow your search' })).toBeInTheDocument()
     for (const label of ['Barangay', 'Job field', 'Employment type', 'Monthly salary', 'Experience level']) {
-      expect(within(panel).getByLabelText(label)).toBeEnabled()
+      expect(within(sidebar).getByLabelText(label)).toBeEnabled()
     }
-    expect(within(panel).getByRole('button', { name: /reset all filters/i })).toBeEnabled()
-  })
+    expect(within(sidebar).getByRole('button', { name: /reset all filters/i })).toBeEnabled()
 
-  it('toggles the refinement panel open and closed', async () => {
-    renderBrowser()
-    await screen.findByText('Administrative Assistant')
-
-    fireEvent.click(refineToggle())
-    expect(refineToggle()).toHaveAttribute('aria-expanded', 'true')
-    expect(screen.getByRole('region', { name: 'Refine results' })).toBeVisible()
-    expect(screen.getByLabelText('Search your recommendations')).toBeVisible()
-
-    fireEvent.click(refineToggle())
-    expect(refineToggle()).toHaveAttribute('aria-expanded', 'false')
-    expect(refinePanel()).not.toBeVisible()
+    // The results column sits outside the sidebar, and the old disclosure is gone.
+    expect(sidebar.contains(document.querySelector('.job-card'))).toBe(false)
     expect(screen.queryByRole('region', { name: 'Refine results' })).toBeNull()
+    expect(screen.queryByRole('button', { name: /refine results/i })).toBeNull()
   })
 
   it('narrows the results by the structured job field', async () => {
     renderBrowser()
     await screen.findByText('Administrative Assistant')
 
-    fireEvent.click(refineToggle())
     fireEvent.change(screen.getByLabelText('Job field'), { target: { value: 'Information Technology' } })
 
     await waitFor(() => expect(cardTitles()).toEqual(['Junior Web Developer']))
@@ -158,14 +96,13 @@ describe('JobsBrowser layout', () => {
     expect(screen.getByText('1 matching vacancies')).toBeInTheDocument()
   })
 
-  it('keeps the saved-jobs variant search-only, without a matching panel', async () => {
-    setViewport(true)
+  it('keeps the saved-jobs variant search-only, without a sidebar', async () => {
     renderBrowser({ saved: true })
 
     expect(await screen.findByRole('heading', { level: 1, name: 'Keep good opportunities close.' })).toBeInTheDocument()
-    expect(screen.queryByRole('region', { name: 'Job matching mode' })).toBeNull()
+    expect(screen.queryByRole('complementary')).toBeNull()
     expect(screen.queryByRole('button', { name: 'Skills-based matching' })).toBeNull()
-    expect(screen.queryByRole('button', { name: /refine results/i })).toBeNull()
+    expect(screen.queryByRole('heading', { name: /narrow your search/i })).toBeNull()
     expect(screen.getByLabelText('Search saved opportunities')).toBeInTheDocument()
   })
 })

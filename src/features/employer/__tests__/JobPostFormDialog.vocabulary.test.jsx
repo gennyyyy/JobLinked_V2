@@ -64,6 +64,17 @@ async function fieldSelect() {
   return select
 }
 
+// Type into the skills tag box and commit the chip the way a user would.
+function skillsInput() {
+  return screen.getByRole('combobox', { name: /skills required/i })
+}
+
+function typeSkill(text, key = 'Enter') {
+  const input = skillsInput()
+  fireEvent.change(input, { target: { value: text } })
+  fireEvent.keyDown(input, { key })
+}
+
 // Title, description, and barangay are the pre-existing required fields.
 function fillRequiredFields() {
   fireEvent.change(screen.getByPlaceholderText(/Administrative Officer, Welder/), {
@@ -112,8 +123,8 @@ describe('JobPostFormDialog field and skills', () => {
     await openCreateForm()
     fillRequiredFields()
     fireEvent.change(await fieldSelect(), { target: { value: 'Construction' } })
-    fireEvent.click(await screen.findByRole('checkbox', { name: 'Welding' }))
-    fireEvent.click(screen.getByRole('checkbox', { name: 'MS Excel' }))
+    typeSkill('MS Excel')
+    typeSkill('Welding')
 
     fireEvent.click(screen.getByRole('button', { name: /publish job/i }))
 
@@ -144,9 +155,9 @@ describe('JobPostFormDialog field and skills', () => {
     await openEditForm(JOB)
 
     expect(await fieldSelect()).toHaveValue('Customer Service')
-    expect(await screen.findByRole('checkbox', { name: 'Cashiering' })).toBeChecked()
-    expect(screen.getByRole('checkbox', { name: 'Customer Service' })).toBeChecked()
-    expect(screen.getByRole('checkbox', { name: 'Welding' })).not.toBeChecked()
+    expect(await screen.findByRole('button', { name: 'Remove Cashiering' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Remove Customer Service' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Remove Welding' })).toBeNull()
 
     fireEvent.click(screen.getByRole('button', { name: /save changes as draft/i }))
 
@@ -195,16 +206,20 @@ describe('JobPostFormDialog field and skills', () => {
     )
   })
 
-  it('shows the 20-skill limit and disables further choices at the cap', async () => {
+  it('shows the 20-skill limit and stops adding at the cap', async () => {
     await openCreateForm()
 
-    expect(await screen.findByText(/select up to 20/i)).toBeInTheDocument()
+    expect(await screen.findByText(/up to 20/i)).toBeInTheDocument()
 
     for (const skill of SKILLS.slice(0, 20)) {
-      fireEvent.click(await screen.findByRole('checkbox', { name: skill }))
+      typeSkill(skill)
+      await screen.findByRole('button', { name: `Remove ${skill}` })
     }
 
-    expect(screen.getByRole('checkbox', { name: 'Carpentry' })).toBeDisabled()
-    expect(screen.getAllByRole('checkbox').filter((box) => box.checked)).toHaveLength(20)
-  })
+    expect(screen.getAllByRole('button', { name: /^remove /i })).toHaveLength(20)
+
+    typeSkill('Carpentry')
+    await new Promise((resolve) => setTimeout(resolve, 0))
+    expect(screen.queryByText('Carpentry')).toBeNull()
+  }, 15000)
 })

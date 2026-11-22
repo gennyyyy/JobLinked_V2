@@ -4,6 +4,7 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Checkbox } from '@/components/ui/checkbox'
+import { InputGroup, InputGroupAddon, InputGroupInput } from '@/components/ui/input-group'
 import { Field, FieldLabel } from '@/components/ui/field'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
@@ -16,6 +17,7 @@ import { PageSkeleton } from '@/shared/components/Skeletons'
 import { InlineError, Pager } from '@/shared/components/dashboard'
 import useDialog from '@/shared/hooks/useDialog'
 import { titleCase } from '@/shared/utils/titleCase'
+import { formatPhoneDisplay, normalizePhone, withPrefix } from '@/shared/utils/phone'
 import { CountUp, EmptyState, H3, PageHeading, Panel, SearchInput, SelectField, StatusBadge, TextField } from '@/shared/components/design'
 
 const SYSTEM_ROLE_LABELS = { 'super-admin': 'Super Admin', employer: 'Employer', 'job-seeker': 'Job Seeker' }
@@ -604,7 +606,10 @@ function UserManagement() {
               </div>
               <div className="sm:col-span-2">
                 <Label htmlFor="invite-phone" className="mb-2 text-xs text-muted-foreground">Phone</Label>
-                <Input id="invite-phone" type="tel" placeholder="e.g. 0917 123 4567" value={inviteForm.phone} onChange={(e) => setInviteField('phone', e.target.value)} />
+                <InputGroup>
+                  <InputGroupAddon>+63</InputGroupAddon>
+                  <InputGroupInput id="invite-phone" type="tel" inputMode="numeric" placeholder="917 123 4567" value={formatPhoneDisplay(inviteForm.phone)} onChange={(e) => setInviteField('phone', withPrefix(e.target.value))} onBlur={() => setInviteField('phone', normalizePhone(inviteForm.phone))} />
+                </InputGroup>
               </div>
               {inviteBaseRole === 'employer' && (
                 <div className="sm:col-span-2">

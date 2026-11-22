@@ -1,10 +1,13 @@
 import { Button } from "../../components/ui/button";
 import { useState } from "react";
 import { Panel, TextField } from "./design";
+import PasswordRequirements from "./PasswordRequirements";
+import useAuth from "../hooks/useAuth";
 import { changePassword } from "../services/auth";
-import { passwordError, PASSWORD_HINT } from "../utils/password";
+import { passwordError } from "../utils/password";
 
 function ChangePassword({ embedded = false }) {
+  const { user } = useAuth() || {};
   const [form, setForm] = useState({ current: "", next: "", confirm: "" });
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
@@ -46,28 +49,41 @@ function ChangePassword({ embedded = false }) {
   }
 
   return (
-    <Panel id="password-settings" title="Password settings" description={PASSWORD_HINT}>
+    <Panel id="password-settings" title="Credentials" description="Your login email and password.">
       {message && <p className="mb-4 rounded-xl border border-success/20 bg-success-soft px-4 py-3 text-xs text-success">{message}</p>}
       {error && <p role="alert" className="mb-4 rounded-xl border border-danger/20 bg-danger-soft px-4 py-3 text-xs text-destructive">{error}</p>}
       <PasswordForm onSubmit={embedded ? undefined : handleSubmit} onKeyDown={handleEmbeddedKeyDown} className="flex max-w-xl flex-col gap-5">
         <TextField
-          label="Current password"
+          label={<span>Login Email <span className="text-xs font-normal text-muted-foreground">(read only)</span></span>}
+          name="loginEmail"
+          type="email"
+          autoComplete="email"
+          disabled
+          className="disabled:opacity-75 disabled:bg-input/30 disabled:cursor-default"
+          help="This is the email you use to sign in. It can't be changed here."
+          value={user?.email || ""}
+        />
+        <TextField
+          label="Current Password"
           type="password"
           autoComplete="current-password"
           required
           value={form.current}
           onChange={(e) => setForm({ ...form, current: e.target.value })}
         />
+        <div>
+          <TextField
+            label="New Password"
+            type="password"
+            autoComplete="new-password"
+            required
+            value={form.next}
+            onChange={(e) => setForm({ ...form, next: e.target.value })}
+          />
+          <PasswordRequirements value={form.next} />
+        </div>
         <TextField
-          label="New password"
-          type="password"
-          autoComplete="new-password"
-          required
-          value={form.next}
-          onChange={(e) => setForm({ ...form, next: e.target.value })}
-        />
-        <TextField
-          label="Confirm new password"
+          label="Confirm New Password"
           type="password"
           autoComplete="new-password"
           required

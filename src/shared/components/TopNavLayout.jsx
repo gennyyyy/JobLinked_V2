@@ -27,7 +27,7 @@ import useAFKTimer from '../hooks/useAFKTimer'
 import useDialog from '../hooks/useDialog'
 import { initialsOf } from '../utils/accountName'
 import { titleCase } from '../utils/titleCase'
-import { fetchAvatarObjectUrl } from '../services/images'
+import { fetchAvatarObjectUrl, logoUrl } from '../services/images'
 import { PORTAL_NAV, ROLE_LABELS } from '../constants'
 import { hasPermission } from '../lib/permissions'
 import { listNotifications } from '../services/notifications'
@@ -170,6 +170,13 @@ export default function TopNavLayout({ role, navItems, profileTo, roleLabel, hom
     if (avatarUrlRef.current) URL.revokeObjectURL(avatarUrlRef.current)
   }, [])
 
+  // One header image for every portal: an employer's account picture is the
+  // company logo (public URL), a seeker's is the token-guarded avatar fetched
+  // above. Everyone else keeps initials.
+  const headerImage = user?.role === 'employer'
+    ? (user?.has_logo === true ? logoUrl(user.id, user.logo_updated_at) : null)
+    : (user?.has_avatar === true ? avatarUrl : null)
+
   const sidebar = (small = false) => (
     <div className="flex h-full flex-col">
       <div className={cn('flex h-[85px] items-center px-6', collapsed && !small && 'justify-center px-0')}>
@@ -263,7 +270,7 @@ export default function TopNavLayout({ role, navItems, profileTo, roleLabel, hom
             <DropdownMenu>
               <DropdownMenuTrigger render={<Button variant="ghost" className="gap-2 px-1.5" />}>
                 <Avatar>
-                  {user?.has_avatar === true && avatarUrl && <AvatarImage src={avatarUrl} alt="Profile picture" />}
+                  {headerImage && <AvatarImage src={headerImage} alt={user?.role === 'employer' ? 'Company logo' : 'Profile picture'} />}
                   <AvatarFallback>{initials}</AvatarFallback>
                 </Avatar>
                 <span className="hidden text-left sm:block">

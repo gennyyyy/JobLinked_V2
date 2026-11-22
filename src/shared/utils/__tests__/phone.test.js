@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { normalizePhone, isValidPhone, toLocalDigits, withPrefix } from '../phone'
+import { formatPhoneDisplay, normalizePhone, isValidPhone, toLocalDigits, withPrefix } from '../phone'
 
 describe('phone', () => {
   it('normalizes 09… / 63… / spaced input to strict +63', () => {
@@ -22,5 +22,16 @@ describe('phone', () => {
     expect(toLocalDigits('')).toBe('')
     expect(withPrefix('9171234567')).toBe('+639171234567')
     expect(withPrefix('')).toBe('')
+  })
+
+  it('groups digits for display without keeping spaces in the stored value', () => {
+    expect(formatPhoneDisplay('9171234567')).toBe('917 123 4567')
+    expect(formatPhoneDisplay('+639171234567')).toBe('917 123 4567')
+    expect(formatPhoneDisplay('0917 123 4567')).toBe('917 123 4567')
+    expect(formatPhoneDisplay('917123456')).toBe('917 123 456')
+    expect(formatPhoneDisplay('91712')).toBe('917 12')
+    expect(formatPhoneDisplay('+63440000000')).toBe('440 000 000')
+    expect(formatPhoneDisplay('')).toBe('')
+    expect(toLocalDigits(formatPhoneDisplay('+639171234567'))).toBe('9171234567')
   })
 })

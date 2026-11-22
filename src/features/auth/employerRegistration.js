@@ -6,6 +6,7 @@ export function validate(values) {
   if (!values.companyName?.trim()) e.companyName = "Company name is required";
   if (!values.industry?.trim()) e.industry = "Industry is required";
   if (!values.streetAddress?.trim()) e.streetAddress = "Street address is required";
+  if (!values.barangayDistrict?.trim()) e.barangayDistrict = "Barangay / District is required";
   if (!values.cityMunicipality?.trim()) e.cityMunicipality = "City / Municipality is required";
   if (!values.provinceState?.trim()) e.provinceState = "Province is required";
   if (values.postalCode?.trim() && !/^\d{4}$/.test(values.postalCode.trim())) e.postalCode = "Postal code must be 4 digits";
@@ -39,7 +40,8 @@ export function buildEmployerSignUpPayload(values) {
     lastName: values.repLastName.trim(),
     suffix: values.repSuffix?.trim() || "",
     extra: {
-      phone: normalizePhone(values.repMobile),
+      phone: normalizePhone(values.contactNumber),
+      representativePhone: normalizePhone(values.repMobile),
       companyName: values.companyName.trim(),
       industry: values.industry.trim(),
       companyEmail: values.companyEmail.trim(),

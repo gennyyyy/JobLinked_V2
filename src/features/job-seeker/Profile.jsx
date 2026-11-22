@@ -8,6 +8,7 @@ import { listResumes, uploadResume, deleteResume, validateFile, signedUrl } from
 import { uploadAvatar, removeAvatar, fetchAvatarObjectUrl } from '@/shared/services/images'
 import { buildFullName } from '@/shared/utils/names'
 import { titleCase } from '@/shared/utils/titleCase'
+import { formatPhoneDisplay, isValidPhone, normalizePhone, withPrefix } from '@/shared/utils/phone'
 import { listEducation, addEducation, removeEducation } from '@/shared/services/seekers'
 import { PageSkeleton } from '@/shared/components/Skeletons'
 import { InlineError } from '@/shared/components/dashboard'
@@ -17,16 +18,18 @@ import TabbedProfileLayout from '@/shared/components/TabbedProfileLayout'
 import AccountSettings, { PrivacyPanel } from '@/shared/components/AccountSettings'
 import ChangePassword from '@/shared/components/ChangePassword'
 import { TabsContent } from '@/components/ui/tabs'
-import { SANTA_MARIA_BARANGAYS } from '@/shared/constants'
+import { BULACAN_MUNICIPALITIES, BULACAN_PROVINCES, SANTA_MARIA_BARANGAYS } from '@/shared/constants'
 import { EDUCATION_LEVELS } from '../auth/jobSeekerRegistration'
 import { getReferenceValues } from '@/shared/services/reference'
 import { matchSkills } from '@/shared/utils/resumeAutofill'
+import useVocabulary from '@/shared/hooks/useVocabulary'
 import VocabularyPicker from '@/shared/components/VocabularyPicker'
 import TagField from './TagField'
 import ResumeAutofill from './ResumeAutofill'
 
-const PHONE_PATTERN = /^(\+63|0)[\d\s-]{9,15}$/
 const splitList = (value) => String(value || '').split(',').map((item) => item.trim()).filter(Boolean)
+
+const PHONE_ERROR = 'Enter a valid Philippine contact number.'
 
 const EMPTY_FORM = {
   name: '', firstName: '', middleName: '', lastName: '', suffix: '',
@@ -51,6 +54,13 @@ const ACCOUNT_SETTINGS_SECTIONS = new Set([
   'password-settings',
 ])
 
+// Stored values outside PESO's predefined lists load blank, so saving a profile
+// always persists a value the user picked from the list.
+function pickListed(value, options) {
+  const text = titleCase(value)
+  return options.includes(text) ? text : ''
+}
+
 function formFromUser(user) {
   if (!user) return { ...EMPTY_FORM, skills: [] }
   return {
@@ -68,8 +78,8 @@ function formFromUser(user) {
     barangay: titleCase(user.barangay_district),
     address: titleCase(user.street_address),
     subdivisionBuilding: titleCase(user.subdivision_building),
-    cityMunicipality: titleCase(user.city_municipality),
-    provinceState: titleCase(user.province_state),
+    cityMunicipality: pickListed(user.city_municipality, BULACAN_MUNICIPALITIES),
+    provinceState: pickListed(user.province_state, BULACAN_PROVINCES),
     postalCode: user.postal_code || '',
     experience: user.experience_summary || '',
     skills: Array.isArray(user.skills) ? [...user.skills] : splitList(user.skills),
@@ -151,7 +161,7 @@ function Profile() {
   const [resumeReviewConfirmed, setResumeReviewConfirmed] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [pendingDelete, setPendingDelete] = useState(null)
-  const [unrecognizedSkills, setUnrecognizedSkills] = useState([])
+  const skillVocabulary = useVocabulary('skill')
 
   useEffect(() => {
     if (!userId) return
@@ -206,7 +216,11 @@ function Profile() {
   if (loading) return <PageSkeleton stats={0} panels={2} />
   if (error) return <InlineError message={error} />
 
-  const skills = form.skills
+  // Skills are free-text chips; only the ones in PESO's seeded vocabulary are
+  // saved, in its canonical casing. Unlisted chips stay visible in the note.
+  const skillByLower = new Map(skillVocabulary.values.map((entry) => [String(entry).toLowerCase(), entry]))
+  const skillChips = form.skills.map((chip) => skillByLower.get(String(chip).toLowerCase()) ?? chip)
+  const { matched: recognizedSkills, unrecognized: unrecognizedSkills } = matchSkills(skillChips, skillVocabulary.values)
   // Edit-view capitalization: show names/addresses title-cased while the form
   // state (and the submitted lowercase value) stays raw.
   const show = (key) => titleCase(form[key])
@@ -226,15 +240,26 @@ function Profile() {
     setErrors((previous) => ({ ...previous, [name]: undefined }))
   }
 
+  // TagField emits the raw chip; swap in the vocabulary's casing when it knows it.
+  function updateSkills(chips) {
+    setField('skills', chips.map((chip) => skillByLower.get(String(chip).toLowerCase()) ?? chip))
+  }
+
   function validate() {
     const next = {}
     if (form.name.trim().length < 3) next.name = 'Enter your full name.'
-    if (!PHONE_PATTERN.test(form.phone.trim())) next.phone = 'Enter a valid Philippine contact number.'
+    if (!isValidPhone(form.phone)) next.phone = PHONE_ERROR
     if (form.headline.trim().length < 5) next.headline = 'Add a short professional headline.'
     if (!form.barangay) next.barangay = 'Choose your barangay.'
     if (form.address.trim().length < 5) next.address = 'Enter your address.'
     if (!educationLoading && !educationLoadError && !educationList.length) next.education = 'Add your education history.'
-    if (!skills.length) next.skills = 'Add at least one skill.'
+    if (!recognizedSkills.length) {
+      next.skills = skillVocabulary.error
+        ? 'Skills could not be loaded. Retry, then save again.'
+        : skillVocabulary.loading
+          ? 'Skills are still loading. Try saving again in a moment.'
+          : "Add at least one skill from PESO's list."
+    }
     setErrors(next)
     return Object.keys(next).length === 0
   }
@@ -246,8 +271,9 @@ function Profile() {
     setSaved(false)
     try {
       const hasComponents = [form.firstName, form.middleName, form.lastName, form.suffix].some((v) => String(v || '').trim())
+      const phone = normalizePhone(form.phone)
       const patch = {
-        phone: form.phone.trim(),
+        phone,
         headline: form.headline.trim(),
         birthdate: form.birthdate || null,
         employment_status: form.employmentStatus || null,
@@ -261,7 +287,7 @@ function Profile() {
         postal_code: form.postalCode.trim() || null,
         experience_summary: form.experience.trim(),
         field: form.field || null,
-        skills,
+        skills: recognizedSkills,
       }
       if (hasComponents) {
         patch.first_name = form.firstName.trim().toLowerCase()
@@ -273,6 +299,7 @@ function Profile() {
       }
       await updateProfile(user.id, patch)
       if (refreshUser) await refreshUser(user)
+      setForm((previous) => ({ ...previous, phone }))
       setSaved(true)
       setTimeout(() => setSaved(false), 3000)
     } catch (err) {
@@ -331,10 +358,10 @@ function Profile() {
       return next
     })
     // Resume skills are free text and the profile API only accepts listed
-    // vocabulary values: select the ones the vocabulary knows, and name the
-    // rest visibly instead of dropping them. The other fields (and the tab
-    // switch) are applied before this await, so a slow vocabulary read cannot
-    // undo a tab the user already opened.
+    // vocabulary values: append every detected skill as a chip (recognized ones
+    // in canonical casing) so the unrecognized note covers the leftovers. The
+    // other fields (and the tab switch) are applied before this await, so a
+    // slow vocabulary read cannot undo a tab the user already opened.
     const detectedSkills = splitList(details.skills)
     if (educationDetails) {
       setEduForm((previous) => ({
@@ -347,18 +374,16 @@ function Profile() {
     if (detectedSkills.length) {
       const vocabulary = await getReferenceValues('skill').catch(() => [])
       const { matched, unrecognized } = matchSkills(detectedSkills, vocabulary)
-      setUnrecognizedSkills(unrecognized)
-      if (matched.length) {
+      const additions = [...matched, ...unrecognized]
+      if (additions.length) {
         setForm((previous) => {
           const next = [...previous.skills]
-          for (const skill of matched) {
+          for (const skill of additions) {
             if (!next.some((entry) => entry.toLowerCase() === skill.toLowerCase())) next.push(skill)
           }
           return { ...previous, skills: next }
         })
       }
-    } else {
-      setUnrecognizedSkills([])
     }
   }
 
@@ -468,8 +493,8 @@ function Profile() {
         sidebar={<PrivacyPanel />}
       >
             <TabsContent value="personal">
-          <div className="flex flex-col gap-5">
-            <div className="flex flex-wrap items-center gap-4 rounded-lg border border-dashed border-border bg-muted/30 p-4">
+          <div className="flex flex-col gap-4">
+            <div className="flex flex-wrap items-center gap-3 rounded-lg border border-dashed border-border bg-muted/30 p-3">
               <div ref={photoActionsRef} className="group relative size-30 shrink-0">
                 <div className="flex size-full items-center justify-center overflow-hidden rounded-full bg-primary/10 text-primary">
                   {avatarUrl ? <img src={avatarUrl} alt="Profile picture" className="size-full object-cover" /> : <UserRound className="size-12" />}
@@ -519,7 +544,7 @@ function Profile() {
                 </div>
               </div>
               <div className="flex min-w-0 flex-1 flex-col gap-1">
-                <label htmlFor="profile-picture" className="text-sm font-semibold text-foreground">Profile picture</label>
+                <label htmlFor="profile-picture" className="text-sm font-semibold text-foreground">Profile Picture</label>
                 <p className="text-xs leading-5 text-muted-foreground">Upload a clear face photo. It is saved to your account and stays after refresh.</p>
                 <input id="profile-picture" type="file" accept="image/png,image/jpeg,image/webp" disabled={photoBusy} className="sr-only" onChange={handlePicture} />
                 {photoBusy && <p role="status" className="text-[11px] text-muted-foreground">Uploading…</p>}
@@ -527,45 +552,66 @@ function Profile() {
                 {photoError && <p role="alert" className="text-[11px] text-destructive">{photoError}</p>}
               </div>
             </div>
-            <div className="flex flex-col gap-5">
-              <div className="grid gap-5 sm:grid-cols-2">
-                <TextField label="Full name" required value={show('name')} onChange={(event) => setField('name', event.target.value)} error={errors.name} />
-                <TextField label="Contact number" required type="tel" value={form.phone} onChange={(event) => setField('phone', event.target.value)} error={errors.phone} />
+            <div className="flex flex-col gap-4">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <TextField label="Full Name" required value={show('name')} onChange={(event) => setField('name', event.target.value)} error={errors.name} />
+                <TextField
+                  label="Contact Number"
+                  required
+                  type="tel"
+                  prefix="+63"
+                  inputMode="numeric"
+                  value={formatPhoneDisplay(form.phone)}
+                  onChange={(event) => {
+                    const next = withPrefix(event.target.value)
+                    setForm((previous) => ({ ...previous, phone: next }))
+                    // Keep an existing error only while the edited value is still invalid.
+                    setErrors((previous) => (previous.phone && isValidPhone(next) ? { ...previous, phone: undefined } : previous))
+                  }}
+                  onBlur={() => {
+                    const next = normalizePhone(form.phone)
+                    setForm((previous) => ({ ...previous, phone: next }))
+                    setErrors((previous) => ({ ...previous, phone: next && !isValidPhone(next) ? PHONE_ERROR : undefined }))
+                  }}
+                  error={errors.phone}
+                />
               </div>
-              <div className="grid gap-5 sm:grid-cols-2">
+              <div className="grid gap-4 sm:grid-cols-2">
                 <TextField label="First Name" value={show('firstName')} onChange={(event) => setField('firstName', event.target.value)} />
                 <TextField label="Middle Name" value={show('middleName')} onChange={(event) => setField('middleName', event.target.value)} />
                 <TextField label="Last Name" value={show('lastName')} onChange={(event) => setField('lastName', event.target.value)} />
                 <TextField label="Suffix" value={show('suffix')} onChange={(event) => setField('suffix', event.target.value)} />
               </div>
-              <div className="grid gap-5 sm:grid-cols-2">
+              <div className="grid gap-4 sm:grid-cols-2">
                 <TextField label="Birthday" type="date" value={form.birthdate} onChange={(event) => setField('birthdate', event.target.value)} />
                 <SelectField label="Employment Status" placeholder="Select status" options={['Employed','Unemployed','Underemployed','Fresh Graduate','Student']} value={form.employmentStatus} onChange={(event) => setField('employmentStatus', event.target.value)} />
               </div>
-              <TextField label="Professional headline" required value={form.headline} onChange={(event) => setField('headline', event.target.value)} error={errors.headline} />
+              <TextField label="Professional Headline" required value={form.headline} onChange={(event) => setField('headline', event.target.value)} error={errors.headline} />
             </div>
           </div>
             </TabsContent>
             <TabsContent value="address">
-            <div className="flex flex-col gap-5">
-              <div className="grid gap-5 sm:grid-cols-2">
+            <div className="flex flex-col gap-4">
+              <div className="grid gap-4 sm:grid-cols-2">
                 <TextField label="Lot" value={show('lot')} onChange={(event) => setField('lot', event.target.value)} />
                 <TextField label="Block" value={show('block')} onChange={(event) => setField('block', event.target.value)} />
               </div>
-              <div className="grid gap-5 sm:grid-cols-2">
-                <SelectField label="Barangay" placeholder="Select barangay" options={barangays} value={show('barangay')} onChange={(event) => setField('barangay', event.target.value)} error={errors.barangay} />
-                <TextField label="Street or local address" required value={show('address')} onChange={(event) => setField('address', event.target.value)} error={errors.address} />
-              </div>
-              <div className="grid gap-5 sm:grid-cols-2">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <TextField label="Street or Local Address" required value={show('address')} onChange={(event) => setField('address', event.target.value)} error={errors.address} />
                 <TextField label="Subdivision / Village / Building" value={show('subdivisionBuilding')} onChange={(event) => setField('subdivisionBuilding', event.target.value)} />
-                <TextField label="City / Municipality" value={show('cityMunicipality')} onChange={(event) => setField('cityMunicipality', event.target.value)} />
-                <TextField label="Province / State" value={show('provinceState')} onChange={(event) => setField('provinceState', event.target.value)} />
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <SelectField label="Barangay" placeholder="Select barangay" options={barangays} value={show('barangay')} onChange={(event) => setField('barangay', event.target.value)} error={errors.barangay} />
+                <SelectField label="City / Municipality" id="cityMunicipality" placeholder="Select city / municipality" options={BULACAN_MUNICIPALITIES} value={show('cityMunicipality')} onChange={(event) => setField('cityMunicipality', event.target.value)} />
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <SelectField label="Province / State" id="provinceState" placeholder="Select province" options={BULACAN_PROVINCES} value={show('provinceState')} onChange={(event) => setField('provinceState', event.target.value)} />
                 <TextField label="Postal Code" value={form.postalCode} onChange={(event) => setField('postalCode', event.target.value)} />
               </div>
             </div>
             </TabsContent>
             <TabsContent value="education">
-            <div className="flex flex-col gap-5">
+            <div className="flex flex-col gap-4">
               <VocabularyPicker
                 id="profile-field"
                 label="Field"
@@ -575,26 +621,35 @@ function Profile() {
                 onChange={(value) => setField('field', value)}
                 help="Your main line of work. Optional — pick “Not set” to leave it blank."
               />
-              <VocabularyPicker
-                label="Your skills"
-                category="skill"
-                value={form.skills}
-                onChange={(value) => setField('skills', value)}
+              <TagField
+                label="Your Skills"
+                value={skillChips}
+                onChange={updateSkills}
+                suggestions={skillVocabulary.values}
+                max={20}
                 required
+                placeholder="Type a skill and press Enter"
                 help="Pick the skills employers should match you on."
                 error={errors.skills}
               />
-              {unrecognizedSkills.length > 0 && (
+              {skillVocabulary.loading && <p role="status" className="text-xs text-muted-foreground">Loading skills…</p>}
+              {skillVocabulary.error && (
+                <p role="alert" className="flex flex-wrap items-center gap-2 text-xs text-destructive">
+                  <span>{skillVocabulary.error}</span>
+                  <Button type="button" variant="outline" size="sm" onClick={skillVocabulary.reload}>Retry</Button>
+                </p>
+              )}
+              {!skillVocabulary.loading && !skillVocabulary.error && unrecognizedSkills.length > 0 && (
                 <p className="text-xs leading-5 text-muted-foreground">
                   Unrecognized skills: {unrecognizedSkills.join(', ')}. They are not in PESO’s list, so they are not saved.
                 </p>
               )}
-              <TagField label="Work experience" value={form.experience} onChange={(value) => setField('experience', value)} placeholder="Type a role or experience and press Enter" help="Add internships, volunteer work, or previous roles as separate tags." />
+              <TagField label="Work Experience" value={form.experience} onChange={(value) => setField('experience', value)} placeholder="Type a role or experience and press Enter" help="Add internships, volunteer work, or previous roles as separate tags." />
             </div>
-          <div className="border-t border-border pt-5">
-            <h2 className="mb-4 text-sm font-semibold text-foreground">Education history</h2>
-            <div className="mb-4 rounded-lg border p-3">
-              <p className="text-xs font-medium text-muted-foreground">Education status</p>
+          <div className="border-t border-border pt-4">
+            <h2 className="mb-3 text-sm font-semibold text-foreground">Education history</h2>
+            <div className="mb-3 rounded-lg border p-3">
+              <p className="text-xs font-medium text-muted-foreground">Education Status</p>
               <p role="status" className="mt-1 text-sm">
                 {educationLoading ? 'Loading…' : educationLoadError ? 'Education history unavailable' : educationStatus}
               </p>
@@ -613,16 +668,16 @@ function Profile() {
               ))}
               {educationList.length === 0 && <p className="text-xs text-muted-foreground">No education records yet.</p>}
             </ul>
-            <div className="mt-4 flex flex-col gap-3">
+            <div className="mt-3 flex flex-col gap-3">
               <div className="grid gap-3 sm:grid-cols-2">
                 <SelectField label="Level" placeholder="Education level" options={EDUCATION_LEVELS} value={eduForm.level} onChange={(e) => setEduForm((p) => ({ ...p, level: e.target.value }))} />
                 <TextField label="School" value={titleCase(eduForm.school)} onChange={(e) => setEduForm((p) => ({ ...p, school: e.target.value }))} />
                 <TextField label="Field / Course" value={eduForm.field} onChange={(e) => setEduForm((p) => ({ ...p, field: e.target.value }))} />
-                <TextField label="Graduation year" value={eduForm.year} disabled={eduForm.studying} onChange={(e) => setEduForm((p) => ({ ...p, year: e.target.value }))} />
+                <TextField label="Graduation Year" value={eduForm.year} disabled={eduForm.studying} onChange={(e) => setEduForm((p) => ({ ...p, year: e.target.value }))} />
               </div>
               <label className="flex items-center gap-2 text-xs text-muted-foreground">
                 <input type="checkbox" checked={eduForm.studying} onChange={(e) => setEduForm((p) => ({ ...p, studying: e.target.checked }))} />
-                Currently studying here
+                Currently Studying Here
               </label>
               {eduError && <p className="text-xs text-danger">{eduError}</p>}
               <Button type="button" disabled={eduSaving} onClick={handleAddEducation}>{eduSaving ? 'Adding…' : 'Add education'}</Button>
@@ -630,7 +685,7 @@ function Profile() {
           </div>
             </TabsContent>
             <TabsContent value="resumes">
-              <div className="mb-5">
+              <div className="mb-4">
                 <Notice title="Your resume stays private">
                   Only you, authorized PESO personnel, and the employers you apply to can open the resume attached to your application.
                 </Notice>
@@ -647,7 +702,7 @@ function Profile() {
                         </p>
                       </div>
                     </div>
-                    <div className="mt-4 flex flex-wrap gap-2">
+                    <div className="mt-3 flex flex-wrap gap-2">
                       <ResumeLinks resume={resumes[0]} />
                       <Button type="button" variant="ghost" onClick={() => document.getElementById('resume-upload')?.click()}>Replace</Button>
                       <Button type="button" variant="ghost" onClick={() => setPendingDelete(resumes[0])}>
@@ -660,7 +715,7 @@ function Profile() {
               ) : (
                 <EmptyState title="Start with your story." description="Add a resume using the form. PDF, DOC, or DOCX up to 5 MB." />
               )}
-              <div className="mt-5">
+              <div className="mt-4">
                 <ResumeAutofill
                   inputId="resume-upload"
                   onApply={applyAutofill}

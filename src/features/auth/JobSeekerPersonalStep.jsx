@@ -1,13 +1,17 @@
+import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Eye, EyeOff } from "lucide-react";
 import { EMPLOYMENT_STATUSES } from "@/shared/constants";
-import { normalizePhone, withPrefix } from "@/shared/utils/phone";
+import { formatPhoneDisplay, normalizePhone, withPrefix } from "@/shared/utils/phone";
 import { PASSWORD_HINT } from "@/shared/utils/password";
 import ResumePicker from "@/shared/components/ResumePicker";
 import FormSelect from "@/shared/components/FormSelect";
 import PasswordRequirements from "@/shared/components/PasswordRequirements";
 
 function JobSeekerPersonalStep({ form, errors, set, autofillStatus, autofillTouched = [], handleResumeChange, inputClass, labelClass, reqMark }) {
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   return (
             <section className="surface p-5">
               <p className="font-mono text-[11px] tracking-[0.2em] text-primary uppercase mb-4 font-semibold">Step 1 — Personal Details</p>
@@ -23,7 +27,7 @@ function JobSeekerPersonalStep({ form, errors, set, autofillStatus, autofillTouc
               statusProps={{ "data-autofill-touched": autofillTouched.join(",") }}
               reviewAcknowledgement={{
                 id: "resumeReviewConfirmed",
-                required: true,
+                required: !!form.resumeAttached,
                 checked: form.resumeReviewConfirmed,
                 onChange: (checked) => set("resumeReviewConfirmed", checked),
                 error: errors.resumeReviewConfirmed,
@@ -47,16 +51,24 @@ function JobSeekerPersonalStep({ form, errors, set, autofillStatus, autofillTouc
                 <Input id="lastName" name="lastName" type="text" placeholder="Dela Cruz" value={form.lastName} onChange={(e) => set("lastName", e.target.value)} className={inputClass} />
                 {errors.lastName && <p className="text-danger text-xs mt-1">{errors.lastName}</p>}
               </div>
-            </div>
-            <div className="grid gap-4 sm:grid-cols-2">
               <div>
                 <Label htmlFor="suffix" className={labelClass}>Suffix <span className="text-muted-foreground font-normal">(optional)</span></Label>
                 <Input id="suffix" name="suffix" type="text" placeholder="Jr., Sr., III" value={form.suffix} onChange={(e) => set("suffix", e.target.value)} className={inputClass} />
               </div>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
               <div data-invalid={!!errors.birthdate}>
                 <Label htmlFor="birthdate" className={labelClass}>Birthday{reqMark}</Label>
                 <Input id="birthdate" name="birthdate" type="date" max={new Date().toISOString().slice(0, 10)} value={form.birthdate} onChange={(e) => set("birthdate", e.target.value)} className={inputClass} />
                 {errors.birthdate && <p className="text-danger text-xs mt-1">{errors.birthdate}</p>}
+              </div>
+              <div data-invalid={!!errors.employmentStatus}>
+                <Label htmlFor="employmentStatus" className={labelClass}>Employment Status{reqMark}</Label>
+                <FormSelect id="employmentStatus" name="employmentStatus" value={form.employmentStatus} onChange={(e) => set("employmentStatus", e.target.value)} className={inputClass}>
+                  <option value="">Select status</option>
+                  {EMPLOYMENT_STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
+                </FormSelect>
+                {errors.employmentStatus && <p className="text-danger text-xs mt-1">{errors.employmentStatus}</p>}
               </div>
             </div>
 
@@ -65,7 +77,7 @@ function JobSeekerPersonalStep({ form, errors, set, autofillStatus, autofillTouc
                 <Label htmlFor="mobileNumber" className={labelClass}>Mobile Number{reqMark}</Label>
                 <div className="relative">
                   <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm text-muted-foreground select-none">+63</span>
-                  <Input id="mobileNumber" name="mobileNumber" type="tel" inputMode="numeric" maxLength={10} placeholder="917 123 4567" value={form.mobileNumber.replace(/^\+63/, "")} onChange={(e) => set("mobileNumber", withPrefix(e.target.value))} onBlur={(e) => set("mobileNumber", normalizePhone(e.target.value))} className={`${inputClass} pl-12`} />
+                  <Input id="mobileNumber" name="mobileNumber" type="tel" inputMode="numeric" placeholder="917 123 4567" value={formatPhoneDisplay(form.mobileNumber)} onChange={(e) => set("mobileNumber", withPrefix(e.target.value))} onBlur={() => set("mobileNumber", normalizePhone(form.mobileNumber))} className={`${inputClass} pl-12`} />
                 </div>
                 {errors.mobileNumber && <p className="text-danger text-xs mt-1">{errors.mobileNumber}</p>}
               </div>
@@ -77,25 +89,26 @@ function JobSeekerPersonalStep({ form, errors, set, autofillStatus, autofillTouc
               </div>
             </div>
 
-            <div data-invalid={!!errors.employmentStatus}>
-              <Label htmlFor="employmentStatus" className={labelClass}>Employment Status{reqMark}</Label>
-              <FormSelect id="employmentStatus" name="employmentStatus" value={form.employmentStatus} onChange={(e) => set("employmentStatus", e.target.value)} className={inputClass}>
-                <option value="">Select status</option>
-                {EMPLOYMENT_STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
-              </FormSelect>
-              {errors.employmentStatus && <p className="text-danger text-xs mt-1">{errors.employmentStatus}</p>}
-            </div>
-
             <div className="grid gap-4 sm:grid-cols-2">
               <div data-invalid={!!errors.password}>
                 <Label htmlFor="password" className={labelClass}>Password{reqMark}</Label>
-                <Input id="password" name="password" type="password" placeholder={PASSWORD_HINT} value={form.password} onChange={(e) => set("password", e.target.value)} className={inputClass} />
+                <div className="relative">
+                  <Input id="password" name="password" type={showPassword ? "text" : "password"} placeholder={PASSWORD_HINT} value={form.password} onChange={(e) => set("password", e.target.value)} className={`${inputClass} pr-10`} />
+                  <button type="button" className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground" aria-label={showPassword ? "Hide password" : "Show password"} aria-pressed={showPassword} onClick={() => setShowPassword((v) => !v)}>
+                    {showPassword ? <EyeOff size={16} aria-hidden="true" /> : <Eye size={16} aria-hidden="true" />}
+                  </button>
+                </div>
                 <PasswordRequirements value={form.password} />
                 {errors.password && <p className="text-danger text-xs mt-1">{errors.password}</p>}
               </div>
               <div data-invalid={!!errors.confirmPassword}>
                 <Label htmlFor="confirmPassword" className={labelClass}>Confirm Password{reqMark}</Label>
-                <Input id="confirmPassword" name="confirmPassword" type="password" placeholder="Re-enter password" value={form.confirmPassword} onChange={(e) => set("confirmPassword", e.target.value)} className={inputClass} />
+                <div className="relative">
+                  <Input id="confirmPassword" name="confirmPassword" type={showConfirmPassword ? "text" : "password"} placeholder="Re-enter password" value={form.confirmPassword} onChange={(e) => set("confirmPassword", e.target.value)} className={`${inputClass} pr-10`} />
+                  <button type="button" className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground" aria-label={showConfirmPassword ? "Hide password" : "Show password"} aria-pressed={showConfirmPassword} onClick={() => setShowConfirmPassword((v) => !v)}>
+                    {showConfirmPassword ? <EyeOff size={16} aria-hidden="true" /> : <Eye size={16} aria-hidden="true" />}
+                  </button>
+                </div>
                 {errors.confirmPassword && <p className="text-danger text-xs mt-1">{errors.confirmPassword}</p>}
               </div>
             </div>

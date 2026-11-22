@@ -100,23 +100,27 @@ function pickFile(name = 'resume.pdf', type = 'application/pdf') {
   return input
 }
 
-function fillRequired() {
+function fillRequired({ confirmResumeReview = true } = {}) {
   fireEvent.change(screen.getByLabelText(/^first name/i), { target: { value: 'Juan' } })
   fireEvent.change(screen.getByLabelText(/last name/i), { target: { value: 'Cruz' } })
   fireEvent.change(screen.getByLabelText(/email address/i), { target: { value: 'juan@example.com' } })
   fireEvent.change(screen.getByLabelText(/mobile number/i), { target: { value: '09171234567' } })
   fireEvent.change(screen.getByLabelText(/birthday/i), { target: { value: '1990-05-04' } })
+  fireEvent.change(screen.getByLabelText(/^password/i, { selector: 'input' }), { target: { value: 'password123!' } })
+  fireEvent.change(screen.getByLabelText(/confirm password/i), { target: { value: 'password123!' } })
+  fireEvent.change(screen.getByLabelText(/employment status/i), { target: { value: 'Unemployed' } })
+  if (confirmResumeReview) {
+    fireEvent.click(screen.getByRole('checkbox', { name: /resume autofill can make mistakes/i }))
+  }
+  fireEvent.click(screen.getByRole('button', { name: /^next$/i }))
   fireEvent.change(screen.getByLabelText(/street address/i), { target: { value: 'Norzagaray-Santa Maria Road' } })
   fireEvent.change(screen.getByLabelText(/barangay/i), { target: { value: 'Pulong Buhangin' } })
   fireEvent.change(screen.getByLabelText(/city \/ municipality/i), { target: { value: 'Santa Maria' } })
   fireEvent.change(screen.getByLabelText(/province/i), { target: { value: 'Bulacan' } })
-  fireEvent.change(screen.getByLabelText(/^password/i, { selector: 'input' }), { target: { value: 'password123!' } })
-  fireEvent.change(screen.getByLabelText(/confirm password/i), { target: { value: 'password123!' } })
-  fireEvent.change(screen.getByLabelText(/employment status/i), { target: { value: 'Unemployed' } })
+  fireEvent.click(screen.getByRole('button', { name: /^next$/i }))
   fireEvent.click(screen.getByRole('button', { name: /view terms/i }))
   fireEvent.click(screen.getByRole('checkbox', { name: /agree to the municipal/i }))
   fireEvent.click(screen.getByRole('checkbox', { name: /true and correct/i }))
-  fireEvent.click(screen.getByRole('checkbox', { name: /resume autofill can make mistakes/i }))
 }
 
 describe('JobSeekerRegister autofill', () => {
@@ -128,9 +132,8 @@ describe('JobSeekerRegister autofill', () => {
     expect(screen.queryByRole('group', { name: /registration method/i })).not.toBeInTheDocument()
     expect(screen.getByLabelText(/^first name/i)).toBeInTheDocument()
     expect(screen.getByText('Step 1 — Personal Details')).toBeInTheDocument()
-    expect(screen.getByText('Step 2 — Address Information')).toBeInTheDocument()
-    expect(screen.getByText('Step 3 — Background & Consent')).toBeInTheDocument()
-    expect(screen.getByLabelText(/barangay/i).tagName).toBe('SELECT')
+    expect(screen.queryByText('Step 2 — Address Information')).not.toBeInTheDocument()
+    expect(screen.queryByText('Step 3 — Background & Consent')).not.toBeInTheDocument()
   })
 
   it('renders the password requirements checklist under the password field', () => {
@@ -169,9 +172,16 @@ describe('JobSeekerRegister autofill', () => {
     pickFile()
 
     await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent(/Autofill done — please check:/i))
-    expect(await screen.findByRole('checkbox', { name: 'Data Entry' })).toBeChecked()
-    expect(screen.getByRole('checkbox', { name: 'Communication' })).toBeChecked()
-    expect(screen.getByRole('checkbox', { name: 'Welding' })).not.toBeChecked()
+    fireEvent.change(screen.getByLabelText(/^password/i, { selector: 'input' }), { target: { value: 'password123!' } })
+    fireEvent.change(screen.getByLabelText(/confirm password/i), { target: { value: 'password123!' } })
+    fireEvent.change(screen.getByLabelText(/employment status/i), { target: { value: 'Unemployed' } })
+    fireEvent.click(screen.getByRole('checkbox', { name: /resume autofill can make mistakes/i }))
+    fireEvent.click(screen.getByRole('button', { name: /^next$/i }))
+    fireEvent.change(screen.getByLabelText(/barangay/i), { target: { value: 'Pulong Buhangin' } })
+    fireEvent.click(screen.getByRole('button', { name: /^next$/i }))
+    expect(await screen.findByText('Data Entry')).toBeInTheDocument()
+    expect(screen.getByText('Communication')).toBeInTheDocument()
+    expect(screen.queryByText('Welding')).not.toBeInTheDocument()
   })
 
   it('lists a resume skill outside the vocabulary without sending it', async () => {
@@ -180,19 +190,28 @@ describe('JobSeekerRegister autofill', () => {
     renderPage()
     pickFile()
 
-    expect(await screen.findByText(/Unrecognized skills: Underwater Basket Weaving/i)).toBeInTheDocument()
-    await screen.findByRole('checkbox', { name: 'Data Entry' })
-
+    fireEvent.change(screen.getByLabelText(/^first name/i), { target: { value: 'Juan' } })
+    fireEvent.change(screen.getByLabelText(/last name/i), { target: { value: 'Cruz' } })
+    fireEvent.change(screen.getByLabelText(/email address/i), { target: { value: 'juan@example.com' } })
+    fireEvent.change(screen.getByLabelText(/mobile number/i), { target: { value: '09171234567' } })
+    fireEvent.change(screen.getByLabelText(/birthday/i), { target: { value: '1990-05-04' } })
     fireEvent.change(screen.getByLabelText(/^password/i, { selector: 'input' }), { target: { value: 'password123!' } })
     fireEvent.change(screen.getByLabelText(/confirm password/i), { target: { value: 'password123!' } })
+    fireEvent.change(screen.getByLabelText(/employment status/i), { target: { value: 'Unemployed' } })
+    fireEvent.click(screen.getByRole('checkbox', { name: /resume autofill can make mistakes/i }))
+    fireEvent.click(screen.getByRole('button', { name: /^next$/i }))
+    fireEvent.change(screen.getByLabelText(/street address/i), { target: { value: 'Norzagaray-Santa Maria Road' } })
     fireEvent.change(screen.getByLabelText(/barangay/i), { target: { value: 'Pulong Buhangin' } })
     fireEvent.change(screen.getByLabelText(/city \/ municipality/i), { target: { value: 'Santa Maria' } })
     fireEvent.change(screen.getByLabelText(/province/i), { target: { value: 'Bulacan' } })
-    fireEvent.change(screen.getByLabelText(/employment status/i), { target: { value: 'Unemployed' } })
+    fireEvent.click(screen.getByRole('button', { name: /^next$/i }))
+
+    expect(await screen.findByText(/Unrecognized skills: Underwater Basket Weaving/i)).toBeInTheDocument()
+    await screen.findByText('Data Entry')
+
     fireEvent.click(screen.getByRole('button', { name: /view terms/i }))
     fireEvent.click(screen.getByRole('checkbox', { name: /agree to the municipal/i }))
     fireEvent.click(screen.getByRole('checkbox', { name: /true and correct/i }))
-    fireEvent.click(screen.getByRole('checkbox', { name: /resume autofill can make mistakes/i }))
     fireEvent.click(screen.getByRole('button', { name: /create account/i }))
 
     await waitFor(() => expect(api.post).toHaveBeenCalled())
@@ -204,22 +223,20 @@ describe('JobSeekerRegister autofill', () => {
     renderPage()
 
     fireEvent.change(screen.getByLabelText(/email address/i), { target: { value: 'me@typed.com' } })
-    fireEvent.click(await screen.findByRole('checkbox', { name: 'Welding' }))
 
     pickFile()
     await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent(/Autofill done — please check:/i))
 
     expect(screen.getByLabelText(/email address/i)).toHaveValue('me@typed.com')
-    expect(screen.getByRole('checkbox', { name: 'Welding' })).toBeChecked()
-    expect(screen.getByRole('checkbox', { name: 'Data Entry' })).toBeChecked()
-    expect(screen.getByRole('checkbox', { name: 'Communication' })).toBeChecked()
   })
 
   it('sends the picked skills and field via signUp extra', async () => {
     signedUp({ id: 'seeker-1' })
     renderPage()
     fillRequired()
-    fireEvent.click(await screen.findByRole('checkbox', { name: 'Welding' }))
+    const skillsInput = screen.getByLabelText('Skills')
+    fireEvent.change(skillsInput, { target: { value: 'Welding' } })
+    fireEvent.keyDown(skillsInput, { key: 'Enter' })
     await waitFor(() => expect(screen.getByRole('option', { name: 'Information Technology' })).toBeInTheDocument())
     fireEvent.change(screen.getByLabelText('Field'), { target: { value: 'Information Technology' } })
     fireEvent.click(screen.getByRole('button', { name: /create account/i }))
@@ -237,21 +254,27 @@ describe('JobSeekerRegister autofill', () => {
     renderPage()
     pickFile()
 
+    await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent(/Autofill done/i))
+    fireEvent.change(screen.getByLabelText(/^password/i, { selector: 'input' }), { target: { value: 'password123!' } })
+    fireEvent.change(screen.getByLabelText(/confirm password/i), { target: { value: 'password123!' } })
+    fireEvent.change(screen.getByLabelText(/employment status/i), { target: { value: 'Unemployed' } })
+    fireEvent.click(screen.getByRole('checkbox', { name: /resume autofill can make mistakes/i }))
+    fireEvent.click(screen.getByRole('button', { name: /^next$/i }))
+
+    fireEvent.change(screen.getByLabelText(/street address/i), { target: { value: 'Norzagaray-Santa Maria Road' } })
+    fireEvent.change(screen.getByLabelText(/barangay/i), { target: { value: 'Pulong Buhangin' } })
+    fireEvent.change(screen.getByLabelText(/city \/ municipality/i), { target: { value: 'Santa Maria' } })
+    fireEvent.change(screen.getByLabelText(/province/i), { target: { value: 'Bulacan' } })
+    fireEvent.click(screen.getByRole('button', { name: /^next$/i }))
+
     await waitFor(() => expect(screen.getByLabelText(/education level/i)).toHaveValue('College'))
     fireEvent.change(screen.getByPlaceholderText('School name'), { target: { value: 'PUP Santa Maria' } })
     expect(screen.getByPlaceholderText('School name')).toHaveValue('PUP Santa Maria')
     expect(screen.getByPlaceholderText('Course / field')).toHaveValue('BSIT')
 
-    fireEvent.change(screen.getByLabelText(/^password/i, { selector: 'input' }), { target: { value: 'password123!' } })
-    fireEvent.change(screen.getByLabelText(/confirm password/i), { target: { value: 'password123!' } })
-    fireEvent.change(screen.getByLabelText(/barangay/i), { target: { value: 'Pulong Buhangin' } })
-    fireEvent.change(screen.getByLabelText(/city \/ municipality/i), { target: { value: 'Santa Maria' } })
-    fireEvent.change(screen.getByLabelText(/province/i), { target: { value: 'Bulacan' } })
-    fireEvent.change(screen.getByLabelText(/employment status/i), { target: { value: 'Unemployed' } })
     fireEvent.click(screen.getByRole('button', { name: /view terms/i }))
     fireEvent.click(screen.getByRole('checkbox', { name: /agree to the municipal/i }))
     fireEvent.click(screen.getByRole('checkbox', { name: /true and correct/i }))
-    fireEvent.click(screen.getByRole('checkbox', { name: /resume autofill can make mistakes/i }))
     fireEvent.click(screen.getByRole('button', { name: /create account/i }))
 
     await waitFor(() => expect(api.post).toHaveBeenCalled())
@@ -263,6 +286,7 @@ describe('JobSeekerRegister autofill', () => {
 
   it('renders inert education history placeholders matching Profile', () => {
     renderPage()
+    fillRequired()
     expect(screen.getByText('Education History')).toBeInTheDocument()
     const level = screen.getByLabelText(/education level/i)
     expect(level).toBeInTheDocument()
@@ -284,22 +308,30 @@ describe('JobSeekerRegister autofill', () => {
     signedUp({ id: 'seeker-1' })
     renderPage()
     pickFile()
+
+    await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent(/Autofill done/i))
+    fireEvent.change(screen.getByLabelText(/^password/i, { selector: 'input' }), { target: { value: 'password123!' } })
+    fireEvent.change(screen.getByLabelText(/confirm password/i), { target: { value: 'password123!' } })
+    fireEvent.change(screen.getByLabelText(/employment status/i), { target: { value: 'Unemployed' } })
+    fireEvent.click(screen.getByRole('checkbox', { name: /resume autofill can make mistakes/i }))
+    fireEvent.click(screen.getByRole('button', { name: /^next$/i }))
+
+    fireEvent.change(screen.getByLabelText(/street address/i), { target: { value: 'Norzagaray-Santa Maria Road' } })
+    fireEvent.change(screen.getByLabelText(/barangay/i), { target: { value: 'Pulong Buhangin' } })
+    fireEvent.change(screen.getByLabelText(/city \/ municipality/i), { target: { value: 'Santa Maria' } })
+    fireEvent.change(screen.getByLabelText(/province/i), { target: { value: 'Bulacan' } })
+    fireEvent.click(screen.getByRole('button', { name: /^next$/i }))
+
     await waitFor(() => expect(screen.getByText('Data Entry')).toBeInTheDocument())
 
     fireEvent.change(screen.getByLabelText(/education level/i), { target: { value: 'College' } })
     fireEvent.change(screen.getByPlaceholderText('School name'), { target: { value: 'Bulacan State' } })
     fireEvent.change(screen.getByPlaceholderText('Course / field'), { target: { value: 'IT' } })
     fireEvent.change(screen.getByPlaceholderText('Year'), { target: { value: '2020' } })
-    fireEvent.change(screen.getByLabelText(/^password/i, { selector: 'input' }), { target: { value: 'password123!' } })
-    fireEvent.change(screen.getByLabelText(/confirm password/i), { target: { value: 'password123!' } })
-    fireEvent.change(screen.getByLabelText(/barangay/i), { target: { value: 'Pulong Buhangin' } })
-    fireEvent.change(screen.getByLabelText(/city \/ municipality/i), { target: { value: 'Santa Maria' } })
-    fireEvent.change(screen.getByLabelText(/province/i), { target: { value: 'Bulacan' } })
-    fireEvent.change(screen.getByLabelText(/employment status/i), { target: { value: 'Unemployed' } })
+
     fireEvent.click(screen.getByRole('button', { name: /view terms/i }))
     fireEvent.click(screen.getByRole('checkbox', { name: /agree to the municipal/i }))
     fireEvent.click(screen.getByRole('checkbox', { name: /true and correct/i }))
-    fireEvent.click(screen.getByRole('checkbox', { name: /resume autofill can make mistakes/i }))
     fireEvent.click(screen.getByRole('button', { name: /create account/i }))
 
     await waitFor(() => expect(api.post).toHaveBeenCalled())
@@ -313,7 +345,11 @@ describe('JobSeekerRegister autofill', () => {
     signedUp({ id: 'seeker-1' })
     renderPage()
     fillRequired()
+    fireEvent.click(screen.getByRole('button', { name: /^back$/i }))
+    fireEvent.click(screen.getByRole('button', { name: /^back$/i }))
     fireEvent.change(screen.getByLabelText(/employment status/i), { target: { value: 'Student' } })
+    fireEvent.click(screen.getByRole('button', { name: /^next$/i }))
+    fireEvent.click(screen.getByRole('button', { name: /^next$/i }))
     fireEvent.click(screen.getByRole('button', { name: /create account/i }))
 
     await waitFor(() => expect(api.post).toHaveBeenCalled())
@@ -367,11 +403,30 @@ describe('JobSeekerRegister autofill', () => {
     await waitFor(() => expect(api.post).toHaveBeenCalled())
   })
 
+  it('groups the mobile number on screen and parks it without spaces', async () => {
+    signedUp({ id: 'seeker-1' })
+    renderPage()
+    const mobile = screen.getByLabelText(/mobile number/i)
+    fireEvent.change(mobile, { target: { value: '9171234567' } })
+    expect(mobile).toHaveValue('917 123 4567')
+    fireEvent.change(mobile, { target: { value: '0917 123 4567' } })
+    expect(mobile).toHaveValue('917 123 4567')
+
+    fillRequired()
+    fireEvent.click(screen.getByRole('button', { name: /create account/i }))
+
+    await waitFor(() => expect(api.post).toHaveBeenCalled())
+    expect(parked().phone).toBe('+639171234567')
+    expect(parked().phone).not.toMatch(/\s/)
+  })
+
   it('submits a full Santa Maria address via signUp extra', async () => {
     signedUp({ id: 'seeker-1' })
     renderPage()
     fillRequired()
+    fireEvent.click(screen.getByRole('button', { name: /^back$/i }))
     fireEvent.change(screen.getByLabelText(/postal/i), { target: { value: '3022' } })
+    fireEvent.click(screen.getByRole('button', { name: /^next$/i }))
     fireEvent.click(screen.getByRole('button', { name: /create account/i }))
 
     await waitFor(() => expect(api.post).toHaveBeenCalled())
@@ -385,27 +440,13 @@ describe('JobSeekerRegister autofill', () => {
     })
   })
 
-  it('submits with blank barangay and postal', async () => {
-    signedUp({ id: 'seeker-1' })
-    renderPage()
-    fillRequired()
-    fireEvent.change(screen.getByLabelText(/barangay/i), { target: { value: '' } })
-    fireEvent.click(screen.getByRole('button', { name: /create account/i }))
-
-    await waitFor(() => expect(api.post).toHaveBeenCalled())
-    expect(parked()).toMatchObject({
-      barangay_district: null,
-      city_municipality: 'santa maria',
-      province_state: 'bulacan',
-      postal_code: null,
-    })
-  })
 
   it('blocks a non-4-digit postal code', async () => {
     renderPage()
     fillRequired()
+    fireEvent.click(screen.getByRole('button', { name: /^back$/i }))
     fireEvent.change(screen.getByLabelText(/postal/i), { target: { value: '302' } })
-    fireEvent.click(screen.getByRole('button', { name: /create account/i }))
+    fireEvent.click(screen.getByRole('button', { name: /^next$/i }))
 
     await waitFor(() => expect(screen.getByText(/postal code must be 4 digits/i)).toBeInTheDocument())
     expect(authClientMock.signUp.email).not.toHaveBeenCalled()
@@ -478,13 +519,50 @@ describe('JobSeekerRegister resume autofill', () => {
 })
 
 describe('JobSeekerRegister resume review acknowledgement', () => {
-  it('requires confirmation to review resume autofill information', async () => {
+  it('is optional, unmarked, and does not block Next when no resume was read', async () => {
     renderPage()
-    fillRequired()
-    fireEvent.click(screen.getByRole('checkbox', { name: /resume autofill can make mistakes/i }))
-    fireEvent.click(screen.getByRole('button', { name: /create account/i }))
+    const box = screen.getByRole('checkbox', { name: /resume autofill can make mistakes/i })
+    expect(box).not.toBeRequired()
+    expect(box.closest('label').textContent).not.toContain('*')
+
+    fillRequired({ confirmResumeReview: false })
+    expect(await screen.findByText('Step 3 — Background & Consent')).toBeInTheDocument()
+    expect(screen.queryByText(/please confirm you will review the resume autofill information/i)).not.toBeInTheDocument()
+    expect(authClientMock.signUp.email).not.toHaveBeenCalled()
+  })
+
+  it('becomes required and marked with * after a resume is read', async () => {
+    extractResumeText.mockResolvedValue(TEXT)
+    renderPage()
+    const box = () => screen.getByRole('checkbox', { name: /resume autofill can make mistakes/i })
+    expect(box()).not.toBeRequired()
+    expect(box().closest('label').textContent).not.toContain('*')
+
+    pickFile()
+    await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent(/Autofill done — please check:/i))
+
+    expect(box()).toBeRequired()
+    expect(box().closest('label').textContent).toContain('*')
+  })
+
+  it('requires confirmation to review resume autofill information', async () => {
+    extractResumeText.mockResolvedValue(TEXT)
+    renderPage()
+    pickFile()
+    await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent(/Autofill done — please check:/i))
+
+    fireEvent.change(screen.getByLabelText(/birthday/i), { target: { value: '1990-05-04' } })
+    fireEvent.change(screen.getByLabelText(/^password/i, { selector: 'input' }), { target: { value: 'password123!' } })
+    fireEvent.change(screen.getByLabelText(/confirm password/i), { target: { value: 'password123!' } })
+    fireEvent.change(screen.getByLabelText(/employment status/i), { target: { value: 'Unemployed' } })
+    fireEvent.click(screen.getByRole('button', { name: /^next$/i }))
 
     expect(await screen.findByText(/please confirm you will review the resume autofill information/i)).toBeInTheDocument()
+    expect(screen.getByText('Step 1 — Personal Details')).toBeInTheDocument()
     expect(authClientMock.signUp.email).not.toHaveBeenCalled()
+
+    fireEvent.click(screen.getByRole('checkbox', { name: /resume autofill can make mistakes/i }))
+    fireEvent.click(screen.getByRole('button', { name: /^next$/i }))
+    expect(await screen.findByText('Step 2 — Address Information')).toBeInTheDocument()
   })
 })

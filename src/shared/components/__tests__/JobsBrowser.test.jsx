@@ -50,13 +50,6 @@ function renderBrowser() {
   )
 }
 
-// jsdom has no matchMedia, so the refinement panel starts collapsed.
-function openRefine() {
-  const toggle = screen.getByRole('button', { name: /refine results/i })
-  if (toggle.getAttribute('aria-expanded') === 'false') fireEvent.click(toggle)
-  return toggle
-}
-
 describe('JobsBrowser (public mode)', () => {
   beforeEach(() => {
     window.localStorage.clear()
@@ -82,7 +75,6 @@ describe('JobsBrowser (public mode)', () => {
   it('filters the cards from the search input', async () => {
     renderBrowser()
     await screen.findByText('Barangay Health Worker')
-    openRefine()
 
     fireEvent.change(screen.getByLabelText('Search your recommendations'), { target: { value: 'developer' } })
 
@@ -93,7 +85,6 @@ describe('JobsBrowser (public mode)', () => {
   it('filters the cards from the Barangay select', async () => {
     renderBrowser()
     await screen.findByText('Barangay Health Worker')
-    openRefine()
 
     fireEvent.change(screen.getByLabelText('Barangay'), { target: { value: 'Guyong' } })
 
@@ -112,7 +103,6 @@ describe('JobsBrowser (public mode)', () => {
     })
     renderBrowser()
     await screen.findByText('Barangay Health Worker')
-    openRefine()
 
     const fieldSelect = screen.getByLabelText('Job field')
     const options = within(fieldSelect).getAllByRole('option').map((option) => option.textContent)
@@ -124,6 +114,33 @@ describe('JobsBrowser (public mode)', () => {
     expect(screen.queryByText('Warehouse Helper')).toBeNull()
     expect(screen.getByText('Barangay Health Worker')).toBeInTheDocument()
     expect(screen.getByText('1 matching vacancies')).toBeInTheDocument()
+  })
+
+  it('loads every page when the API reports more jobs than one request returns', async () => {
+    const firstPage = Array.from({ length: 100 }, (_, index) => ({
+      ...JOBS[0],
+      id: `job-page-1-${index}`,
+      title: `Paged Vacancy ${index + 1}`,
+      created_at: '2026-10-01T00:00:00.000Z',
+    }))
+    const secondPage = [{ ...JOBS[1], id: 'job-page-2-1', created_at: '2026-09-30T00:00:00.000Z' }]
+    listJobs
+      .mockResolvedValueOnce({ jobs: firstPage, total: 101 })
+      .mockResolvedValueOnce({ jobs: secondPage, total: 101 })
+
+    renderBrowser()
+
+    expect(await screen.findByText('101 matching vacancies')).toBeInTheDocument()
+    expect(screen.getByText(/of 101 records/)).toBeInTheDocument()
+    // The pager centers across the whole page, so it sits after the two-column
+    // row (sidebar + results), never inside either.
+    const results = document.querySelector('.job-card').closest('.min-w-0.flex-1')
+    const pager = screen.getByText(/of 101 records/).parentElement
+    expect(results.contains(pager)).toBe(false)
+    expect(pager.closest('aside')).toBeNull()
+    expect(listJobs).toHaveBeenCalledTimes(2)
+    expect(listJobs).toHaveBeenNthCalledWith(1, { page: 1, pageSize: 100, order: 'created_at.desc' })
+    expect(listJobs).toHaveBeenNthCalledWith(2, { page: 2, pageSize: 100, order: 'created_at.desc' })
   })
 
   it('shows the empty state instead of crashing on a malformed payload', async () => {

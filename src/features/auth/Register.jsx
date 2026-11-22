@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom'
 import { ArrowRight, Building2, Check, Users } from 'lucide-react'
 import PublicShell from '@/shared/components/PublicShell'
-import { LinkButton, Notice } from '@/shared/components/design'
+import { LinkButton } from '@/shared/components/design'
 import landingBg from '../../assets/landing_page_bg.png'
 
 const journeys = [
@@ -35,10 +35,10 @@ export default function Register() {
   return (
     <PublicShell>
       <div
-        className="bg-cover bg-center"
+        className="flex-1 bg-cover bg-center"
         style={{ backgroundImage: `linear-gradient(180deg, rgba(247,250,255,0.88) 0%, rgba(247,250,255,0.72) 100%), url(${landingBg})` }}
       >
-        <div className="page-container py-14">
+        <div className="page-container pt-14">
           <div className="mx-auto max-w-3xl">
             <div className="mb-9 text-center">
               <p className="eyebrow mb-3">A place for your next chapter</p>
@@ -67,12 +67,6 @@ export default function Register() {
                   </LinkButton>
                 </div>
               ))}
-            </div>
-            <div className="mt-7">
-              <Notice title="PESO administrator access is provisioned">
-                There is no public administrator registration. Authorized personnel receive access from the
-                responsible organization.
-              </Notice>
             </div>
             <p className="mt-7 text-center text-xs text-muted-foreground">
               Already have an account?{' '}

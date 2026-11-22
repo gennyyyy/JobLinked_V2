@@ -6,6 +6,7 @@ import Profile from '../Profile'
 vi.mock('../../../shared/hooks/useAuth', () => ({ default: vi.fn() }))
 vi.mock('../../../shared/services/auth', () => ({ updateProfile: vi.fn() }))
 vi.mock('../../../shared/lib/resumeText', () => ({ extractResumeText: vi.fn() }))
+vi.mock('../../../shared/services/reference', () => ({ getReferenceValues: vi.fn() }))
 vi.mock('../../../shared/services/documents', () => ({
   listResumes: vi.fn(),
   uploadResume: vi.fn(),
@@ -16,6 +17,7 @@ vi.mock('../../../shared/services/documents', () => ({
 
 import useAuth from '../../../shared/hooks/useAuth'
 import { listResumes, signedUrl } from '../../../shared/services/documents'
+import { getReferenceValues } from '../../../shared/services/reference'
 
 async function openProfile() {
   render(<MemoryRouter><Profile /></MemoryRouter>)
@@ -30,6 +32,7 @@ describe('Profile accessibility', () => {
       refreshUser: vi.fn(),
     })
     listResumes.mockResolvedValue([])
+    getReferenceValues.mockResolvedValue(['Construction'])
   })
 
   it('pairs every form label with its control', async () => {
@@ -42,7 +45,7 @@ describe('Profile accessibility', () => {
     }
 
     for (const name of [
-      /full name/i, /contact number/i, /professional headline/i, 'Profile picture',
+      /full name/i, /contact number/i, /professional headline/i, 'Profile Picture',
     ]) {
       expect(screen.getByLabelText(name)).toBeInTheDocument()
     }
@@ -56,13 +59,14 @@ describe('Profile accessibility', () => {
     fireEvent.click(screen.getByRole('tab', { name: /education/i }))
     await screen.findByRole('combobox', { name: /level/i })
     expect(screen.getByRole('combobox', { name: /level/i })).toBeInTheDocument()
-    for (const name of ['Work experience', /your skills/i]) {
-      expect(screen.getByLabelText(name)).toBeInTheDocument()
-    }
+    expect(screen.getByLabelText('Work Experience')).toBeInTheDocument()
+    // The add button is also named "Add Your skills", so target the input by
+    // role: input[list] is a combobox once the datalist is attached.
+    expect(screen.getByRole('combobox', { name: /your skills/i })).toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('tab', { name: /my resumes/i }))
-    await screen.findByLabelText('Choose a resume to autofill')
-    expect(screen.getByLabelText('Choose a resume to autofill')).toBeInTheDocument()
+    await screen.findByLabelText('Choose a Resume to Autofill')
+    expect(screen.getByLabelText('Choose a Resume to Autofill')).toBeInTheDocument()
   })
 
   it('shows no validation message until the form is submitted', async () => {

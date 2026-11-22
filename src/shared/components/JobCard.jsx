@@ -4,6 +4,7 @@ import { Bookmark, BookmarkCheck, BriefcaseBusiness, Check, Clock3, Laptop, MapP
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { CompanyMark } from './design'
+import { employerLogoUrl } from '../services/images'
 import {
   categoryLabel,
   companyInitial,
@@ -29,7 +30,7 @@ export default function JobCard({ job, href, showMatch = false, match, matchReas
     <Card className="job-card relative h-full gap-5 [--card-spacing:--spacing(5)]">
       <CardHeader>
         <div className="mb-4 flex items-start gap-3">
-          <CompanyMark initials={companyInitial(job)} />
+          <CompanyMark initials={companyInitial(job)} src={employerLogoUrl(job.employers)} />
           <div className="min-w-0 flex-1 pt-0.5">
             <p className="truncate text-[11px] font-medium text-muted-foreground">{companyName(job)}</p>
             {job.employers?.accreditation_status === 'approved' && (

@@ -13,15 +13,29 @@ import EmployerCompanyStep from "./EmployerCompanyStep";
 import EmployerRepresentativeStep from "./EmployerRepresentativeStep";
 import { validate, buildEmployerSignUpPayload } from "./employerRegistration";
 
+const TOTAL_STEPS = 2;
+const STEP0_FIELDS = ["companyName", "industry", "streetAddress", "barangayDistrict", "cityMunicipality", "provinceState", "postalCode", "contactNumber", "companyEmail", "password", "confirmPassword"];
+
+
+const EMPTY_FORM = {
+  companyName: "", industry: "", houseNumberUnit: "", streetAddress: "", subdivisionBuilding: "",
+  barangayDistrict: "", cityMunicipality: "", provinceState: "", postalCode: "", contactNumber: "",
+  companyEmail: "", password: "", confirmPassword: "",
+  repFirstName: "", repMiddleName: "", repLastName: "", repSuffix: "", repPosition: "", repMobile: "", repEmail: "",
+  agree: false, confirmAccurate: false,
+};
+
 function EmployerRegister() {
   const [error, setError] = useState("");
   const [errors, setErrors] = useState({});
+  const [form, setForm] = useState(EMPTY_FORM);
   const [submitted, setSubmitted] = useState(false);
   const [busy, setBusy] = useState(false);
   const [needsConfirmation, setNeedsConfirmation] = useState(false);
   const [termsOpen, setTermsOpen] = useState(false);
   const [termsRead, setTermsRead] = useState(false);
   const [agree, setAgree] = useState(false);
+  const [step, setStep] = useState(0);
   const captcha = useCaptcha();
   const formRef = useRef(null);
   const navigate = useNavigate();
@@ -32,11 +46,47 @@ function EmployerRegister() {
     }
   }, [submitted, needsConfirmation, navigate]);
 
+  function set(field, value) {
+    setForm((prev) => ({ ...prev, [field]: value }));
+    setErrors((prev) => (prev[field] ? { ...prev, [field]: undefined } : prev));
+  }
+
+  function syncAgree(value) {
+    setAgree(value);
+    setForm((prev) => ({ ...prev, agree: value }));
+    setErrors((prev) => (prev.agree ? { ...prev, agree: undefined } : prev));
+  }
+
+  function getValues() {
+    return { ...form, agree };
+  }
+
+  function handleNext() {
+    const values = getValues();
+    const validationErrors = validate(values);
+    const filtered = {};
+    for (const key of Object.keys(validationErrors)) {
+      if (STEP0_FIELDS.includes(key)) filtered[key] = validationErrors[key];
+    }
+    setErrors(filtered);
+    if (Object.keys(filtered).length > 0) {
+      focusFirstError(firstErrorKey(filtered));
+      return;
+    }
+    setStep(1);
+  }
+
+  function handleBack() {
+    setStep(0);
+  }
+
   async function handleSubmit(event) {
     event.preventDefault();
-    const formData = new FormData(event.target);
-    const values = Object.fromEntries(formData.entries());
-
+    if (step !== TOTAL_STEPS - 1) {
+      handleNext();
+      return;
+    }
+    const values = getValues();
     const validationErrors = validate(values);
     if (Object.keys(validationErrors).length > 0) {
       setErrors(validationErrors);
@@ -118,73 +168,94 @@ function EmployerRegister() {
           <header className="mb-8">
             <h1 className="text-2xl font-bold tracking-tight text-dark-blue">Business Registration</h1>
             <p className="mt-2 text-sm text-muted-foreground">Submit business details and compliance credentials for Santa Maria PESO accreditation</p>
+            <p className="mt-2 rounded-lg border border-primary/30 bg-primary/5 px-3 py-2 text-xs font-medium text-primary">Accreditation takes about three business days.</p>
           </header>
 
+          <p className="mb-4 font-mono text-[11px] tracking-widest uppercase text-muted-foreground">Step {step + 1} of {TOTAL_STEPS}</p>
+
           <form ref={formRef} onSubmit={handleSubmit} noValidate className="space-y-6 register-form">
-            <EmployerCompanyStep
-              errors={errors}
-              setErrors={setErrors}
-              inputClass={inputClass}
-              labelClass={labelClass}
-              reqMark={reqMark}
-            />
-
-            <EmployerRepresentativeStep
-              errors={errors}
-              setErrors={setErrors}
-              inputClass={inputClass}
-              labelClass={labelClass}
-              reqMark={reqMark}
-            />
-
-            {error && (
-              <div role="alert" className="p-3.5 rounded-xl bg-danger/10 border border-danger/20 text-danger text-xs font-medium">{error}</div>
+            {step === 0 && (
+              <EmployerCompanyStep
+                errors={errors}
+                setErrors={setErrors}
+                inputClass={inputClass}
+                labelClass={labelClass}
+                reqMark={reqMark}
+                form={form}
+                set={set}
+              />
             )}
 
-            <div className="text-xs text-muted-foreground">
-              <div className="flex items-center gap-2.5">
-                <input id="agree" type="checkbox" name="agree" checked={agree} disabled={!termsRead} onChange={(e) => { setAgree(e.target.checked); if (errors.agree) setErrors((prev) => ({ ...prev, agree: undefined })); }} className="size-4 shrink-0 accent-primary disabled:opacity-50 disabled:cursor-not-allowed" />
-                <Label htmlFor="agree" className={!termsRead ? "cursor-not-allowed opacity-70" : "cursor-pointer"}>I agree to the municipal data collection terms and PESO privacy policies.{reqMark}</Label>
-              </div>
-              <div className="ml-[26px] mt-0.5">
-                <button type="button" onClick={() => setTermsOpen(true)} className="text-xs leading-4 text-primary hover:underline underline-offset-4">View terms</button>
-                {!termsRead && <p className="mt-0.5 text-muted-foreground">Please open and read the terms before agreeing.</p>}
-              </div>
-              {errors.agree && <p className="mt-1 text-danger">{errors.agree}</p>}
-            </div>
-
-            <div data-invalid={!!errors.confirmAccurate}>
-              <Label htmlFor="confirmAccurate" className="flex items-center gap-2.5 text-xs text-muted-foreground">
-                <input
-                  id="confirmAccurate"
-                  name="confirmAccurate"
-                  type="checkbox"
-                  required
-                  aria-invalid={!!errors.confirmAccurate}
-                  aria-describedby={errors.confirmAccurate ? "confirmAccurate-error" : undefined}
-                  onChange={() => {
-                    if (errors.confirmAccurate) setErrors((prev) => ({ ...prev, confirmAccurate: undefined }));
-                  }}
-                  className="size-4 shrink-0 accent-primary"
+            {step === 1 && (
+              <>
+                <EmployerRepresentativeStep
+                  errors={errors}
+                  setErrors={setErrors}
+                  inputClass={inputClass}
+                  labelClass={labelClass}
+                  reqMark={reqMark}
+                  form={form}
+                  set={set}
                 />
-                <span>I confirm that all the information I provided is true and correct to the best of my knowledge.{reqMark}</span>
-              </Label>
-              {errors.confirmAccurate && <p id="confirmAccurate-error" role="alert" className="mt-1 text-xs text-danger">{errors.confirmAccurate}</p>}
-            </div>
 
-            {captcha.required && <Turnstile onToken={captcha.setToken} resetKey={captcha.round} />}
+                {error && (
+                  <div role="alert" className="p-3.5 rounded-xl bg-danger/10 border border-danger/20 text-danger text-xs font-medium">{error}</div>
+                )}
 
-            <Button
-              type="submit"
-              disabled={busy}
-              className="w-full min-h-[44px] px-6 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-primary-hover active:scale-[0.98] transition-all shadow-md disabled:opacity-60"
-            >
-              {busy ? "Submitting…" : "Submit Accreditation Application"}
-            </Button>
+                <div className="text-xs text-muted-foreground">
+                  <div className="flex items-center gap-2.5">
+                    <input id="agree" type="checkbox" name="agree" checked={agree} disabled={!termsRead} onChange={(e) => syncAgree(e.target.checked)} className="size-4 shrink-0 accent-primary disabled:opacity-50 disabled:cursor-not-allowed" />
+                    <Label htmlFor="agree" className={!termsRead ? "cursor-not-allowed opacity-70" : "cursor-pointer"}>I agree to the municipal data collection terms and PESO privacy policies.{reqMark}</Label>
+                  </div>
+                  <div className="ml-[26px] mt-0.5">
+                    <button type="button" onClick={() => setTermsOpen(true)} className="text-xs leading-4 text-primary hover:underline underline-offset-4">View terms</button>
+                    {!termsRead && <p className="mt-0.5 text-muted-foreground">Please open and read the terms before agreeing.</p>}
+                  </div>
+                  {errors.agree && <p className="mt-1 text-danger">{errors.agree}</p>}
+                </div>
+
+                <div data-invalid={!!errors.confirmAccurate}>
+                  <Label htmlFor="confirmAccurate" className="flex items-center gap-2.5 text-xs text-muted-foreground">
+                    <input
+                      id="confirmAccurate"
+                      name="confirmAccurate"
+                      type="checkbox"
+                      required
+                      checked={!!form.confirmAccurate}
+                      aria-invalid={!!errors.confirmAccurate}
+                      aria-describedby={errors.confirmAccurate ? "confirmAccurate-error" : undefined}
+                      onChange={(e) => set("confirmAccurate", e.target.checked)}
+                      className="size-4 shrink-0 accent-primary"
+                    />
+                    <span>I confirm that all the information I provided is true and correct to the best of my knowledge.{reqMark}</span>
+                  </Label>
+                  {errors.confirmAccurate && <p id="confirmAccurate-error" role="alert" className="mt-1 text-xs text-danger">{errors.confirmAccurate}</p>}
+                </div>
+
+                {captcha.required && <Turnstile onToken={captcha.setToken} resetKey={captcha.round} />}
+
+                <div className="flex gap-3">
+                  <Button type="button" onClick={handleBack} className="flex-1 min-h-[44px] px-6 rounded-xl border border-border text-sm font-semibold hover:bg-muted transition-all">
+                    Back
+                  </Button>
+                  <Button type="submit" disabled={busy} className="flex-1 min-h-[44px] px-6 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-primary-hover active:scale-[0.98] transition-all shadow-md disabled:opacity-60">
+                    {busy ? "Submitting…" : "Submit Accreditation Application"}
+                  </Button>
+                </div>
+              </>
+            )}
+
+            {step === 0 && (
+              <div className="flex gap-3">
+                <Button type="button" onClick={handleNext} className="flex-1 min-h-[44px] px-6 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-primary-hover active:scale-[0.98] transition-all shadow-md">
+                  Next
+                </Button>
+              </div>
+            )}
           </form>
 
           <p className="mt-8 text-center text-xs text-muted-foreground">
-            Already verified?{" "}
+            Already have an account?{" "}
             <Link to="/login" className="text-primary hover:underline underline-offset-4 font-medium">
               Log in here
             </Link>

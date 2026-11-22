@@ -178,6 +178,7 @@ export async function signUp({ email, password, role, firstName, middleName = ''
     suffix: lower(suffix),
     full_name: lower(fullName),
     phone: extra.phone || null,
+    representative_phone: extra.representativePhone || null,
     lot: lower(extra.lot) || null,
     block: lower(extra.block) || null,
     house_number_unit: lower(extra.houseNumberUnit) || null,

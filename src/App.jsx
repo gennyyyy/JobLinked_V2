@@ -74,7 +74,15 @@ const JobSeekerDashboard = lazyRoute(() => import('./features/job-seeker/Dashboa
 // the right screen — and StaticUrlRouter then normalizes the bar to the app root
 // so it never shows a page the visitor has left (ADR-041). Trade-off: page URLs
 // are not bookmarkable/shareable.
-const entryPath = `${window.location.pathname}${window.location.search}${window.location.hash}`
+//
+// ADR-055: the recovery fragment is our only recovery credential, and GoTrue may
+// append it to the Site URL instead of /reset-password. Snapshot it before
+// supabase-js consumes and clears it, then route that tab to the reset screen
+// and keep its one-time session alive (see PublicRoute below).
+const recoveryLanding = /(^|[#&])type=recovery\b/.test(window.location.hash)
+const entryPath = recoveryLanding
+  ? `/reset-password${window.location.hash}`
+  : `${window.location.pathname}${window.location.search}${window.location.hash}`
 
 function App() {
   return (
@@ -224,7 +232,8 @@ function PageTitle() {
 }
 
 // ADR-021 rule 1: a session survives only inside its own portal — destroy it
-// on arrival at a public route, then render the page as guest.
+// on arrival at a public route, then render the page as guest. ADR-055 exception:
+// a recovery landing keeps its session so the one-time link can set a password.
 function PublicRoute({ children }) {
   const { user, loading, logout } = useAuth()
   const [loggedOutFor, setLoggedOutFor] = useState(null)
@@ -232,7 +241,7 @@ function PublicRoute({ children }) {
 
   useEffect(() => {
     let active = true
-    if (!loading && user && !done) {
+    if (!recoveryLanding && !loading && user && !done) {
       Promise.resolve(logout()).then(
         () => { if (active) setLoggedOutFor(user?.id) },
         () => { if (active) setLoggedOutFor(user?.id) }
@@ -242,6 +251,6 @@ function PublicRoute({ children }) {
   }, [loading, user, done, logout])
 
   if (loading) return <LoadingScreen />
-  if (user && !done) return <LoadingScreen />
+  if (user && !done && !recoveryLanding) return <LoadingScreen />
   return children
 }

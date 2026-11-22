@@ -76,17 +76,17 @@ describe('JobPosts accessibility', () => {
       /^job title/i, /department \/ office/i, /^employment type/i, /^work arrangement/i,
       /barangay location/i, /number of vacancies/i, /minimum salary/i, /maximum salary/i,
       /application deadline/i, /job description/i, /education requirement/i,
-      /work experience/i, /application instructions/i, /^field/i, /skills required/i,
+      /work experience/i, /application instructions/i, /^field/i,
     ]) {
       expect(screen.getByLabelText(name).tagName).toBeTruthy()
     }
+    expect(screen.getByRole('combobox', { name: /skills required/i })).toBeInTheDocument()
   })
 
   it('names the chip groups for assistive technology', async () => {
     await openForm()
     expect(screen.getByRole('group', { name: /benefits & perks/i })).toBeInTheDocument()
     expect(screen.getByRole('group', { name: /^highlights/i })).toBeInTheDocument()
-    expect(screen.getByRole('group', { name: /skills required/i })).toBeInTheDocument()
     const chip = screen.getByRole('button', { name: '13th Month Pay' })
     expect(chip).toHaveAttribute('aria-pressed', 'false')
   })

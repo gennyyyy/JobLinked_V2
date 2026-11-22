@@ -135,7 +135,7 @@ export function MfaPanel({ className, contentClassName, size }) {
       {!mfaLoading && enrolledMfaFactors.length === 0 && !enrollData && (
         <div className="flex flex-col gap-4">
           <TextField
-            label="Current password"
+            label="Current Password"
             type="password"
             autoComplete="current-password"
             required
@@ -167,7 +167,7 @@ export function MfaPanel({ className, contentClassName, size }) {
             </div>
           )}
           <TextField
-            label="Verification code"
+            label="Verification Code"
             inputMode="numeric"
             autoComplete="one-time-code"
             maxLength={6}
@@ -193,7 +193,7 @@ export function MfaPanel({ className, contentClassName, size }) {
               {disablingMfaId === factor.id && (
                 <div className="flex flex-col gap-2">
                   <TextField
-                    label="Current password"
+                    label="Current Password"
                     type="password"
                     autoComplete="current-password"
                     value={disablePassword}

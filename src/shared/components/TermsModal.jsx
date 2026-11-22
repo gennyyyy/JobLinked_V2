@@ -11,6 +11,9 @@ import { getLegal } from "../services/legal";
 // fallback so the modal never breaks if the API is down.
 const TERMS_PLACEHOLDER = PRIVACY_NOTICE;
 
+// Fractional scroll offsets mean "bottom" is never exactly max - scrollTop.
+const atBottom = (el) => el.scrollHeight - el.clientHeight - el.scrollTop <= 1;
+
 function TermsModal({ open, onClose, onRead, title = "Data Collection Terms & Privacy Policy", body: bodyProp }) {
   const bodyRef = useRef(null);
   const readRef = useRef(false);
@@ -25,20 +28,24 @@ function TermsModal({ open, onClose, onRead, title = "Data Collection Terms & Pr
     onRead?.();
   }, [onRead]);
 
-  // Read = scrolled to the bottom (24px grace). Short content that
-  // doesn't scroll counts as read as soon as it's shown.
+  // Escape and backdrop clicks stay inert until the notice is read.
+  const closeIfRead = useCallback(() => {
+    if (readRef.current) onClose?.();
+  }, [onClose]);
+
+  // Read = scrolled to the true bottom. Short content that doesn't
+  // scroll counts as read as soon as it's shown.
   function handleScroll(e) {
     const el = e.currentTarget;
-    const max = el.scrollHeight - el.clientHeight;
-    if (max <= 0 || max - el.scrollTop < 24) {
+    if (atBottom(el)) {
       setProgress(100);
       markRead();
       return;
     }
-    setProgress(Math.min(99, (el.scrollTop / max) * 100));
+    setProgress(Math.min(99, (el.scrollTop / (el.scrollHeight - el.clientHeight)) * 100));
   }
 
-  const panelRef = useDialog(onClose, open);
+  const panelRef = useDialog(closeIfRead, open);
 
   // Fetch the published privacy notice when no explicit body is supplied.
   useEffect(() => {
@@ -63,16 +70,18 @@ function TermsModal({ open, onClose, onRead, title = "Data Collection Terms & Pr
 
   useEffect(() => {
     if (!open) return;
+    // Never measure the loading skeleton: it cannot scroll, so it would
+    // auto-mark the notice as read before the text arrives. Progress stays
+    // at its initial 0 until there is content to measure.
+    if (body == null) return;
     const el = bodyRef.current;
     if (!el) return;
     // Already read in this session, or content short enough not to scroll:
     // the bar starts full and the Close button is available at once.
-    if (readRef.current || el.scrollHeight - el.clientHeight < 24) {
+    if (readRef.current || atBottom(el)) {
       setProgress(100);
       markRead();
-      return;
     }
-    setProgress(0);
   }, [open, body, markRead]);
 
   if (!open) return null;
@@ -82,7 +91,7 @@ function TermsModal({ open, onClose, onRead, title = "Data Collection Terms & Pr
     <div
       className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-xs"
       onClick={(e) => {
-        if (e.target === e.currentTarget) onClose?.();
+        if (e.target === e.currentTarget) closeIfRead();
       }}
     >
       <div
@@ -95,11 +104,11 @@ function TermsModal({ open, onClose, onRead, title = "Data Collection Terms & Pr
         <h2 id="terms-title" className="text-base font-bold text-dark-blue mb-3">
           {title}
         </h2>
-        <div ref={bodyRef} onScroll={handleScroll} tabIndex={0} role="document" aria-labelledby="terms-title" className="text-sm text-muted-foreground whitespace-pre-line overflow-y-auto flex-1 mb-4">
+        <div ref={bodyRef} onScroll={handleScroll} tabIndex={0} role="document" aria-labelledby="terms-title" className="text-sm text-muted-foreground whitespace-pre-line overflow-y-auto flex-1 min-h-0 mb-4">
           {showSkeleton ? <Skeleton className="h-4 w-full" /> : body}
         </div>
         <div
-          className="mb-4 h-1.5 w-full overflow-hidden rounded-full bg-muted"
+          className="mb-4 h-1.5 w-full shrink-0 overflow-hidden rounded-full bg-muted"
           role="progressbar"
           aria-label="Reading progress"
           aria-valuemin={0}
@@ -108,9 +117,9 @@ function TermsModal({ open, onClose, onRead, title = "Data Collection Terms & Pr
         >
           <div className="h-full rounded-full bg-primary transition-[width] duration-150" style={{ width: `${progress}%` }} />
         </div>
-        <div className="flex gap-3 items-center justify-end">
+        <div className="flex h-11 shrink-0 gap-3 items-center justify-end">
           {onRead && !read && (
-            <span className="mr-auto text-xs text-muted-foreground">Scroll to the bottom to enable agreement.</span>
+            <span className="mr-auto truncate text-xs text-muted-foreground">Scroll to the bottom to enable agreement.</span>
           )}
           {read && (
             <Button

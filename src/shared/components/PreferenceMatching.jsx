@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { MessageCircle, Send, Sparkles } from 'lucide-react'
+import { MessageCircle, Send } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { Field, FieldLabel } from '@/components/ui/field'
@@ -58,7 +58,7 @@ export default function PreferenceMatching({ prompt, onSubmit, compact = false, 
   )
 
   if (compact) {
-    // Deliberately quiet: one small icon button inline with the search field.
+    // Deliberately quiet: one small text button inline with the search field.
     // A native <button> on purpose — the shared Button ships data-slot="button",
     // which a global stylesheet rule pins to a 44px minimum, and this control is
     // meant to stay barely-there. Active matching only tints it; the dialog
@@ -72,11 +72,11 @@ export default function PreferenceMatching({ prompt, onSubmit, compact = false, 
           title={prompt ? 'Preference matching is on' : MATCHING_NAME}
           onClick={() => setOpen(true)}
           className={cn(
-            'inline-flex size-8 shrink-0 items-center justify-center rounded-lg transition-colors lg:size-7',
-            prompt ? 'bg-blue-soft text-primary' : 'text-muted-foreground hover:bg-muted hover:text-primary',
+            'inline-flex size-8 shrink-0 items-center justify-center rounded-lg border border-border transition-colors',
+            prompt ? 'bg-blue-soft text-primary border-primary' : 'text-muted-foreground hover:bg-muted hover:text-primary',
           )}
         >
-          <Sparkles className="size-4 lg:size-[15px]" />
+          <span aria-hidden="true" className="text-[10px] font-semibold leading-none tracking-wide">AI</span>
         </button>
         {dialog}
       </>

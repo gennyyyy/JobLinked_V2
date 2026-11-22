@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { MapPin, Menu, ArrowRight, ArrowUpRight } from "lucide-react";
+import { Menu, ArrowRight, ArrowUpRight } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Logo, LinkButton } from "./design";
+import PesoOfficeInfo from "./PesoOfficeInfo";
 import { cn } from "@/lib/utils";
 import useAuth from "../hooks/useAuth";
 
@@ -18,11 +19,11 @@ export function PublicShell({ children }) {
   return (
     <div className="flex min-h-screen flex-col">
       <header className="relative z-30 border-b border-border/70 bg-white">
-        <div className="page-container flex h-[78px] items-center justify-between gap-4">
+        <div className="page-container flex h-[64px] items-center justify-between gap-4 px-3 sm:px-3 lg:px-4">
           <Logo />
           <nav aria-label="Main navigation" className="hidden items-center gap-7 lg:flex">
             {links.map(([label, href]) => (
-              <Link key={href} to={href} className={cn('nav-link relative', pathname === href && 'text-primary after:absolute after:inset-x-0 after:-bottom-[17px] after:h-0.5 after:rounded-full after:bg-primary')} aria-current={pathname === href ? 'page' : undefined}>
+              <Link key={href} to={href} className={cn('nav-link relative', pathname === href && 'text-primary after:absolute after:inset-x-0 after:-bottom-[10px] after:h-0.5 after:rounded-full after:bg-primary')} aria-current={pathname === href ? 'page' : undefined}>
                 {label}
               </Link>
             ))}
@@ -60,31 +61,33 @@ export function PublicShell({ children }) {
           </nav>
         </SheetContent>
       </Sheet>
-      <main id="main-content" className="flex-1">{children}</main>
-      <footer className="border-t bg-white pt-8">
-        <div className="page-container">
-          <div className="grid gap-6 pb-2 sm:grid-cols-2 lg:grid-cols-[1.5fr_1fr_1fr_1fr]">
+      <main id="main-content" className="flex flex-1 flex-col">{children}</main>
+      <footer className="border-t bg-white pt-8 pb-2">
+        <div className="page-container px-3 sm:px-3 lg:px-4">
+          <div className="grid gap-6 pb-2 sm:grid-cols-2 lg:grid-cols-[1.5fr_1fr_1fr_1fr_1fr]">
             <div>
               <Logo />
-              <p className="mt-3 max-w-[270px] text-xs leading-6 text-muted-foreground">Connecting local talent with meaningful opportunities in Santa Maria, Bulacan.</p>
-              <p className="mt-3 inline-flex items-center gap-1.5 text-[11px] text-navy"><MapPin className="size-3.5 text-teal" />Made for our community.</p>
             </div>
             {[
               { title: 'For job seekers', items: [['Browse jobs', '/jobs'], ['Create an account', '/register/job-seeker'], ['Application tracking', '/job-seeker/applications'], ['Career resources', '/peso-services']] },
               { title: 'For employers', items: [['Post a job', '/register/employer'], ['Employer registration', '/register/employer'], ['Accreditation process', '/how-it-works'], ['Employer portal', '/login']] },
               { title: 'JobLinked', items: [['About the platform', '/about'], ['PESO services', '/peso-services'], ['Frequently asked questions', '/faq']] },
+              { title: 'Contact', items: [] },
             ].map(group => (
               <div key={group.title}>
                 <h3 className="mb-2 text-xs font-semibold">{group.title}</h3>
                 <ul className="flex flex-col gap-0">
                   {group.items.map(([label, href]) => (
-                    <li key={href}><Link to={href} className="inline-flex min-h-6 items-center text-xs text-muted-foreground transition-colors hover:text-primary">{label}</Link></li>
+                    <li key={label}><Link to={href} className="inline-flex min-h-6 items-center text-xs text-muted-foreground transition-colors hover:text-primary">{label}</Link></li>
                   ))}
                 </ul>
+                {group.title === 'Contact' && (
+                  <PesoOfficeInfo />
+                )}
               </div>
             ))}
           </div>
-          <div className="flex flex-col justify-between gap-2 py-2 text-[10px] text-muted-foreground sm:flex-row sm:items-center">
+          <div className="flex flex-col justify-between gap-2 py-1 text-[10px] text-muted-foreground sm:flex-row sm:items-center">
             <p>© {new Date().getFullYear()} JobLinked. Built with community in mind.</p>
             <div className="flex items-center gap-3">
               <Link className="min-h-6 content-center hover:text-primary" to="/privacy">Privacy notice</Link>

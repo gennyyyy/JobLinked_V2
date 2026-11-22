@@ -10,6 +10,7 @@ import { applyToJob, listBySeeker } from "@/shared/services/applications";
 import { listResumes } from "@/shared/services/documents";
 import { PageSkeleton } from '@/shared/components/Skeletons';
 import { CompanyMark, LinkButton, Panel } from "@/shared/components/design";
+import { employerLogoUrl } from "@/shared/services/images";
 import { titleCase } from "@/shared/utils/titleCase";
 
 function JobDetail() {
@@ -90,7 +91,7 @@ function JobDetail() {
       <div className="surface mt-5">
         <div className="flex flex-col justify-between gap-5 sm:flex-row">
           <div className="flex min-w-0 gap-5">
-            <CompanyMark initials={String(job.employers?.company_name || "J").slice(0, 2).toUpperCase()} large />
+            <CompanyMark initials={String(job.employers?.company_name || "J").slice(0, 2).toUpperCase()} src={employerLogoUrl(job.employers)} large />
             <div className="min-w-0">
               <h1 className="text-2xl font-semibold tracking-[-.035em] md:text-[30px]">{titleCase(job.title)}</h1>
               <p className="mt-2 text-sm text-muted-foreground">{companyName}</p>

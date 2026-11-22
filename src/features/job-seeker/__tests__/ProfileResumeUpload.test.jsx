@@ -35,7 +35,7 @@ describe('Profile resume upload', () => {
     await user.click(screen.getByRole('tab', { name: /my resumes/i }))
     await screen.findByText(/start with your story/i)
 
-    fireEvent.change(screen.getByLabelText('Choose a resume to autofill'), {
+    fireEvent.change(screen.getByLabelText('Choose a Resume to Autofill'), {
       target: { files: [new File(['x'], 'resume.pdf', { type: 'application/pdf' })] },
     })
     fireEvent.click(screen.getByRole('checkbox', { name: /resume autofill can make mistakes/i }))
