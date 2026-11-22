@@ -92,7 +92,7 @@ async function upsertAdmin(email) {
   await supaAdmin.auth.admin.updateUserById(user.id, { app_metadata: { role: 'super-admin' } })
   const t = await mint(email)
   await db.query(
-    `insert into super_admins (id, email, full_name, status) values ($1,$2,'bench admin','active')
+    `insert into super_admins (id, email, full_name, status) values ($1,$2,'Rafael Santos','active')
      on conflict (id) do update set status='active'`, [t.id, email])
   return t
 }
@@ -111,7 +111,7 @@ async function provision(account, role, extra = {}) {
   account.id = s.id
   const me = await req('GET', '/api/auth/me', { token: s.token })
   if (me.status === 404) {
-    const body = { role, email: account.email, first_name: 'Bench', last_name: role, ...extra }
+    const body = { role, email: account.email, first_name: 'Rafael', last_name: 'Santos', ...extra }
     const p = await req('POST', '/api/auth/provision', { token: s.token, body })
     if (p.status !== 201) throw new Error(`provision ${account.email}: ${p.status} ${p.text}`)
     account.profile = p.body
@@ -469,7 +469,7 @@ if (enabled('admin')) {
     token: F.admin.token, body: { email: F.seekerA.email, first_name: 'A', last_name: 'B', role: 'job-seeker' } }), 409)
   const inviteEmail = `bench.invite.${Date.now()}@joblinked-spike.test`
   const invited = await req('POST', '/api/admin/users/invite', {
-    token: F.admin.token, body: { email: inviteEmail, first_name: 'Bench', last_name: 'Invite', role: 'job-seeker' } })
+    token: F.admin.token, body: { email: inviteEmail, first_name: 'Rafael', last_name: 'Santos', role: 'job-seeker' } })
   if (invited.status === 429) {
     // Supabase's own email rate limit: must surface as retryable 429, never the
     // old fake 409 "email already registered".

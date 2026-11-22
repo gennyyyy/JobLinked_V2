@@ -32,6 +32,15 @@ Boot-check: `journalctl -u joblinked-api` (or the log file) must show the
 `uploads directory` line with the absolute path and **no** `CORS_ORIGIN`/
 `TRUST_PROXY` warnings when `NODE_ENV=production`.
 
+**Supabase → Authentication → URL Configuration** (once per project; cannot be
+set from this repo). *Site URL* = the canonical origin. *Redirect URLs* must
+contain the exact one-time-flow paths:
+`https://<origin>/reset-password`, `https://<origin>/accept-invite`,
+`https://<origin>/auth/callback`, plus `http://localhost:5173/*` and
+`http://localhost:4173/*` for dev/preview. A missing entry is silent: GoTrue
+falls back to the Site URL, so the reset email lands on the public landing page
+(ADR-055 makes the app recover from that, but fix the allowlist anyway).
+
 ## 2. Build, start, process manager
 
 API host needs Node 20+ (dev-verified on Node 24) and `postgresql-client` with
@@ -290,7 +299,14 @@ change to backup tooling, and at least quarterly:
 resume `HTTP 200, 236 587 bytes, %PDF-`). See the plan's Results for the full
 record.
 
-## Known limits and follow-ups
+## Accept-invite redirect (admin user invites)
+
+Admin invites send a Supabase magic link to `<appOrigin>/accept-invite`. Two things must hold or the link lands on the public site and the invitee has no password:
+
+1. **Supabase redirect-URL allowlist** must include `<appOrigin>/accept-invite` (e.g. `https://www.joblinked.site/accept-invite`). Add it in the Supabase project → Authentication → URL Configuration → Redirect URLs.
+2. **`CORS_ORIGIN`'s first entry** must be the public web origin (`https://www.joblinked.site`), because `appOrigin()` in `server/src/routes/admin-users.js` derives the link origin from it. A wrong/empty value produces links to `http://localhost:5173/accept-invite`.
+
+Verify by inviting a test user and opening the emailed link in an incognito window: it should load `/accept-invite` with the "Change your password" modal, not the landing page. If it redirects to `/`, the allowlist is the culprit.
 
 **Authenticated API throttle (1000 req / 15 min per user; anonymous/IP 300).**
 Admin consoles fetch several large lists per mount (~2.5 req/s observed on

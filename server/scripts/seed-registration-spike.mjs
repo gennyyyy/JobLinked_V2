@@ -69,8 +69,10 @@ const MIDDLE = ['santos', 'reyes', 'cruz', 'bautista', 'garcia', 'mendoza', 'del
 const LAST = ['santos', 'reyes', 'cruz', 'bautista', 'garcia', 'mendoza', 'dela cruz', 'ramos', 'aquino', 'villanueva',
   'castillo', 'navarro', 'domingo', 'salazar', 'pascual', 'fernandez', 'flores', 'rivera', 'gonzales', 'mercado',
   'lim', 'tan', 'chua', 'ortiz', 'vasquez', 'padilla', 'serrano', 'valdez', 'ignacio', 'corpuz'];
-const BARANGAYS = ['Poblacion', 'San Jose', 'San Juan', 'San Antonio', 'Santo Tomas', 'San Fernando',
-  'Santo Rosario', 'San Isidro', 'San Pedro', 'Santa Cruz'];
+const BARANGAYS = ['Bagbaguin', 'Balasing', 'Buenavista', 'Bulac', 'Camangyanan', 'Catmon',
+  'Cay Pombo', 'Caysio', 'Guyong', 'Lalakhan', 'Mag-asawang Sapa', 'Mahabang Parang',
+  'Manggahan', 'Parada', 'Poblacion', 'Pulong Buhangin', 'San Gabriel', 'San Jose Patag',
+  'San Vicente', 'Santa Clara', 'Santa Cruz', 'Silangan', 'Tabing Bakod', 'Tumana'];
 const STREETS = ['Rizal Street', 'Quirino Boulevard', 'Del Pilar Street', 'Magsaysay Street', 'Bonifacio Street',
   'Luna Street', 'Aguinaldo Street', 'Plaza Avenue', 'National Highway', 'Coastal Road'];
 const SCHOOLS = ['Santa Maria National High School', 'Don Mariano Marcos State University', 'La Union Colleges',
@@ -92,11 +94,13 @@ const POSITIONS = ['hr officer', 'operations manager', 'store supervisor', 'bran
 const pad = (n, w = 3) => String(n).padStart(w, '0');
 const pick = (arr, i) => arr[i % arr.length];
 const brgy = (i) => pick(BARANGAYS, i);
+// Payloads must carry formal, Title Case display names.
+const tc = (s) => s.replace(/\b\w/g, (c) => c.toUpperCase());
 
 function seekerIdentity(i) {
-  const first = pick(FIRST, i);
-  const middle = pick(MIDDLE, i * 7 + 3);
-  const last = pick(LAST, Math.floor(i / FIRST.length) * 5 + 2);
+  const first = tc(pick(FIRST, i));
+  const middle = tc(pick(MIDDLE, i * 7 + 3));
+  const last = tc(pick(LAST, Math.floor(i / FIRST.length) * 5 + 2));
   return {
     index: i,
     role: 'job-seeker',
@@ -114,8 +118,8 @@ function seekerIdentity(i) {
       street_address: pick(STREETS, i * 3 + 1),
       barangay_district: brgy(i),
       city_municipality: 'Santa Maria',
-      province_state: 'La Union',
-      postal_code: '2911',
+      province_state: 'Bulacan',
+      postal_code: '3022',
       country: 'Philippines',
       employment_status: pick(STATUSES, i),
       skills: [pick(SKILLS, i * 3), pick(SKILLS, i * 5 + 1), pick(SKILLS, i * 7 + 2), pick(SKILLS, i * 11 + 3)].filter((v, k, a) => a.indexOf(v) === k),
@@ -135,8 +139,8 @@ function employerIdentity(i) {
   // collapsed every company into two industries — both caught by DB checks.)
   const trade = pick(TRADES, (i * 7) % TRADES.length);
   const company = `${prefix} ${trade}`;
-  const first = pick(FIRST, i * 3 + 1);
-  const last = pick(LAST, i * 7 + 4);
+  const first = tc(pick(FIRST, i * 3 + 1));
+  const last = tc(pick(LAST, i * 7 + 4));
   return {
     index: i,
     role: 'employer',
@@ -146,7 +150,7 @@ function employerIdentity(i) {
       role: 'employer',
       email: `spike.employer.${pad(i + 1)}@joblinked-spike.test`,
       first_name: first,
-      middle_name: pick(MIDDLE, i * 5 + 1),
+      middle_name: tc(pick(MIDDLE, i * 5 + 1)),
       last_name: last,
       phone: `09${pad(180000000 + i * 6151, 9).slice(-9)}`,
       company_name: company,
@@ -156,8 +160,8 @@ function employerIdentity(i) {
       street_address: pick(STREETS, i * 2 + 3),
       barangay_district: brgy(i * 2),
       city_municipality: 'Santa Maria',
-      province_state: 'La Union',
-      postal_code: '2911',
+      province_state: 'Bulacan',
+      postal_code: '3022',
       country: 'Philippines',
       representative_email: `spike.employer.${pad(i + 1)}@joblinked-spike.test`,
       representative_position: pick(POSITIONS, i),

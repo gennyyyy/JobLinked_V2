@@ -153,7 +153,7 @@ for (const e of employers) {
       payload: {
         title,
         office: e.company_name,
-        location: `${e.barangay_district}, Santa Maria, La Union`,
+        location: `${e.barangay_district}, Santa Maria, Bulacan`,
         employment_type: pick(TYPES, n + k),
         work_arrangement: pick(ARRANGEMENTS, n + k),
         salary_min: salary,

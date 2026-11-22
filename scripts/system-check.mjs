@@ -44,8 +44,8 @@ const FIXTURES = {
   pending:  { id: '5eed0000-0000-4000-8000-000000000003', email: 'smoke.pending@joblinked.test',  role: 'employer' },
   admin:    { id: '5eed0000-0000-4000-8000-000000000004', email: 'smoke.admin@joblinked.test',    role: 'super-admin' },
 }
-const JOB = { id: '5eed0000-0000-4000-8000-000000000011', title: 'Smoke Test Service Crew' }
-const PENDING_COMPANY_HINT = 'smoke pending'
+const JOB = { id: '5eed0000-0000-4000-8000-000000000011', title: 'Service Crew' }
+const PENDING_COMPANY_HINT = 'Bulacan Retail Supply'
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
 const die = (message) => { console.error(message); process.exit(1) }
@@ -296,7 +296,11 @@ try {
         await seeker.waitForSelector('input[placeholder^="Search jobs"]', { timeout: 20000 })
         await seeker.type('input[placeholder^="Search jobs"]', JOB.title)
         await waitFor(seeker, (title) => [...document.querySelectorAll('a')].some((a) => a.textContent.trim() === title), [JOB.title], { label: `the "${JOB.title}" card` })
-        await seeker.evaluate((title) => [...document.querySelectorAll('a')].find((a) => a.textContent.trim() === title).click(), JOB.title)
+        await seeker.evaluate((title, id) => {
+          const cards = [...document.querySelectorAll('a')].filter((a) => a.textContent.trim() === title)
+          const hit = cards.find((a) => (a.getAttribute('href') || '').includes(id)) || cards[0]
+          hit?.click()
+        }, JOB.title, JOB.id)
         const state = await waitFor(seeker, () => {
           if (/Application submitted/.test(document.body.innerText)) return 'applied'
           const button = [...document.querySelectorAll('button')].find((b) => /submit application/i.test(b.textContent))
@@ -319,12 +323,12 @@ try {
         await signIn(employer, FIXTURES.employer.email, passwords[FIXTURES.employer.email])
         await clickNav(employer, 'Applicants')
         await employer.waitForSelector('input[placeholder^="Search candidate"]', { timeout: 20000 })
-        await employer.type('input[placeholder^="Search candidate"]', 'Smoke Seeker')
+        await employer.type('input[placeholder^="Search candidate"]', 'Maria Santos')
         await waitFor(employer, (t) => {
           const row = [...document.querySelectorAll('table tbody tr')].find((tr) => new RegExp(t, 'i').test(tr.textContent))
           return Boolean(row)
-        }, ['smoke seeker'], { label: 'the seeded applicant row' })
-        must(await clickRowButton(employer, 'smoke seeker', 'review candidate'), 'the applicant row has no review button')
+        }, ['Maria Santos'], { label: 'the seeded applicant row' })
+        must(await clickRowButton(employer, 'Maria Santos', 'review candidate'), 'the applicant row has no review button')
         await employer.waitForSelector('#recruitment-status', { timeout: 15000 })
         await employer.select('#recruitment-status', 'Under Review')
         await clickByText(employer, '[role="dialog"] button', 'update candidate')
@@ -332,7 +336,7 @@ try {
         await waitFor(employer, (t, m) => {
           const row = [...document.querySelectorAll('table tbody tr')].find((tr) => new RegExp(t, 'i').test(tr.textContent))
           return Boolean(row) && new RegExp(m, 'i').test(row.textContent)
-        }, ['smoke seeker', 'under review'], { label: 'the row to show Under Review' })
+        }, ['Maria Santos', 'under review'], { label: 'the row to show Under Review' })
         return 'status now Under Review'
       } finally {
         await context.close()
