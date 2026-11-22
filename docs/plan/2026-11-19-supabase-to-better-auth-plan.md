@@ -16,7 +16,9 @@
 
 **Progress (2026-11-21):** Tasks 1, 2, 3, 4, 5, 6a, 6b, 6c, 8, 9, 10, 11 implemented and verified (900+ server tests, 800+ client tests, lint/build green). Task 7/12 are blocked on operator secrets: `SUPABASE_DATABASE_URL` (read-only Supabase Postgres — the admin API omits password hashes) and `SMTP_*` (Resend), plus `TURNSTILE_SECRET_KEY`/`BETTER_AUTH_URL`/`BETTER_AUTH_SECRET` for production. Task 13 cleanup and Task 14 docs follow the cutover.
 
-**Target environment:** `server/.env` `DATABASE_URL` is an SSH `LocalForward` to the **VPS database** (`docs/ops/deploy-runbook.md` §"Local dev against the VPS database"). Migrations 015–018 are applied there; `auth."user"` is still empty. Confirm this is the intended migration target before running `--apply`.
+**Scope guard (confirmed 2026-11-22):** the only functional change is Supabase Auth → Better Auth. `public.admin_invites`, `public.pending_signups`, and `POST /auth/verify-password` are retained as auth-flow support (invite grant, registration data across verification, email-change re-auth), not new product features. Migrations 015/016 remain applied on the VPS DB (committed, additive). No changes to roles, permissions, audit, jobs, applications, profiles, reports, AI, uploads, or page design.
+
+**Target environment:** `server/.env` `DATABASE_URL` is an SSH `LocalForward` to the **VPS database** (`docs/ops/deploy-runbook.md` §"Local dev against the VPS database"). Migrations 015–018 are applied there; `auth."user"` is still empty until the Task 7 data migration runs.
 
 ## Global Constraints
 
@@ -24,7 +26,7 @@
 - **Schema:** changes go through `db/schema.sql` + `db/migrations/017_*.sql` (BA tables) and `018_*.sql` (pending signups), applied via `db/apply-migrations.sh` (ledger). The Lead Architect signs off on Task 2's DDL with this plan. No change to any existing table — the role tables keep their `uuid` PKs.
 - **Auth rule unchanged:** BA is identity only; all profile/job/app data still flows through the Express API. No browser-side database.
 - **API calls stay through `src/shared/lib/api.js`**; auth calls through the BA client (`src/shared/lib/auth-client.js`).
-- **Dual-auth window:** BA sessions and Supabase JWTs are both accepted between Task 5 and Task 16. Never break a working session path before its replacement is verified.
+- **Dual-auth window:** BA sessions and Supabase JWTs are both accepted through Task 12 (removed in Task 13). Never break a working session path before its replacement is verified.
 - **Error contract unchanged:** `{ error: { code, message } }`; our custom routes keep their status codes; BA endpoints keep BA's error shape on `/api/auth/*` BA-owned paths.
 - **Principal shape unchanged:** `{ id, email, role, customRoleId, permissions }`; `resolveRole`, `requireRole`, custom-role permission bundles (ADR-042), and the audit convention are untouched.
 - **Secrets:** `BETTER_AUTH_SECRET` (32+ chars), SMTP creds, `TURNSTILE_SECRET_KEY`, and the read-only `SUPABASE_DATABASE_URL` (source migration only) live in `server/.env` only. No new `VITE_` secret.
