@@ -4,14 +4,20 @@ import { useState, useEffect, useMemo, useCallback } from "react";
 import { Link } from "react-router-dom";
 import {
   Plus,
-  Edit3,
-  Eye,
+  MoreHorizontal,
   AlertTriangle,
   CheckCircle2,
   Users,
   Building,
   X,
 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
 import useAuth from "../../shared/hooks/useAuth";
 import { listEmployerJobs, createJob, updateJob, changeJobStatus, deleteJob } from "../../shared/services/jobs";
 import { getEmployer } from "../../shared/services/auth";
@@ -59,9 +65,6 @@ export default function JobPosts() {
 
   // View job detail modal
   const [viewingJob, setViewingJob] = useState(null);
-
-  // Confirm archive modal
-  const [confirmArchiveId, setConfirmArchiveId] = useState(null);
 
   // Confirm delete modal (holds the whole post so the dialog can read applicant_count and title)
   const [confirmDeleteJob, setConfirmDeleteJob] = useState(null);
@@ -304,23 +307,6 @@ export default function JobPosts() {
     }
   }
 
-  async function confirmArchiveJob() {
-    if (!confirmArchiveId) return;
-    setActionError("");
-    try {
-      await changeJobStatus(confirmArchiveId, "archived");
-      setActionSuccess("Job post archived successfully.");
-      await refreshJobs();
-      if (viewingJob?.id === confirmArchiveId) {
-        setViewingJob(null);
-      }
-    } catch (err) {
-      setActionError(err.message || "Failed to archive job");
-    } finally {
-      setConfirmArchiveId(null);
-    }
-  }
-
   async function confirmDeleteJobPost() {
     const job = confirmDeleteJob;
     setConfirmDeleteJob(null);
@@ -494,28 +480,38 @@ export default function JobPosts() {
                   <TableCell className="whitespace-nowrap">{formatDate(post.deadline)}</TableCell>
                   <TableCell><StatusBadge status={POSTING_LABELS[post.status] || post.status} /></TableCell>
                   <TableCell>
-                    <div className="flex flex-wrap gap-2">
-                      <Button variant="outline" onClick={() => handleOpenEdit(post)} aria-label={`Edit ${titleCase(post.title)}`}>
-                        <Edit3 data-icon="inline-start" />
-                        Edit
-                      </Button>
-                      {post.status === 'published' ? (
-                        <Button variant="ghost" onClick={() => handleToggleClose(post)}>Close</Button>
-                      ) : (
-                        <Button
-                          variant="ghost"
-                          disabled={saving || accreditationStatus !== 'approved'}
+                    <DropdownMenu>
+                      <DropdownMenuTrigger
+                        render={
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            aria-label={`Actions for ${titleCase(post.title)}`}
+                          />
+                        }
+                      >
+                        <MoreHorizontal />
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => handleOpenEdit(post)}>
+                          Edit posting
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          disabled={post.status !== 'published' && (saving || accreditationStatus !== 'approved')}
                           onClick={() => handleToggleClose(post)}
                         >
-                          {post.status === 'closed' ? 'Reopen' : 'Publish'}
-                        </Button>
-                      )}
-                      {post.status === 'published' && (
-                        <Link to={`/jobs/${post.id}`} aria-label={`View ${titleCase(post.title)}`} className="inline-flex size-9 items-center justify-center rounded-lg text-muted-foreground hover:text-primary">
-                          <Eye />
-                        </Link>
-                      )}
-                    </div>
+                          {post.status === 'published'
+                            ? 'Close posting'
+                            : post.status === 'closed'
+                              ? 'Reopen posting'
+                              : 'Publish posting'}
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem variant="destructive" onClick={() => setConfirmDeleteJob(post)}>
+                          Delete posting
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </TableCell>
                 </TableRow>
               ))}
@@ -560,17 +556,6 @@ export default function JobPosts() {
           onEdit={handleOpenEdit}
           onToggleClose={handleToggleClose}
           onDelete={setConfirmDeleteJob}
-        />
-      )}
-
-      {/* Confirmation Modal for Archiving */}
-      {confirmArchiveId && (
-        <ConfirmationModal
-          message="Are you sure you want to archive this job vacancy? It will be deactivated and removed from public listings."
-          onConfirm={confirmArchiveJob}
-          onCancel={() => setConfirmArchiveId(null)}
-          confirmLabel="Archive Listing"
-          danger
         />
       )}
 

@@ -55,7 +55,9 @@ async function openCreateForm() {
 async function openEditForm(job) {
   listEmployerJobs.mockResolvedValue({ data: [job], total: 1, page: 1, pageSize: 25 })
   renderJobPosts()
-  fireEvent.click(await screen.findByRole('button', { name: /^edit /i }))
+  fireEvent.click(await screen.findByRole('button', { name: `Actions for ${job.title}` }))
+  await screen.findByRole('menu')
+  fireEvent.click(screen.getByRole('menuitem', { name: 'Edit posting' }))
 }
 
 async function fieldSelect() {

@@ -67,6 +67,12 @@ async function openForm() {
   return screen.findByRole('heading', { name: /post a municipal vacancy/i })
 }
 
+// The row actions live behind a single overflow menu; it renders in a portal.
+async function openRowMenu() {
+  fireEvent.click(await screen.findByRole('button', { name: 'Actions for Warehouse Associate' }))
+  return screen.findByRole('menu')
+}
+
 describe('JobPosts accessibility', () => {
   beforeEach(() => vi.clearAllMocks())
 
@@ -104,10 +110,74 @@ describe('JobPosts accessibility', () => {
     expect(screen.queryByRole('dialog')).toBeNull()
   })
 
+  // ADR-021 signs a signed-in user out on any public route, so row actions must
+  // stay inside the employer portal: one overflow menu, no public job link.
+  it('offers a single actions menu per row instead of separate row buttons', async () => {
+    await renderJobPosts()
+
+    expect(screen.getAllByRole('button', { name: 'Actions for Warehouse Associate' })).toHaveLength(1)
+    expect(screen.queryByRole('button', { name: /^Edit Warehouse Associate$/ })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'View Warehouse Associate' })).toBeNull()
+    expect(screen.queryByRole('link', { name: 'View Warehouse Associate' })).toBeNull()
+    expect(document.querySelector('a[href="/jobs/job-1"]')).toBeNull()
+  })
+
+  it('lists edit, status, and delete actions for a published row', async () => {
+    await renderJobPosts()
+    await openRowMenu()
+
+    expect(screen.getByRole('menuitem', { name: 'Edit posting' })).toBeInTheDocument()
+    expect(screen.getByRole('menuitem', { name: 'Close posting' })).toBeInTheDocument()
+    expect(screen.getByRole('menuitem', { name: 'Delete posting' })).toBeInTheDocument()
+  })
+
+  it('opens the edit form from the row menu', async () => {
+    await renderJobPosts()
+    await openRowMenu()
+
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Edit posting' }))
+    expect(await screen.findByRole('heading', { name: 'Edit Job Vacancy' })).toBeInTheDocument()
+  })
+
+  it('opens the delete confirmation from the row menu', async () => {
+    await renderJobPosts()
+    await openRowMenu()
+
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Delete posting' }))
+    expect(
+      await screen.findByText('This permanently deletes "Warehouse Associate" and its 3 application(s). This cannot be undone.')
+    ).toBeInTheDocument()
+  })
+
+  it('shows Publish posting for a draft row', async () => {
+    await renderJobPosts([job({ status: 'draft' })])
+    await openRowMenu()
+
+    expect(screen.getByRole('menuitem', { name: 'Publish posting' })).toBeInTheDocument()
+  })
+
+  // The loader stops before listing jobs for an unaccredited employer, so the
+  // guarded "Publish posting" item cannot render at all in that state.
+  it('keeps the row menu away from an unaccredited employer', async () => {
+    getEmployer.mockResolvedValue({ ...APPROVED_EMPLOYER, accreditation_status: 'pending' })
+    listEmployerJobs.mockResolvedValue({ data: [job({ status: 'draft' })], total: 1, page: 1, pageSize: 25 })
+
+    render(
+      <MemoryRouter>
+        <JobPosts />
+      </MemoryRouter>
+    )
+
+    expect(await screen.findByText(/publishing is unavailable until PESO approves/i)).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Actions for Warehouse Associate' })).toBeNull()
+  })
+
   it('announces action errors in a live region', async () => {
     changeJobStatus.mockRejectedValue(new Error('Network down'))
     await renderJobPosts()
-    fireEvent.click(screen.getByRole('button', { name: 'Close' }))
+    await openRowMenu()
+
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Close posting' }))
     await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('Network down'))
   })
 

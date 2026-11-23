@@ -67,8 +67,9 @@ async function openCreateForm() {
 async function openEditForm(job = JOB) {
   listEmployerJobs.mockResolvedValue({ data: [job], total: [job].length, page: 1, pageSize: 25 })
   renderJobPosts()
-  const editBtn = await screen.findByRole('button', { name: /^edit /i })
-  fireEvent.click(editBtn)
+  fireEvent.click(await screen.findByRole('button', { name: `Actions for ${job.title}` }))
+  await screen.findByRole('menu')
+  fireEvent.click(screen.getByRole('menuitem', { name: 'Edit posting' }))
 }
 
 // The create flow requires title, description, barangay location, and a field before it will save.
