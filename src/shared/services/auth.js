@@ -35,7 +35,10 @@ function friendlyAuthError(error) {
     return new Error('Verification failed. Please complete the challenge again.');
   }
   if (code === 'EMAIL_NOT_VERIFIED') {
-    return new Error('Please verify your email address before signing in. Check your inbox for the verification link.');
+    // The login screen offers a resend for this one case, so keep the code.
+    const err = new Error('Please verify your email address before signing in. Check your inbox for the verification link.');
+    err.code = code;
+    return err;
   }
   if (code === 'INVALID_TOKEN') {
     return new Error('This link is invalid or expired. Request a new one.');
@@ -241,6 +244,21 @@ export async function signUp({ email, password, role, firstName, middleName = ''
     // requireEmailVerification is fixed in ba.js: sign-up never signs in.
     emailConfirmationRequired: true,
   };
+}
+
+// BA rate-limits this endpoint (3/min); friendlyAuthError already turns a 429
+// into the "wait a moment" wording both callers show.
+export async function resendVerificationEmail(email) {
+  let result;
+  try {
+    result = await authClient.sendVerificationEmail({
+      email,
+      callbackURL: `${window.location.origin}/auth/callback`,
+    });
+  } catch (error) {
+    throw friendlyAuthError(error);
+  }
+  if (result.error) throw friendlyAuthError(result.error);
 }
 
 export async function signOut() {

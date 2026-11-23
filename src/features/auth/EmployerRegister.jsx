@@ -32,6 +32,7 @@ function EmployerRegister() {
   const [submitted, setSubmitted] = useState(false);
   const [busy, setBusy] = useState(false);
   const [needsConfirmation, setNeedsConfirmation] = useState(false);
+  const [submittedEmail, setSubmittedEmail] = useState("");
   const [termsOpen, setTermsOpen] = useState(false);
   const [termsRead, setTermsRead] = useState(false);
   const [agree, setAgree] = useState(false);
@@ -102,6 +103,7 @@ function EmployerRegister() {
     setError("");
     try {
       const account = await signUp({ ...buildEmployerSignUpPayload(values), captchaToken: captcha.token });
+      setSubmittedEmail(account.email || "");
 
       if (account.emailConfirmationRequired) {
         setNeedsConfirmation(true);
@@ -119,7 +121,7 @@ function EmployerRegister() {
   }
 
   if (submitted) {
-    return <EmployerRegisterSuccess needsConfirmation={needsConfirmation} />;
+    return <EmployerRegisterSuccess needsConfirmation={needsConfirmation} submittedEmail={submittedEmail} />;
   }
 
   const inputClass = "w-full min-h-[44px] px-4 rounded-xl text-sm bg-muted border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all";

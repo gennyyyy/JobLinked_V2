@@ -479,6 +479,13 @@ describe('JobSeekerRegister captcha', () => {
     expect(sentCaptcha()).toBe('captcha-token')
     expect(await screen.findByText(/check your email/i)).toBeInTheDocument()
     expect(screen.getByText(/verification link to juan@example.com/i)).toBeInTheDocument()
+
+    // The confirmation screen can resend, and it resends to the address that
+    // just registered.
+    fireEvent.click(screen.getByRole('button', { name: /resend verification email/i }))
+    await waitFor(() => expect(authClientMock.sendVerificationEmail).toHaveBeenCalledWith(
+      expect.objectContaining({ email: 'juan@example.com' }),
+    ))
   })
 
   it('requires a fresh challenge after a failed registration', async () => {

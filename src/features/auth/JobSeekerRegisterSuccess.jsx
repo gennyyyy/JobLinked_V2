@@ -1,6 +1,7 @@
 import PublicShell from '@/shared/components/PublicShell'
 import { LinkButton, Notice, SuccessMark } from '@/shared/components/design'
 import AuthFrame from './AuthFrame'
+import VerificationResend from './VerificationResend'
 
 export default function JobSeekerRegisterSuccess({ needsConfirmation, submittedEmail }) {
   return (
@@ -16,6 +17,7 @@ export default function JobSeekerRegisterSuccess({ needsConfirmation, submittedE
               ? `We sent a verification link to ${submittedEmail || 'your email'}. Open it to activate your account, then sign in to the portal.`
               : 'Your JobLinked applicant account has been created. You can now log in and apply to verified Santa Maria postings.'}
           </Notice>
+          {needsConfirmation && <VerificationResend email={submittedEmail} />}
           <LinkButton href="/login">Sign In to Portal →</LinkButton>
         </div>
       </AuthFrame>

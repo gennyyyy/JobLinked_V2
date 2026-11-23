@@ -108,6 +108,12 @@ describe('Login', () => {
     await userEvent.click(screen.getByRole('button', { name: /sign in/i }))
 
     expect(await screen.findByText(/verify your email address/i)).toBeInTheDocument()
+
+    await userEvent.click(await screen.findByRole('button', { name: /resend verification email/i }))
+    await waitFor(() => expect(authClientMock.sendVerificationEmail).toHaveBeenCalledWith({
+      email: 'new@test.com',
+      callbackURL: `${window.location.origin}/auth/callback`,
+    }))
   })
 
   it('seeds the auth provider before routing after a successful login', async () => {

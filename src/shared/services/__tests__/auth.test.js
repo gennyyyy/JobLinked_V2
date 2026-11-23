@@ -16,7 +16,7 @@ import { authClientMock, resetAuthClient } from '../../../test/authClientMock'
 import {
   signIn, signUp, signOut, getProfile, changePassword, changeEmail, resetPassword,
   resetPasswordWithToken, verifyEmailToken, completeTwoFactor, updateProfile,
-  listMfaFactors, enrollMfa, verifyMfaEnrollment, unenrollMfa,
+  listMfaFactors, enrollMfa, verifyMfaEnrollment, unenrollMfa, resendVerificationEmail,
 } from '../auth'
 
 beforeEach(() => {
@@ -106,7 +106,10 @@ describe('signIn', () => {
       error: { code: 'EMAIL_NOT_VERIFIED', message: 'Email not verified', status: 403 },
     })
 
-    await expect(signIn('new@test.com', 'password')).rejects.toThrow(/verify your email/i)
+    const error = await signIn('new@test.com', 'password').catch((e) => e)
+    expect(error.message).toMatch(/verify your email/i)
+    // The login screen keys its resend offer off this code.
+    expect(error.code).toBe('EMAIL_NOT_VERIFIED')
   })
 
   it('maps a missing or rejected captcha token to a fresh-challenge message', async () => {
@@ -326,6 +329,35 @@ describe('signUp', () => {
     })
 
     await expect(signUp(signUpPayload())).rejects.toThrow('User already exists')
+  })
+})
+
+describe('resendVerificationEmail', () => {
+  it('sends to the given address with the callback URL', async () => {
+    await resendVerificationEmail('new@test.com')
+
+    expect(authClientMock.sendVerificationEmail).toHaveBeenCalledWith({
+      email: 'new@test.com',
+      callbackURL: `${window.location.origin}/auth/callback`,
+    })
+  })
+
+  it('maps the server rate limit to retryable wording', async () => {
+    authClientMock.sendVerificationEmail.mockResolvedValue({
+      data: null,
+      error: { message: 'Too many requests', status: 429 },
+    })
+
+    await expect(resendVerificationEmail('new@test.com')).rejects.toThrow(/wait a moment/i)
+  })
+
+  it('throws on a returned error', async () => {
+    authClientMock.sendVerificationEmail.mockResolvedValue({
+      data: null,
+      error: { code: 'INVALID_EMAIL', message: 'Invalid email', status: 400 },
+    })
+
+    await expect(resendVerificationEmail('new@test.com')).rejects.toThrow('Invalid email')
   })
 })
 

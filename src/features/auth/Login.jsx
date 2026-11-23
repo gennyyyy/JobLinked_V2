@@ -12,6 +12,7 @@ import LoadingScreen from '@/shared/components/LoadingScreen'
 import Turnstile from '@/shared/components/Turnstile'
 import PublicShell from '@/shared/components/PublicShell'
 import AuthFrame from './AuthFrame'
+import VerificationResend from './VerificationResend'
 import { Panel, TextField } from '@/shared/components/design'
 
 // One sign-in form for every account. The role comes from the profile the API
@@ -22,6 +23,7 @@ function Login() {
   const location = useLocation()
   const { user, role, loading, authenticate } = useAuth()
   const [error, setError] = useState('')
+  const [unverifiedEmail, setUnverifiedEmail] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [show, setShow] = useState(false)
@@ -42,6 +44,7 @@ function Login() {
   async function handleSubmit(event) {
     event.preventDefault()
     setError('')
+    setUnverifiedEmail('')
     if (captcha.required && !captcha.token) {
       setError('Please complete the verification challenge.')
       return
@@ -67,6 +70,9 @@ function Login() {
         return
       }
       setError(err.message || 'Invalid email or password')
+      // Only an unverified account gets a resend; every other failure keeps
+      // today's single error line.
+      if (err?.code === 'EMAIL_NOT_VERIFIED') setUnverifiedEmail(email.trim())
     } finally {
       setBusy(false)
     }
@@ -177,6 +183,7 @@ function Login() {
           </FieldGroup>
           {captcha.required && <Turnstile onToken={captcha.setToken} resetKey={captcha.round} />}
           {error && <p role="alert" className="text-xs leading-6 text-destructive">{error}</p>}
+          {unverifiedEmail && <VerificationResend email={unverifiedEmail} />}
           <Button type="submit" disabled={busy}>
             {busy ? <Loader2 data-icon="inline-start" className="animate-spin" /> : null}
             {busy ? 'Signing in…' : 'Sign In'}

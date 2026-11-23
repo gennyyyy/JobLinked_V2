@@ -23,6 +23,7 @@ export const authClientMock = {
   requestPasswordReset: vi.fn(),
   resetPassword: vi.fn(),
   verifyEmail: vi.fn(),
+  sendVerificationEmail: vi.fn(),
   changePassword: vi.fn(),
   changeEmail: vi.fn(),
   twoFactor: { enable: vi.fn(), disable: vi.fn(), verifyTotp: vi.fn() },
@@ -47,6 +48,7 @@ export function resetAuthClient() {
   authClientMock.requestPasswordReset.mockReset();
   authClientMock.resetPassword.mockReset();
   authClientMock.verifyEmail.mockReset();
+  authClientMock.sendVerificationEmail.mockReset();
   authClientMock.changePassword.mockReset();
   authClientMock.changeEmail.mockReset();
   authClientMock.twoFactor.enable.mockReset();
@@ -57,6 +59,7 @@ export function resetAuthClient() {
   authClientMock.requestPasswordReset.mockResolvedValue({ data: { status: true }, error: null });
   authClientMock.resetPassword.mockResolvedValue({ data: { status: true }, error: null });
   authClientMock.verifyEmail.mockResolvedValue({ data: { status: true }, error: null });
+  authClientMock.sendVerificationEmail.mockResolvedValue({ data: { status: true }, error: null });
   authClientMock.changePassword.mockResolvedValue({ data: { token: null }, error: null });
   authClientMock.changeEmail.mockResolvedValue({ data: { status: true }, error: null });
   authClientMock.twoFactor.enable.mockResolvedValue({ data: { method: 'totp' }, error: null });
