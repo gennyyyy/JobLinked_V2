@@ -1,9 +1,9 @@
 import { useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
-import { ArrowRight, Loader2 } from 'lucide-react'
+import { ArrowRight, Eye, EyeOff, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { FieldGroup, Field, FieldLabel } from '@/components/ui/field'
-import { InputGroup, InputGroupInput } from '@/components/ui/input-group'
+import { InputGroup, InputGroupInput, InputGroupAddon, InputGroupButton } from '@/components/ui/input-group'
 import { resetPasswordWithToken } from '@/shared/services/auth'
 import { passwordError, PASSWORD_HINT } from '@/shared/utils/password'
 import PublicShell from '@/shared/components/PublicShell'
@@ -19,6 +19,8 @@ export default function ResetPassword() {
   const token = searchParams.get('token') || ''
   const [password, setPassword] = useState('')
   const [confirm, setConfirm] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirm, setShowConfirm] = useState(false)
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
 
@@ -70,13 +72,23 @@ export default function ResetPassword() {
                 <InputGroupInput
                   id="reset-password"
                   name="password"
-                  type="password"
+                  type={showPassword ? 'text' : 'password'}
                   autoComplete="new-password"
                   placeholder={PASSWORD_HINT}
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                 />
+                <InputGroupAddon align="inline-end">
+                  <InputGroupButton
+                    type="button"
+                    size="icon-sm"
+                    onClick={() => setShowPassword((v) => !v)}
+                  >
+                    {showPassword ? <EyeOff /> : <Eye />}
+                    <span className="sr-only">{showPassword ? 'Hide new password' : 'Show new password'}</span>
+                  </InputGroupButton>
+                </InputGroupAddon>
               </InputGroup>
             </Field>
             <Field>
@@ -85,13 +97,23 @@ export default function ResetPassword() {
                 <InputGroupInput
                   id="reset-confirm"
                   name="confirm"
-                  type="password"
+                  type={showConfirm ? 'text' : 'password'}
                   autoComplete="new-password"
                   placeholder="Re-enter password"
                   required
                   value={confirm}
                   onChange={(e) => setConfirm(e.target.value)}
                 />
+                <InputGroupAddon align="inline-end">
+                  <InputGroupButton
+                    type="button"
+                    size="icon-sm"
+                    onClick={() => setShowConfirm((v) => !v)}
+                  >
+                    {showConfirm ? <EyeOff /> : <Eye />}
+                    <span className="sr-only">{showConfirm ? 'Hide confirm password' : 'Show confirm password'}</span>
+                  </InputGroupButton>
+                </InputGroupAddon>
               </InputGroup>
             </Field>
           </FieldGroup>

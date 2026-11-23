@@ -95,4 +95,35 @@ describe('ResetPassword', () => {
     expect(await screen.findByText('This link is invalid or expired. Request a new one.')).toBeInTheDocument()
     expect(screen.getByLabelText(/new password/i)).toBeInTheDocument()
   })
+
+  it('toggles only the new-password field with its own control', () => {
+    renderReset()
+    const newPassword = screen.getByLabelText(/new password/i)
+    const confirmPassword = screen.getByLabelText(/confirm password/i)
+
+    expect(newPassword).toHaveAttribute('type', 'password')
+    expect(confirmPassword).toHaveAttribute('type', 'password')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Show new password' }))
+    expect(newPassword).toHaveAttribute('type', 'text')
+    expect(confirmPassword).toHaveAttribute('type', 'password')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Hide new password' }))
+    expect(newPassword).toHaveAttribute('type', 'password')
+    expect(confirmPassword).toHaveAttribute('type', 'password')
+  })
+
+  it('toggles only the confirm-password field with its own control', () => {
+    renderReset()
+    const newPassword = screen.getByLabelText(/new password/i)
+    const confirmPassword = screen.getByLabelText(/confirm password/i)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Show confirm password' }))
+    expect(confirmPassword).toHaveAttribute('type', 'text')
+    expect(newPassword).toHaveAttribute('type', 'password')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Hide confirm password' }))
+    expect(confirmPassword).toHaveAttribute('type', 'password')
+    expect(newPassword).toHaveAttribute('type', 'password')
+  })
 })
