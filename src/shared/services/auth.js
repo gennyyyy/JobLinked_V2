@@ -49,7 +49,12 @@ function friendlyAuthError(error) {
   // Never reveal whether an email exists: the sign-in answer stays generic.
   if (code === 'INVALID_EMAIL_OR_PASSWORD') return new Error('Invalid email or password');
   if (error.status === 429 || code === 'TOO_MANY_REQUESTS' || /too many|rate.?limit/i.test(message)) {
-    return new Error('Too many attempts. Please wait a moment and try again.');
+    // The resend screens hold their button for the server's 60s window, so the
+    // rate-limit signal has to survive the friendly rewording.
+    const err = new Error('Too many attempts. Please wait a moment and try again.');
+    err.code = 'RATE_LIMITED';
+    err.status = 429;
+    return err;
   }
   return error;
 }

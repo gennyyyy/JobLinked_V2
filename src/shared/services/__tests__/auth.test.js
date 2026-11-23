@@ -342,13 +342,16 @@ describe('resendVerificationEmail', () => {
     })
   })
 
-  it('maps the server rate limit to retryable wording', async () => {
+  it('maps the server rate limit to retryable wording and keeps the signal', async () => {
     authClientMock.sendVerificationEmail.mockResolvedValue({
       data: null,
       error: { message: 'Too many requests', status: 429 },
     })
 
-    await expect(resendVerificationEmail('new@test.com')).rejects.toThrow(/wait a moment/i)
+    const error = await resendVerificationEmail('new@test.com').catch((e) => e)
+    expect(error.message).toMatch(/wait a moment/i)
+    // The resend screens start their button cooldown off these two fields.
+    expect(error).toMatchObject({ code: 'RATE_LIMITED', status: 429 })
   })
 
   it('throws on a returned error', async () => {

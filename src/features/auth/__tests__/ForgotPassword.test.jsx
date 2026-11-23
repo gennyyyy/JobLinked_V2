@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import ForgotPassword from '../ForgotPassword'
 
@@ -94,6 +94,65 @@ describe('ForgotPassword', () => {
     fireEvent.click(screen.getByRole('button', { name: /send reset link/i }))
 
     expect(await screen.findByText('Email delivery failed')).toBeInTheDocument()
+  })
+})
+
+// The server allows 3 sends per 60s per IP and the button mirrors that window.
+// fireEvent + a flushed microtask keeps the click deterministic under the fake
+// clock (findBy/waitFor would need real timers).
+async function submitAndFlush() {
+  fireEvent.click(screen.getByRole('button', { name: /send reset link/i }))
+  await act(async () => {})
+}
+
+describe('ForgotPassword cooldown', () => {
+  beforeEach(() => { vi.useFakeTimers() })
+  afterEach(() => { vi.useRealTimers() })
+
+  it('holds the button for 60 seconds after a successful request', async () => {
+    renderForgot()
+    fireEvent.change(screen.getByLabelText(/email/i), { target: { value: 'jane@example.com' } })
+
+    await submitAndFlush()
+
+    expect(screen.getByText(/check your email for reset instructions/i)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Send again in 60s' })).toBeDisabled()
+
+    act(() => { vi.advanceTimersByTime(1_000) })
+    expect(screen.getByRole('button', { name: 'Send again in 59s' })).toBeDisabled()
+
+    act(() => { vi.advanceTimersByTime(59_000) })
+    expect(screen.getByRole('button', { name: 'Send Reset Link' })).toBeEnabled()
+  })
+
+  it('sends once when the form is submitted twice in the same tick', async () => {
+    const { container } = renderForgot()
+    fireEvent.change(screen.getByLabelText(/email/i), { target: { value: 'jane@example.com' } })
+    const form = container.querySelector('form')
+
+    // Both submits land before React can re-render, so only the in-flight ref
+    // (not the `busy` state) can stop the second request.
+    await act(async () => {
+      fireEvent.submit(form)
+      fireEvent.submit(form)
+    })
+
+    expect(authClientMock.requestPasswordReset).toHaveBeenCalledTimes(1)
+  })
+
+  it('starts the cooldown on a server 429 and shows the friendly message', async () => {
+    authClientMock.requestPasswordReset.mockResolvedValue({
+      data: null,
+      error: { message: 'Too many requests', status: 429 },
+    })
+    renderForgot()
+    fireEvent.change(screen.getByLabelText(/email/i), { target: { value: 'jane@example.com' } })
+
+    await submitAndFlush()
+
+    expect(screen.getByRole('alert')).toHaveTextContent('Too many attempts. Please wait a moment and try again.')
+    expect(screen.getByRole('button', { name: 'Send again in 60s' })).toBeDisabled()
+    expect(authClientMock.requestPasswordReset).toHaveBeenCalledTimes(1)
   })
 })
 

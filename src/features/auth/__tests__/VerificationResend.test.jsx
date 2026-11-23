@@ -61,7 +61,7 @@ describe('VerificationResend', () => {
     expect(screen.getByRole('button', { name: 'Resend verification email' })).toBeEnabled()
   })
 
-  it('shows the failure and re-enables the button', async () => {
+  it('starts the cooldown on a server 429 instead of re-enabling the button', async () => {
     authClientMock.sendVerificationEmail.mockResolvedValue({
       data: null,
       error: { message: 'Too many requests', status: 429 },
@@ -71,6 +71,10 @@ describe('VerificationResend', () => {
     await clickResend()
 
     expect(screen.getByRole('alert')).toHaveTextContent('Too many attempts. Please wait a moment and try again.')
+    expect(screen.getByRole('button', { name: 'Resend in 60s' })).toBeDisabled()
+
+    act(() => { vi.advanceTimersByTime(60_000) })
+
     expect(screen.getByRole('button', { name: 'Resend verification email' })).toBeEnabled()
   })
 })

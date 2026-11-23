@@ -103,7 +103,17 @@ export const auth = betterAuth({
     }),
   },
   plugins,
-  rateLimit: { enabled: true },
+  // Pinned, not inherited: BA 1.7 already defaults these two email endpoints to
+  // 3 per 60s per IP, but an upgrade may change that silently. The client holds
+  // its buttons for the same 60s, so a mismatch would only show as a surprise
+  // 429 (or a wasted send).
+  rateLimit: {
+    enabled: true,
+    customRules: {
+      '/send-verification-email': { window: 60, max: 3 },
+      '/request-password-reset': { window: 60, max: 3 },
+    },
+  },
   // BA's default logger writes colorized free-text lines to the console, which
   // breaks the API's one-JSON-line-per-event contract. Route its events through
   // our logger; args are reduced to strings first, so a pg DatabaseError can
