@@ -39,7 +39,7 @@ describe('JobPosts empty state (U5)', () => {
 
     expect(await screen.findByText(/publishing is unavailable until PESO approves your accreditation/i)).toBeInTheDocument()
     expect(screen.getByRole('link', { name: /review requirements and feedback/i })).toHaveAttribute('href', '/employer/accreditation')
-    expect(screen.getByText('Your next opening starts here.')).toBeInTheDocument()
+    expect(screen.getByText('No job posts match this view.')).toBeInTheDocument()
   })
 
   it('keeps the create advice for approved employers with no posts', async () => {
@@ -52,7 +52,7 @@ describe('JobPosts empty state (U5)', () => {
       </MemoryRouter>,
     )
 
-    expect(await screen.findByText('Your next opening starts here.')).toBeInTheDocument()
+    expect(await screen.findByText('No job posts match this view.')).toBeInTheDocument()
     expect(screen.queryByText(/publishing is unavailable/i)).not.toBeInTheDocument()
     expect((screen.getAllByRole('button', { name: /create a vacancy/i })).length).toBeGreaterThan(0)
   })

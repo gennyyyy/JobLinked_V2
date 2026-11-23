@@ -82,6 +82,7 @@ describe('Profile fields and save', () => {
 
     fireEvent.click(screen.getByRole('tab', { name: /education/i }))
     expect(await screen.findByText('Completed — College')).toBeInTheDocument()
+    expect(screen.getByText('Business · Graduated 2022')).toBeInTheDocument()
     expect(screen.queryByRole('combobox', { name: /^education$/i })).not.toBeInTheDocument()
     expect(screen.getAllByText('College').length).toBeGreaterThan(0)
     expect(screen.getAllByText('Cashier').length).toBeGreaterThan(0)

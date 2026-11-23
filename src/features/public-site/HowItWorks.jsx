@@ -60,7 +60,7 @@ const CONTENT = {
       {
         step: '03',
         title: 'Wait for PESO demo approval',
-        desc: 'Your account starts at Pending Review. You may draft jobs, but cannot publish before approval. Accreditation takes about three business days.',
+        desc: 'Your account starts at Pending Review. You may draft jobs, but cannot publish before approval. Accreditation takes about 3 business days.',
       },
       {
         step: '04',
@@ -82,8 +82,7 @@ export default function HowItWorks() {
         <header className="page-hero bg-cover bg-center border-b border-border" style={{ backgroundImage: `linear-gradient(180deg, rgba(247,250,255,0.88) 0%, rgba(247,250,255,0.72) 100%), url(${landingBg})` }}>
           <div className="page-container py-14 md:py-16">
             <div>
-              <p className="eyebrow mb-4">Less paperwork. More possibility.</p>
-              <h1 className="display-heading text-navy">How JobLinked works</h1>
+              <h1 className="display-heading text-navy">How It Works</h1>
               <p className="mt-5 max-w-xl text-sm leading-7 text-muted-foreground md:text-base">
                 A clear path from your first profile to your next opportunity.
               </p>

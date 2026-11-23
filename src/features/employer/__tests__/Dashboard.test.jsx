@@ -70,7 +70,7 @@ describe('Employer Dashboard summary', () => {
 
   it('shows the empty state when there are no recent applicants', async () => {
     await renderDashboard({ jobs: [], stats: {}, recent: [] })
-    expect(screen.getByText(/Your next teammate is out there/i)).toBeInTheDocument()
+    expect(screen.getByText(/No applicants yet/i)).toBeInTheDocument()
   })
 
   it('uses the summary endpoint instead of the full job + applicant lists', async () => {

@@ -54,6 +54,16 @@ export function isJobOpen(job) {
   return Number.isFinite(deadline) ? deadline >= Date.now() : true
 }
 
+// Date-only deadline from the API, formatted in Manila time so the card never
+// shows the day before. Missing/invalid dates return null (nothing to show).
+export function closingDateLabel(job) {
+  if (!job.deadline) return null
+  const deadline = new Date(`${String(job.deadline).slice(0, 10)}T00:00:00+08:00`)
+  return Number.isFinite(deadline.getTime())
+    ? deadline.toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'Asia/Manila' })
+    : null
+}
+
 // The seeker's skills against the vacancy's structured skills list. Legacy
 // vacancies without one keep the old text heuristic over the posting body.
 export function matchJob(job, user) {

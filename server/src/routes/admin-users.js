@@ -6,6 +6,7 @@ import { auth as baAuth } from '../ba.js';
 import { requirePermission, unheldKey } from '../middleware/permissions.js';
 import { ah, err, audit, buildFullName, isUuid, pageParams, withTransaction } from '../util.js';
 import { USER_TABLES, ACCOUNT_STATUSES, likeFilter } from './admin-shared.js';
+import { appOrigin } from '../appOrigin.js';
 import logger from '../logger.js';
 
 const router = Router();
@@ -26,9 +27,6 @@ const SEEKER_FILTERS = [
   ['education', 'x.education_summary'],
   ['experience', 'x.experience_summary'],
 ];
-
-// First CORS_ORIGIN entry: the app origin an emailed link must return to.
-const appOrigin = () => String(process.env.CORS_ORIGIN || '').split(',')[0].trim();
 
 router.get('/admin/users', ...admin, ah(async (req, res) => {
   const { role = null, search = '', status = null } = req.query;

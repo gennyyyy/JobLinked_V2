@@ -81,7 +81,6 @@ export default function Applications() {
   return (
     <>
       <PageHeading
-        eyebrow="Follow every connection"
         title="From opportunity to a new beginning."
         description="Monitor recruitment outcomes and record referral markers. No external referral is sent."
         action={(
@@ -171,7 +170,7 @@ export default function Applications() {
             </TableBody>
           </Table>
         ) : (
-          <EmptyState title="No recruitment records match." description="Try another status, barangay, referral marker, or search." />
+          <EmptyState title="No applications match these filters." description="Clear the filters to see all applications." />
         )}
         <Pager page={currentPage} pageSize={PAGE_SIZE} total={records.length} onChange={setPage} />
       </Panel>

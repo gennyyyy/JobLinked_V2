@@ -556,7 +556,6 @@ function UserManagement() {
           >
             <div className="flex items-start justify-between gap-3 border-b pb-4">
               <div>
-                <p className="eyebrow">Invite</p>
                 <h2 id="invite-title" className="mt-2 text-lg font-semibold tracking-tight text-navy">Add user</h2>
                 <p className="mt-1 text-[11px] leading-5 text-muted-foreground">Send an invitation email to onboard a new municipal user or partner.</p>
               </div>

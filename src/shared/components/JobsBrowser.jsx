@@ -4,7 +4,7 @@ import useAuth from '@/shared/hooks/useAuth'
 import { listJobs } from '@/shared/services/jobs'
 import { matchJobs } from '@/shared/services/ai'
 import { getSavedJobIds, subscribeSavedJobs, toggleSavedJob } from '@/shared/lib/savedJobs'
-import { PageHeading, EmptyState, SearchInput, SelectField } from '@/shared/components/design'
+import { EmptyState, SearchInput, SelectField } from '@/shared/components/design'
 import { Button } from '@/components/ui/button'
 import JobCard from '@/shared/components/JobCard'
 import PreferenceMatching from './PreferenceMatching'
@@ -35,9 +35,6 @@ const isBrowsable = (job) => isJobOpen(job) && (!job.employers?.accreditation_st
 export default function JobsBrowser({
   saved = false,
   jobHref,
-  eyebrow,
-  title,
-  description,
   initialQuery = '',
   initialBarangay = '',
 }) {
@@ -245,13 +242,6 @@ export default function JobsBrowser({
 
   return (
     <>
-      <PageHeading
-        eyebrow={saved ? 'Your collection' : (eyebrow || 'Built around your skills')}
-        title={saved ? 'Keep good opportunities close.' : (title || 'Browse Jobs')}
-        description={saved
-          ? 'Your saved vacancies, together in one place. Closed roles may no longer accept applications.'
-          : (description || 'Explore local roles ranked by the skills you have added to your profile.')}
-      />
       <div className="flex flex-col gap-7 lg:flex-row">
         {!saved && (
           <aside className="surface h-fit w-full shrink-0 lg:sticky lg:top-[90px] lg:z-10 lg:max-h-[calc(100vh-110px)] lg:w-[235px] lg:self-start lg:overflow-y-auto">
@@ -321,16 +311,16 @@ export default function JobsBrowser({
             </div>
           ) : matchingPrompt ? (
             <EmptyState
-              title="No matching opportunities in this view."
-              description="Nothing matched that request. Clear it to go back to skills-based ranking."
+              title="No jobs match that request."
+              description="Clear the matching request to return to skills-based ranking."
               action={<Button variant="outline" onClick={() => applyMatching('')}>Clear matching</Button>}
             />
           ) : (
             <EmptyState
-              title={saved ? 'Make room for your next chapter.' : 'No matching opportunities in this view.'}
+              title={saved ? 'No saved jobs.' : 'No jobs match this search.'}
               description={saved
-                ? 'Tap the bookmark on a vacancy to save it here, or clear your search.'
-                : 'Try another search or explore all local vacancies.'}
+                ? 'Save a job with its bookmark to see it here.'
+                : 'Clear the search or filters to see all jobs.'}
               href="/jobs"
             />
           )}

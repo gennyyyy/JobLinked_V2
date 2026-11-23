@@ -10,11 +10,8 @@ vi.mock('@/shared/hooks/useAuth', () => ({
 // The browser itself is covered by JobsBrowser.test.jsx; here we pin the props
 // the public page hands it.
 vi.mock('@/shared/components/JobsBrowser', () => ({
-  default: ({ jobHref, eyebrow, title, description, initialQuery, initialBarangay }) => (
+  default: ({ jobHref, initialQuery, initialBarangay }) => (
     <div>
-      <p>{eyebrow}</p>
-      <h1>{title}</h1>
-      <p>{description}</p>
       <p>Query: {initialQuery}</p>
       <p>Barangay: {initialBarangay}</p>
       <a href={jobHref('job-9')}>Open job</a>
@@ -31,12 +28,9 @@ function renderPage(path = '/jobs') {
 }
 
 describe('PublicJobs', () => {
-  it('hands JobsBrowser the public heading, copy, and job href', () => {
+  it('renders the public browser job href', () => {
     renderPage()
 
-    expect(screen.getByText('Public employment bulletins')).toBeInTheDocument()
-    expect(screen.getByRole('heading', { level: 1, name: 'Find openings in Santa Maria' })).toBeInTheDocument()
-    expect(screen.getByText('Explore verified job postings from accredited Santa Maria employers. Apply directly through the municipal portal.')).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Open job' })).toHaveAttribute('href', '/jobs/job-9')
   })
 

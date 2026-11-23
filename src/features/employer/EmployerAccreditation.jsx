@@ -215,7 +215,7 @@ function EmployerAccreditation() {
                 return (
                   <li key={docType} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border p-4">
                     <div className="flex min-w-0 items-center gap-3">
-                      <FileCheck2 className={`size-5 shrink-0 ${doc ? "text-teal" : "text-muted-foreground/40"}`} aria-hidden="true" />
+                      <FileCheck2 className={`size-5 shrink-0 ${doc ? "text-teal" : "text-muted-foreground"}`} aria-hidden="true" />
                       <div className="min-w-0">
                         <p className="text-xs font-medium text-navy">{docType}</p>
                         <p className="mt-1 max-w-[240px] truncate text-[10px] text-muted-foreground">

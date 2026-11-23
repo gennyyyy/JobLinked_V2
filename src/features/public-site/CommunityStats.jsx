@@ -60,7 +60,6 @@ export default function CommunityStats() {
     <section className="bg-navy text-white">
       <div className="page-container flex flex-col gap-10 py-14 md:py-16 lg:flex-row lg:items-end lg:justify-between">
         <div className="max-w-sm">
-          <RevealText as="p" className="eyebrow mb-3 text-white/70" tier="display">A snapshot of our community</RevealText>
           <RevealText as="h2" className="text-2xl font-semibold leading-[1.15] tracking-[-0.03em] text-white" tier="display">Local connections. Real potential.</RevealText>
           <RevealText as="p" className="mt-3 text-sm leading-6 text-white/70">Platform counts only—not municipal employment statistics.</RevealText>
         </div>

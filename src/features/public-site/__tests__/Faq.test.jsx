@@ -19,4 +19,22 @@ describe('FAQ page', () => {
     expect(screen.getByRole('heading', { name: 'Frequently asked questions' })).toBeInTheDocument()
     FAQS.forEach((faq) => expect(screen.getByText(faq.question)).toBeInTheDocument())
   })
+
+  it('shows the employer accreditation and data-use questions', () => {
+    render(
+      <MemoryRouter>
+        <Faq />
+      </MemoryRouter>
+    )
+
+    const questions = [
+      'What documents do I need for employer accreditation?',
+      'How long does employer accreditation take?',
+      'Can I post jobs before my accreditation is approved?',
+      'What happens if my accreditation is rejected?',
+      'How is my data used on JobLinked?',
+    ]
+
+    questions.forEach((question) => expect(screen.getByText(question)).toBeInTheDocument())
+  })
 })

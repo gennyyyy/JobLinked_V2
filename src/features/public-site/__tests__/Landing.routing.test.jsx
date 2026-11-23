@@ -59,8 +59,8 @@ describe('Landing page routing', () => {
     )
 
     const stats = screen.getByRole('heading', { name: 'Local connections. Real potential.' }).closest('section')
-    const services = screen.getByRole('heading', { name: "You don't have to take the next step alone." }).closest('section')
-    const about = screen.getByRole('heading', { name: 'Built around people, not paperwork.' }).closest('section')
+    const services = screen.getByRole('heading', { name: 'PESO Services' }).closest('section')
+    const about = screen.getByRole('heading', { name: 'About JobLinked' }).closest('section')
 
     expect(stats.compareDocumentPosition(services) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     expect(services.compareDocumentPosition(about) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()

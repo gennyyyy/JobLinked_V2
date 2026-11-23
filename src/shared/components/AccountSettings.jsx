@@ -155,7 +155,6 @@ export default function AccountSettings({ embedded = false, children, childrenBe
     <>
       {!embedded && (
         <PageHeading
-          eyebrow="Make yourself at home"
           title={isAdmin ? 'System settings' : 'Your account, your preferences.'}
           description="Configure the reference values and legal documents that power the platform."
         />

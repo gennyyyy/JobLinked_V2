@@ -55,12 +55,12 @@ describe('SavedJobs', () => {
     expect(screen.getByText('1 saved opportunities')).toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('button', { name: /unsave administrative assistant/i }))
-    await waitFor(() => expect(screen.getByText('Make room for your next chapter.')).toBeInTheDocument())
+    await waitFor(() => expect(screen.getByText('No saved jobs.')).toBeInTheDocument())
   })
 
   it('shows the reference empty state when nothing is saved', async () => {
     renderSaved()
-    expect(await screen.findByText('Make room for your next chapter.')).toBeInTheDocument()
+    expect(await screen.findByText('No saved jobs.')).toBeInTheDocument()
     expect(screen.getByText('0 saved opportunities')).toBeInTheDocument()
   })
 })

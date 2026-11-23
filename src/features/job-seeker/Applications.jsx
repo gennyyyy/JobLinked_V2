@@ -105,7 +105,6 @@ export default function Applications() {
   return (
     <>
       <PageHeading
-        eyebrow="Every step counts"
         title="See how your story is moving."
         description="Track your applications, from your first hello to the employer’s decision."
         action={(
@@ -171,8 +170,8 @@ export default function Applications() {
           </Table>
         ) : (
           <EmptyState
-            title="A fresh start is a good start."
-            description="No applications match this view. Explore an opportunity and submit an application to see it here."
+            title="No applications yet."
+            description="Applications you submit will appear here."
             href="/job-seeker/jobs"
           />
         )}

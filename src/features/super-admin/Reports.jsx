@@ -109,7 +109,6 @@ export default function Reports() {
         <p className="text-xs">Provided data only.</p>
       </div>
       <PageHeading
-        eyebrow="A more informed local picture"
         title="Insights that keep people at the center."
         description="Explore provided vacancies, referrals, and placement outcomes across Santa Maria’s 24 barangays."
         action={(

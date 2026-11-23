@@ -16,6 +16,7 @@ const journeys = [
     ],
     href: '/register/job-seeker',
     label: 'Join as a job seeker',
+    note: 'Requires Email Verification',
   },
   {
     icon: Building2,
@@ -28,6 +29,7 @@ const journeys = [
     ],
     href: '/register/employer',
     label: 'Join as an employer',
+    note: 'Requires PESO Accreditation',
   },
 ]
 
@@ -41,12 +43,11 @@ export default function Register() {
         <div className="page-container pt-14">
           <div className="mx-auto max-w-3xl">
             <div className="mb-9 text-center">
-              <p className="eyebrow mb-3">A place for your next chapter</p>
-              <h1 className="text-4xl font-semibold tracking-[-.045em]">How can we help you grow?</h1>
+              <h1 className="text-4xl font-semibold tracking-[-.045em]">Create an Account</h1>
               <p className="mt-4 text-sm leading-7 text-muted-foreground">Choose the journey that feels right for you.</p>
             </div>
             <div className="grid gap-6 sm:grid-cols-2">
-              {journeys.map(({ icon: Icon, title, desc, items, href, label }) => (
+              {journeys.map(({ icon: Icon, title, desc, items, href, label, note }) => (
                 <div className="surface flex flex-col p-7" key={href}>
                   <span className="soft-icon">
                     <Icon className="size-5" />
@@ -61,10 +62,11 @@ export default function Register() {
                       </li>
                     ))}
                   </ul>
-                  <LinkButton href={href} className="mt-auto">
+                  <LinkButton href={href} className="mt-auto w-full">
                     {label}
                     <ArrowRight className="size-4" />
                   </LinkButton>
+                  <p className="mt-3 min-h-5 text-center text-[11px] leading-5 text-muted-foreground">{note}</p>
                 </div>
               ))}
             </div>

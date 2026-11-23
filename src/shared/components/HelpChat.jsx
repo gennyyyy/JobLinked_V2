@@ -90,8 +90,7 @@ function HelpChat() {
           >
             <div className="flex items-center justify-between gap-3 border-b px-5 py-4">
               <div className="min-w-0">
-                <p className="eyebrow">Support</p>
-                <h2 id="help-chat-title" className="mt-1 text-sm font-semibold">Help</h2>
+                <h2 id="help-chat-title" className="text-sm font-semibold">Help</h2>
               </div>
               <Button type="button" variant="ghost" size="icon" onClick={close} aria-label="Close help chat">
                 <X />

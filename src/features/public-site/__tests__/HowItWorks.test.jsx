@@ -15,7 +15,7 @@ describe('HowItWorks Page', () => {
       </MemoryRouter>
     )
 
-    expect(screen.getByRole('heading', { level: 1, name: /how joblinked works/i })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { level: 1, name: /how it works/i })).toBeInTheDocument()
     expect(screen.getByRole('heading', { level: 2, name: /make room for your next chapter/i })).toBeInTheDocument()
     expect(screen.getByText(/create your profile/i)).toBeInTheDocument()
     expect(screen.getByText(/explore local opportunities/i)).toBeInTheDocument()

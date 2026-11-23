@@ -171,7 +171,6 @@ function RoleManagement() {
   return (
     <div className="space-y-6 pb-12">
       <PageHeading
-        eyebrow="Clear responsibilities"
         title="Role Management"
         description="Manage role definitions here. Assign roles to individual accounts in User Management."
         action={(
@@ -292,7 +291,6 @@ function RoleManagement() {
             <form onSubmit={handleSave} className="flex flex-col gap-5 p-5 md:p-6">
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <p className="eyebrow">{editingId ? 'Edit role' : 'New role'}</p>
                   <h2 className="mt-2 text-lg font-semibold tracking-tight text-navy">
                     {editingId ? form.name || 'Untitled role' : 'Create a custom role'}
                   </h2>

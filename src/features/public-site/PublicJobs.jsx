@@ -11,8 +11,7 @@ export default function PublicJobs() {
       <header className="page-hero bg-cover bg-center border-b border-border" style={{ backgroundImage: `linear-gradient(180deg, rgba(247,250,255,0.88) 0%, rgba(247,250,255,0.72) 100%), url(${landingBg})` }}>
         <div className="page-container py-14 md:py-16">
           <div>
-            <p className="eyebrow mb-4">Public employment bulletins</p>
-            <h1 className="display-heading text-navy">Find openings in Santa Maria</h1>
+            <h1 className="display-heading text-navy">Browse Jobs</h1>
             <p className="mt-5 max-w-xl text-sm leading-7 text-muted-foreground md:text-base">
               Explore verified job postings from accredited Santa Maria employers. Apply directly through the municipal portal.
             </p>

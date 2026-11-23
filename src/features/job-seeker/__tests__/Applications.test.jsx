@@ -88,6 +88,6 @@ describe('Job seeker applications', () => {
         <Applications />
       </MemoryRouter>
     )
-    expect(await screen.findByText('A fresh start is a good start.')).toBeInTheDocument()
+    expect(await screen.findByText('No applications yet.')).toBeInTheDocument()
   })
 })

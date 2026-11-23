@@ -6,6 +6,8 @@ import useVocabulary from "@/shared/hooks/useVocabulary";
 import { EDUCATION_LEVELS } from "./jobSeekerRegistration";
 import FormSelect from "@/shared/components/FormSelect";
 
+const FIELD_LABEL = "mb-1 text-xs text-muted-foreground";
+
 function JobSeekerBackgroundStep({ form, errors, set, education, setEducation, eduError, setTermsOpen, termsRead, reqMark, unrecognizedSkills = [] }) {
   const skillVocabulary = useVocabulary('skill');
   return (
@@ -15,14 +17,26 @@ function JobSeekerBackgroundStep({ form, errors, set, education, setEducation, e
               <div>
               <p className="font-mono text-[11px] tracking-[0.2em] text-primary uppercase mb-4 font-semibold">Education History</p>
               <div className="grid gap-3 sm:grid-cols-2">
-                <FormSelect aria-label="Education level" id="educationLevel" value={education.level} onChange={(e) => setEducation({ ...education, level: e.target.value })} className="px-4 py-2.5 rounded-xl text-sm bg-muted border border-border text-foreground focus:outline-none focus:border-primary/60 transition-all">
+                <div>
+                  <Label htmlFor="education-level" className="mb-1 text-xs text-muted-foreground">Education Level</Label>
+                  <FormSelect aria-label="Education level" id="education-level" value={education.level} onChange={(e) => setEducation({ ...education, level: e.target.value })} className="px-4 py-2.5 rounded-xl text-sm bg-muted border border-border text-foreground focus:outline-none focus:border-primary/60 transition-all">
 
-                  {EDUCATION_LEVELS.map((l) => <option key={l} value={l}>{l}</option>)}
-                </FormSelect>
-                <Input aria-label="School name" placeholder="School name" value={education.school} onChange={(e) => setEducation({ ...education, school: e.target.value })} className="px-4 py-2.5 rounded-xl text-sm bg-muted border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/60 transition-all" />
-                <div className="flex gap-2 sm:col-span-2">
-                  <Input aria-label="Course / field of study" placeholder="Course / field" value={education.field} onChange={(e) => setEducation({ ...education, field: e.target.value })} className="flex-1 px-4 py-2.5 rounded-xl text-sm bg-muted border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/60 transition-all" />
-                  <Input aria-label="Graduation year" placeholder="Year" inputMode="numeric" disabled={education.studying} value={education.year} onChange={(e) => setEducation({ ...education, year: e.target.value })} className="!w-40 px-3 py-2.5 rounded-xl text-sm bg-muted border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/60 transition-all disabled:opacity-50" />
+                    {EDUCATION_LEVELS.map((l) => <option key={l} value={l}>{l}</option>)}
+                  </FormSelect>
+                </div>
+                <div>
+                  <Label htmlFor="education-school" className="mb-1 text-xs text-muted-foreground">School Name</Label>
+                  <Input id="education-school" aria-label="School name" placeholder="School name" value={education.school} onChange={(e) => setEducation({ ...education, school: e.target.value })} className="px-4 py-2.5 rounded-xl text-sm bg-muted border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/60 transition-all" />
+                </div>
+                <div className="grid gap-3 sm:col-span-2 sm:grid-cols-[1fr_10rem] sm:items-end">
+                  <div>
+                    <Label htmlFor="education-field" className="mb-1 text-xs text-muted-foreground">Course / Field <span className="text-muted-foreground">(optional)</span></Label>
+                    <Input id="education-field" aria-label="Course / field of study" placeholder="Course / field" value={education.field} onChange={(e) => setEducation({ ...education, field: e.target.value })} className="w-full px-4 py-2.5 rounded-xl text-sm bg-muted border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/60 transition-all" />
+                  </div>
+                  <div className="w-40 shrink-0">
+                    <Label htmlFor="education-year" className="mb-1 text-xs text-muted-foreground">Graduation Year</Label>
+                    <Input id="education-year" aria-label="Graduation year" placeholder="e.g. 2024" inputMode="numeric" disabled={education.studying} value={education.year} onChange={(e) => setEducation({ ...education, year: e.target.value })} className="w-full px-3 py-2.5 rounded-xl text-sm bg-muted border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/60 transition-all disabled:opacity-50" />
+                  </div>
                 </div>
               </div>
               <Label className="mt-2 flex items-center gap-2 text-xs text-muted-foreground select-none cursor-pointer">
@@ -42,6 +56,7 @@ function JobSeekerBackgroundStep({ form, errors, set, education, setEducation, e
                 value={form.field}
                 onChange={(v) => set("field", v)}
                 help="Your main line of work. Optional."
+                labelClassName={FIELD_LABEL}
               />
               </div>
 
@@ -53,6 +68,7 @@ function JobSeekerBackgroundStep({ form, errors, set, education, setEducation, e
                 suggestions={skillVocabulary.values}
                 placeholder="Type a skill and press Enter"
                 help="Pick the skills employers should match you on. Optional."
+                labelClassName={FIELD_LABEL}
               />
               {skillVocabulary.loading && <p role="status" className="text-xs text-muted-foreground">Loading skills…</p>}
               {skillVocabulary.error && (

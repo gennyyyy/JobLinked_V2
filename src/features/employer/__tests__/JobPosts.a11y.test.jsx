@@ -58,7 +58,7 @@ async function renderJobPosts(posts = [job()]) {
     </MemoryRouter>
   )
   if (posts.length) return screen.findByRole('button', { name: 'Warehouse Associate' })
-  return screen.findByText('Your next opening starts here.')
+  return screen.findByText('No job posts match this view.')
 }
 
 async function openForm() {

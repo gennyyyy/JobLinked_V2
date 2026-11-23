@@ -5,6 +5,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { signUp } from "@/shared/services/auth";
 import useCaptcha from "@/shared/hooks/useCaptcha";
 import TermsModal from "@/shared/components/TermsModal";
+import RegistrationConfirmModal from "./RegistrationConfirmModal";
 import SkipLink from "@/shared/components/SkipLink";
 import Turnstile from "@/shared/components/Turnstile";
 import PublicShell from "@/shared/components/PublicShell";
@@ -36,6 +37,7 @@ function EmployerRegister() {
   const [termsOpen, setTermsOpen] = useState(false);
   const [termsRead, setTermsRead] = useState(false);
   const [agree, setAgree] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
   const [step, setStep] = useState(0);
   const captcha = useCaptcha();
   const formRef = useRef(null);
@@ -81,12 +83,7 @@ function EmployerRegister() {
     setStep(0);
   }
 
-  async function handleSubmit(event) {
-    event.preventDefault();
-    if (step !== TOTAL_STEPS - 1) {
-      handleNext();
-      return;
-    }
+  function requestSubmission() {
     const values = getValues();
     const validationErrors = validate(values);
     if (Object.keys(validationErrors).length > 0) {
@@ -99,25 +96,35 @@ function EmployerRegister() {
       setError("Please complete the verification challenge.");
       return;
     }
+    setError("");
+    setConfirmOpen(true);
+  }
+
+  async function finalizeSubmission() {
+    const values = getValues();
     setBusy(true);
     setError("");
     try {
       const account = await signUp({ ...buildEmployerSignUpPayload(values), captchaToken: captcha.token });
       setSubmittedEmail(account.email || "");
-
-      if (account.emailConfirmationRequired) {
-        setNeedsConfirmation(true);
-        setSubmitted(true);
-        return;
-      }
-
+      setNeedsConfirmation(!!account.emailConfirmationRequired);
       setSubmitted(true);
+      setConfirmOpen(false);
     } catch (err) {
       captcha.reset(); // single-use token: the next attempt needs a fresh one
       setError(err.message || "Registration failed. Please try again.");
     } finally {
       setBusy(false);
     }
+  }
+
+  function handleSubmit(event) {
+    event.preventDefault();
+    if (step === TOTAL_STEPS - 1) {
+      requestSubmission();
+      return;
+    }
+    handleNext();
   }
 
   if (submitted) {
@@ -170,7 +177,7 @@ function EmployerRegister() {
           <header className="mb-8">
             <h1 className="text-2xl font-bold tracking-tight text-dark-blue">Business Registration</h1>
             <p className="mt-2 text-sm text-muted-foreground">Submit business details and compliance credentials for Santa Maria PESO accreditation</p>
-            <p className="mt-2 rounded-lg border border-primary/30 bg-primary/5 px-3 py-2 text-xs font-medium text-primary">Accreditation takes about three business days.</p>
+            <p className="mt-2 rounded-lg border border-primary/30 bg-primary/5 px-3 py-2 text-xs font-medium text-primary">Accreditation takes about 3 business days.</p>
           </header>
 
           <p className="mb-4 font-mono text-[11px] tracking-widest uppercase text-muted-foreground">Step {step + 1} of {TOTAL_STEPS}</p>
@@ -200,7 +207,7 @@ function EmployerRegister() {
                   set={set}
                 />
 
-                {error && (
+                {error && !confirmOpen && (
                   <div role="alert" className="p-3.5 rounded-xl bg-danger/10 border border-danger/20 text-danger text-xs font-medium">{error}</div>
                 )}
 
@@ -240,7 +247,7 @@ function EmployerRegister() {
                   <Button type="button" onClick={handleBack} className="flex-1 min-h-[44px] px-6 rounded-xl border border-border text-sm font-semibold hover:bg-muted transition-all">
                     Back
                   </Button>
-                  <Button type="submit" disabled={busy} className="flex-1 min-h-[44px] px-6 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-primary-hover active:scale-[0.98] transition-all shadow-md disabled:opacity-60">
+                  <Button type="button" onClick={requestSubmission} disabled={busy} className="flex-1 min-h-[44px] px-6 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-primary-hover active:scale-[0.98] transition-all shadow-md disabled:opacity-60">
                     {busy ? "Submitting…" : "Submit Accreditation Application"}
                   </Button>
                 </div>
@@ -267,6 +274,28 @@ function EmployerRegister() {
       </div>
       </PublicShell>
       <TermsModal open={termsOpen} onClose={() => setTermsOpen(false)} onRead={() => setTermsRead(true)} />
+      <RegistrationConfirmModal
+        open={confirmOpen}
+        error={error}
+        busy={busy}
+        title="Confirm accreditation submission"
+        description="Your employer account isn't active until you verify the company email and sign in."
+        heading="What happens after you submit"
+        points={[
+          "We email a verification link to the official company email you entered.",
+          "Your account activates only after you open that link and sign in — the link expires in 1 hour.",
+          "Once verified, PESO reviews your accreditation — usually within 3 business days. You can post jobs after approval.",
+        ]}
+        note={(
+          <>
+            <strong className="font-semibold text-dark-blue">“Verified”</strong> means we confirmed the email belongs to you. It is not PESO accreditation — that review happens separately.
+          </>
+        )}
+        confirmLabel="Confirm & Submit Application"
+        busyLabel="Submitting…"
+        onConfirm={finalizeSubmission}
+        onCancel={() => { if (!busy) setConfirmOpen(false); }}
+      />
     </>
   );
 }

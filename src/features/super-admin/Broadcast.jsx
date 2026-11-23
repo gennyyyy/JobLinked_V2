@@ -66,7 +66,6 @@ export default function Broadcast() {
   return (
     <>
       <PageHeading
-        eyebrow="Keep your community connected"
         title="A little information opens new doors."
         description="Create employment notices and preview a vacancy distribution plan."
         action={
@@ -91,7 +90,7 @@ export default function Broadcast() {
           (() => {
             const visible = sent.filter((notice) => `${notice.title || ''} ${notice.message || ''}`.toLowerCase().includes(query.toLowerCase()))
             if (!visible.length) {
-              return <EmptyState title="Make space for a useful update." description="No announcements match this search. Create a notice to see it here." />
+              return <EmptyState title="No announcements match this search." description="Clear the search to see all announcements." />
             }
             return (
               <ul className="flex flex-col gap-4">

@@ -102,7 +102,6 @@ export default function Employees() {
   return (
     <>
       <PageHeading
-        eyebrow="Beyond the hiring journey"
         title="Employees Tracking"
         description="Linked employment records, recorded milestones, and accountable updates. Separate from recruitment."
         action={(
@@ -193,10 +192,10 @@ export default function Employees() {
           </Table>
         ) : (
           <EmptyState
-            title={employees.length === 0 ? 'No employees yet' : 'No employees match your filters'}
+            title={employees.length === 0 ? 'No employees yet.' : 'No employees match these filters.'}
             description={employees.length === 0
-              ? 'Candidates you accept in the applicant tracker will appear here.'
-              : 'Try adjusting your search or status filter to find employees.'}
+              ? 'Employees will appear here after a hire is confirmed.'
+              : 'Clear the filters to see all employees.'}
           />
         )}
         <Pager page={currentPage} pageSize={PAGE_SIZE} total={records.length} onChange={setPage} />

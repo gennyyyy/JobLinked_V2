@@ -58,7 +58,6 @@ export default function Dashboard() {
   return (
     <>
       <PageHeading
-        eyebrow="Connect people. Strengthen community."
         title="A clearer picture of local opportunity."
         description={`Welcome, ${firstName}. Here’s your Santa Maria employment workspace at a glance.`}
         action={<LinkButton href="/super-admin/reports" variant="outline"><ChartNoAxesCombined data-icon="inline-start" />View reports</LinkButton>}

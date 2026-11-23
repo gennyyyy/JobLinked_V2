@@ -1,12 +1,13 @@
 import { Link } from 'react-router-dom'
 import { titleCase } from '../utils/titleCase'
-import { Bookmark, BookmarkCheck, BriefcaseBusiness, Check, Clock3, Laptop, MapPin } from 'lucide-react'
+import { Bookmark, BookmarkCheck, BriefcaseBusiness, Check, Clock3, Laptop, MapPin, Users } from 'lucide-react'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { CompanyMark } from './design'
 import { employerLogoUrl } from '../services/images'
 import {
   categoryLabel,
+  closingDateLabel,
   companyInitial,
   companyName,
   experienceLabel,
@@ -25,6 +26,8 @@ export default function JobCard({ job, href, showMatch = false, match, matchReas
   // Structured skills are the only thing "skills overlap" may be measured
   // against; a legacy vacancy with no skills list shows no match at all.
   const hasMatch = showMatch && match && skills.length > 0
+  const open = isJobOpen(job)
+  const closes = closingDateLabel(job)
 
   return (
     <Card className="job-card relative h-full gap-5 [--card-spacing:--spacing(5)]">
@@ -58,6 +61,9 @@ export default function JobCard({ job, href, showMatch = false, match, matchReas
           {job.work_arrangement && (
             <span className="flex items-center gap-1"><Laptop className="size-3" />{job.work_arrangement}</span>
           )}
+          {job.vacancies ? (
+            <span className="flex items-center gap-1"><Users className="size-3" />{Number(job.vacancies) === 1 ? '1 opening' : `${job.vacancies} openings`}</span>
+          ) : null}
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-1 flex-col gap-4">
@@ -91,7 +97,10 @@ export default function JobCard({ job, href, showMatch = false, match, matchReas
       </CardContent>
       <CardFooter className="justify-between bg-white py-3">
         <span className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
-          <Clock3 className="size-3" />{isJobOpen(job) ? timeAgo(job.created_at) : 'Applications closed'}
+          <Clock3 className="size-3" />{open ? timeAgo(job.created_at) : 'Applications closed'}
+        </span>
+        <span className="text-[10px] text-muted-foreground">
+          {closes ? `${open ? 'Closes' : 'Closed'} ${closes}` : 'No closing date'}
         </span>
       </CardFooter>
     </Card>

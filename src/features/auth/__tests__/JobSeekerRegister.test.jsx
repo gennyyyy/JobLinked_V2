@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import JobSeekerRegister from '../JobSeekerRegister'
 
@@ -123,6 +123,13 @@ function fillRequired({ confirmResumeReview = true } = {}) {
   fireEvent.click(screen.getByRole('checkbox', { name: /true and correct/i }))
 }
 
+// Only the confirmation dialog's confirm action creates the account.
+async function confirmCreateAccount() {
+  fireEvent.click(screen.getByRole('button', { name: 'Create Account' }))
+  expect(await screen.findByRole('dialog', { name: /confirm account creation/i })).toBeInTheDocument()
+  fireEvent.click(screen.getByRole('button', { name: /confirm & create account/i }))
+}
+
 describe('JobSeekerRegister autofill', () => {
   beforeEach(() => vi.clearAllMocks())
 
@@ -212,7 +219,7 @@ describe('JobSeekerRegister autofill', () => {
     fireEvent.click(screen.getByRole('button', { name: /view terms/i }))
     fireEvent.click(screen.getByRole('checkbox', { name: /agree to the municipal/i }))
     fireEvent.click(screen.getByRole('checkbox', { name: /true and correct/i }))
-    fireEvent.click(screen.getByRole('button', { name: /create account/i }))
+    await confirmCreateAccount()
 
     await waitFor(() => expect(api.post).toHaveBeenCalled())
     expect(parked().skills).toEqual(['Data Entry', 'Communication'])
@@ -239,7 +246,7 @@ describe('JobSeekerRegister autofill', () => {
     fireEvent.keyDown(skillsInput, { key: 'Enter' })
     await waitFor(() => expect(screen.getByRole('option', { name: 'Information Technology' })).toBeInTheDocument())
     fireEvent.change(screen.getByLabelText('Field'), { target: { value: 'Information Technology' } })
-    fireEvent.click(screen.getByRole('button', { name: /create account/i }))
+    await confirmCreateAccount()
 
     await waitFor(() => expect(api.post).toHaveBeenCalled())
     expect(parked()).toMatchObject({
@@ -275,13 +282,21 @@ describe('JobSeekerRegister autofill', () => {
     fireEvent.click(screen.getByRole('button', { name: /view terms/i }))
     fireEvent.click(screen.getByRole('checkbox', { name: /agree to the municipal/i }))
     fireEvent.click(screen.getByRole('checkbox', { name: /true and correct/i }))
-    fireEvent.click(screen.getByRole('button', { name: /create account/i }))
+    await confirmCreateAccount()
 
     await waitFor(() => expect(api.post).toHaveBeenCalled())
     expect(parked()).toMatchObject({
       education: expect.objectContaining({ level: 'college', school: 'pup santa maria', field: 'bsit' }),
     })
     await waitFor(() => expect(screen.getByText(/check your email/i)).toBeInTheDocument())
+  })
+
+  it('labels every education field visibly', () => {
+    renderPage()
+    fillRequired()
+    for (const label of ['Education Level', 'School Name', 'Course / Field', 'Graduation Year']) {
+      expect(screen.getByText(label)).toBeInTheDocument()
+    }
   })
 
   it('renders inert education history placeholders matching Profile', () => {
@@ -297,8 +312,8 @@ describe('JobSeekerRegister autofill', () => {
     }
     expect(screen.getByPlaceholderText('School name')).toBeInTheDocument()
     expect(screen.getByPlaceholderText('Course / field')).toBeInTheDocument()
-    expect(screen.getByPlaceholderText('Year')).toBeInTheDocument()
-    for (const el of [screen.getByPlaceholderText('School name'), screen.getByPlaceholderText('Course / field'), screen.getByPlaceholderText('Year')]) {
+    expect(screen.getByLabelText(/graduation year/i)).toBeInTheDocument()
+    for (const el of [screen.getByPlaceholderText('School name'), screen.getByPlaceholderText('Course / field'), screen.getByLabelText(/graduation year/i)]) {
       expect(el).not.toHaveAttribute('name')
     }
   })
@@ -327,12 +342,12 @@ describe('JobSeekerRegister autofill', () => {
     fireEvent.change(screen.getByLabelText(/education level/i), { target: { value: 'College' } })
     fireEvent.change(screen.getByPlaceholderText('School name'), { target: { value: 'Bulacan State' } })
     fireEvent.change(screen.getByPlaceholderText('Course / field'), { target: { value: 'IT' } })
-    fireEvent.change(screen.getByPlaceholderText('Year'), { target: { value: '2020' } })
+    fireEvent.change(screen.getByLabelText(/graduation year/i), { target: { value: '2020' } })
 
     fireEvent.click(screen.getByRole('button', { name: /view terms/i }))
     fireEvent.click(screen.getByRole('checkbox', { name: /agree to the municipal/i }))
     fireEvent.click(screen.getByRole('checkbox', { name: /true and correct/i }))
-    fireEvent.click(screen.getByRole('button', { name: /create account/i }))
+    await confirmCreateAccount()
 
     await waitFor(() => expect(api.post).toHaveBeenCalled())
     expect(parked()).toMatchObject({
@@ -350,7 +365,7 @@ describe('JobSeekerRegister autofill', () => {
     fireEvent.change(screen.getByLabelText(/employment status/i), { target: { value: 'Student' } })
     fireEvent.click(screen.getByRole('button', { name: /^next$/i }))
     fireEvent.click(screen.getByRole('button', { name: /^next$/i }))
-    fireEvent.click(screen.getByRole('button', { name: /create account/i }))
+    await confirmCreateAccount()
 
     await waitFor(() => expect(api.post).toHaveBeenCalled())
     expect(parked()).toMatchObject({ employment_status: 'Student' })
@@ -363,8 +378,8 @@ describe('JobSeekerRegister autofill', () => {
     fireEvent.change(screen.getByLabelText(/education level/i), { target: { value: 'College' } })
     fireEvent.change(screen.getByPlaceholderText('School name'), { target: { value: 'PUP Santa Maria' } })
     fireEvent.click(screen.getByRole('checkbox', { name: /currently studying/i }))
-    expect(screen.getByPlaceholderText('Year')).toBeDisabled()
-    fireEvent.click(screen.getByRole('button', { name: /create account/i }))
+    expect(screen.getByLabelText(/graduation year/i)).toBeDisabled()
+    await confirmCreateAccount()
 
     await waitFor(() => expect(api.post).toHaveBeenCalled())
     expect(parked()).toMatchObject({
@@ -398,7 +413,7 @@ describe('JobSeekerRegister autofill', () => {
     signedUp({ id: 'seeker-1' })
     renderPage()
     fillRequired()
-    fireEvent.click(screen.getByRole('button', { name: /create account/i }))
+    await confirmCreateAccount()
 
     await waitFor(() => expect(api.post).toHaveBeenCalled())
   })
@@ -413,7 +428,7 @@ describe('JobSeekerRegister autofill', () => {
     expect(mobile).toHaveValue('917 123 4567')
 
     fillRequired()
-    fireEvent.click(screen.getByRole('button', { name: /create account/i }))
+    await confirmCreateAccount()
 
     await waitFor(() => expect(api.post).toHaveBeenCalled())
     expect(parked().phone).toBe('+639171234567')
@@ -427,7 +442,7 @@ describe('JobSeekerRegister autofill', () => {
     fireEvent.click(screen.getByRole('button', { name: /^back$/i }))
     fireEvent.change(screen.getByLabelText(/postal/i), { target: { value: '3022' } })
     fireEvent.click(screen.getByRole('button', { name: /^next$/i }))
-    fireEvent.click(screen.getByRole('button', { name: /create account/i }))
+    await confirmCreateAccount()
 
     await waitFor(() => expect(api.post).toHaveBeenCalled())
     expect(parked()).toMatchObject({
@@ -473,7 +488,7 @@ describe('JobSeekerRegister captcha', () => {
     renderPage()
     fillRequired()
     fireEvent.click(screen.getByRole('button', { name: /solve captcha/i }))
-    fireEvent.click(screen.getByRole('button', { name: /create account/i }))
+    await confirmCreateAccount()
 
     await waitFor(() => expect(api.post).toHaveBeenCalled())
     expect(sentCaptcha()).toBe('captcha-token')
@@ -496,14 +511,16 @@ describe('JobSeekerRegister captcha', () => {
     renderPage()
     fillRequired()
     fireEvent.click(screen.getByRole('button', { name: /solve captcha/i }))
-    fireEvent.click(screen.getByRole('button', { name: /create account/i }))
+    await confirmCreateAccount()
 
-    expect(await screen.findByText(/registration failed/i)).toBeInTheDocument()
+    const dialog = await screen.findByRole('dialog', { name: /confirm account creation/i })
+    expect(await within(dialog).findByRole('alert')).toHaveTextContent(/registration failed/i)
     expect(authClientMock.signUp.email).toHaveBeenCalledTimes(1)
     expect(sentCaptcha()).toBe('captcha-token')
 
     // The token is single-use: a retry without a fresh challenge is blocked.
-    fireEvent.click(screen.getByRole('button', { name: /create account/i }))
+    fireEvent.click(within(dialog).getByRole('button', { name: /keep editing/i }))
+    fireEvent.click(screen.getByRole('button', { name: 'Create Account' }))
     expect(await screen.findByText('Please complete the verification challenge.')).toBeInTheDocument()
     expect(authClientMock.signUp.email).toHaveBeenCalledTimes(1)
   })
@@ -571,5 +588,87 @@ describe('JobSeekerRegister resume review acknowledgement', () => {
     fireEvent.click(screen.getByRole('checkbox', { name: /resume autofill can make mistakes/i }))
     fireEvent.click(screen.getByRole('button', { name: /^next$/i }))
     expect(await screen.findByText('Step 2 — Address Information')).toBeInTheDocument()
+  })
+})
+
+describe('JobSeekerRegister final step actions', () => {
+  it('offers Next until the final step, which shows only Create Account', async () => {
+    renderPage()
+    fillRequired()
+
+    expect(await screen.findByText('Step 3 — Background & Consent')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /^next$/i })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /create account/i })).toBeInTheDocument()
+
+    // Step 2 of 3 is not final, so it still offers Next.
+    fireEvent.click(screen.getByRole('button', { name: /^back$/i }))
+    expect(screen.getByRole('button', { name: /^next$/i })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /create account/i })).not.toBeInTheDocument()
+  })
+})
+
+describe('JobSeekerRegister post-create-account explainer', () => {
+  it('lives in the confirmation dialog, not on the final step', async () => {
+    renderPage()
+    const heading = () => screen.queryByRole('heading', { name: /what happens after you create your account/i })
+    expect(heading()).not.toBeInTheDocument()
+
+    fillRequired()
+
+    expect(await screen.findByText('Step 3 — Background & Consent')).toBeInTheDocument()
+    expect(heading()).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Create Account' }))
+    const dialog = await screen.findByRole('dialog', { name: /confirm account creation/i })
+    expect(within(dialog).getByRole('heading', { name: /what happens after you create your account/i })).toBeInTheDocument()
+    expect(within(dialog).getByText(/we email a verification link to the address you entered/i)).toBeInTheDocument()
+    expect(within(dialog).getByText('“Verified”')).toBeInTheDocument()
+    expect(within(dialog).getByText(/job seekers do not need peso accreditation/i)).toBeInTheDocument()
+    expect(authClientMock.signUp.email).not.toHaveBeenCalled()
+  })
+})
+
+describe('JobSeekerRegister create account confirmation', () => {
+  beforeEach(() => vi.clearAllMocks())
+
+  it('shows the visible title and both footer actions', async () => {
+    renderPage()
+    fillRequired()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Create Account' }))
+    const dialog = await screen.findByRole('dialog', { name: /confirm account creation/i })
+    expect(within(dialog).getByRole('heading', { name: 'Confirm account creation' })).toBeInTheDocument()
+    expect(within(dialog).getByRole('button', { name: 'Keep editing' })).toBeInTheDocument()
+    expect(within(dialog).getByRole('button', { name: 'Confirm & Create Account' })).toBeInTheDocument()
+  })
+
+  it('does not create the account when the user keeps editing', async () => {
+    signedUp({ id: 'seeker-1' })
+    renderPage()
+    fillRequired()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Create Account' }))
+    const dialog = await screen.findByRole('dialog', { name: /confirm account creation/i })
+    expect(within(dialog).getByText(/your account isn't active/i)).toBeInTheDocument()
+
+    fireEvent.click(within(dialog).getByRole('button', { name: /keep editing/i }))
+
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: /confirm account creation/i })).not.toBeInTheDocument())
+    expect(authClientMock.signUp.email).not.toHaveBeenCalled()
+    expect(api.post).not.toHaveBeenCalled()
+  })
+
+  it('keeps the dialog open with the alert inside when sign-up is rejected', async () => {
+    authClientMock.signUp.email.mockResolvedValueOnce({
+      data: null,
+      error: { message: 'Email already registered', status: 400 },
+    })
+    renderPage()
+    fillRequired()
+    await confirmCreateAccount()
+
+    const dialog = await screen.findByRole('dialog', { name: /confirm account creation/i })
+    expect(await within(dialog).findByRole('alert')).toHaveTextContent(/email already registered/i)
+    expect(screen.queryByText(/check your email/i)).not.toBeInTheDocument()
   })
 })

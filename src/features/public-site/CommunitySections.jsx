@@ -34,8 +34,7 @@ export function CommunitySections() {
     <>
       <section id="how-it-works" className="page-container py-20 parallax-reveal">
         <div className="max-w-xl">
-          <RevealText as="p" className="eyebrow text-primary mb-3" tier="display">Matching, accreditation, and tracking.</RevealText>
-          <RevealText as="h2" className="section-heading" tier="display">Your next chapter starts here.</RevealText>
+          <RevealText as="h2" className="section-heading" tier="display">How JobLinked works</RevealText>
           <RevealText as="p" className="section-copy mt-3">Less searching, more possibility. We make finding local work a little easier.</RevealText>
         </div>
         <ul className="mt-12 grid gap-x-10 gap-y-10 md:grid-cols-3">
@@ -61,8 +60,7 @@ export function CommunitySections() {
       <section id="peso-services" className="page-container py-16 md:py-20">
         <div className="grid items-start gap-10 lg:grid-cols-[.9fr_1.1fr] lg:gap-16">
           <div>
-            <RevealText as="p" className="eyebrow text-primary mb-3" tier="display">Support beyond the job search</RevealText>
-            <RevealText as="h2" className="section-heading" tier="display">You don&apos;t have to take the next step alone.</RevealText>
+            <RevealText as="h2" className="section-heading" tier="display">PESO Services</RevealText>
             <RevealText as="p" className="section-copy mt-4 max-w-md">Explore employment programs, career guidance, and skills development information designed with your future in mind.</RevealText>
             <Link to="/peso-services" className="text-link mt-5">
               Explore PESO services<ArrowRight aria-hidden="true" className="size-4" />
@@ -83,8 +81,7 @@ export function CommunitySections() {
       <section id="about" className="border-y border-border bg-muted/60">
         <div className="page-container py-16 md:py-20">
           <div className="max-w-xl">
-            <RevealText as="p" className="eyebrow text-primary mb-3" tier="display">One platform. A stronger community.</RevealText>
-            <RevealText as="h2" className="section-heading" tier="display">Built around people, not paperwork.</RevealText>
+            <RevealText as="h2" className="section-heading" tier="display">About JobLinked</RevealText>
           </div>
           <AudienceCards />
         </div>
@@ -93,8 +90,7 @@ export function CommunitySections() {
       <section id="faq" className="page-container py-16 md:py-20">
         <div className="mx-auto max-w-[720px]">
           <div className="mb-7">
-            <RevealText as="p" className="eyebrow text-primary mb-3" tier="display">A little clarity goes a long way</RevealText>
-            <RevealText as="h2" className="section-heading" tier="display">Good questions. Clear answers.</RevealText>
+            <RevealText as="h2" className="section-heading" tier="display">Frequently Asked Questions</RevealText>
           </div>
           <Accordion>
             {FAQS.slice(0, 4).map((faq, index) => (

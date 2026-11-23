@@ -10,9 +10,6 @@ vi.mock('@/shared/services/ai', () => ({ matchJobs: vi.fn() }))
 // Public visitor: signed out, so cards carry no save control.
 vi.mock('@/shared/hooks/useAuth', () => ({ default: () => ({ user: null }) }))
 
-const TITLE = 'Find openings in Santa Maria'
-const DESCRIPTION = 'Explore verified job postings from accredited Santa Maria employers. Apply directly through the municipal portal.'
-
 const JOBS = [
   {
     id: 'job-1',
@@ -43,8 +40,6 @@ function renderBrowser() {
     <MemoryRouter>
       <JobsBrowser
         jobHref={(id) => `/jobs/${id}`}
-        title={TITLE}
-        description={DESCRIPTION}
       />
     </MemoryRouter>,
   )
@@ -57,12 +52,10 @@ describe('JobsBrowser (public mode)', () => {
     listJobs.mockResolvedValue({ jobs: JOBS, total: JOBS.length })
   })
 
-  it('renders the passed heading and links each job to jobHref(id)', async () => {
+  it('links each job to jobHref(id)', async () => {
     renderBrowser()
 
     const link = await screen.findByRole('link', { name: 'Barangay Health Worker' })
-    expect(screen.getByRole('heading', { level: 1, name: TITLE })).toBeInTheDocument()
-    expect(screen.getByText(DESCRIPTION)).toBeInTheDocument()
     expect(link).toHaveAttribute('href', '/jobs/job-1')
     const card = within(link.closest('.job-card'))
     expect(card.getByText(/₱12,000/)).toBeInTheDocument()
@@ -148,7 +141,7 @@ describe('JobsBrowser (public mode)', () => {
 
     renderBrowser()
 
-    expect(await screen.findByText('No matching opportunities in this view.')).toBeInTheDocument()
+    expect(await screen.findByText('No jobs match this search.')).toBeInTheDocument()
     expect(screen.getByText('0 matching vacancies')).toBeInTheDocument()
   })
 })

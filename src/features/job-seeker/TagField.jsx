@@ -1,11 +1,12 @@
 import { useId, useState } from 'react'
 import { Plus, X } from 'lucide-react'
+import { cn } from '@/lib/utils'
 
 // Tag-list field from the reference profile (education, experience, skills).
 // `value` is a comma-separated string (Work experience) or an array (skills);
 // onChange emits the same shape. `suggestions` feeds a native <datalist>;
 // `max` caps the chip count.
-export default function TagField({ label, value, onChange, placeholder, help, error, required, suggestions, max }) {
+export default function TagField({ label, value, onChange, placeholder, help, error, required, suggestions, max, labelClassName }) {
   const listId = useId()
   const arrayMode = Array.isArray(value)
   const tags = (arrayMode ? value : String(value ?? '').split(','))
@@ -29,7 +30,7 @@ export default function TagField({ label, value, onChange, placeholder, help, er
 
   return (
     <div className="flex flex-col">
-      <label className="mb-2 text-sm font-medium leading-none text-foreground">
+      <label className={cn('mb-2 text-sm font-medium leading-none text-foreground', labelClassName)}>
         {label}{required ? <span className="ml-1 text-destructive">*</span> : null}
       </label>
       <div className="flex min-h-[44px] flex-wrap items-center gap-2 rounded-xl border border-border bg-muted px-4 py-1 focus-within:border-ring focus-within:ring-2 focus-within:ring-ring/20">

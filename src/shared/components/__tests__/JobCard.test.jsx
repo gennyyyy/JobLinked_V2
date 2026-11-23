@@ -99,6 +99,40 @@ describe('JobCard display separation', () => {
   })
 })
 
+describe('JobCard openings and closing date', () => {
+  it('shows the openings count and the closing date for an open job', () => {
+    const card = renderCard({ vacancies: 2, deadline: '2099-03-15' })
+
+    expect(within(card).getByText('2 openings')).toBeInTheDocument()
+    expect(within(card).getByText('Closes Mar 15, 2099')).toBeInTheDocument()
+  })
+
+  it('uses the singular for one opening', () => {
+    const card = renderCard({ vacancies: 1, deadline: '2099-03-15' })
+
+    expect(within(card).getByText('1 opening')).toBeInTheDocument()
+  })
+
+  it('renders no openings label when the vacancy count is absent', () => {
+    const card = renderCard()
+
+    expect(within(card).queryByText(/opening/)).toBeNull()
+  })
+
+  it('says there is no closing date without a deadline', () => {
+    const card = renderCard()
+
+    expect(within(card).getByText('No closing date')).toBeInTheDocument()
+  })
+
+  it('marks a past deadline as closed while keeping Applications closed', () => {
+    const card = renderCard({ deadline: '2020-01-01' })
+
+    expect(within(card).getByText('Closed Jan 1, 2020')).toBeInTheDocument()
+    expect(within(card).getByText('Applications closed')).toBeInTheDocument()
+  })
+})
+
 describe('JobCard company logo', () => {
   const EMPLOYER_ID = '22222222-2222-2222-2222-222222222222'
   const LOGO_AT = '2026-01-01T00:00:00.000Z'

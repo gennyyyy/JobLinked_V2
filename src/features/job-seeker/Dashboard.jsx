@@ -102,7 +102,6 @@ export default function Dashboard() {
   if (error) return (
     <>
       <PageHeading
-        eyebrow="Your next chapter"
         title="We couldn\u2019t load your overview."
         description="Please try again in a moment."
       />
@@ -117,7 +116,6 @@ export default function Dashboard() {
   return (
     <>
       <PageHeading
-        eyebrow="Your next chapter"
         title={`Good to see you, ${firstName}.`}
         description="A little progress today can open a new door tomorrow. Let’s find your next local opportunity."
         action={<LinkButton href="/job-seeker/jobs"><BriefcaseBusiness data-icon="inline-start" />Explore jobs</LinkButton>}
@@ -161,7 +159,7 @@ export default function Dashboard() {
                 ))}
               </ul>
             ) : (
-              <EmptyState title="Your first opportunity is waiting." description="Explore jobs, choose a role that fits, and submit an application." href="/job-seeker/jobs" />
+              <EmptyState title="No applications yet." description="Applications you submit will appear here." href="/job-seeker/jobs" />
             )}
           </Panel>
           <div>

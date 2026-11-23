@@ -170,7 +170,6 @@ export default function JobPosts() {
   return (
     <>
       <PageHeading
-        eyebrow="Keep local opportunities trustworthy"
         title="Clear standards. Better opportunities."
         description="Inspect job postings, confirm employer approval, and record moderation decisions."
       />
@@ -229,7 +228,7 @@ export default function JobPosts() {
             </TableBody>
           </Table>
         ) : (
-          <EmptyState title="No vacancies in this view." description="Clear your filters to see more postings." />
+          <EmptyState title="No vacancies match these filters." description="Clear the filters to see all vacancies." />
         )}
         <Pager page={currentPage} pageSize={PAGE_SIZE} total={records.length} onChange={setPage} />
       </Panel>

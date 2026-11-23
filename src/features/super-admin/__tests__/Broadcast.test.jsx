@@ -32,7 +32,7 @@ describe('Broadcast', () => {
 
   it('shows the published-notices empty state', async () => {
     render(<Broadcast />)
-    expect(await screen.findByText('Make space for a useful update.')).toBeTruthy()
+    expect(await screen.findByText('No announcements match this search.')).toBeTruthy()
   })
 
   it('lists published notices and filters them by search', async () => {

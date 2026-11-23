@@ -46,7 +46,6 @@ export default function Dashboard() {
   return (
     <>
       <PageHeading
-        eyebrow="Build something together"
         title={`Welcome back, ${firstName}.`}
         description={`Good people make great teams. Here’s what’s happening at ${titleCase(companyName)}.`}
         action={<LinkButton href="/employer/job-posts"><Plus data-icon="inline-start" />Post a Job</LinkButton>}
@@ -97,7 +96,7 @@ export default function Dashboard() {
                 </TableBody>
               </Table>
             ) : (
-              <EmptyState title="Your next teammate is out there." description="Publish an approved vacancy to start receiving applications." href="/employer/job-posts" label="Create a vacancy" />
+              <EmptyState title="No applicants yet." description="Applicants will appear here after you publish a vacancy." href="/employer/job-posts" label="Create a vacancy" />
             )}
           </Panel>
           <Panel

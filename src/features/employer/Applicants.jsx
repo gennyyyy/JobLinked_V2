@@ -292,8 +292,8 @@ export default function Applicants() {
           </>
         ) : (
           <EmptyState
-            title="No candidates in this view yet."
-            description="Try another vacancy or clear the filters. Candidates appear after a job seeker submits an application to your company."
+            title="No applicants yet."
+            description="Applicants will appear here after you publish a vacancy."
           />
         )}
         <Pager page={currentPage} pageSize={PAGE_SIZE} total={records.length} onChange={setPage} />

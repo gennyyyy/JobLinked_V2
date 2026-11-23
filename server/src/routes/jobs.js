@@ -107,6 +107,9 @@ router.get('/jobs', optionalAuth, ah(async (req, res) => {
   const orderDir = od === 'asc' ? 'asc' : 'desc';
   const where = ['j.status = $1'];
   const vals = [status];
+  // Public/seeker lists never show an expired post; the super-admin ledger
+  // keeps every status. Appended before whereSql so count and page agree.
+  if (req.user?.role !== 'super-admin') where.push('(j.deadline is null or j.deadline >= current_date)');
   if (q.search) { vals.push(`%${likeEscape(q.search)}%`, `%${likeEscape(q.search)}%`); where.push(`(j.title ilike $${vals.length - 1} or j.description ilike $${vals.length})`); }
   if (q.location) { vals.push(`%${likeEscape(q.location)}%`); where.push(`j.location ilike $${vals.length}`); }
   if (q.employmentType) {
@@ -187,7 +190,9 @@ router.get('/employers/:employerId/jobs', optionalAuth, ah(async (req, res) => {
       vals.push(req.query.status); statusSql = `and j.status = $${vals.length}`;
     }
   } else {
-    vals.push('published'); statusSql = `and j.status = $${vals.length}`;
+    // The public employer profile hides expired posts; owner/admin see all.
+    vals.push('published');
+    statusSql = `and j.status = $${vals.length} and (j.deadline is null or j.deadline >= current_date)`;
   }
   // profile_images is unique per (owner, kind), so the join cannot multiply
   // rows and the count below stays exact.

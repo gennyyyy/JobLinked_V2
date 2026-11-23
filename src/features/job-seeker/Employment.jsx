@@ -58,7 +58,6 @@ export default function Employment() {
   return (
     <>
       <PageHeading
-        eyebrow="Beyond the hiring journey"
         title="Employment Tracking"
         description="Linked employment records, recorded milestones, and accountable updates. Separate from recruitment."
       />

@@ -14,6 +14,6 @@ describe('About page', () => {
         <About />
       </MemoryRouter>
     )
-    expect(screen.getByRole('heading', { name: 'Built around people, not paperwork.' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'About PESO Santa Maria' })).toBeInTheDocument()
   })
 })

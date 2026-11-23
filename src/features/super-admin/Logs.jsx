@@ -64,7 +64,6 @@ export default function Logs() {
   return (
     <>
       <PageHeading
-        eyebrow="A clear record of every step"
         title="Transparency is part of the work."
         description="Review approvals, posting changes, application updates, and system configuration activity."
         action={(
@@ -115,7 +114,7 @@ export default function Logs() {
             </TableBody>
           </Table>
         ) : (
-          <EmptyState title="No activity matches this search." description="Clear the search or perform a workflow to add activity." />
+          <EmptyState title="No activity matches this search." description="Clear the search to see all activity." />
         )}
         <Pager page={currentPage} pageSize={PAGE_SIZE} total={records.length} onChange={setPage} />
       </Panel>

@@ -87,7 +87,6 @@ function NotificationRow({ n, role, selected, onToggleSelect, onMarkRead }) {
 }
 
 export default function NotificationsPage({
-  eyebrow = 'Your workspace',
   title = 'Stay in the loop.',
   subtitle = 'Application updates, accreditation decisions, and community notices, all in one place.',
 }) {
@@ -190,7 +189,6 @@ export default function NotificationsPage({
       )}
 
       <PageHeading
-        eyebrow={eyebrow}
         title={title}
         description={subtitle}
         action={(
@@ -278,9 +276,9 @@ export default function NotificationsPage({
           />
         ) : filtered.length === 0 ? (
           <div className="py-14 text-center">
-            <p className="text-sm font-semibold text-navy">No notifications match your search</p>
+            <p className="text-sm font-semibold text-navy">No notifications match this search.</p>
             <p className="mx-auto mt-1 max-w-sm text-xs leading-5 text-muted-foreground">
-              Try a different keyword, or clear the search to see everything.
+              Clear the search to see all notifications.
             </p>
             <Button type="button" variant="outline" size="sm" className="mt-4" onClick={() => setSearch("")}>
               Clear search

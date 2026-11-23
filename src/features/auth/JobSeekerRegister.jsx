@@ -4,6 +4,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { signUp } from "@/shared/services/auth";
 import useCaptcha from "@/shared/hooks/useCaptcha";
 import TermsModal from "@/shared/components/TermsModal";
+import RegistrationConfirmModal from "./RegistrationConfirmModal";
 import SkipLink from "@/shared/components/SkipLink";
 import Turnstile from "@/shared/components/Turnstile";
 import PublicShell from "@/shared/components/PublicShell";
@@ -39,6 +40,7 @@ function JobSeekerRegister() {
   const [busy, setBusy] = useState(false);
   const [termsOpen, setTermsOpen] = useState(false);
   const [termsRead, setTermsRead] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
   const [step, setStep] = useState(0);
   const captcha = useCaptcha();
   const formRef = useRef(null);
@@ -74,19 +76,13 @@ function JobSeekerRegister() {
     setStep((s) => Math.max(0, s - 1));
   }
 
-  async function handleSubmit(event) {
-    console.log("HANDLE SUBMIT step=", step);
-    event.preventDefault();
-    if (step !== TOTAL_STEPS - 1) {
-      handleNext();
-      return;
-    }
+  function requestAccountCreation() {
     const validationErrors = validate(form);
     const eduValidationError = validateEducation(education);
     if (Object.keys(validationErrors).length > 0 || eduValidationError) {
       setErrors(validationErrors);
       setEduError(eduValidationError);
-      focusFirstError(firstErrorKey(validationErrors, eduValidationError ? "educationLevel" : null));
+      focusFirstError(firstErrorKey(validationErrors, eduValidationError ? "education-level" : null));
       return;
     }
     setErrors({});
@@ -95,6 +91,11 @@ function JobSeekerRegister() {
       setError("Please complete the verification challenge.");
       return;
     }
+    setError("");
+    setConfirmOpen(true);
+  }
+
+  async function finalizeAccount() {
     setBusy(true);
     setError("");
     try {
@@ -102,12 +103,22 @@ function JobSeekerRegister() {
       setNeedsConfirmation(!!account.emailConfirmationRequired);
       setSubmittedEmail(account.email);
       setSubmitted(true);
+      setConfirmOpen(false);
     } catch (err) {
       captcha.reset();
       setError(err.message || "Registration failed. Please try again.");
     } finally {
       setBusy(false);
     }
+  }
+
+  function handleSubmit(event) {
+    event.preventDefault();
+    if (step === TOTAL_STEPS - 1) {
+      requestAccountCreation();
+      return;
+    }
+    handleNext();
   }
 
   const inputClass = "w-full min-h-[44px] px-4 rounded-xl text-sm bg-muted border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all";
@@ -206,7 +217,7 @@ function JobSeekerRegister() {
               </>
             )}
 
-            {error && (
+            {error && !confirmOpen && (
               <div role="alert" className="p-3.5 rounded-xl bg-danger/10 border border-danger/20 text-danger text-xs font-medium">{error}</div>
             )}
 
@@ -216,11 +227,13 @@ function JobSeekerRegister() {
                   Back
                 </button>
               )}
-              <button key={step} type="button" onClick={handleNext} className="flex-1 min-h-[44px] px-6 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-primary-hover active:scale-[0.98] transition-all shadow-md">
-                Next
-              </button>
+              {step < TOTAL_STEPS - 1 && (
+                <button key={step} type="button" onClick={handleNext} className="flex-1 min-h-[44px] px-6 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-primary-hover active:scale-[0.98] transition-all shadow-md">
+                  Next
+                </button>
+              )}
               {step === TOTAL_STEPS - 1 && (
-                <Button type="submit" disabled={busy} className="flex-1 min-h-[44px] px-6 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-primary-hover active:scale-[0.98] transition-all shadow-md disabled:opacity-60">
+                <Button type="button" onClick={requestAccountCreation} disabled={busy} className="flex-1 min-h-[44px] px-6 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-primary-hover active:scale-[0.98] transition-all shadow-md disabled:opacity-60">
                   {busy ? "Creating account…" : "Create Account"}
                 </Button>
               )}
@@ -238,6 +251,28 @@ function JobSeekerRegister() {
       </div>
       </PublicShell>
       <TermsModal open={termsOpen} onClose={() => setTermsOpen(false)} onRead={() => setTermsRead(true)} />
+      <RegistrationConfirmModal
+        open={confirmOpen}
+        error={error}
+        busy={busy}
+        title="Confirm account creation"
+        description="Your account isn't active until you open the verification link and sign in."
+        heading="What happens after you create your account"
+        points={[
+          "We email a verification link to the address you entered.",
+          "Your account activates only after you open that link and sign in — the link expires in 1 hour.",
+          "The details you entered are saved and applied to your profile automatically.",
+        ]}
+        note={(
+          <>
+            <strong className="font-semibold text-dark-blue">“Verified”</strong> means we confirmed the email belongs to you. Job seekers do not need PESO accreditation.
+          </>
+        )}
+        confirmLabel="Confirm & Create Account"
+        busyLabel="Creating account…"
+        onConfirm={finalizeAccount}
+        onCancel={() => { if (!busy) setConfirmOpen(false); }}
+      />
     </>
   );
 }

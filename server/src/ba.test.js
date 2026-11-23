@@ -24,6 +24,8 @@ const loadAuth = async (env = {}) => {
   vi.resetModules();
   applyEnv(env);
   vi.stubEnv('SMTP_HOST', undefined); // dev fallback path unless a case sets it
+  // logger reads LOG_LEVEL at import time; pin it so assertions see the lines.
+  vi.stubEnv('LOG_LEVEL', 'info');
   return (await import('./ba.js')).auth;
 };
 
@@ -82,6 +84,20 @@ describe('better-auth instance', () => {
     const auth = await loadAuth({ NODE_ENV: 'production' });
 
     expect(auth.options.trustedOrigins).toEqual(['https://jobs.example.com']);
+  });
+
+  it('sends the existing-account email from the onExistingUserSignUp hook', async () => {
+    const info = vi.spyOn(console, 'info').mockImplementation(() => {});
+    const auth = await loadAuth();
+    const hook = auth.options.emailAndPassword.onExistingUserSignUp;
+
+    expect(typeof hook).toBe('function');
+    await hook({ user: { email: 'owner@example.com' } });
+
+    const mail = jsonLines(info).find((line) => line.event === 'dev_mail');
+    expect(mail).toMatchObject({ kind: 'existing_account', to: 'owner@example.com' });
+    expect(mail.text).toContain('https://jobs.example.com/login');
+    expect(mail.text).toContain('https://jobs.example.com/forgot-password');
   });
 });
 
@@ -195,7 +211,7 @@ describe('mailer', () => {
     const url = 'https://api.joblinked.site/api/auth/verify-email?token=tok_prod123';
     await expect(
       sendVerificationEmail({ user: { email: 'user@example.com' }, url })
-    ).resolves.toBeUndefined();
+    ).resolves.toBe(false);
 
     expect(info).not.toHaveBeenCalled();
     const logged = JSON.stringify(error.mock.calls);
@@ -204,5 +220,95 @@ describe('mailer', () => {
     expect(jsonLines(error)).toContainEqual(
       expect.objectContaining({ event: 'mail_not_configured', to: 'user@example.com' })
     );
+  });
+
+  it('logs the existing-account email with both links when SMTP_HOST is unset in development', async () => {
+    const { sendExistingAccountEmail } = await loadMailer({ NODE_ENV: 'development' });
+    vi.stubEnv('SMTP_HOST', undefined);
+    const info = vi.spyOn(console, 'info').mockImplementation(() => {});
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    await sendExistingAccountEmail({ user: { email: 'existing@example.com' } });
+
+    const mail = jsonLines(info).find((line) => line.event === 'dev_mail');
+    expect(mail).toMatchObject({ kind: 'existing_account', to: 'existing@example.com' });
+    expect(mail.text).toContain('https://jobs.example.com/login');
+    expect(mail.text).toContain('https://jobs.example.com/forgot-password');
+    expect(mail.text).toContain('ignore this email');
+    expect(error).not.toHaveBeenCalled();
+  });
+
+  it('sends one existing-account email per address inside the 10-minute cooldown', async () => {
+    const { sendExistingAccountEmail } = await loadMailer({ NODE_ENV: 'development' });
+    vi.stubEnv('SMTP_HOST', undefined);
+    const info = vi.spyOn(console, 'info').mockImplementation(() => {});
+
+    await sendExistingAccountEmail({ user: { email: 'Dupe@Example.com' } });
+    await sendExistingAccountEmail({ user: { email: 'dupe@example.com' } });
+
+    expect(
+      jsonLines(info).filter((line) => line.event === 'dev_mail' && line.kind === 'existing_account')
+    ).toHaveLength(1);
+  });
+
+  it('does not start the cooldown when the first send fails', async () => {
+    const { sendExistingAccountEmail } = await loadMailer({ NODE_ENV: 'production' });
+    vi.stubEnv('SMTP_HOST', undefined);
+    const info = vi.spyOn(console, 'info').mockImplementation(() => {});
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    // No SMTP in production: the first attempt fails without sending.
+    await sendExistingAccountEmail({ user: { email: 'retry@example.com' } });
+    expect(jsonLines(error).filter((line) => line.event === 'mail_not_configured')).toHaveLength(1);
+
+    // A failed attempt must not consume the cooldown, so the retry goes out.
+    vi.stubEnv('NODE_ENV', 'development');
+    await sendExistingAccountEmail({ user: { email: 'retry@example.com' } });
+
+    expect(
+      jsonLines(info).filter((line) => line.event === 'dev_mail' && line.kind === 'existing_account')
+    ).toHaveLength(1);
+  });
+
+  it('logs SMTP rejection details without credentials on send failure', async () => {
+    const info = vi.spyOn(console, 'info').mockImplementation(() => {});
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+    vi.doMock('nodemailer', () => ({
+      default: {
+        createTransport: () => ({
+          sendMail: vi.fn().mockRejectedValue({
+            code: 'EENVELOPE',
+            responseCode: 550,
+            command: 'MAIL FROM',
+            response: `550 5.1.2 domain refused ${'x'.repeat(300)}`,
+          }),
+        }),
+      },
+    }));
+
+    try {
+      const { sendExistingAccountEmail } = await loadMailer({
+        NODE_ENV: 'production',
+        SMTP_HOST: 'smtp.test',
+        SMTP_USER: 'smtp-user',
+        SMTP_PASS: 'smtp-secret',
+      });
+
+      await sendExistingAccountEmail({ user: { email: 'existing@example.com' } });
+
+      const failed = jsonLines(error).find((line) => line.event === 'mail_failed');
+      expect(failed).toMatchObject({
+        to: 'existing@example.com',
+        kind: 'existing_account',
+        code: 'EENVELOPE',
+        responseCode: 550,
+        command: 'MAIL FROM',
+      });
+      expect(failed.response).toHaveLength(200);
+      expect(JSON.stringify(failed)).not.toContain('smtp-secret');
+      expect(info).not.toHaveBeenCalled();
+    } finally {
+      vi.doUnmock('nodemailer');
+    }
   });
 });

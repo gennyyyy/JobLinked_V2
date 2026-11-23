@@ -329,7 +329,6 @@ export default function Accreditation() {
   return (
     <>
       <PageHeading
-        eyebrow="Build trust in every opportunity"
         title="A thoughtful review, a stronger community."
         description="Review employer accreditation, provide actionable feedback, and maintain a clear decision history."
       />
@@ -359,7 +358,7 @@ export default function Accreditation() {
         </div>
 
         {records.length === 0 ? (
-          <EmptyState title="Your review queue is clear." description="No employers match these filters." />
+          <EmptyState title="No employers match these filters." description="Clear the filters to see all employers." />
         ) : (
           <Table>
             <TableHeader>

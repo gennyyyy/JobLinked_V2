@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import EmployerRegister from '../EmployerRegister'
 import { api } from '../../../shared/lib/api'
@@ -88,8 +88,15 @@ function fillRequired() {
   fireEvent.click(screen.getByRole('checkbox', { name: /all the information i provided is true and correct/i }))
 }
 
-function submit() {
+function triggerSubmit() {
   fireEvent.click(screen.getByRole('button', { name: /submit accreditation application/i }))
+}
+
+// Only the confirmation dialog's confirm action creates the account.
+async function submit() {
+  triggerSubmit()
+  expect(await screen.findByRole('dialog', { name: /confirm accreditation submission/i })).toBeInTheDocument()
+  fireEvent.click(screen.getByRole('button', { name: /confirm & submit application/i }))
 }
 
 // The term gate ships disabled: open the notice, wait until the read state
@@ -131,7 +138,7 @@ describe('EmployerRegister address', () => {
     fireEvent.click(screen.getByRole('button', { name: /^next$/i }))
     // Term gate ships disabled until the notice is opened and read.
     await openTermsAndAgree()
-    submit()
+    await submit()
 
     await waitFor(() => expect(api.post).toHaveBeenCalled())
     expect(parked()).toMatchObject({ email: 'hr@company.com', role: 'employer' })
@@ -155,7 +162,7 @@ describe('EmployerRegister address', () => {
     expect(screen.getByLabelText(/representative mobile/i)).toHaveValue('917 123 4567')
 
     await openTermsAndAgree()
-    submit()
+    await submit()
 
     await waitFor(() => expect(api.post).toHaveBeenCalled())
     expect(parked().representative_phone).toBe('+639171234567')
@@ -202,10 +209,56 @@ describe('EmployerRegister address', () => {
     renderPage()
     fillRequired()
     fireEvent.click(screen.getByRole('checkbox', { name: /all the information i provided is true and correct/i }))
-    submit()
+    triggerSubmit()
 
     await waitFor(() => expect(screen.getByText(/please confirm your information is true and correct/i)).toBeInTheDocument())
     expect(authClientMock.signUp.email).not.toHaveBeenCalled()
+  })
+})
+
+describe('EmployerRegister final step actions', () => {
+  beforeEach(() => vi.clearAllMocks())
+
+  it('hides Next on the final step and keeps Submit Accreditation Application', () => {
+    renderPage()
+    fillRequired()
+
+    expect(screen.queryByRole('button', { name: /^next$/i })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /submit accreditation application/i })).toBeInTheDocument()
+  })
+})
+
+describe('EmployerRegister confirmation dialog', () => {
+  beforeEach(() => vi.clearAllMocks())
+
+  it('explains the employer next steps before anything is submitted', async () => {
+    signedUp({ id: 'employer-1' })
+    renderPage()
+    fillRequired()
+    await openTermsAndAgree()
+    triggerSubmit()
+
+    const dialog = await screen.findByRole('dialog', { name: /confirm accreditation submission/i })
+    expect(within(dialog).getByRole('heading', { name: 'Confirm accreditation submission' })).toBeInTheDocument()
+    expect(within(dialog).getByRole('heading', { name: /what happens after you submit/i })).toBeInTheDocument()
+    expect(within(dialog).getByText(/once verified, peso reviews your accreditation — usually within 3 business days/i)).toBeInTheDocument()
+    expect(within(dialog).getByText(/not peso accreditation/i)).toBeInTheDocument()
+    expect(authClientMock.signUp.email).not.toHaveBeenCalled()
+  })
+
+  it('does not create the account when the user keeps editing', async () => {
+    signedUp({ id: 'employer-1' })
+    renderPage()
+    fillRequired()
+    await openTermsAndAgree()
+    triggerSubmit()
+
+    const dialog = await screen.findByRole('dialog', { name: /confirm accreditation submission/i })
+    fireEvent.click(within(dialog).getByRole('button', { name: /keep editing/i }))
+
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: /confirm accreditation submission/i })).not.toBeInTheDocument())
+    expect(authClientMock.signUp.email).not.toHaveBeenCalled()
+    expect(api.post).not.toHaveBeenCalled()
   })
 })
 
@@ -218,7 +271,7 @@ describe('EmployerRegister captcha', () => {
     renderPage()
     fillRequired()
     await openTermsAndAgree()
-    submit()
+    triggerSubmit()
 
     expect(await screen.findByText('Please complete the verification challenge.')).toBeInTheDocument()
     expect(authClientMock.signUp.email).not.toHaveBeenCalled()
@@ -230,7 +283,7 @@ describe('EmployerRegister captcha', () => {
     fillRequired()
     await openTermsAndAgree()
     fireEvent.click(screen.getByRole('button', { name: /solve captcha/i }))
-    submit()
+    await submit()
 
     await waitFor(() => expect(api.post).toHaveBeenCalled())
     expect(sentCaptcha()).toBe('captcha-token')
@@ -253,14 +306,15 @@ describe('EmployerRegister captcha', () => {
     fillRequired()
     await openTermsAndAgree()
     fireEvent.click(screen.getByRole('button', { name: /solve captcha/i }))
-    submit()
+    await submit()
 
     expect(await screen.findByText(/registration failed/i)).toBeInTheDocument()
     expect(authClientMock.signUp.email).toHaveBeenCalledTimes(1)
     expect(sentCaptcha()).toBe('captcha-token')
 
     // The token is single-use: a retry without a fresh challenge is blocked.
-    submit()
+    fireEvent.click(screen.getByRole('button', { name: /keep editing/i }))
+    triggerSubmit()
     expect(await screen.findByText('Please complete the verification challenge.')).toBeInTheDocument()
     expect(authClientMock.signUp.email).toHaveBeenCalledTimes(1)
   })

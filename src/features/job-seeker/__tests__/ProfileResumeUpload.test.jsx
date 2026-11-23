@@ -33,7 +33,7 @@ describe('Profile resume upload', () => {
     render(<MemoryRouter><Profile /></MemoryRouter>)
     await screen.findByRole('button', { name: /save my profile/i })
     await user.click(screen.getByRole('tab', { name: /my resumes/i }))
-    await screen.findByText(/start with your story/i)
+    await screen.findByText(/no resume added/i)
 
     fireEvent.change(screen.getByLabelText('Choose a Resume to Autofill'), {
       target: { files: [new File(['x'], 'resume.pdf', { type: 'application/pdf' })] },

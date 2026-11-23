@@ -4,7 +4,7 @@ import { Pool } from 'pg';
 import { PostgresDialect } from 'kysely';
 import bcrypt from 'bcrypt';
 import { admin, captcha, twoFactor } from 'better-auth/plugins';
-import { sendResetPassword, sendVerificationEmail } from './mailer.js';
+import { sendExistingAccountEmail, sendResetPassword, sendVerificationEmail } from './mailer.js';
 import { passwordPolicyError } from './passwordPolicy.js';
 import logger from './logger.js';
 
@@ -89,6 +89,12 @@ export const auth = betterAuth({
       },
     },
     sendResetPassword,
+    // Runs for any existing account (verified or not) when sign-up answers the
+    // generic duplicate success. The HTTP response must stay identical, so the
+    // only account-existence signal is the email to the address's owner.
+    onExistingUserSignUp: async ({ user }) => {
+      await sendExistingAccountEmail({ user });
+    },
   },
   // Change-email verification reuses sendVerificationEmail (to the NEW address).
   user: { changeEmail: { enabled: true } },

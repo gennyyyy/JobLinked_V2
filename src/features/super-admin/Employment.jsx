@@ -72,7 +72,6 @@ export default function Employment() {
   return (
     <>
       <PageHeading
-        eyebrow="Beyond the hiring journey"
         title="Employment oversight"
         description="Linked employment records, recorded milestones, and accountable updates. Separate from recruitment."
       />
@@ -153,8 +152,8 @@ export default function Employment() {
           </Table>
         ) : (
           <EmptyState
-            title="No matching employment records"
-            description={records.length ? 'Try changing the search or filters.' : 'A verified employer confirming a hire creates a linked employment record here.'}
+            title={records.length ? 'No employment records match these filters.' : 'No employment records yet.'}
+            description={records.length ? 'Clear the filters to see all employment records.' : 'A hire confirmed by an employer creates a linked employment record here.'}
           />
         )}
         <Pager page={currentPage} pageSize={PAGE_SIZE} total={filtered.length} onChange={setPage} />

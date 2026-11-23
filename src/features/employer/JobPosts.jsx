@@ -519,8 +519,8 @@ export default function JobPosts() {
           </Table>
         ) : (
           <EmptyState
-            title="Your next opening starts here."
-            description="No vacancies match this view. Clear the filters or create a new job posting."
+            title="No job posts match this view."
+            description="Clear the filters or create a new job post."
             action={<Button type="button" onClick={handleOpenCreate} disabled={!company}>Create a vacancy</Button>}
           />
         )}

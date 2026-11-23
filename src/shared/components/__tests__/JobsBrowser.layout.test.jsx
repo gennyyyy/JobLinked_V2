@@ -99,7 +99,6 @@ describe('JobsBrowser layout', () => {
   it('keeps the saved-jobs variant search-only, without a sidebar', async () => {
     renderBrowser({ saved: true })
 
-    expect(await screen.findByRole('heading', { level: 1, name: 'Keep good opportunities close.' })).toBeInTheDocument()
     expect(screen.queryByRole('complementary')).toBeNull()
     expect(screen.queryByRole('button', { name: 'Skills-based matching' })).toBeNull()
     expect(screen.queryByRole('heading', { name: /narrow your search/i })).toBeNull()

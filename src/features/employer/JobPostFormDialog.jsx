@@ -86,7 +86,6 @@ export default function JobPostFormDialog({ form, setForm, setErrors, errors, sa
               <Briefcase />
             </span>
             <div>
-              <p className="eyebrow">{editingId ? "Update vacancy" : "New recruitment bulletin"}</p>
               <h2 id="job-form-title" className="mt-1 text-xl font-semibold tracking-[-.02em] text-navy">
                 {editingId ? "Edit Job Vacancy" : "Post a Municipal Vacancy"}
               </h2>

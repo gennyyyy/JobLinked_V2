@@ -661,7 +661,7 @@ function Profile() {
                 <li key={edu.id} className="flex items-center justify-between rounded-xl border p-3 text-sm">
                   <div>
                     <p className="font-medium">{titleCase(edu.school)} — {titleCase(edu.level)}</p>
-                    <p className="text-xs text-muted-foreground">{edu.field || ''}{edu.end_year ? ` · ${edu.end_year}` : (edu.end_year === null ? ' · Currently studying' : '')}</p>
+                    <p className="text-xs text-muted-foreground">{[edu.field, edu.end_year ? `Graduated ${edu.end_year}` : (edu.end_year === null ? 'Currently studying' : '')].filter(Boolean).join(' · ')}</p>
                   </div>
                   <Button type="button" variant="ghost" onClick={() => handleRemoveEducation(edu.id)}>Remove</Button>
                 </li>
@@ -713,7 +713,7 @@ function Profile() {
                   </li>
                 </ul>
               ) : (
-                <EmptyState title="Start with your story." description="Add a resume using the form. PDF, DOC, or DOCX up to 5 MB." />
+                <EmptyState title="No resume added." description="Add a PDF, DOC, or DOCX file up to 5 MB." />
               )}
               <div className="mt-4">
                 <ResumeAutofill

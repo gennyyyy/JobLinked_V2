@@ -50,6 +50,7 @@ export default function VocabularyPicker({
   help,
   required = false,
   error,
+  labelClassName,
 }) {
   const autoId = useId();
   const fieldId = id || autoId;
@@ -127,7 +128,7 @@ export default function VocabularyPicker({
           aria-required={required || undefined}
           aria-busy={loading || undefined}
         >
-          <p id={labelId} className="mb-2 text-sm font-medium leading-none">
+          <p id={labelId} className={cn("mb-2 text-sm font-medium leading-none", labelClassName)}>
             {label}
             {required && <span aria-hidden="true" className="text-destructive"> *</span>}
           </p>
@@ -159,7 +160,7 @@ export default function VocabularyPicker({
 
   return (
     <div className="w-full">
-      <Label htmlFor={fieldId} className="mb-2">
+      <Label htmlFor={fieldId} className={cn("mb-2", labelClassName)}>
         {label}
         {required && <span aria-hidden="true" className="text-destructive">*</span>}
       </Label>
