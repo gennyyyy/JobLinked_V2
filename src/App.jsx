@@ -36,7 +36,6 @@ const AcceptInvite = route('/accept-invite')
 const SuperAdminLayout = route('/super-admin')
 const Accreditation = route('/super-admin/accreditation')
 const JobPosts = route('/super-admin/job-posts')
-const RoleManagement = route('/super-admin/roles')
 const UserManagement = route('/super-admin/users')
 const Settings = route('/super-admin/settings')
 const Broadcast = route('/super-admin/broadcast')
@@ -116,7 +115,6 @@ function App() {
             <Route path="/admin/profile" element={<Navigate to="/super-admin/profile" replace />} />
             <Route path="/admin/accreditation" element={<Navigate to="/super-admin/accreditation" replace />} />
             <Route path="/admin/users" element={<Navigate to="/super-admin/users" replace />} />
-            <Route path="/admin/role-management" element={<Navigate to="/super-admin/roles" replace />} />
             <Route path="/admin/employment-tracking" element={<Navigate to="/super-admin/employment-tracking" replace />} />
             <Route path="/admin/jobs" element={<Navigate to="/super-admin/job-posts" replace />} />
             <Route path="/admin/applications" element={<Navigate to="/super-admin/applications" replace />} />
@@ -165,7 +163,6 @@ function App() {
               <Route index element={<Dashboard />} />
               <Route path="accreditation" element={<Accreditation />} />
               <Route path="job-posts" element={<JobPosts />} />
-              <Route path="roles" element={<RoleManagement />} />
               <Route path="users" element={<UserManagement />} />
               <Route path="settings" element={<Settings />} />
               <Route path="broadcast" element={<Broadcast />} />

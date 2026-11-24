@@ -97,11 +97,11 @@ describe('canonicalizeSkills', () => {
     expect(mocks.query).not.toHaveBeenCalled();
   });
 
-  it('ignores blank entries and names the first unknown value', async () => {
+  it('ignores blank entries and keeps unlisted values as typed', async () => {
     expect(await canonicalizeSkills(['', null, 'driving', '  '])).toEqual({ ok: true, value: ['Driving'] });
     expect(await canonicalizeSkills(['MS Excel', 'Underwater Basket Weaving'])).toEqual({
-      ok: false,
-      invalid: 'Underwater Basket Weaving',
+      ok: true,
+      value: ['MS Excel', 'Underwater Basket Weaving'],
     });
   });
 
@@ -135,8 +135,7 @@ describe('validateJobVocabulary', () => {
 
   it('names the contract failures for the route to answer', async () => {
     expect((await validateJobVocabulary({ field: 'Astrology' })).message).toBe('field must be a listed job field');
-    expect((await validateJobVocabulary({ skills: ['Astrology'] })).message)
-      .toBe('skills contains an unknown value: Astrology');
+    expect(await validateJobVocabulary({ skills: ['Astrology'] })).toEqual({ ok: true, values: { skills: ['Astrology'] } });
     expect((await validateJobVocabulary({ skills: 'MS Excel' })).message).toBe('skills must be an array');
   });
 });

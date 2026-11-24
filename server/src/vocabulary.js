@@ -2,7 +2,8 @@ import { pool } from './db.js';
 
 // Controlled job vocabularies (db/migrations/016: reference_data categories
 // 'job_field' and 'skill'). One cached read per minute for the whole process;
-// validation compares case-insensitively and stores the canonical casing.
+// validation compares case-insensitively, stores the canonical casing for
+// listed values, and keeps unlisted skills as typed.
 const TTL_MS = 60_000;
 export const MAX_SKILLS = 20;
 
@@ -40,7 +41,8 @@ export async function canonicalizeField(value) {
 }
 
 // Case-insensitive, deduped, capped. Blank entries are ignored (same as
-// normalizeTags for tags); the first unknown value fails the whole list.
+// normalizeTags for tags); listed skills are stored in the vocabulary's
+// canonical casing, unlisted ones are kept as typed.
 export async function canonicalizeSkills(list) {
   const items = Array.isArray(list) ? list : [];
   if (!items.length) return { ok: true, value: [] };
@@ -48,12 +50,11 @@ export async function canonicalizeSkills(list) {
   const seen = new Set();
   const out = [];
   for (const raw of items) {
-    const key = String(raw ?? '').trim().toLowerCase();
+    const typed = String(raw ?? '').trim();
+    const key = typed.toLowerCase();
     if (!key || seen.has(key)) continue;
-    const canonical = vocab.skill.get(key);
-    if (canonical === undefined) return { ok: false, invalid: raw };
     seen.add(key);
-    out.push(canonical);
+    out.push(vocab.skill.get(key) ?? typed);
   }
   if (out.length > MAX_SKILLS) return { ok: false, tooMany: true };
   return { ok: true, value: out };
@@ -74,14 +75,7 @@ export async function validateJobVocabulary(body) {
       return { ok: false, message: 'skills must be an array' };
     }
     const skills = await canonicalizeSkills(body.skills ?? []);
-    if (!skills.ok) {
-      return {
-        ok: false,
-        message: skills.tooMany
-          ? `skills must contain at most ${MAX_SKILLS} values`
-          : `skills contains an unknown value: ${skills.invalid}`,
-      };
-    }
+    if (!skills.ok) return { ok: false, message: `skills must contain at most ${MAX_SKILLS} values` };
     values.skills = skills.value;
   }
   return { ok: true, values };

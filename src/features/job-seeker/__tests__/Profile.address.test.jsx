@@ -85,6 +85,9 @@ describe('Profile fields and save', () => {
     expect(screen.getByText('Business · Graduated 2022')).toBeInTheDocument()
     expect(screen.queryByRole('combobox', { name: /^education$/i })).not.toBeInTheDocument()
     expect(screen.getAllByText('College').length).toBeGreaterThan(0)
+
+    fireEvent.click(screen.getByRole('tab', { name: /skills/i }))
+    await screen.findByLabelText('Work Experience')
     expect(screen.getAllByText('Cashier').length).toBeGreaterThan(0)
     expect(screen.getByText('2 years')).toBeInTheDocument()
     expect(screen.getAllByText('Data Entry').length).toBeGreaterThan(0)
@@ -101,7 +104,7 @@ describe('Profile fields and save', () => {
     fireEvent.change(screen.getByLabelText('Barangay'), { target: { value: 'Bagbaguin' } })
     fireEvent.change(screen.getByLabelText(/street or local address/i), { target: { value: '48 Rizal Street' } })
 
-    fireEvent.click(screen.getByRole('tab', { name: /education/i }))
+    fireEvent.click(screen.getByRole('tab', { name: /skills/i }))
     const skillsInput = await screen.findByRole('combobox', { name: /your skills/i })
     // The autocomplete list appears once the skill vocabulary has loaded.
     await waitFor(() => expect(skillsInput).toHaveAttribute('list'))
@@ -122,6 +125,43 @@ describe('Profile fields and save', () => {
       skills: ['Data Entry', 'Customer Service'],
     }))
     expect(updateProfile.mock.calls[0][1]).not.toHaveProperty('education_summary')
+    expect(await screen.findByText('Changes saved')).toBeInTheDocument()
+  })
+
+  it('shows the success toast before the save request resolves', async () => {
+    let resolveSave
+    updateProfile.mockImplementation(() => new Promise((resolve) => { resolveSave = resolve }))
+    await openProfile()
+
+    fireEvent.click(screen.getByRole('button', { name: /save my profile/i }))
+
+    // Optimistic: the toast is up while updateProfile is still pending.
+    expect(await screen.findByText('Changes saved')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /saving/i })).toBeDisabled()
+
+    resolveSave({})
+    expect(await screen.findByRole('button', { name: /save my profile/i })).toBeEnabled()
+    expect(screen.getByText('Changes saved')).toBeInTheDocument()
+  })
+
+  it('shows an error toast and the inline error when the save fails', async () => {
+    updateProfile.mockRejectedValue(new Error('Profile could not be saved'))
+    await openProfile()
+
+    fireEvent.click(screen.getByRole('button', { name: /save my profile/i }))
+
+    expect(await screen.findByText('Changes not saved')).toBeInTheDocument()
+    expect(screen.getByRole('alert')).toHaveTextContent('Profile could not be saved')
+  })
+
+  it('saves a cleared professional headline as empty', async () => {
+    await openProfile()
+
+    fireEvent.change(screen.getByLabelText(/professional headline/i), { target: { value: '' } })
+    fireEvent.click(screen.getByRole('button', { name: /save my profile/i }))
+
+    await waitFor(() => expect(updateProfile).toHaveBeenCalled())
+    expect(updateProfile).toHaveBeenCalledWith('u1', expect.objectContaining({ headline: '' }))
   })
 
   it('blocks the save and explains an invalid contact number', async () => {
@@ -244,15 +284,17 @@ describe('Profile fields and save', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /save my profile/i }))
 
+    // A failed save jumps to the tab that owns the first error.
     expect(await screen.findByText('Enter your full name.')).toBeInTheDocument()
-    expect(screen.getByText('Add a short professional headline.')).toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('tab', { name: /address/i }))
     await screen.findByText('Choose your barangay.')
 
+    fireEvent.click(screen.getByRole('tab', { name: /skills/i }))
+    await screen.findByText('Add at least one skill.')
+
     fireEvent.click(screen.getByRole('tab', { name: /education/i }))
-    await screen.findByText("Add at least one skill from PESO's list.")
-    expect(screen.getByText('Add your education history.')).toBeInTheDocument()
+    await screen.findByText('Add your education history.')
 
     expect(updateProfile).not.toHaveBeenCalled()
   })

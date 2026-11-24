@@ -1,6 +1,5 @@
 import { useState } from "react";
-import { getReferenceValues } from "@/shared/services/reference";
-import { mapResumeText, matchSkills } from "@/shared/utils/resumeAutofill";
+import { mapResumeText } from "@/shared/utils/resumeAutofill";
 import { MAX_PDF_SIZE, MAX_RESUME_SIZE } from "./jobSeekerRegistration";
 
 const FIELD_LABELS = {
@@ -23,7 +22,6 @@ const FIELD_LABELS = {
 
 export function useResumeAutofill({ form, setForm, setEducation }) {
   const [autofillStatus, setAutofillStatus] = useState("");
-  const [unrecognizedSkills, setUnrecognizedSkills] = useState([]);
   const [touched, setTouched] = useState([]);
   async function handleResumeChange(event) {
     const file = event.target.files?.[0];
@@ -51,19 +49,7 @@ export function useResumeAutofill({ form, setForm, setEducation }) {
       const text = await extractResumeText(file);
       const mapped = mapResumeText(text);
 
-      const skills = Array.isArray(mapped.skills) ? mapped.skills : [];
-
-      // The signup picker only accepts listed vocabulary skills. Select the
-      // ones the vocabulary knows; name the rest so nothing is lost silently.
-      let matchedSkills = [];
-      if (skills.length) {
-        const vocabulary = await getReferenceValues("skill").catch(() => []);
-        const result = matchSkills(skills, vocabulary);
-        matchedSkills = result.matched;
-        setUnrecognizedSkills(result.unrecognized);
-      } else {
-        setUnrecognizedSkills([]);
-      }
+      const detectedSkills = Array.isArray(mapped.skills) ? mapped.skills : [];
 
       const filled = {};
       const touchedKeys = [];
@@ -82,7 +68,7 @@ export function useResumeAutofill({ form, setForm, setEducation }) {
         ? [...value]
         : String(value || "").split(",").map((s) => s.trim()).filter(Boolean));
       const prevSkills = asList(form?.skills);
-      const skillsAdded = matchedSkills.some(
+      const skillsAdded = detectedSkills.some(
         (s) => !prevSkills.some((t) => t.toLowerCase() === s.toLowerCase()),
       );
 
@@ -100,11 +86,12 @@ export function useResumeAutofill({ form, setForm, setEducation }) {
         return {
           ...prev,
           ...merged,
-          ...(matchedSkills.length
+          ...(detectedSkills.length
             ? {
                 skills: (() => {
                   const current = asList(prev.skills);
-                  for (const s of matchedSkills) {
+                  for (const s of detectedSkills) {
+                    if (current.length >= 20) break;
                     if (!current.some((t) => t.toLowerCase() === s.toLowerCase())) current.push(s);
                   }
                   return current;
@@ -128,7 +115,7 @@ export function useResumeAutofill({ form, setForm, setEducation }) {
         });
       }
 
-      if (matchedSkills.length && skillsAdded) touchedKeys.push("skills");
+      if (detectedSkills.length && skillsAdded) touchedKeys.push("skills");
       if (eduAdded) touchedKeys.push("education");
 
       setTouched(touchedKeys);
@@ -144,5 +131,5 @@ export function useResumeAutofill({ form, setForm, setEducation }) {
     }
   }
 
-  return { autofillStatus, unrecognizedSkills, touched, handleResumeChange };
+  return { autofillStatus, touched, handleResumeChange };
 }

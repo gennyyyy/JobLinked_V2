@@ -33,7 +33,6 @@ export const routeLoaders = {
   '/super-admin': () => import('../../features/super-admin/SuperAdminLayout'),
   '/super-admin/accreditation': () => import('../../features/super-admin/Accreditation'),
   '/super-admin/job-posts': () => import('../../features/super-admin/JobPosts'),
-  '/super-admin/roles': () => import('../../features/super-admin/RoleManagement'),
   '/super-admin/users': () => import('../../features/super-admin/UserManagement'),
   '/super-admin/settings': () => import('../../features/super-admin/Settings'),
   '/super-admin/broadcast': () => import('../../features/super-admin/Broadcast'),

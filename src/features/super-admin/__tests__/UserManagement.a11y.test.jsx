@@ -61,7 +61,8 @@ describe('UserManagement accessibility', () => {
   it('announces an action failure in a live region', async () => {
     assignRole.mockRejectedValue(new Error('Role change rejected'))
     await renderUsers()
-    fireEvent.click(screen.getByRole('button', { name: /manage access/i }))
+    fireEvent.click(screen.getByRole('button', { name: 'Actions for Ada Lovelace' }))
+    fireEvent.click(await screen.findByRole('menuitem', { name: 'Manage access' }))
     fireEvent.change(screen.getByLabelText(/assigned system role/i), { target: { value: 'sys:job-seeker' } })
     fireEvent.change(screen.getByLabelText(/reason for change/i), { target: { value: 'Role change needed for this account.' } })
     fireEvent.click(screen.getByRole('checkbox', { name: /i confirm this role or permission change/i }))

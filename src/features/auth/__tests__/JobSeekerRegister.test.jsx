@@ -173,7 +173,7 @@ describe('JobSeekerRegister autofill', () => {
     expect(screen.getByLabelText(/^first name/i)).toHaveValue('')
   })
 
-  it('selects autofilled skills in the vocabulary picker and reports the count', async () => {
+  it('turns autofilled resume skills into chips', async () => {
     extractResumeText.mockResolvedValue(SKILLED)
     renderPage()
     pickFile()
@@ -191,7 +191,7 @@ describe('JobSeekerRegister autofill', () => {
     expect(screen.queryByText('Welding')).not.toBeInTheDocument()
   })
 
-  it('lists a resume skill outside the vocabulary without sending it', async () => {
+  it('sends a resume skill outside the vocabulary', async () => {
     extractResumeText.mockResolvedValue(`${SKILLED}, Underwater Basket Weaving`)
     signedUp({ id: 'seeker-1' })
     renderPage()
@@ -213,8 +213,9 @@ describe('JobSeekerRegister autofill', () => {
     fireEvent.change(screen.getByLabelText(/province/i), { target: { value: 'Bulacan' } })
     fireEvent.click(screen.getByRole('button', { name: /^next$/i }))
 
-    expect(await screen.findByText(/Unrecognized skills: Underwater Basket Weaving/i)).toBeInTheDocument()
+    expect(await screen.findByText('Underwater Basket Weaving')).toBeInTheDocument()
     await screen.findByText('Data Entry')
+    expect(screen.queryByText(/Unrecognized skills/i)).not.toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('button', { name: /view terms/i }))
     fireEvent.click(screen.getByRole('checkbox', { name: /agree to the municipal/i }))
@@ -222,7 +223,7 @@ describe('JobSeekerRegister autofill', () => {
     await confirmCreateAccount()
 
     await waitFor(() => expect(api.post).toHaveBeenCalled())
-    expect(parked().skills).toEqual(['Data Entry', 'Communication'])
+    expect(parked().skills).toEqual(['Data Entry', 'Communication', 'Underwater Basket Weaving'])
   })
 
   it('keeps the skills already picked when autofilling', async () => {

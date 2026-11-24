@@ -32,7 +32,7 @@ function JobSeekerRegister() {
   const [errors, setErrors] = useState({});
   const [form, setForm] = useState(EMPTY_FORM);
   const [education, setEducation] = useState({ level: "", school: "", field: "", year: "", studying: false });
-  const { autofillStatus, unrecognizedSkills, touched, handleResumeChange } = useResumeAutofill({ form, setForm, setEducation });
+  const { autofillStatus, touched, handleResumeChange } = useResumeAutofill({ form, setForm, setEducation });
   const [eduError, setEduError] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const [needsConfirmation, setNeedsConfirmation] = useState(false);
@@ -208,7 +208,6 @@ function JobSeekerRegister() {
                   education={education}
                   setEducation={setEducation}
                   eduError={eduError}
-                  unrecognizedSkills={unrecognizedSkills}
                   setTermsOpen={setTermsOpen}
                   termsRead={termsRead}
                   reqMark={reqMark}

@@ -40,7 +40,7 @@ describe('Profile accessibility', () => {
 
     const profileCard = screen.getByRole('tab', { name: /personal/i }).closest('[data-slot="card"]')
     expect(profileCard).toContainElement(screen.getByRole('tablist'))
-    for (const name of [/personal/i, /address/i, /education/i, /my resumes/i, /account settings/i]) {
+    for (const name of [/personal/i, /address/i, /skills/i, /education/i, /my resumes/i, /account settings/i]) {
       expect(profileCard).toContainElement(screen.getByRole('tab', { name }))
     }
 
@@ -56,13 +56,16 @@ describe('Profile accessibility', () => {
       expect(screen.getByLabelText(name)).toBeInTheDocument()
     }
 
-    fireEvent.click(screen.getByRole('tab', { name: /education/i }))
-    await screen.findByRole('combobox', { name: /level/i })
-    expect(screen.getByRole('combobox', { name: /level/i })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('tab', { name: /skills/i }))
+    await screen.findByRole('combobox', { name: /your skills/i })
     expect(screen.getByLabelText('Work Experience')).toBeInTheDocument()
     // The add button is also named "Add Your skills", so target the input by
     // role: input[list] is a combobox once the datalist is attached.
     expect(screen.getByRole('combobox', { name: /your skills/i })).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('tab', { name: /education/i }))
+    await screen.findByRole('combobox', { name: /level/i })
+    expect(screen.getByRole('combobox', { name: /level/i })).toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('tab', { name: /my resumes/i }))
     await screen.findByLabelText('Choose a Resume to Autofill')
@@ -87,9 +90,10 @@ describe('Profile accessibility', () => {
     signedUrl.mockResolvedValue('blob:test')
     await openProfile()
     fireEvent.click(screen.getByRole('tab', { name: /my resumes/i }))
-    // View is a button now: it fetches on click (no prefetch), then opens the
-    // object URL in a new tab. The announcement must survive that change.
+    fireEvent.click(await screen.findByRole('button', { name: /actions for resume\.pdf/i }))
+    // View fetches on click (no prefetch), then opens the object URL in a new
+    // tab. The announcement must live inside the View menu item.
     const notice = await screen.findByText(/opens in new tab/i)
-    expect(notice.closest('button')).not.toBeNull()
+    expect(notice.closest('[role="menuitem"]')).not.toBeNull()
   })
 })

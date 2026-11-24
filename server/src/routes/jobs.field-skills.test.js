@@ -1,10 +1,11 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import request from 'supertest';
 
-// Task 3: structured `field` (job_field vocabulary) and `skills` (skill
-// vocabulary) on the job contract. Create/PATCH answer 400 for a value the
-// admin list does not contain, store the canonical casing, and the publish
-// fan-out matches skills overlap OR the same field (location still ORed).
+// Task 3: structured `field` (job_field vocabulary) and `skills` (free text,
+// canonical casing for listed values) on the job contract. Create/PATCH answer
+// 400 for a field the admin list does not contain, while any trimmed skill is
+// accepted; the publish fan-out matches skills overlap OR the same field
+// (location still ORed).
 // (The GET /jobs?skills= text search has its own suite: jobs.skills.test.js.)
 vi.mock('../db.js', async () => { const h = await import('../__tests__/helpers/db.js'); return { pool: h.pool, query: h.query, clientQuery: h.clientQuery, connect: h.connect }; });
 vi.mock('../ba.js', async () => { const h = await import('../__tests__/helpers/auth.js'); return { auth: h.baAuth }; });
@@ -86,15 +87,15 @@ describe('POST /api/jobs field + skills', () => {
     expect(callsOf(/insert into job_vacancies/)).toHaveLength(0);
   });
 
-  it('400s an unknown skill, naming the value', async () => {
+  it('saves unlisted skills as typed', async () => {
     const token = loginAs({ id: EMPLOYER, role: 'employer' });
+    employerReady(jobRow({ skills: ['MS Excel', 'Underwater Basket Weaving'] }));
 
     const res = await create(token, { title: 'Encoder', skills: ['MS Excel', 'Underwater Basket Weaving'] });
 
-    expect(res.status).toBe(400);
-    expect(res.body.error.code).toBe('BAD_REQUEST');
-    expect(res.body.error.message).toBe('skills contains an unknown value: Underwater Basket Weaving');
-    expect(callsOf(/insert into job_vacancies/)).toHaveLength(0);
+    expect(res.status).toBe(201);
+    expect(callsOf(/insert into job_vacancies/)[0].params).toContainEqual(['MS Excel', 'Underwater Basket Weaving']);
+    expect(res.body.skills).toEqual(['MS Excel', 'Underwater Basket Weaving']);
   });
 
   it('400s more than 20 skills', async () => {
@@ -132,15 +133,15 @@ describe('POST /api/jobs field + skills', () => {
 });
 
 describe('PATCH /api/jobs/:id field + skills', () => {
-  it('rejects an unknown skill before writing', async () => {
+  it('saves an unlisted skill as typed', async () => {
     const token = loginAs({ id: EMPLOYER, role: 'employer' });
     requireJobLoad(jobRow({ company_id: EMPLOYER }));
+    on(/update job_vacancies set/, () => ({ rowCount: 1 }));
 
     const res = await patch(token, { skills: ['Farming'] });
 
-    expect(res.status).toBe(400);
-    expect(res.body).toEqual({ error: { code: 'BAD_REQUEST', message: 'skills contains an unknown value: Farming' } });
-    expect(callsOf(/update job_vacancies set/)).toHaveLength(0);
+    expect(res.status).toBe(200);
+    expect(callsOf(/update job_vacancies set/)[0].params).toEqual([JOB, ['Farming']]);
   });
 
   it('rejects an unknown field before writing', async () => {
@@ -170,15 +171,15 @@ describe('PATCH /api/jobs/:id field + skills', () => {
 });
 
 describe('PATCH /api/admin/jobs/:id field + skills', () => {
-  it('applies the same vocabulary validation', async () => {
+  it('saves an unlisted skill as typed', async () => {
     const token = loginAs({ id: ADMIN, role: 'super-admin' });
     on(/select \* from job_vacancies where id = \$1/, () => ({ rows: [jobRow()] }));
+    on(/update job_vacancies set/, () => ({ rowCount: 1 }));
 
     const res = await patch(token, { skills: ['Farming'] }, `/api/admin/jobs/${JOB}`);
 
-    expect(res.status).toBe(400);
-    expect(res.body.error.message).toBe('skills contains an unknown value: Farming');
-    expect(callsOf(/update job_vacancies set/)).toHaveLength(0);
+    expect(res.status).toBe(200);
+    expect(callsOf(/update job_vacancies set/)[0].params).toEqual([JOB, ['Farming']]);
   });
 });
 

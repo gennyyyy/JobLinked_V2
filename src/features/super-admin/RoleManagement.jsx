@@ -56,7 +56,7 @@ const PERMISSION_MATRIX = {
 
 const emptyForm = { name: '', description: '', base_role: 'super-admin', permissions: [] }
 
-function RoleManagement() {
+function RoleManagement({ embedded = false, onRolesChanged }) {
   const [customRoles, setCustomRoles] = useState([])
   const [permissionCatalog, setPermissionCatalog] = useState([])
   const [loading, setLoading] = useState(true)
@@ -147,6 +147,7 @@ function RoleManagement() {
       }
       setFormOpen(false)
       await load()
+      onRolesChanged?.()
     } catch (err) {
       setFormError(err.message || 'Failed to save role')
     } finally {
@@ -161,6 +162,7 @@ function RoleManagement() {
       await deleteRole(role.id)
       showFlash(`Role "${role.name}" deleted. Users holding it were untagged.`)
       await load()
+      onRolesChanged?.()
     } catch (err) {
       setError(err.message || 'Failed to delete role')
     }
@@ -168,18 +170,22 @@ function RoleManagement() {
 
   if (loading) return <PageSkeleton stats={0} table />
 
+  const newRoleButton = (
+    <Button type="button" onClick={openCreate}>
+      <Plus data-icon="inline-start" />
+      New Role
+    </Button>
+  )
+
   return (
-    <div className="space-y-6 pb-12">
-      <PageHeading
-        title="Role Management"
-        description="Manage role definitions here. Assign roles to individual accounts in User Management."
-        action={(
-          <Button type="button" onClick={openCreate}>
-            <Plus data-icon="inline-start" />
-            New Role
-          </Button>
-        )}
-      />
+    <div className={embedded ? 'space-y-6' : 'space-y-6 pb-12'}>
+      {!embedded && (
+        <PageHeading
+          title="Role Management"
+          description="Manage role definitions here. Assign roles to individual accounts in the Users tab."
+          action={newRoleButton}
+        />
+      )}
 
       {flash && <p className="rounded-xl border border-success/20 bg-success-soft px-4 py-3 text-xs text-success">{flash}</p>}
       {error && <p role="alert" className="text-xs text-destructive">{error}</p>}
@@ -233,13 +239,14 @@ function RoleManagement() {
         <Panel
           title="Custom roles"
           description="Additional role definitions, separate from the three predefined roles."
+          action={embedded ? newRoleButton : undefined}
         >
           {customRoles.length === 0 ? (
             <div className="flex flex-col items-center gap-3 py-10 text-center">
               <span className="soft-icon"><Shield className="size-5" aria-hidden="true" /></span>
               <p className="text-sm font-semibold text-navy">No custom roles yet</p>
               <p className="max-w-sm text-xs leading-5 text-muted-foreground">
-                Create a Custom Role with the permissions you choose, then assign it to users from the Users page.
+                Create a Custom Role with the permissions you choose, then assign it to users from the Users tab.
               </p>
               <Button type="button" variant="outline" onClick={openCreate}>Create your first role</Button>
             </div>

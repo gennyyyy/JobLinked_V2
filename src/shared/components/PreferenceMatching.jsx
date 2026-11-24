@@ -72,7 +72,7 @@ export default function PreferenceMatching({ prompt, onSubmit, compact = false, 
           title={prompt ? 'Preference matching is on' : MATCHING_NAME}
           onClick={() => setOpen(true)}
           className={cn(
-            'inline-flex size-8 shrink-0 items-center justify-center rounded-lg border border-border transition-colors',
+            'inline-flex h-full aspect-square shrink-0 items-center justify-center rounded-lg border border-border transition-colors',
             prompt ? 'bg-blue-soft text-primary border-primary' : 'text-muted-foreground hover:bg-muted hover:text-primary',
           )}
         >

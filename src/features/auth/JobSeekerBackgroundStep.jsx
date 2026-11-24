@@ -8,7 +8,7 @@ import FormSelect from "@/shared/components/FormSelect";
 
 const FIELD_LABEL = "mb-1 text-xs text-muted-foreground";
 
-function JobSeekerBackgroundStep({ form, errors, set, education, setEducation, eduError, setTermsOpen, termsRead, reqMark, unrecognizedSkills = [] }) {
+function JobSeekerBackgroundStep({ form, errors, set, education, setEducation, eduError, setTermsOpen, termsRead, reqMark }) {
   const skillVocabulary = useVocabulary('skill');
   return (
             <section className="surface p-5">
@@ -66,6 +66,7 @@ function JobSeekerBackgroundStep({ form, errors, set, education, setEducation, e
                 value={form.skills}
                 onChange={(v) => set("skills", v)}
                 suggestions={skillVocabulary.values}
+                max={20}
                 placeholder="Type a skill and press Enter"
                 help="Pick the skills employers should match you on. Optional."
                 labelClassName={FIELD_LABEL}
@@ -74,11 +75,6 @@ function JobSeekerBackgroundStep({ form, errors, set, education, setEducation, e
               {skillVocabulary.error && (
                 <p role="alert" className="flex flex-wrap items-center gap-2 text-xs text-destructive">
                   <span>{skillVocabulary.error}</span>
-                </p>
-              )}
-              {unrecognizedSkills.length > 0 && (
-                <p className="mt-2 text-xs text-muted-foreground">
-                  Unrecognized skills: {unrecognizedSkills.join(", ")}. They are not in PESO’s list, so they are not saved.
                 </p>
               )}
               </div>

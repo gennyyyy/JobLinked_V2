@@ -34,7 +34,8 @@ describe('Profile resume delete', () => {
     await user.click(screen.getByRole('tab', { name: /my resumes/i }))
     await screen.findByText('old.pdf')
 
-    await user.click(screen.getByRole('button', { name: 'Delete' }))
+    await user.click(screen.getByRole('button', { name: /actions for old\.pdf/i }))
+    await user.click(await screen.findByRole('menuitem', { name: 'Delete' }))
     await screen.findByText(/delete this resume/i)
     const confirmButtons = screen.getAllByRole('button', { name: 'Delete' })
     await user.click(confirmButtons[confirmButtons.length - 1])

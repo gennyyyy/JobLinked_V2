@@ -47,4 +47,39 @@ describe('TopNavLayout super-admin permission display', () => {
     expect(screen.getByText('Custom role')).toBeInTheDocument()
     expect(screen.queryByRole('link', { name: 'System settings' })).toBeNull()
   })
+
+  // User Management now hosts both the Users and Roles tabs, so either key
+  // opens it. Role Management no longer has a page of its own.
+  it('shows User management to a users.manage bundle and drops Role Management', () => {
+    useAuth.mockReturnValue({
+      user: { id: 'a1', role: 'super-admin', full_name: 'PESO Admin', email: 'admin@x.com', permissions: ['users.manage'] },
+      logout: vi.fn(),
+    })
+    renderNav()
+
+    expect(screen.getByRole('link', { name: 'User management' })).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Role Management' })).toBeNull()
+  })
+
+  it('shows User management to a roles.manage bundle', () => {
+    useAuth.mockReturnValue({
+      user: { id: 'a1', role: 'super-admin', full_name: 'PESO Admin', email: 'admin@x.com', permissions: ['roles.manage'] },
+      logout: vi.fn(),
+    })
+    renderNav()
+
+    expect(screen.getByRole('link', { name: 'User management' })).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Role Management' })).toBeNull()
+  })
+
+  it('shows User management to the break-glass administrator', () => {
+    useAuth.mockReturnValue({
+      user: { id: 'a1', role: 'super-admin', full_name: 'PESO Admin', email: 'admin@x.com' },
+      logout: vi.fn(),
+    })
+    renderNav()
+
+    expect(screen.getByRole('link', { name: 'User management' })).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Role Management' })).toBeNull()
+  })
 })

@@ -124,11 +124,11 @@ describe('JobsBrowser (public mode)', () => {
     renderBrowser()
 
     expect(await screen.findByText('101 matching vacancies')).toBeInTheDocument()
-    expect(screen.getByText(/of 101 records/)).toBeInTheDocument()
+    expect(screen.getByText('1–15 of 101 jobs')).toBeInTheDocument()
     // The pager centers across the whole page, so it sits after the two-column
     // row (sidebar + results), never inside either.
     const results = document.querySelector('.job-card').closest('.min-w-0.flex-1')
-    const pager = screen.getByText(/of 101 records/).parentElement
+    const pager = screen.getByText(/of 101 jobs/).parentElement
     expect(results.contains(pager)).toBe(false)
     expect(pager.closest('aside')).toBeNull()
     expect(listJobs).toHaveBeenCalledTimes(2)

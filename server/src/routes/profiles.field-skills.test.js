@@ -62,16 +62,14 @@ describe('PATCH /api/seekers/me skills', () => {
     expect(callsOf(/update job_seekers set/)[0].params).toEqual([SEEKER, ['arc welding']]);
   });
 
-  it('400s an unknown skill, naming the raw value, before writing', async () => {
+  it('saves an unlisted skill as typed', async () => {
     const token = loginAs({ id: SEEKER, role: 'job-seeker' });
+    updateReturns();
 
     const res = await patchMe(token, { skills: ['MS Excel', 'Underwater Basket Weaving'] });
 
-    expect(res.status).toBe(400);
-    expect(res.body).toEqual({
-      error: { code: 'BAD_REQUEST', message: 'skills contains an unknown value: Underwater Basket Weaving' },
-    });
-    expect(callsOf(/update job_seekers set/)).toHaveLength(0);
+    expect(res.status).toBe(200);
+    expect(callsOf(/update job_seekers set/)[0].params).toEqual([SEEKER, ['MS Excel', 'Underwater Basket Weaving']]);
   });
 
   it('400s more than 20 skills with the cap in the message', async () => {

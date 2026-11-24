@@ -87,4 +87,24 @@ describe('RoleManagement custom role CRUD', () => {
     render(<RoleManagement />)
     expect(await screen.findByText('load failed')).toBeInTheDocument()
   })
+
+  it('drops its page heading when embedded and tells the parent after CRUD', async () => {
+    const onRolesChanged = vi.fn()
+    render(<RoleManagement embedded onRolesChanged={onRolesChanged} />)
+
+    // No page heading, but the create action moves into the Custom roles panel.
+    expect(await screen.findByText('HR Officer')).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Role Management' })).toBeNull()
+    expect(screen.getByRole('button', { name: /new role/i })).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: /delete/i }))
+    const dialog = await screen.findByRole('dialog')
+    fireEvent.click(within(dialog).getByRole('button', { name: /delete/i }))
+    await waitFor(() => expect(onRolesChanged).toHaveBeenCalledTimes(1))
+
+    fireEvent.click(screen.getByRole('button', { name: /new role/i }))
+    fireEvent.change(await screen.findByLabelText(/role name/i), { target: { value: 'PESO Staff' } })
+    fireEvent.click(screen.getByRole('button', { name: /create role/i }))
+    await waitFor(() => expect(onRolesChanged).toHaveBeenCalledTimes(2))
+  })
 })

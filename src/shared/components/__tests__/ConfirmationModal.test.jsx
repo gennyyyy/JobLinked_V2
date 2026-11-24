@@ -10,6 +10,7 @@ describe('ConfirmationModal', () => {
     expect(screen.getByText('Delete this item?')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Confirm' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Cancel' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Cancel' })).not.toHaveClass('bg-primary')
   })
 
   it('calls onConfirm when the confirm button is clicked', () => {

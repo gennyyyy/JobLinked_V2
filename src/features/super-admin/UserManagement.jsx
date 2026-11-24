@@ -3,6 +3,13 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+} from '@/components/ui/dropdown-menu'
 import { Checkbox } from '@/components/ui/checkbox'
 import { InputGroup, InputGroupAddon, InputGroupInput } from '@/components/ui/input-group'
 import { Field, FieldLabel } from '@/components/ui/field'
@@ -13,14 +20,21 @@ import { X } from 'lucide-react'
 import { listUsers, updateUser, listRoles, assignRole, assignCustomRole, inviteUser, resetUserPassword, forceSignOut, listAuditLogs, listSeekerEducation, listSeekerExperience, listSeekerEmployment, listSeekerResumes } from '@/shared/services/admin'
 import { signedUrl } from '@/shared/services/documents'
 import useAuth from '@/shared/hooks/useAuth'
+import { hasPermission } from '@/shared/lib/permissions'
 import { PageSkeleton } from '@/shared/components/Skeletons'
 import { InlineError, Pager } from '@/shared/components/dashboard'
 import useDialog from '@/shared/hooks/useDialog'
 import { titleCase } from '@/shared/utils/titleCase'
 import { formatPhoneDisplay, normalizePhone, withPrefix } from '@/shared/utils/phone'
 import { CountUp, EmptyState, H3, PageHeading, Panel, SearchInput, SelectField, StatusBadge, TextField } from '@/shared/components/design'
+import RoleManagement from './RoleManagement'
 
 const SYSTEM_ROLE_LABELS = { 'super-admin': 'Super Admin', employer: 'Employer', 'job-seeker': 'Job Seeker' }
+
+const MANAGEMENT_TABS = [
+  { value: 'users', label: 'Users', title: 'User accounts', description: 'Find registered users and manage their role and account access.' },
+  { value: 'roles', label: 'Roles', title: 'Roles & permissions', description: 'Define role bundles and review role and access changes.' },
+]
 
 const EMPTY_INVITE = {
   email: '', role: '', first_name: '', middle_name: '', last_name: '',
@@ -67,6 +81,11 @@ function DetailRecord({ items }) {
 
 function UserManagement() {
   const { user: currentUser } = useAuth()
+  const canUsers = hasPermission(currentUser, 'users.manage')
+  const canRoles = hasPermission(currentUser, 'roles.manage')
+  const canHistory = hasPermission(currentUser, 'logs.view')
+  const canView = canUsers || canRoles
+  const [tab, setTab] = useState(canUsers ? 'users' : 'roles')
   const [users, setUsers] = useState([])
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(0)
@@ -131,7 +150,16 @@ function UserManagement() {
     })
   }, [filterRole, statusFilter, debouncedSearch, seekerTerms])
 
-  useEffect(() => { loadUsers(page).catch((err) => setError(err.message || 'Failed to load users')) }, [loadUsers, page])
+  // Role CRUD lives in the embedded RoleManagement; when it changes a bundle,
+  // the Users tab's custom-role names and invite options must follow.
+  const refreshCustomRoles = useCallback(() => {
+    listRoles().then(setCustomRoles).catch(() => {})
+  }, [])
+
+  useEffect(() => {
+    if (!canUsers) return undefined
+    loadUsers(page).catch((err) => setError(err.message || 'Failed to load users'))
+  }, [canUsers, loadUsers, page])
 
   // Debounce the search box (mirrors Jobs/JobPosts) so each keystroke doesn't refetch.
   useEffect(() => {
@@ -145,6 +173,8 @@ function UserManagement() {
     return () => clearTimeout(t)
   }, [seekerFilter])
 
+  // ADR-042 gates the calls, not just the UI: a roles-only admin never touches
+  // the user directory, and the access history is read only with logs.view.
   useEffect(() => {
     const loadAll = async () => {
       const first = await listUsers({ pageSize: 500, page: 1 })
@@ -159,9 +189,9 @@ function UserManagement() {
       return all
     }
     Promise.all([
-      listRoles().catch(() => []),
-      listAuditLogs({ action: 'user.role.change', limit: 50 }).catch(() => []),
-      loadAll().catch(() => []),
+      canUsers || canRoles ? listRoles().catch(() => []) : Promise.resolve([]),
+      canRoles && canHistory ? listAuditLogs({ action: 'user.role.change', limit: 50 }).catch(() => []) : Promise.resolve([]),
+      canUsers ? loadAll().catch(() => []) : Promise.resolve([]),
     ])
       .then(([roles, logs, everyone]) => {
         setCustomRoles(roles || [])
@@ -169,12 +199,13 @@ function UserManagement() {
         setAllUsers(Array.isArray(everyone) ? everyone : (everyone?.data || []))
       })
       .finally(() => setLoading(false))
-  }, [])
+  }, [canUsers, canRoles, canHistory])
 
   // Admin seeker depth (Addendum A): the four child reads fire together when
   // the dialog opens, so tab switches are instant and there is one error line.
+  // Employers and admins render from the row the list already loaded.
   useEffect(() => {
-    if (!detailUser) return undefined
+    if (!detailUser || detailUser.role !== 'job-seeker') return undefined
     let cancelled = false
     const id = detailUser.id
     Promise.all([
@@ -187,7 +218,7 @@ function UserManagement() {
     return () => { cancelled = true }
   }, [detailUser])
 
-  if (loading) return <PageSkeleton stats={0} table />
+  if (loading && canView) return <PageSkeleton stats={0} table />
   if (error) return <InlineError message={error} />
 
   function openAccess(user) {
@@ -346,202 +377,273 @@ function UserManagement() {
   const suspendedCount = statsUsers.filter((row) => row.status !== 'active').length
   const totalUsers = allUsers.length || total
 
+  // Tab metadata drives both the tab list and the outer Panel's title, so the
+  // card heading always matches the active tab (same treatment as My Profile).
+  const visibleTabs = MANAGEMENT_TABS.filter((t) => (t.value === 'users' ? canUsers : canRoles))
+  const activeSection = visibleTabs.find((t) => t.value === tab) || visibleTabs[0]
+
+  // Detail dialog is role-aware: only a seeker has child records to load.
+  const isSeeker = detailUser?.role === 'job-seeker'
+  const detailName = titleCase(detailUser?.full_name) || detailUser?.email
+  const detailTitle = detailUser?.role === 'employer'
+    ? `Employer profile — ${detailName}`
+    : detailUser?.role === 'super-admin'
+      ? `Administrator profile — ${detailName}`
+      : `Job seeker profile — ${detailName}`
+  const detailDescription = detailUser?.role === 'employer'
+    ? 'Company, representative, address, and accreditation details.'
+    : detailUser?.role === 'super-admin'
+      ? 'Account details and assigned custom role.'
+      : 'Education, work experience, employment history, and resumes on file.'
+  const employerAddress = ['house_number_unit', 'street_address', 'subdivision_building', 'barangay_district', 'city_municipality', 'province_state', 'postal_code']
+    .map((key) => titleCase(detailUser?.[key]))
+    .filter(Boolean)
+    .join(', ')
+
   return (
     <div className="space-y-6 pb-12">
       <div>
         <PageHeading
           title="User Management"
-          description="Find registered users, assign their system roles, and manage account access."
-          action={(
+          description="Find registered users, assign their system roles, and define the custom roles that bundle their permissions."
+          compact
+          action={canUsers ? (
             <Button type="button" onClick={() => { setActionError(''); setShowInvite(true) }}>
               Add user
             </Button>
-          )}
+          ) : undefined}
         />
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-        <Panel title="Total system users"><CountUp value={totalUsers} className="text-2xl font-semibold text-navy" /></Panel>
-        <Panel title="Job seekers"><CountUp value={jobSeekerCount} className="text-2xl font-semibold text-navy" /></Panel>
-        <Panel title="Employers"><CountUp value={employerCount} className="text-2xl font-semibold text-navy" /></Panel>
-        <Panel title="PESO administrators"><CountUp value={adminCount} className="text-2xl font-semibold text-navy" /></Panel>
-        <Panel title="Active accounts"><CountUp value={activeCount} className="text-2xl font-semibold text-navy" /></Panel>
-        <Panel title="Suspended accounts"><CountUp value={suspendedCount} className="text-2xl font-semibold text-navy" /></Panel>
-      </div>
-
-      {success && <p className="rounded-xl border border-success/20 bg-success-soft px-4 py-3 text-xs text-success">{success}</p>}
-      {actionError && <InlineError message={actionError} />}
-
-      <Panel
-        title="System users"
-        description="Your own elevated permissions cannot be modified. Job seeker and employer roles require an existing matching profile."
-      >
-        <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-end">
-          <SearchInput
-            value={searchTerm}
-            onChange={(value) => { setSearchTerm(value); setPage(1) }}
-            label="Search users by name or email"
-            placeholder="Search user ID, name, or email…"
-          />
-          <div className="sm:w-48">
-            <SelectField
-              id="role-filter"
-              label="Assigned role"
-              options={roleOptions}
-              value={filterRole}
-              onChange={(e) => { setFilterRole(e.target.value); setPage(1) }}
-            />
-          </div>
-          <div className="sm:w-44">
-            <SelectField
-              id="status-filter"
-              label="Account status"
-              placeholder="All accounts"
-              options={['Active', 'Suspended']}
-              value={statusFilter}
-              onChange={(e) => { setStatusFilter(e.target.value); setPage(1) }}
-            />
-          </div>
-        </div>
-
-        {/* Seeker profile filters: only meaningful for job_seekers, so they
-            appear only while that role filter is selected. */}
-        {filterRole === 'job-seeker' && (
-          <div className="mb-5 grid gap-3 sm:grid-cols-3">
-            {SEEKER_FILTERS.map(([key, label, placeholder]) => (
-              <TextField
-                key={key}
-                id={`seeker-${key}-filter`}
-                label={label}
-                placeholder={placeholder}
-                maxLength={80}
-                value={seekerFilter[key]}
-                onChange={(event) => {
-                  setSeekerFilter((prev) => ({ ...prev, [key]: event.target.value }))
-                  setPage(1)
-                }}
-              />
-            ))}
-          </div>
-        )}
-
-        {/* Table */}
-        <div className="overflow-x-auto">
-          {users.length === 0 ? (
-            <p className="py-10 text-center text-xs text-muted-foreground">No users found.</p>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>User ID</TableHead>
-                  <TableHead>Full name</TableHead>
-                  <TableHead>Email address</TableHead>
-                  <TableHead>Assigned role</TableHead>
-                  <TableHead>Account status</TableHead>
-                  {SEEKER_COLUMNS.map(([, label]) => (
-                    <TableHead key={label}>{label}</TableHead>
-                  ))}
-                  <TableHead>Registered</TableHead>
-                  <TableHead>Last updated</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {users.map((user) => (
-                  <TableRow key={user.id}>
-                    <TableCell className="whitespace-normal text-[10px] text-muted-foreground">{user.id}</TableCell>
-                    <TableCell className="whitespace-normal text-xs font-medium text-navy">{titleCase(user.full_name)}</TableCell>
-                    <TableCell className="whitespace-normal break-all text-[11px] text-muted-foreground">{user.email}</TableCell>
-                    <TableCell className="whitespace-normal">
-                      <div className="flex flex-col gap-1">
-                        <span className="text-[11px] font-medium text-navy">{SYSTEM_ROLE_LABELS[user.role] || user.role}</span>
-                        {user.custom_role_id && (
-                          <span className="text-[10px] text-primary">
-                            {customRoles.find((role) => String(role.id) === String(user.custom_role_id))?.name || 'Custom role'}
-                          </span>
-                        )}
-                        {currentUser && user.id === currentUser.id && (
-                          <span className="text-[9px] uppercase tracking-[.14em] text-muted-foreground">You — role locked</span>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell><StatusBadge status={user.status} /></TableCell>
-                    {/* Task 1: seeker profile columns. Only job_seekers owns
-                        them (employers carry a barangay too, but not the seeker
-                        meaning), so any other role reads as "—". */}
-                    {SEEKER_COLUMNS.map(([field]) => (
-                      <TableCell key={field} className="whitespace-normal text-[11px] text-muted-foreground">
-                        {user.role === 'job-seeker' ? (user[field] || '—') : '—'}
-                      </TableCell>
-                    ))}
-                    <TableCell className="text-[11px] text-muted-foreground">
-                      {new Date(user.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
-                    </TableCell>
-                    <TableCell className="text-[11px] text-muted-foreground">
-                      {new Date(user.updated_at || user.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-2">
-                        {user.role === 'job-seeker' && (
-                          <Button
-                            type="button"
-                            variant="outline"
-                            onClick={() => openDetail(user)}
-                            aria-label={`View profile details for ${titleCase(user.full_name)}`}
-                          >
-                            View
-                          </Button>
-                        )}
-                        <Button
-                          type="button"
-                          variant="outline"
-                          onClick={() => openAccess(user)}
-                          disabled={currentUser && user.id === currentUser.id}
-                        >
-                          Manage access
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </div>
-        <div><Pager page={page} pageSize={pageSize} total={total} onChange={setPage} /></div>
-      </Panel>
-
-      <Panel
-        title="Role and access change history"
-        description="Previous role, new role, responsible administrator, timestamp, and reason are retained."
-      >
-        {history.length ? (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                {['User', 'Previous role', 'New role', 'Access', 'Administrator', 'Timestamp', 'Reason'].map((heading) => (
-                  <TableHead key={heading}>{heading}</TableHead>
-                ))}
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {history.map((log) => (
-                <TableRow key={log.id}>
-                  <TableCell className="text-xs">{titleCase(users.find((row) => String(row.id) === String(log.entity_id))?.full_name) || '—'}</TableCell>
-                  <TableCell className="text-xs">{SYSTEM_ROLE_LABELS[log.details?.from] || log.details?.from || '—'}</TableCell>
-                  <TableCell className="text-xs">{SYSTEM_ROLE_LABELS[log.details?.to] || log.details?.to || '—'}</TableCell>
-                  <TableCell className="text-xs">—</TableCell>
-                  <TableCell className="text-xs">{log.actor_name || '—'}</TableCell>
-                  <TableCell className="text-xs">{new Date(log.created_at).toLocaleString('en-PH')}</TableCell>
-                  <TableCell className="max-w-64 whitespace-normal break-words text-xs">{log.details?.reason || '—'}</TableCell>
-                </TableRow>
+      {!canView ? (
+        <Panel title="No access to user management">
+          <p className="py-6 text-center text-xs text-muted-foreground">
+            Your role grants neither user nor role management. Ask a full administrator to update your access.
+          </p>
+        </Panel>
+      ) : (
+        <Tabs value={activeSection.value} onValueChange={setTab}>
+          <Panel title={activeSection.title} description={activeSection.description} size="sm">
+            <TabsList className="mb-3 h-auto w-full flex-wrap group-data-horizontal/tabs:h-auto">
+              {visibleTabs.map((t) => (
+                <TabsTrigger key={t.value} value={t.value}>{t.label}</TabsTrigger>
               ))}
-            </TableBody>
-          </Table>
-        ) : (
-          <EmptyState title="No access changes yet" description="Confirmed role and account changes will appear here." />
-        )}
-      </Panel>
+            </TabsList>
+          {canUsers && (
+            <TabsContent value="users" className="space-y-6">
+              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                <Panel title="Total system users"><CountUp value={totalUsers} className="text-2xl font-semibold text-navy" /></Panel>
+                <Panel title="Job seekers"><CountUp value={jobSeekerCount} className="text-2xl font-semibold text-navy" /></Panel>
+                <Panel title="Employers"><CountUp value={employerCount} className="text-2xl font-semibold text-navy" /></Panel>
+                <Panel title="PESO administrators"><CountUp value={adminCount} className="text-2xl font-semibold text-navy" /></Panel>
+                <Panel title="Active accounts"><CountUp value={activeCount} className="text-2xl font-semibold text-navy" /></Panel>
+                <Panel title="Suspended accounts"><CountUp value={suspendedCount} className="text-2xl font-semibold text-navy" /></Panel>
+              </div>
+
+              {success && <p className="rounded-xl border border-success/20 bg-success-soft px-4 py-3 text-xs text-success">{success}</p>}
+              {actionError && <InlineError message={actionError} />}
+
+              <Panel
+                title="System users"
+                description="Your own elevated permissions cannot be modified. Job seeker and employer roles require an existing matching profile."
+              >
+                <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-end">
+                  <SearchInput
+                    value={searchTerm}
+                    onChange={(value) => { setSearchTerm(value); setPage(1) }}
+                    label="Search users by name or email"
+                    placeholder="Search user ID, name, or email…"
+                  />
+                  <div className="sm:w-48">
+                    <SelectField
+                      id="role-filter"
+                      label="Assigned role"
+                      options={roleOptions}
+                      value={filterRole}
+                      onChange={(e) => { setFilterRole(e.target.value); setPage(1) }}
+                    />
+                  </div>
+                  <div className="sm:w-44">
+                    <SelectField
+                      id="status-filter"
+                      label="Account status"
+                      placeholder="All accounts"
+                      options={['Active', 'Suspended']}
+                      value={statusFilter}
+                      onChange={(e) => { setStatusFilter(e.target.value); setPage(1) }}
+                    />
+                  </div>
+                </div>
+
+                {/* Seeker profile filters: only meaningful for job_seekers, so they
+                    appear only while that role filter is selected. */}
+                {filterRole === 'job-seeker' && (
+                  <div className="mb-5 grid gap-3 sm:grid-cols-3">
+                    {SEEKER_FILTERS.map(([key, label, placeholder]) => (
+                      <TextField
+                        key={key}
+                        id={`seeker-${key}-filter`}
+                        label={label}
+                        placeholder={placeholder}
+                        maxLength={80}
+                        value={seekerFilter[key]}
+                        onChange={(event) => {
+                          setSeekerFilter((prev) => ({ ...prev, [key]: event.target.value }))
+                          setPage(1)
+                        }}
+                      />
+                    ))}
+                  </div>
+                )}
+
+                {/* Table */}
+                <div>
+                  {users.length === 0 ? (
+                    <p className="py-10 text-center text-xs text-muted-foreground">No users found.</p>
+                  ) : (
+                    <Table className="min-w-[960px] table-fixed">
+                      <colgroup>
+                        <col className="w-[8%]" />   {/* User ID */}
+                        <col className="w-[8%]" />   {/* Full name */}
+                        <col className="w-[11%]" />  {/* Email address */}
+                        <col className="w-[8%]" />   {/* Assigned role */}
+                        <col className="w-[9%]" />   {/* Account status */}
+                        <col className="w-[8%]" />   {/* Barangay / district */}
+                        <col className="w-[8%]" />   {/* Employment status */}
+                        <col className="w-[9%]" />   {/* Preferred position */}
+                        <col className="w-[8%]" />   {/* Registered */}
+                        <col className="w-[8%]" />   {/* Last updated */}
+                        <col className="w-[15%]" />  {/* Actions */}
+                      </colgroup>
+                      <TableHeader className="[&_th]:whitespace-normal">
+                        <TableRow>
+                          <TableHead>User ID</TableHead>
+                          <TableHead>Full name</TableHead>
+                          <TableHead>Email address</TableHead>
+                          <TableHead>Assigned role</TableHead>
+                          <TableHead>Account status</TableHead>
+                          {SEEKER_COLUMNS.map(([, label]) => (
+                            <TableHead key={label}>{label}</TableHead>
+                          ))}
+                          <TableHead>Registered</TableHead>
+                          <TableHead>Last updated</TableHead>
+                          <TableHead className="text-center">Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {users.map((user) => (
+                          <TableRow key={user.id}>
+                            <TableCell className="whitespace-normal break-all text-[10px] text-muted-foreground">{user.id}</TableCell>
+                            <TableCell className="whitespace-normal break-words text-xs font-medium text-navy">{titleCase(user.full_name)}</TableCell>
+                            <TableCell className="whitespace-normal break-all text-[11px] text-muted-foreground">{user.email}</TableCell>
+                            <TableCell className="whitespace-normal">
+                              <div className="flex flex-col gap-1">
+                                <span className="text-[11px] font-medium text-navy">{SYSTEM_ROLE_LABELS[user.role] || user.role}</span>
+                                {user.custom_role_id && (
+                                  <span className="text-[10px] text-primary">
+                                    {customRoles.find((role) => String(role.id) === String(user.custom_role_id))?.name || 'Custom role'}
+                                  </span>
+                                )}
+                                {currentUser && user.id === currentUser.id && (
+                                  <span className="text-[9px] uppercase tracking-[.14em] text-muted-foreground">You — role locked</span>
+                                )}
+                              </div>
+                            </TableCell>
+                            <TableCell><StatusBadge status={user.status} /></TableCell>
+                            {/* Task 1: seeker profile columns. Only job_seekers owns
+                                them (employers carry a barangay too, but not the seeker
+                                meaning), so any other role reads as "—". */}
+                            {SEEKER_COLUMNS.map(([field]) => (
+                              <TableCell key={field} className="whitespace-normal break-words text-[11px] text-muted-foreground">
+                                {user.role === 'job-seeker' ? (user[field] || '—') : '—'}
+                              </TableCell>
+                            ))}
+                            <TableCell className="whitespace-normal text-[11px] text-muted-foreground">
+                              {new Date(user.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
+                            </TableCell>
+                            <TableCell className="whitespace-normal text-[11px] text-muted-foreground">
+                              {new Date(user.updated_at || user.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
+                            </TableCell>
+                            <TableCell className="text-center">
+                              <div className="flex justify-center">
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger
+                                    render={
+                                      <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="icon"
+                                        aria-label={`Actions for ${titleCase(user.full_name) || user.email}`}
+                                        title="Actions"
+                                      />
+                                    }
+                                  >
+                                    …
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="center">
+                                    <DropdownMenuItem onClick={() => openDetail(user)}>View details</DropdownMenuItem>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem
+                                      onClick={() => openAccess(user)}
+                                      disabled={currentUser && user.id === currentUser.id}
+                                    >
+                                      Manage access
+                                    </DropdownMenuItem>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  )}
+                </div>
+                <div><Pager page={page} pageSize={pageSize} total={total} onChange={setPage} align="center" /></div>
+              </Panel>
+            </TabsContent>
+          )}
+          {canRoles && (
+            <TabsContent value="roles" className="space-y-6">
+              <RoleManagement embedded onRolesChanged={refreshCustomRoles} />
+                {canHistory && (
+                  <Panel
+                    title="Role and access change history"
+                    description="Previous role, new role, responsible administrator, timestamp, and reason are retained."
+                  >
+                    {history.length ? (
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            {['User', 'Previous role', 'New role', 'Access', 'Administrator', 'Timestamp', 'Reason'].map((heading) => (
+                              <TableHead key={heading}>{heading}</TableHead>
+                            ))}
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {history.map((log) => (
+                            <TableRow key={log.id}>
+                              <TableCell className="text-xs">{titleCase(users.find((row) => String(row.id) === String(log.entity_id))?.full_name) || '—'}</TableCell>
+                              <TableCell className="text-xs">{SYSTEM_ROLE_LABELS[log.details?.from] || log.details?.from || '—'}</TableCell>
+                              <TableCell className="text-xs">{SYSTEM_ROLE_LABELS[log.details?.to] || log.details?.to || '—'}</TableCell>
+                              <TableCell className="text-xs">—</TableCell>
+                              <TableCell className="text-xs">{log.actor_name || '—'}</TableCell>
+                              <TableCell className="text-xs">{new Date(log.created_at).toLocaleString('en-PH')}</TableCell>
+                              <TableCell className="max-w-64 whitespace-normal break-words text-xs">{log.details?.reason || '—'}</TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    ) : (
+                      <EmptyState title="No access changes yet" description="Confirmed role and account changes will appear here." />
+                    )}
+                  </Panel>
+                )}
+            </TabsContent>
+          )}
+          </Panel>
+        </Tabs>
+      )}
 
       {showInvite && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/60 p-4">
@@ -732,14 +834,42 @@ function UserManagement() {
       >
         <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Seeker profile — {titleCase(detailUser?.full_name) || detailUser?.email}</DialogTitle>
-            <DialogDescription>Education, work experience, employment history, and resumes on file.</DialogDescription>
+            <DialogTitle>{detailTitle}</DialogTitle>
+            <DialogDescription>{detailDescription}</DialogDescription>
           </DialogHeader>
-          {detailError && <InlineError message={detailError} />}
-          {!detail && !detailError && (
+          {isSeeker && detailError && <InlineError message={detailError} />}
+          {isSeeker && !detail && !detailError && (
             <p className="py-6 text-center text-xs text-muted-foreground">Loading seeker records…</p>
           )}
-          {detail && (
+          {detailUser && !isSeeker && (
+            <ul className="flex flex-col gap-3">
+              <DetailRecord items={[
+                ['Full name', titleCase(detailUser.full_name)],
+                ['Email', detailUser.email],
+                ['System role', SYSTEM_ROLE_LABELS[detailUser.role] || detailUser.role],
+                ['Custom role', customRoles.find((role) => String(role.id) === String(detailUser.custom_role_id))?.name || 'None'],
+                ['Account status', detailUser.status],
+                ['Registered', formatDetailDate(detailUser.created_at)],
+                ['Last updated', formatDetailDate(detailUser.updated_at || detailUser.created_at)],
+              ]} />
+              {detailUser.role === 'employer' && (
+                <DetailRecord items={[
+                  ['Company name', titleCase(detailUser.company_name)],
+                  ['Industry', titleCase(detailUser.industry)],
+                  ['Company email', detailUser.company_email],
+                  ['Website', detailUser.website],
+                  ['Representative', titleCase(detailUser.full_name)],
+                  ['Representative position', detailUser.representative_position],
+                  ['Representative email', detailUser.representative_email],
+                  ['Representative phone', detailUser.representative_phone],
+                  ['Address', employerAddress],
+                  ['Accreditation status', titleCase(detailUser.accreditation_status) || 'Not submitted'],
+                  ['Description', detailUser.description],
+                ]} />
+              )}
+            </ul>
+          )}
+          {isSeeker && detail && (
             <>
               <Tabs defaultValue="background">
                 <TabsList>

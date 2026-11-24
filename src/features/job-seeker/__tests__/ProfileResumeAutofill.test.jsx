@@ -91,6 +91,8 @@ describe('Profile resume autofill', () => {
     fireEvent.click(screen.getByRole('tab', { name: /education/i }))
     await screen.findByRole('combobox', { name: /level/i })
     expect(screen.getByRole('combobox', { name: /level/i })).toHaveValue('College')
+
+    fireEvent.click(screen.getByRole('tab', { name: /skills/i }))
     expect(await screen.findByRole('button', { name: 'Remove Data Entry' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Remove Communication' })).toBeInTheDocument()
   })

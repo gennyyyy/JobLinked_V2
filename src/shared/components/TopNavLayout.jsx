@@ -45,7 +45,11 @@ export default function TopNavLayout({ role, navItems, profileTo, roleLabel, hom
   const isAdmin = role === 'super-admin'
   const label = roleLabel || ROLE_LABELS[role] || 'Workspace'
   const home = homeTo ?? `/${pathname.split('/')[1] || ''}`
-  const navigation = (navItems || PORTAL_NAV[role] || []).filter((item) => !item.permission || hasPermission(user, item.permission))
+  const canSeeItem = (item) => {
+    const keys = item.permissions ?? (item.permission ? [item.permission] : [])
+    return keys.length === 0 || keys.some((key) => hasPermission(user, key))
+  }
+  const navigation = (navItems || PORTAL_NAV[role] || []).filter(canSeeItem)
   const [collapsed, setCollapsed] = useState(false)
   const [mobile, setMobile] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)

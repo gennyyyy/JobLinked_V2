@@ -10,7 +10,6 @@ import { TextField, SelectField } from "../../shared/components/design";
 import VocabularyPicker from "../../shared/components/VocabularyPicker";
 import TagField from "../job-seeker/TagField";
 import useVocabulary from "../../shared/hooks/useVocabulary";
-import { matchSkills } from "../../shared/utils/resumeAutofill";
 import { EXPERIENCE_OPTIONS, applyEducation, applyExperience, parseEducation, parseExperience } from "./jobPostFields";
 import { getFeeTerms } from "../../shared/services/feeFilter";
 import { findFeeMatches } from "../../shared/utils/feeTerms";
@@ -38,7 +37,6 @@ export default function JobPostFormDialog({ form, setForm, setErrors, errors, sa
   const skillVocabulary = useVocabulary('skill');
   const skillByLower = new Map(skillVocabulary.values.map((entry) => [String(entry).toLowerCase(), entry]));
   const skillChips = (Array.isArray(form.skills) ? form.skills : []).map((chip) => skillByLower.get(String(chip).toLowerCase()) ?? chip);
-  const { unrecognized: unrecognizedSkills } = matchSkills(skillChips, skillVocabulary.values);
 
   function updateSkills(chips) {
     setForm((f) => ({ ...f, skills: chips.map((chip) => skillByLower.get(String(chip).toLowerCase()) ?? chip) }));
@@ -140,7 +138,7 @@ export default function JobPostFormDialog({ form, setForm, setErrors, errors, sa
               suggestions={skillVocabulary.values}
               max={20}
               placeholder="Type a skill and press Enter"
-              help="Only these skills count towards matching."
+              help="PESO's list suggests skills, but any skill you type counts towards matching."
               error={errors.skills}
             />
             {skillVocabulary.loading && <p role="status" className="text-xs text-muted-foreground">Loading skills…</p>}
@@ -148,11 +146,6 @@ export default function JobPostFormDialog({ form, setForm, setErrors, errors, sa
               <p role="alert" className="flex flex-wrap items-center gap-2 text-xs text-destructive">
                 <span>{skillVocabulary.error}</span>
                 <Button type="button" variant="outline" size="sm" onClick={skillVocabulary.reload}>Retry</Button>
-              </p>
-            )}
-            {!skillVocabulary.loading && !skillVocabulary.error && unrecognizedSkills.length > 0 && (
-              <p className="text-xs leading-5 text-muted-foreground">
-                Unrecognized skills: {unrecognizedSkills.join(', ')}. They are not in PESO’s list, so they are not saved.
               </p>
             )}
           </section>

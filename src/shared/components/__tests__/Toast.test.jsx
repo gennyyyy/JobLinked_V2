@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
-import { render, screen, fireEvent, act } from '@testing-library/react'
+import { render, screen, act } from '@testing-library/react'
 import Toast from '../Toast'
 
 afterEach(() => vi.useRealTimers())
@@ -23,11 +23,9 @@ describe('Toast', () => {
     expect(screen.getByText('Something failed')).toBeInTheDocument()
   })
 
-  it('calls onClose when the dismiss button is clicked', () => {
-    const onClose = vi.fn()
-    render(<Toast message="Heads up" onClose={onClose} />)
-    fireEvent.click(screen.getByRole('button', { name: /dismiss/i }))
-    expect(onClose).toHaveBeenCalledTimes(1)
+  it('renders no dismiss button inside the status region', () => {
+    render(<Toast message="Heads up" onClose={vi.fn()} />)
+    expect(screen.getByRole('status').querySelector('button')).toBeNull()
   })
 
   it('auto-dismisses after the duration', () => {

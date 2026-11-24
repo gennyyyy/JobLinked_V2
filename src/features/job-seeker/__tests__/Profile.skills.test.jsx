@@ -44,10 +44,10 @@ const STORED = {
 const FIELDS = ['Construction', 'Information Technology']
 const SKILLS = ['MS Excel', 'Teamwork', 'Welding']
 
-async function openEducation() {
+async function openSkills() {
   render(<MemoryRouter><Profile /></MemoryRouter>)
   await screen.findByRole('button', { name: /save my profile/i })
-  fireEvent.click(screen.getByRole('tab', { name: /education/i }))
+  fireEvent.click(screen.getByRole('tab', { name: /skills/i }))
   // input[list] is a combobox once the datalist (and its vocabulary) loaded.
   await screen.findByRole('combobox', { name: /your skills/i })
 }
@@ -72,7 +72,7 @@ beforeEach(() => {
 
 describe('Profile field picker and skills tag box', () => {
   it('renders the job-field vocabulary and the saved skill as a removable chip', async () => {
-    await openEducation()
+    await openSkills()
 
     const field = screen.getByLabelText('Field')
     await waitFor(() => expect(screen.getByRole('option', { name: 'Construction' })).toBeInTheDocument())
@@ -87,7 +87,7 @@ describe('Profile field picker and skills tag box', () => {
   })
 
   it('turns typed text into chips (Enter and comma) and saves canonical skills', async () => {
-    await openEducation()
+    await openSkills()
     await screen.findByText('MS Excel')
 
     typeSkill('teamwork')
@@ -108,7 +108,7 @@ describe('Profile field picker and skills tag box', () => {
 
   it('keeps the field optional and sends null when unset', async () => {
     useAuth.mockReturnValue({ user: { ...STORED, field: null }, refreshUser: vi.fn() })
-    await openEducation()
+    await openSkills()
 
     await screen.findByText('MS Excel')
     expect(screen.getByLabelText('Field')).toHaveValue('')
@@ -119,37 +119,45 @@ describe('Profile field picker and skills tag box', () => {
     expect(updateProfile.mock.calls[0][1]).toMatchObject({ field: null, skills: ['MS Excel'] })
   })
 
-  it('names an unlisted chip in the note and leaves it out of the payload', async () => {
-    await openEducation()
+  it('keeps an unlisted chip in the payload and shows no note', async () => {
+    await openSkills()
     await screen.findByText('MS Excel')
 
     typeSkill('Underwater Basket Weaving')
     expect(screen.getByText('Underwater Basket Weaving')).toBeInTheDocument()
-    expect(await screen.findByText(/Unrecognized skills: Underwater Basket Weaving/i)).toBeInTheDocument()
+    expect(screen.queryByText(/Unrecognized skills/i)).not.toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('button', { name: /save my profile/i }))
 
     await waitFor(() => expect(updateProfile).toHaveBeenCalled())
-    expect(updateProfile.mock.calls[0][1].skills).toEqual(['MS Excel'])
+    expect(updateProfile.mock.calls[0][1].skills).toEqual(['MS Excel', 'Underwater Basket Weaving'])
   })
 
-  it('blocks saving when no chip matches PESO’s list', async () => {
+  it('blocks saving without any skill', async () => {
     useAuth.mockReturnValue({ user: { ...STORED, skills: [] }, refreshUser: vi.fn() })
-    await openEducation()
-
-    typeSkill('Underwater Basket Weaving')
-    expect(await screen.findByText(/Unrecognized skills: Underwater Basket Weaving/i)).toBeInTheDocument()
+    await openSkills()
 
     fireEvent.click(screen.getByRole('button', { name: /save my profile/i }))
 
-    expect(await screen.findByText(/Add at least one skill from PESO's list/i)).toBeInTheDocument()
+    expect(await screen.findByText('Add at least one skill.')).toBeInTheDocument()
     expect(updateProfile).not.toHaveBeenCalled()
   })
 
-  it('appends autofilled skills as chips and names the unlisted one instead of dropping it', async () => {
+  it('saves a gibberish-only skill chip', async () => {
+    useAuth.mockReturnValue({ user: { ...STORED, skills: [] }, refreshUser: vi.fn() })
+    await openSkills()
+
+    typeSkill('Underwater Basket Weaving')
+    fireEvent.click(screen.getByRole('button', { name: /save my profile/i }))
+
+    await waitFor(() => expect(updateProfile).toHaveBeenCalled())
+    expect(updateProfile.mock.calls[0][1].skills).toEqual(['Underwater Basket Weaving'])
+  })
+
+  it('appends every autofilled skill as a chip', async () => {
     useAuth.mockReturnValue({ user: { ...STORED, skills: ['MS Excel'] }, refreshUser: vi.fn() })
     extractResumeText.mockResolvedValue('Juana Santos\nSkills: Welding, Underwater Basket Weaving')
-    await openEducation()
+    await openSkills()
     await screen.findByText('MS Excel')
 
     fireEvent.click(screen.getByRole('tab', { name: /my resumes/i }))
@@ -160,12 +168,13 @@ describe('Profile field picker and skills tag box', () => {
     fireEvent.click(await screen.findByRole('checkbox', { name: /resume autofill can make mistakes/i }))
     fireEvent.click(screen.getByRole('button', { name: 'Apply detected details' }))
 
-    fireEvent.click(screen.getByRole('tab', { name: /education/i }))
+    fireEvent.click(screen.getByRole('tab', { name: /skills/i }))
     expect(await screen.findByRole('button', { name: 'Remove Welding' })).toBeInTheDocument()
-    expect(await screen.findByText(/Unrecognized skills: Underwater Basket Weaving/i)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Remove Underwater Basket Weaving' })).toBeInTheDocument()
+    expect(screen.queryByText(/Unrecognized skills/i)).not.toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('button', { name: /save my profile/i }))
     await waitFor(() => expect(updateProfile).toHaveBeenCalled())
-    expect(updateProfile.mock.calls[0][1].skills).toEqual(['MS Excel', 'Welding'])
+    expect(updateProfile.mock.calls[0][1].skills).toEqual(['MS Excel', 'Welding', 'Underwater Basket Weaving'])
   })
 })

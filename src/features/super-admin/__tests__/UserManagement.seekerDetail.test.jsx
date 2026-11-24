@@ -46,11 +46,18 @@ async function renderUsers(rows = [employer, seeker]) {
   return screen.findByRole('table')
 }
 
-// Opens the detail dialog from the seeker row and waits for the four reads.
+// Opens the detail dialog from the seeker row's actions menu and waits for the four reads.
 async function openDetail() {
-  fireEvent.click(await screen.findByRole('button', { name: /view profile details for ben cruz/i }))
+  fireEvent.click(await screen.findByRole('button', { name: 'Actions for Ben Cruz' }))
+  fireEvent.click(await screen.findByRole('menuitem', { name: 'View details' }))
   await screen.findByRole('dialog')
   await waitFor(() => expect(listSeekerResumes).toHaveBeenCalledWith('u-2'))
+}
+
+async function openRowDetails(name) {
+  fireEvent.click(await screen.findByRole('button', { name: `Actions for ${name}` }))
+  fireEvent.click(await screen.findByRole('menuitem', { name: 'View details' }))
+  return screen.findByRole('dialog')
 }
 
 let openSpy
@@ -100,13 +107,21 @@ describe('UserManagement seeker table columns', () => {
 })
 
 describe('UserManagement seeker detail dialog', () => {
-  it('shows the View action only for job-seeker rows', async () => {
+  it('gives every row one actions menu with View details', async () => {
     await renderUsers()
-    const views = screen.getAllByRole('button', { name: /^view/i })
-    expect(views).toHaveLength(1)
-    expect(views[0]).toHaveAccessibleName(/ben cruz/i)
-    // The employer row still offers only Manage access.
-    expect(screen.getAllByRole('button', { name: /manage access/i })).toHaveLength(2)
+    const menus = screen.getAllByRole('button', { name: /^actions for /i })
+    expect(menus).toHaveLength(2)
+    fireEvent.click(menus[0])
+    expect(await screen.findByRole('menuitem', { name: 'View details' })).toBeInTheDocument()
+    expect(screen.getByRole('menuitem', { name: 'Manage access' })).toBeInTheDocument()
+  })
+
+  it('disables Manage access on your own row but keeps View details', async () => {
+    const self = { ...employer, id: 'admin-1', full_name: 'Self Admin', role: 'super-admin' }
+    await renderUsers([self])
+    fireEvent.click(screen.getByRole('button', { name: 'Actions for Self Admin' }))
+    expect(await screen.findByRole('menuitem', { name: 'View details' })).toBeEnabled()
+    expect(screen.getByRole('menuitem', { name: 'Manage access' })).toHaveAttribute('aria-disabled', 'true')
   })
 
   it('loads and renders education, experience, and employment per tab', async () => {
@@ -155,5 +170,48 @@ describe('UserManagement seeker detail dialog', () => {
     fireEvent.click(screen.getByRole('button', { name: /view\s*cv\.pdf.*opens in new tab/i }))
     await waitFor(() => expect(signedUrl).toHaveBeenCalledWith('resumes', 'resumes/u-2/cv.pdf'))
     expect(openSpy).toHaveBeenCalledWith('', '_blank')
+  })
+
+  it('shows employer account and company details without seeker calls', async () => {
+    const employerRow = {
+      ...employer,
+      full_name: 'ada lovelace',
+      company_name: 'acme corporation',
+      industry: 'manufacturing',
+      company_email: 'hr@acme.test',
+      representative_position: 'HR Manager',
+      representative_phone: '+639171234567',
+      house_number_unit: '12',
+      street_address: 'mabini street',
+      barangay_district: 'poblacion',
+      city_municipality: 'santa maria',
+      accreditation_status: 'approved',
+      description: 'Builds farm equipment.',
+    }
+    await renderUsers([employerRow])
+    const dialog = await openRowDetails('Ada Lovelace')
+
+    expect(within(dialog).getByRole('heading', { name: 'Employer profile — Ada Lovelace' })).toBeInTheDocument()
+    expect(within(dialog).getByText('Acme Corporation')).toBeInTheDocument()
+    expect(within(dialog).getByText('Manufacturing')).toBeInTheDocument()
+    expect(within(dialog).getByText('Approved')).toBeInTheDocument()
+    expect(within(dialog).getByText('12, Mabini Street, Poblacion, Santa Maria')).toBeInTheDocument()
+    expect(within(dialog).getByText('HR Manager')).toBeInTheDocument()
+    expect(listSeekerResumes).not.toHaveBeenCalled()
+  })
+
+  it('shows the assigned custom role for an administrator without seeker calls', async () => {
+    listRoles.mockResolvedValue([{ id: 7, name: 'PESO Staff', base_role: 'super-admin' }])
+    const adminRow = {
+      id: 'u-7', full_name: 'grace hopper', email: 'grace@cebu.ph', role: 'super-admin',
+      status: 'active', created_at: '2026-02-04T00:00:00.000Z', custom_role_id: 7,
+    }
+    await renderUsers([adminRow])
+    const dialog = await openRowDetails('Grace Hopper')
+
+    expect(within(dialog).getByRole('heading', { name: 'Administrator profile — Grace Hopper' })).toBeInTheDocument()
+    expect(within(dialog).getByText('PESO Staff')).toBeInTheDocument()
+    expect(within(dialog).queryByText('Resumes')).toBeNull()
+    expect(listSeekerResumes).not.toHaveBeenCalled()
   })
 })

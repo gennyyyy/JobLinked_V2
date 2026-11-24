@@ -1,7 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { Eye, FileText, ImagePlus, Settings2, Trash2, UploadCloud, UserRound } from 'lucide-react'
+import { FileText, ImagePlus, MoreHorizontal, Settings2, Trash2, UserRound } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+} from '@/components/ui/dropdown-menu'
 import useAuth from '@/shared/hooks/useAuth'
 import { updateProfile } from '@/shared/services/auth'
 import { listResumes, uploadResume, deleteResume, validateFile, signedUrl } from '@/shared/services/documents'
@@ -13,6 +20,7 @@ import { listEducation, addEducation, removeEducation } from '@/shared/services/
 import { PageSkeleton } from '@/shared/components/Skeletons'
 import { InlineError } from '@/shared/components/dashboard'
 import ConfirmationModal from '@/shared/components/ConfirmationModal'
+import Toast from '@/shared/components/Toast'
 import { TextField, SelectField, Notice, EmptyState } from '@/shared/components/design'
 import TabbedProfileLayout from '@/shared/components/TabbedProfileLayout'
 import AccountSettings, { PrivacyPanel } from '@/shared/components/AccountSettings'
@@ -20,8 +28,6 @@ import ChangePassword from '@/shared/components/ChangePassword'
 import { TabsContent } from '@/components/ui/tabs'
 import { BULACAN_MUNICIPALITIES, BULACAN_PROVINCES, SANTA_MARIA_BARANGAYS } from '@/shared/constants'
 import { EDUCATION_LEVELS } from '../auth/jobSeekerRegistration'
-import { getReferenceValues } from '@/shared/services/reference'
-import { matchSkills } from '@/shared/utils/resumeAutofill'
 import useVocabulary from '@/shared/hooks/useVocabulary'
 import VocabularyPicker from '@/shared/components/VocabularyPicker'
 import TagField from './TagField'
@@ -42,7 +48,8 @@ const EMPTY_FORM = {
 const PROFILE_TABS = [
   { value: 'personal', label: 'Personal', title: 'Personal & contact details', description: 'Use the information employers need to reach you.' },
   { value: 'address', label: 'Address', title: 'Address', description: 'Where employers and PESO can reach you.' },
-  { value: 'education', label: 'Education', title: 'Education, experience & skills', description: 'These details power simple, transparent skill matching.' },
+  { value: 'skills', label: 'Skills', title: 'Skills, field & work experience', description: 'These details power simple, transparent skill matching.' },
+  { value: 'education', label: 'Education', title: 'Education history', description: 'Your schools, attainment, and graduation details.' },
   { value: 'resumes', label: 'My resumes', title: 'My resumes', description: 'Manage the resumes you share with employers.' },
   { value: 'account', label: 'Account settings', title: 'Account settings', description: 'Manage your account preferences, privacy, and password.' },
 ]
@@ -87,7 +94,7 @@ function formFromUser(user) {
   }
 }
 
-function ResumeLinks({ resume }) {
+function ResumeActions({ resume, onReplace, onDelete }) {
   const [busy, setBusy] = useState('')
   // Fetch on demand: prefetching every resume made one profile visit download
   // every file in full just to render two links (audit F9).
@@ -118,14 +125,33 @@ function ResumeLinks({ resume }) {
     }
   }
   return (
-    <>
-      <Button type="button" variant="outline" onClick={() => open('view')} disabled={Boolean(busy)}>
-        <Eye data-icon="inline-start" />{busy === 'view' ? 'Opening…' : 'View'}<span className="sr-only"> (opens in new tab)</span>
-      </Button>
-      <Button type="button" variant="outline" onClick={() => open('download')} disabled={Boolean(busy)}>
-        {busy === 'download' ? 'Preparing…' : 'Download'}
-      </Button>
-    </>
+    <DropdownMenu>
+      <DropdownMenuTrigger
+        render={
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label={`Actions for ${resume.file_name}`}
+          />
+        }
+      >
+        <MoreHorizontal />
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        <DropdownMenuItem disabled={Boolean(busy)} onClick={() => open('view')}>
+          {busy === 'view' ? 'Opening…' : 'View'}<span className="sr-only"> (opens in new tab)</span>
+        </DropdownMenuItem>
+        <DropdownMenuItem disabled={Boolean(busy)} onClick={() => open('download')}>
+          {busy === 'download' ? 'Preparing…' : 'Download'}
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={onReplace}>Replace</DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem variant="destructive" onClick={onDelete}>
+          <Trash2 />
+          Delete
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   )
 }
 
@@ -136,7 +162,8 @@ function Profile() {
   const userId = user?.id
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const [saved, setSaved] = useState(false)
+  const [toast, setToast] = useState(null)
+  const closeToast = useCallback(() => setToast(null), [])
   const [saving, setSaving] = useState(false)
   const [form, setForm] = useState(() => formFromUser(user))
   const [errors, setErrors] = useState({})
@@ -157,9 +184,6 @@ function Profile() {
   const [tab, setTab] = useState('personal')
   const activeTab = ACCOUNT_SETTINGS_SECTIONS.has(hash.slice(1)) ? 'account' : tab
   const [uploadError, setUploadError] = useState('')
-  const [resumeStatus, setResumeStatus] = useState('')
-  const [resumeReviewConfirmed, setResumeReviewConfirmed] = useState(false)
-  const [uploading, setUploading] = useState(false)
   const [pendingDelete, setPendingDelete] = useState(null)
   const skillVocabulary = useVocabulary('skill')
 
@@ -214,13 +238,21 @@ function Profile() {
   }, [photoActionsOpen])
 
   if (loading) return <PageSkeleton stats={0} panels={2} />
-  if (error) return <InlineError message={error} />
+  // A failed save replaces the form with the inline error, so the toast has to
+  // render in this branch too.
+  if (error) {
+    return (
+      <>
+        <InlineError message={error} />
+        <Toast message={toast?.message} variant={toast?.variant} onClose={closeToast} />
+      </>
+    )
+  }
 
-  // Skills are free-text chips; only the ones in PESO's seeded vocabulary are
-  // saved, in its canonical casing. Unlisted chips stay visible in the note.
+  // Skills are free-text chips; PESO's list only supplies canonical casing for
+  // the values it lists. Unlisted chips are shown and saved as typed.
   const skillByLower = new Map(skillVocabulary.values.map((entry) => [String(entry).toLowerCase(), entry]))
   const skillChips = form.skills.map((chip) => skillByLower.get(String(chip).toLowerCase()) ?? chip)
-  const { matched: recognizedSkills, unrecognized: unrecognizedSkills } = matchSkills(skillChips, skillVocabulary.values)
   // Edit-view capitalization: show names/addresses title-cased while the form
   // state (and the submitted lowercase value) stays raw.
   const show = (key) => titleCase(form[key])
@@ -249,27 +281,45 @@ function Profile() {
     const next = {}
     if (form.name.trim().length < 3) next.name = 'Enter your full name.'
     if (!isValidPhone(form.phone)) next.phone = PHONE_ERROR
-    if (form.headline.trim().length < 5) next.headline = 'Add a short professional headline.'
     if (!form.barangay) next.barangay = 'Choose your barangay.'
     if (form.address.trim().length < 5) next.address = 'Enter your address.'
     if (!educationLoading && !educationLoadError && !educationList.length) next.education = 'Add your education history.'
-    if (!recognizedSkills.length) {
-      next.skills = skillVocabulary.error
-        ? 'Skills could not be loaded. Retry, then save again.'
-        : skillVocabulary.loading
-          ? 'Skills are still loading. Try saving again in a moment.'
-          : "Add at least one skill from PESO's list."
-    }
+    if (!skillChips.length) next.skills = 'Add at least one skill.'
     setErrors(next)
+    if (Object.keys(next).length) {
+      // Show the tab that owns the first error so its message is not hidden.
+      setTab(
+        next.name || next.phone ? 'personal'
+          : next.barangay || next.address ? 'address'
+            : next.skills ? 'skills'
+              : 'education',
+      )
+    }
     return Object.keys(next).length === 0
   }
 
   async function handleSubmit(event) {
     event.preventDefault()
-    if (!validate()) return
+    setToast(null)
+    const profileValid = validate()
+    // A staged resume still uploads on its own, so a new seeker without
+    // education yet can save a resume with the same button.
+    if (!draft && !profileValid) return
+    // Optimistic: confirm as soon as the save starts; the catch swaps in the
+    // error toast if a request fails.
+    setToast({ message: 'Changes saved', variant: 'success' })
     setSaving(true)
-    setSaved(false)
+    // Route the error to the step that failed: the resume upload or the profile.
+    let step = 'upload'
     try {
+      if (draft) {
+        await uploadResume(userId, draft)
+        setResumes(await listResumes(userId))
+        setDraft(null)
+        setUploadError('')
+      }
+      if (!profileValid) return
+      step = 'profile'
       const hasComponents = [form.firstName, form.middleName, form.lastName, form.suffix].some((v) => String(v || '').trim())
       const phone = normalizePhone(form.phone)
       const patch = {
@@ -287,7 +337,7 @@ function Profile() {
         postal_code: form.postalCode.trim() || null,
         experience_summary: form.experience.trim(),
         field: form.field || null,
-        skills: recognizedSkills,
+        skills: skillChips,
       }
       if (hasComponents) {
         patch.first_name = form.firstName.trim().toLowerCase()
@@ -300,10 +350,10 @@ function Profile() {
       await updateProfile(user.id, patch)
       if (refreshUser) await refreshUser(user)
       setForm((previous) => ({ ...previous, phone }))
-      setSaved(true)
-      setTimeout(() => setSaved(false), 3000)
     } catch (err) {
-      setError(err.message || 'Failed to save profile')
+      if (step === 'upload') setUploadError(err.message || 'Upload failed')
+      else setError(err.message || 'Failed to save profile')
+      setToast({ message: 'Changes not saved', variant: 'error' })
     } finally {
       setSaving(false)
     }
@@ -342,7 +392,7 @@ function Profile() {
     }
   }
 
-  async function applyAutofill(details) {
+  function applyAutofill(details) {
     const educationValue = details.education
     const [educationLevel, educationSchool] = String(educationValue || '').split('—').map((part) => part.trim())
     const educationDetails = EDUCATION_LEVELS.includes(educationLevel)
@@ -357,11 +407,8 @@ function Profile() {
       }
       return next
     })
-    // Resume skills are free text and the profile API only accepts listed
-    // vocabulary values: append every detected skill as a chip (recognized ones
-    // in canonical casing) so the unrecognized note covers the leftovers. The
-    // other fields (and the tab switch) are applied before this await, so a
-    // slow vocabulary read cannot undo a tab the user already opened.
+    // Resume skills are free text: append each detected skill as typed, skipping
+    // case-insensitive duplicates and stopping at the chip limit.
     const detectedSkills = splitList(details.skills)
     if (educationDetails) {
       setEduForm((previous) => ({
@@ -372,18 +419,14 @@ function Profile() {
     }
     setTab(educationDetails ? 'education' : 'personal')
     if (detectedSkills.length) {
-      const vocabulary = await getReferenceValues('skill').catch(() => [])
-      const { matched, unrecognized } = matchSkills(detectedSkills, vocabulary)
-      const additions = [...matched, ...unrecognized]
-      if (additions.length) {
-        setForm((previous) => {
-          const next = [...previous.skills]
-          for (const skill of additions) {
-            if (!next.some((entry) => entry.toLowerCase() === skill.toLowerCase())) next.push(skill)
-          }
-          return { ...previous, skills: next }
-        })
-      }
+      setForm((previous) => {
+        const next = [...previous.skills]
+        for (const skill of detectedSkills) {
+          if (next.length >= 20) break
+          if (!next.some((entry) => entry.toLowerCase() === skill.toLowerCase())) next.push(skill)
+        }
+        return { ...previous, skills: next }
+      })
     }
   }
 
@@ -392,37 +435,13 @@ function Profile() {
     if (ACCOUNT_SETTINGS_SECTIONS.has(hash.slice(1))) navigate('/job-seeker/profile', { replace: true })
   }
 
+  // Selecting a file only stages it; handleSubmit uploads it on save.
   function pickResume(file) {
     if (!file) return
-    setResumeStatus('')
     const validationError = validateFile(file)
     if (validationError) { setUploadError(validationError); setDraft(null); return }
     setUploadError('')
     setDraft(file)
-    setResumeReviewConfirmed(false)
-  }
-
-  async function handleResumeUpload() {
-    if (!draft) return
-    if (!resumeReviewConfirmed) {
-      setUploadError('Please confirm you will review the resume autofill information.')
-      setResumeStatus('')
-      return
-    }
-    setUploading(true)
-    setResumeStatus('Uploading…')
-    try {
-      await uploadResume(userId, draft)
-      setResumes(await listResumes(userId))
-      setDraft(null)
-      setResumeStatus('Resume uploaded.')
-      setTimeout(() => setResumeStatus(''), 3000)
-    } catch (err) {
-      setUploadError(err.message || 'Upload failed')
-      setResumeStatus('')
-    } finally {
-      setUploading(false)
-    }
   }
 
   async function handleDeleteResume(resume) {
@@ -489,7 +508,7 @@ function Profile() {
         saveLabel="Save my profile"
         savingLabel="Saving…"
         showSave={activeTab !== 'account'}
-        saveHint={saved ? 'Profile saved.' : 'Changes are saved to your JobLinked account.'}
+        saveHint="Changes are saved to your JobLinked account."
         sidebar={<PrivacyPanel />}
       >
             <TabsContent value="personal">
@@ -586,7 +605,7 @@ function Profile() {
                 <TextField label="Birthday" type="date" value={form.birthdate} onChange={(event) => setField('birthdate', event.target.value)} />
                 <SelectField label="Employment Status" placeholder="Select status" options={['Employed','Unemployed','Underemployed','Fresh Graduate','Student']} value={form.employmentStatus} onChange={(event) => setField('employmentStatus', event.target.value)} />
               </div>
-              <TextField label="Professional Headline" required value={form.headline} onChange={(event) => setField('headline', event.target.value)} error={errors.headline} />
+              <TextField label="Professional Headline" value={form.headline} onChange={(event) => setField('headline', event.target.value)} />
             </div>
           </div>
             </TabsContent>
@@ -610,7 +629,7 @@ function Profile() {
               </div>
             </div>
             </TabsContent>
-            <TabsContent value="education">
+            <TabsContent value="skills">
             <div className="flex flex-col gap-4">
               <VocabularyPicker
                 id="profile-field"
@@ -639,16 +658,12 @@ function Profile() {
                   <Button type="button" variant="outline" size="sm" onClick={skillVocabulary.reload}>Retry</Button>
                 </p>
               )}
-              {!skillVocabulary.loading && !skillVocabulary.error && unrecognizedSkills.length > 0 && (
-                <p className="text-xs leading-5 text-muted-foreground">
-                  Unrecognized skills: {unrecognizedSkills.join(', ')}. They are not in PESO’s list, so they are not saved.
-                </p>
-              )}
               <TagField label="Work Experience" value={form.experience} onChange={(value) => setField('experience', value)} placeholder="Type a role or experience and press Enter" help="Add internships, volunteer work, or previous roles as separate tags." />
             </div>
-          <div className="border-t border-border pt-4">
-            <h2 className="mb-3 text-sm font-semibold text-foreground">Education history</h2>
-            <div className="mb-3 rounded-lg border p-3">
+            </TabsContent>
+            <TabsContent value="education">
+            <div className="flex flex-col gap-4">
+            <div className="rounded-lg border p-3">
               <p className="text-xs font-medium text-muted-foreground">Education Status</p>
               <p role="status" className="mt-1 text-sm">
                 {educationLoading ? 'Loading…' : educationLoadError ? 'Education history unavailable' : educationStatus}
@@ -668,7 +683,7 @@ function Profile() {
               ))}
               {educationList.length === 0 && <p className="text-xs text-muted-foreground">No education records yet.</p>}
             </ul>
-            <div className="mt-3 flex flex-col gap-3">
+            <div className="flex flex-col gap-3">
               <div className="grid gap-3 sm:grid-cols-2">
                 <SelectField label="Level" placeholder="Education level" options={EDUCATION_LEVELS} value={eduForm.level} onChange={(e) => setEduForm((p) => ({ ...p, level: e.target.value }))} />
                 <TextField label="School" value={titleCase(eduForm.school)} onChange={(e) => setEduForm((p) => ({ ...p, school: e.target.value }))} />
@@ -682,7 +697,7 @@ function Profile() {
               {eduError && <p className="text-xs text-danger">{eduError}</p>}
               <Button type="button" disabled={eduSaving} onClick={handleAddEducation}>{eduSaving ? 'Adding…' : 'Add education'}</Button>
             </div>
-          </div>
+            </div>
             </TabsContent>
             <TabsContent value="resumes">
               <div className="mb-4">
@@ -701,35 +716,31 @@ function Profile() {
                           Added {new Date(resumes[0].uploaded_at).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' })}
                         </p>
                       </div>
-                    </div>
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      <ResumeLinks resume={resumes[0]} />
-                      <Button type="button" variant="ghost" onClick={() => document.getElementById('resume-upload')?.click()}>Replace</Button>
-                      <Button type="button" variant="ghost" onClick={() => setPendingDelete(resumes[0])}>
-                        <Trash2 data-icon="inline-start" />
-                        Delete
-                      </Button>
+                      <div className="shrink-0">
+                        <ResumeActions
+                          resume={resumes[0]}
+                          onReplace={() => document.getElementById('resume-upload')?.click()}
+                          onDelete={() => setPendingDelete(resumes[0])}
+                        />
+                      </div>
                     </div>
                   </li>
                 </ul>
               ) : (
                 <EmptyState title="No resume added." description="Add a PDF, DOC, or DOCX file up to 5 MB." />
               )}
+              {draft && (
+                <p role="status" className="mt-3 text-xs text-muted-foreground">
+                  Selected {draft.name}. Save my profile to upload it as your resume.
+                </p>
+              )}
               <div className="mt-4">
                 <ResumeAutofill
                   inputId="resume-upload"
                   onApply={applyAutofill}
                   onFileSelected={pickResume}
-                  onReviewConfirmedChange={setResumeReviewConfirmed}
                   uploadError={uploadError}
-                  uploadControl={draft && (
-                    <Button type="button" variant="outline" disabled={uploading} onClick={handleResumeUpload}>
-                      <UploadCloud data-icon="inline-start" />
-                      {uploading ? 'Uploading…' : 'Add resume'}
-                    </Button>
-                  )}
                 />
-                {resumeStatus && <p role="status" className="mt-3 text-xs text-muted-foreground">{resumeStatus}</p>}
                 <p className="mt-3 text-[11px] leading-6 text-muted-foreground">
                   Replacing your resume updates what employers see for applications attached to it.                </p>
               </div>
@@ -749,6 +760,7 @@ function Profile() {
           danger
         />
       )}
+      <Toast message={toast?.message} variant={toast?.variant} onClose={closeToast} />
     </>
   )
 }

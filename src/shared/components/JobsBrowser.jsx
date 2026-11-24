@@ -247,12 +247,13 @@ export default function JobsBrowser({
           <aside className="surface h-fit w-full shrink-0 lg:sticky lg:top-[90px] lg:z-10 lg:max-h-[calc(100vh-110px)] lg:w-[235px] lg:self-start lg:overflow-y-auto">
             {/* Search + AI live in the same floating panel as the filters, so the
                 whole refinement stack rides along while the results scroll. */}
-            <div className="mb-4 flex items-center gap-2">
+            <div className="mb-4 flex h-9 items-center gap-2">
               <SearchInput
                 value={query}
                 onChange={(value) => { setQuery(value); setPage(1) }}
                 label="Search your recommendations"
                 placeholder="Search jobs…"
+                className="[&_[data-slot=input-group]]:h-9"
               />
               <PreferenceMatching
                 compact
@@ -327,7 +328,7 @@ export default function JobsBrowser({
         </div>
       </div>
       {!saved && records.length > 0 && (
-        <Pager page={currentPage} pageSize={PAGE_SIZE} total={records.length} onChange={setPage} align="center" />
+        <Pager page={currentPage} pageSize={PAGE_SIZE} total={records.length} onChange={setPage} align="center" label="jobs" />
       )}
     </>
   )

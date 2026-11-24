@@ -36,7 +36,8 @@ const account = {
 async function openActions() {
   listUsers.mockResolvedValue({ data: [account], total: 1, page: 1, pageSize: 25 })
   render(<UserManagement />)
-  fireEvent.click(await screen.findByRole('button', { name: /manage access/i }))
+  fireEvent.click(await screen.findByRole('button', { name: 'Actions for Ada Lovelace' }))
+  fireEvent.click(await screen.findByRole('menuitem', { name: 'Manage access' }))
   return screen.findByRole('dialog')
 }
 

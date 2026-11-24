@@ -57,11 +57,7 @@ const meRoutes = (path, table, role, allow) => {
         // Stored in the vocabulary's casing (ADR-042), compared case-insensitively:
         // "ms excel" saves as "MS Excel" and legacy backfilled rows stay valid.
         const skills = await canonicalizeSkills(value ?? []);
-        if (!skills.ok) {
-          return err(res, 400, 'BAD_REQUEST', skills.tooMany
-            ? `skills must contain at most ${MAX_SKILLS} values`
-            : `skills contains an unknown value: ${skills.invalid}`);
-        }
+        if (!skills.ok) return err(res, 400, 'BAD_REQUEST', `skills must contain at most ${MAX_SKILLS} values`);
         patch[c] = skills.value;
       } else if (c === 'field') {
         const field = await canonicalizeField(value);
