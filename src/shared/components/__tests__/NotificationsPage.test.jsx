@@ -32,22 +32,50 @@ describe('NotificationsPage delete', () => {
     deleteNotification.mockResolvedValue({ deleted: true })
   })
 
-  it('select checkbox enables Delete Selected', async () => {
+  it('bulk actions are hidden until a row is selected', async () => {
     renderPage()
     await screen.findByText('First')
-    const bulk = screen.getByRole('button', { name: 'Delete selected' })
-    expect(bulk).toBeDisabled()
+    expect(screen.queryByRole('button', { name: 'Mark selected as read' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Delete selected' })).toBeNull()
     await userEvent.click(screen.getByRole('checkbox', { name: 'Select notification First' }))
-    expect(screen.getByRole('button', { name: 'Delete selected' })).toBeEnabled()
+    expect(screen.getByRole('button', { name: 'Mark selected as read' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Delete selected' })).toBeTruthy()
   })
 
-  it('Select all selects every row and enables Delete Selected', async () => {
+  it('Mark selected as read calls markRead for each selected id and clears the selection', async () => {
+    markRead.mockResolvedValue({ ok: true })
+    renderPage()
+    await screen.findByText('First')
+    await userEvent.click(screen.getByRole('checkbox', { name: 'Select notification First' }))
+    await userEvent.click(screen.getByRole('checkbox', { name: 'Select notification Second' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Mark selected as read' }))
+    await waitFor(() => expect(markRead).toHaveBeenCalledTimes(2))
+    expect(markRead).toHaveBeenCalledWith('n1')
+    expect(markRead).toHaveBeenCalledWith('n2')
+    expect(screen.queryByRole('button', { name: 'Mark selected as read' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Delete selected' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Mark read' })).toBeNull()
+    expect(await screen.findByText('2 notification(s) marked as read.')).toBeTruthy()
+  })
+
+  it('switching tabs clears the selection and hides the bulk actions', async () => {
+    renderPage()
+    await screen.findByText('First')
+    await userEvent.click(screen.getByRole('checkbox', { name: 'Select notification First' }))
+    expect(screen.getByRole('button', { name: 'Delete selected' })).toBeTruthy()
+    await userEvent.click(screen.getByRole('button', { name: 'Unread (2)' }))
+    expect(screen.getByRole('checkbox', { name: 'Select notification First' })).not.toBeChecked()
+    expect(screen.queryByRole('button', { name: 'Mark selected as read' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Delete selected' })).toBeNull()
+  })
+
+  it('Select all selects every row and shows Delete selected', async () => {
     renderPage()
     await screen.findByText('First')
     await userEvent.click(screen.getByRole('checkbox', { name: 'Select all notifications' }))
     expect(screen.getByRole('checkbox', { name: 'Select notification First' })).toBeChecked()
     expect(screen.getByRole('checkbox', { name: 'Select notification Second' })).toBeChecked()
-    expect(screen.getByRole('button', { name: 'Delete selected' })).toBeEnabled()
+    expect(screen.getByRole('button', { name: 'Delete selected' })).toBeTruthy()
   })
 
   it('Select all again clears the selection', async () => {
@@ -57,7 +85,7 @@ describe('NotificationsPage delete', () => {
     await userEvent.click(all)
     await userEvent.click(all)
     expect(screen.getByRole('checkbox', { name: 'Select notification First' })).not.toBeChecked()
-    expect(screen.getByRole('button', { name: 'Delete selected' })).toBeDisabled()
+    expect(screen.queryByRole('button', { name: 'Delete selected' })).toBeNull()
   })
 
   it('Select all is indeterminate when only some rows are selected', async () => {
@@ -118,23 +146,22 @@ describe('NotificationsPage delete', () => {
     expect(all.indeterminate).toBe(true)
   })
 
-  it('unreadOnly filter prunes selection to visible rows', async () => {
+  it('Unread tab filters the list and Select all covers only that tab', async () => {
     const allRows = [
       { id: 'u1', title: 'Unread A', message: 'm', type: 'info', is_read: false, created_at: '2026-01-01' },
       { id: 'u2', title: 'Unread B', message: 'm', type: 'info', is_read: false, created_at: '2026-01-02' },
       { id: 'r1', title: 'Read A', message: 'm', type: 'info', is_read: true, created_at: '2026-01-03' },
       { id: 'r2', title: 'Read B', message: 'm', type: 'info', is_read: true, created_at: '2026-01-04' },
     ]
-    listNotifications.mockImplementation((_id, { unreadOnly } = {}) =>
-      Promise.resolve(unreadOnly ? allRows.filter((n) => !n.is_read) : allRows)
-    )
+    listNotifications.mockResolvedValue(allRows)
     renderPage()
     await screen.findByText('Unread A')
-    await userEvent.click(screen.getByRole('checkbox', { name: 'Select all notifications' }))
-    expect(screen.getByRole('button', { name: 'Delete selected' })).toBeEnabled()
-    await userEvent.selectOptions(screen.getByLabelText('Notification view'), 'unread')
+    expect(screen.getByRole('button', { name: 'All (4)' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Unread (2)' })).toBeTruthy()
+    await userEvent.click(screen.getByRole('button', { name: 'Unread (2)' }))
     await waitFor(() => expect(screen.queryByText('Read A')).toBeNull())
     expect(await screen.findByText('Unread A')).toBeTruthy()
+    await userEvent.click(screen.getByRole('checkbox', { name: 'Select all notifications' }))
     await userEvent.click(screen.getByRole('button', { name: 'Delete selected' }))
     await userEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Delete' }))
     await waitFor(() => expect(deleteNotification).toHaveBeenCalledTimes(2))
