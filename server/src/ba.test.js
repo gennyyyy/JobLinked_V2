@@ -222,7 +222,7 @@ describe('mailer', () => {
     );
   });
 
-  it('logs the existing-account email with both links when SMTP_HOST is unset in development', async () => {
+  it('logs the existing-account email with branded html and both links in development', async () => {
     const { sendExistingAccountEmail } = await loadMailer({ NODE_ENV: 'development' });
     vi.stubEnv('SMTP_HOST', undefined);
     const info = vi.spyOn(console, 'info').mockImplementation(() => {});
@@ -235,17 +235,37 @@ describe('mailer', () => {
     expect(mail.text).toContain('https://jobs.example.com/login');
     expect(mail.text).toContain('https://jobs.example.com/forgot-password');
     expect(mail.text).toContain('ignore this email');
-    // No html part is built for this mail; the dev log must not invent one.
-    expect(mail.html).toBeUndefined();
+
+    // Branded layout: icon, navy header, blue CTA, note box, footer.
+    expect(mail.html).toContain('<!doctype html>');
+    expect(mail.html).toContain('max-width:600px');
+    expect(mail.html).toContain('background-color:#f1f5f9');
+    expect(mail.html).toContain('src="cid:joblinked-logo"');
+    expect(mail.html).not.toContain('joblinked-icon');
+    expect(mail.html).toContain('alt="JobLinked"');
+    expect(mail.html).toContain('bgcolor="#2563eb"');
+    expect(mail.html).toContain('background-color:#edf4ff');
+    expect(mail.html).toContain('&copy; 2026 JobLinked');
+
+    // CTA logs in; the secondary link resets the password.
+    expect(mail.html).toContain('href="https://jobs.example.com/login"');
+    expect(mail.html).toContain('>Log in</a>');
+    expect(mail.html).toContain('href="https://jobs.example.com/forgot-password"');
+    expect(mail.html).toContain('>Reset your password</a>');
+
+    // No greeting, no expiry claim, no sign-off for this mail.
+    expect(mail.html).not.toContain('Hi ');
+    expect(mail.html).not.toContain('expires');
+    expect(mail.html).not.toContain('The JobLinked team');
     expect(error).not.toHaveBeenCalled();
   });
 
-  it('logs the verification email with greeting, URL, expiry line, and html in development', async () => {
+  it('logs the verification email with greeting, escaped URL, expiry line, and branded html in development', async () => {
     const { sendVerificationEmail } = await loadMailer({ NODE_ENV: 'development' });
     vi.stubEnv('SMTP_HOST', undefined);
     const info = vi.spyOn(console, 'info').mockImplementation(() => {});
 
-    const url = 'https://api.joblinked.site/api/auth/verify-email?token=tok_dev456';
+    const url = 'https://api.joblinked.site/api/auth/verify-email?token=tok_dev456&next=%2Fjobs';
     await sendVerificationEmail({ user: { email: 'nova@example.com', name: '  Nova  ' }, url });
 
     const mail = jsonLines(info).find((line) => line.event === 'dev_mail');
@@ -255,10 +275,16 @@ describe('mailer', () => {
     expect(mail.text).toContain(url);
     expect(mail.text).toContain('This link expires in 1 hour.');
     expect(mail.text).toContain('— The JobLinked team');
-    expect(mail.html).toContain('<p>Hi Nova,</p>');
-    expect(mail.html).toContain(`<a href="${url}">Verify my email</a>`);
+
+    expect(mail.html).toContain('src="cid:joblinked-logo"');
+    expect(mail.html).toContain('Hi Nova,');
+    expect(mail.html).toContain('bgcolor="#2563eb"');
+    expect(mail.html).toContain('href="https://api.joblinked.site/api/auth/verify-email?token=tok_dev456&amp;next=%2Fjobs"');
+    expect(mail.html).toContain('>Verify my email</a>');
     expect(mail.html).toContain('This link expires in 1 hour.');
+    expect(mail.html).toContain("If you didn't create a JobLinked account");
     expect(mail.html).toContain('— The JobLinked team');
+    expect(mail.html).toContain('&copy; 2026 JobLinked');
   });
 
   it('falls back to "there" and escapes the name in the reset email html', async () => {
@@ -273,35 +299,56 @@ describe('mailer', () => {
     const mails = jsonLines(info).filter((line) => line.event === 'dev_mail');
     const [anon, escaped] = mails;
     expect(anon.text).toContain('Hi there,');
-    expect(anon.html).toContain('<p>Hi there,</p>');
+    expect(anon.html).toContain('Hi there,');
     expect(escaped.text).toContain('Hi A <b>B</b>,');
     expect(escaped.html).toContain('Hi A &lt;b&gt;B&lt;/b&gt;,');
     expect(escaped.html).not.toContain('<b>B</b>');
-    expect(escaped.html).toContain(`<a href="${url}">Reset my password</a>`);
+    expect(escaped.html).toContain('src="cid:joblinked-logo"');
+    expect(escaped.html).toContain(`href="${url}"`);
+    expect(escaped.html).toContain('>Reset my password</a>');
     expect(escaped.html).toContain('This link expires in 1 hour.');
     expect(escaped.html).toContain('your password will stay the same');
   });
 
-  it('passes html to the transport and omits it when absent', async () => {
+  it('passes branded html and an inline logo attachment to the transport for every auth mail', async () => {
     const sendMail = vi.fn().mockResolvedValue({});
     vi.doMock('nodemailer', () => ({ default: { createTransport: () => ({ sendMail }) } }));
     vi.spyOn(console, 'info').mockImplementation(() => {});
 
     try {
-      const { sendResetPassword, sendExistingAccountEmail } = await loadMailer({
+      const { sendResetPassword, sendVerificationEmail, sendExistingAccountEmail } = await loadMailer({
         NODE_ENV: 'production',
         SMTP_HOST: 'smtp.test',
       });
 
-      const url = 'https://jobs.example.com/reset-password?token=tok_html1';
-      await sendResetPassword({ user: { email: 'html@example.com' }, url });
-      expect(sendMail.mock.calls[0][0]).toMatchObject({
-        to: 'html@example.com',
-        html: expect.stringContaining(`<a href="${url}">Reset my password</a>`),
-      });
+      const resetUrl = 'https://jobs.example.com/reset-password?token=tok_html1';
+      const verifyUrl = 'https://jobs.example.com/verify-email?token=tok_html2';
+      await sendResetPassword({ user: { email: 'reset@example.com' }, url: resetUrl });
+      await sendVerificationEmail({ user: { email: 'verify@example.com' }, url: verifyUrl });
+      await sendExistingAccountEmail({ user: { email: 'existing@example.com' } });
 
-      await sendExistingAccountEmail({ user: { email: 'plain@example.com' } });
-      expect(sendMail.mock.calls[1][0]).not.toHaveProperty('html');
+      expect(sendMail).toHaveBeenCalledTimes(3);
+      for (const [mail] of sendMail.mock.calls) {
+        expect(mail.html).toContain('src="cid:joblinked-logo"');
+        expect(mail.html).not.toContain('joblinked-icon');
+        expect(mail.attachments).toEqual([
+          expect.objectContaining({
+            filename: 'joblinked-icon.png',
+            path: expect.stringMatching(/joblinked-icon\.png$/),
+            cid: 'joblinked-logo',
+            contentDisposition: 'inline',
+          }),
+        ]);
+      }
+
+      expect(sendMail.mock.calls[0][0]).toMatchObject({
+        to: 'reset@example.com',
+        html: expect.stringContaining(`href="${resetUrl}"`),
+      });
+      expect(sendMail.mock.calls[0][0].html).toContain('>Reset my password</a>');
+      expect(sendMail.mock.calls[1][0].html).toContain('>Verify my email</a>');
+      expect(sendMail.mock.calls[2][0].html).toContain('href="https://jobs.example.com/login"');
+      expect(sendMail.mock.calls[2][0].html).toContain('>Log in</a>');
     } finally {
       vi.doUnmock('nodemailer');
     }
