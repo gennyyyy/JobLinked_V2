@@ -47,10 +47,26 @@ from `src/features/employer/jobPostFields.js`.
 Out of scope: `EmployerLayout.jsx` banner behaviour, dashboard data fetching, server/API,
 `schema.sql`, super-admin surfaces, refetch/staleness of `user.accreditation_status`.
 
+## Amendment 2 — 2026-11-25 (supersedes the banner decision)
+
+User reviewed the result and reversed the banner choice: the global banner is the duplicate to
+remove; the dashboard notice is the one to keep.
+
+- `src/features/employer/EmployerLayout.jsx`: delete the whole `ACCREDITATION_NOTICE` map and
+  banner block, plus the `dismissedFor` state and every import only the banner used
+  (`useState`, `Link`, `AlertTriangle`, `X`, `Button`, `useAuth`). Keep `TopNavLayout`.
+- `src/features/employer/Dashboard.jsx`: restore the notice above `<StatCards>`, with the exact
+  copy the user quoted — title `Accreditation: ${accreditation}` (raw status), body "You can
+  prepare drafts, but publishing is unavailable until PESO approves your accreditation." with
+  the "Review requirements and feedback." link to `/employer/accreditation`. Re-add the
+  `Notice` import.
+- Job posts keeps no accreditation warning (confirmed with user).
+
 ## Done when
 
-- `/employer` shows the status in the top banner (global, dismissible) and the "Your
-  accreditation" panel only.
-- `/employer/job-posts` shows no accreditation notice of its own.
+- `/employer` shows the restored "Accreditation: …" notice and the "Your accreditation" panel.
+- No global employer banner; `/employer/job-posts` shows no accreditation notice.
 - `revoked` reads "Revoked" everywhere in the employer feature and still renders danger tone.
-- `npm test` passes and `npm run lint` is clean.
+- `npx vitest run src/features/employer` and `npm run lint` pass. Full `npm test` is currently
+  red from an unrelated in-flight auth change (TermsModal "Close & Accept" call sites), so it
+  is not the gate for this amendment.
