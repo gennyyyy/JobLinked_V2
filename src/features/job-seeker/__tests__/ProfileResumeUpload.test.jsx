@@ -14,6 +14,7 @@ vi.mock('../../../shared/services/seekers', () => ({
   listEducation: vi.fn(),
   addEducation: vi.fn(),
   removeEducation: vi.fn(),
+  listEmployment: vi.fn(),
 }))
 vi.mock('../../../shared/lib/resumeText', () => ({ extractResumeText: vi.fn() }))
 vi.mock('../../../shared/services/documents', () => ({
@@ -26,7 +27,7 @@ vi.mock('../../../shared/services/documents', () => ({
 
 import useAuth from '../../../shared/hooks/useAuth'
 import { updateProfile } from '../../../shared/services/auth'
-import { listEducation } from '../../../shared/services/seekers'
+import { listEducation, listEmployment } from '../../../shared/services/seekers'
 import { listResumes, uploadResume, signedUrl } from '../../../shared/services/documents'
 import { extractResumeText } from '../../../shared/lib/resumeText'
 
@@ -39,8 +40,13 @@ const VALID_USER = {
   full_name: 'Juana Santos',
   phone: '09171234567',
   headline: 'Cashier',
+  birthdate: '1998-05-04',
+  employment_status: 'Employed',
   barangay_district: 'Poblacion',
   street_address: '12 Mabini Street',
+  city_municipality: 'Santa Maria',
+  province_state: 'Bulacan',
+  postal_code: '3022',
   skills: ['teamwork'],
 }
 
@@ -63,6 +69,7 @@ describe('Profile resume upload', () => {
     useAuth.mockReturnValue({ user: { id: 'u1', email: 'a@b.ph' }, refreshUser: vi.fn() })
     listResumes.mockResolvedValue([])
     listEducation.mockResolvedValue([])
+    listEmployment.mockResolvedValue([])
     uploadResume.mockResolvedValue('resumes/u1/resume.pdf')
     signedUrl.mockResolvedValue('blob:fake')
     extractResumeText.mockResolvedValue('')

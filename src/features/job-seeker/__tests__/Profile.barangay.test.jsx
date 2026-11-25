@@ -21,7 +21,7 @@ async function openProfile() {
   render(<MemoryRouter><Profile /></MemoryRouter>)
   await screen.findByRole('button', { name: /save my profile/i })
   fireEvent.click(screen.getByRole('tab', { name: /address/i }))
-  await screen.findByLabelText('Barangay')
+  await screen.findByLabelText(/^Barangay/)
 }
 
 describe('Profile barangay field', () => {
@@ -41,14 +41,14 @@ describe('Profile barangay field', () => {
     storedBarangay('Poblacion')
     await openProfile()
 
-    expect(screen.getByLabelText('Barangay')).toHaveValue('Poblacion')
+    expect(screen.getByLabelText(/^Barangay/)).toHaveValue('Poblacion')
   })
 
   it('keeps a legacy stored barangay that is not in the official list', async () => {
     storedBarangay('Sto. Rosario')
     await openProfile()
 
-    expect(screen.getByLabelText('Barangay')).toHaveValue('Sto. Rosario')
+    expect(screen.getByLabelText(/^Barangay/)).toHaveValue('Sto. Rosario')
     expect(screen.getByRole('option', { name: 'Sto. Rosario' })).toBeInTheDocument()
   })
 })

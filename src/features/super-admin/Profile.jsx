@@ -23,6 +23,7 @@ export default function Profile() {
   const [activeTab, setActiveTab] = useState('account')
   const [name, setName] = useState(user?.full_name || user?.name || '')
   const [email] = useState(user?.email || '')
+  const [nameError, setNameError] = useState('')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [saved, setSaved] = useState(false)
@@ -47,6 +48,11 @@ export default function Profile() {
 
   async function handleSubmit(event) {
     event.preventDefault()
+    if (!name.trim()) {
+      setNameError('Enter your full name.')
+      return
+    }
+    setNameError('')
     setSaving(true)
     setError('')
     setSaved(false)
@@ -81,7 +87,13 @@ export default function Profile() {
       <TabsContent value="account" id="personal-details">
         <div className="flex flex-col gap-4">
           <div className="grid gap-4 sm:grid-cols-2">
-            <TextField label="Full Name" required value={name} onChange={(event) => setName(event.target.value)} />
+            <TextField
+              label="Full Name"
+              required
+              value={name}
+              error={nameError}
+              onChange={(event) => { setName(event.target.value); setNameError('') }}
+            />
             <TextField label="Email Address" type="email" value={email} readOnly />
           </div>
           <Panel id="administrator-access" title="Administrator access" description="Your role and access level are managed by the system." action={<ShieldCheck className="size-5 text-teal" />} size="sm">

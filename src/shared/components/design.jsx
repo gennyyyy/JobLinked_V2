@@ -166,7 +166,10 @@ export function TextField({ label, error, help, multiline, prefix, ...props }) {
 export function SelectField({ label, options, placeholder, error, ...props }) {
     const fieldId = props.id ?? props.name ?? label.toLowerCase().replaceAll(" ", "-");
     return (<Field data-invalid={!!error}>
-      <FieldLabel htmlFor={fieldId}>{label}</FieldLabel>
+      <FieldLabel htmlFor={fieldId}>
+        {label}
+        {props.required && <span className="text-destructive">*</span>}
+      </FieldLabel>
       <div className="relative w-full">
         <select {...props} id={fieldId} className={cn("form-select appearance-none pr-10", props.className)} aria-invalid={!!error} aria-describedby={error ? `${fieldId}-error` : undefined}>
           {placeholder && <option value="">{placeholder}</option>}

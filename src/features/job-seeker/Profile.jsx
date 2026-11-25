@@ -16,12 +16,12 @@ import { uploadAvatar, removeAvatar, fetchAvatarObjectUrl } from '@/shared/servi
 import { buildFullName } from '@/shared/utils/names'
 import { titleCase } from '@/shared/utils/titleCase'
 import { formatPhoneDisplay, isValidPhone, normalizePhone, withPrefix } from '@/shared/utils/phone'
-import { listEducation, addEducation, removeEducation } from '@/shared/services/seekers'
+import { listEducation, addEducation, removeEducation, listEmployment } from '@/shared/services/seekers'
 import { PageSkeleton } from '@/shared/components/Skeletons'
 import { InlineError } from '@/shared/components/dashboard'
 import ConfirmationModal from '@/shared/components/ConfirmationModal'
 import Toast from '@/shared/components/Toast'
-import { TextField, SelectField, Notice, EmptyState } from '@/shared/components/design'
+import { TextField, SelectField, Notice, EmptyState, StatusBadge } from '@/shared/components/design'
 import TabbedProfileLayout from '@/shared/components/TabbedProfileLayout'
 import AccountSettings, { PrivacyPanel } from '@/shared/components/AccountSettings'
 import ChangePassword from '@/shared/components/ChangePassword'
@@ -34,6 +34,13 @@ import TagField from './TagField'
 import ResumeAutofill from './ResumeAutofill'
 
 const splitList = (value) => String(value || '').split(',').map((item) => item.trim()).filter(Boolean)
+
+// Same en-PH short date as Employment Tracking.
+const formatDate = (value) => (value
+  ? new Date(value).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' })
+  : '—')
+
+const isCurrentEmployment = (record) => Boolean(record.is_current) || !record.end_date
 
 const PHONE_ERROR = 'Enter a valid Philippine contact number.'
 
@@ -48,7 +55,7 @@ const EMPTY_FORM = {
 const PROFILE_TABS = [
   { value: 'personal', label: 'Personal', title: 'Personal & contact details', description: 'Use the information employers need to reach you.' },
   { value: 'address', label: 'Address', title: 'Address', description: 'Where employers and PESO can reach you.' },
-  { value: 'skills', label: 'Skills', title: 'Skills, field & work experience', description: 'These details power simple, transparent skill matching.' },
+  { value: 'skills', label: 'Skills & experience', title: 'Skills, field & work experience', description: 'These details power simple, transparent skill matching.' },
   { value: 'education', label: 'Education', title: 'Education history', description: 'Your schools, attainment, and graduation details.' },
   { value: 'resumes', label: 'My resumes', title: 'My resumes', description: 'Manage the resumes you share with employers.' },
   { value: 'account', label: 'Account settings', title: 'Account settings', description: 'Manage your account preferences, privacy, and password.' },
@@ -177,6 +184,9 @@ function Profile() {
   const [educationList, setEducationList] = useState([])
   const [educationLoading, setEducationLoading] = useState(true)
   const [educationLoadError, setEducationLoadError] = useState('')
+  const [employmentList, setEmploymentList] = useState([])
+  const [employmentLoading, setEmploymentLoading] = useState(true)
+  const [employmentLoadError, setEmploymentLoadError] = useState('')
   const [eduForm, setEduForm] = useState({ level: '', school: '', field: '', year: '', studying: false })
   const [eduError, setEduError] = useState('')
   const [eduSaving, setEduSaving] = useState(false)
@@ -198,6 +208,10 @@ function Profile() {
       .then((rows) => { if (live) setEducationList(rows || []) })
       .catch((err) => { if (live) setEducationLoadError(err.message || 'Failed to load education history') })
       .finally(() => { if (live) setEducationLoading(false) })
+    listEmployment()
+      .then((rows) => { if (live) setEmploymentList(rows || []) })
+      .catch((err) => { if (live) setEmploymentLoadError(err.message || 'Failed to load employment history') })
+      .finally(() => { if (live) setEmploymentLoading(false) })
     return () => { live = false }
   }, [userId])
 
@@ -267,6 +281,11 @@ function Profile() {
     : educationList.length
       ? `Completed — ${titleCase(educationList[0].level)}`
       : 'No education history added'
+  // Current roles first, then most recent start date. Never touch the fetched array.
+  const systemEmployment = [...employmentList].sort((a, b) => (
+    Number(isCurrentEmployment(b)) - Number(isCurrentEmployment(a))
+    || String(b.start_date || '').localeCompare(String(a.start_date || ''))
+  ))
   function setField(name, value) {
     setForm((previous) => ({ ...previous, [name]: value }))
     setErrors((previous) => ({ ...previous, [name]: undefined }))
@@ -279,18 +298,31 @@ function Profile() {
 
   function validate() {
     const next = {}
-    if (form.name.trim().length < 3) next.name = 'Enter your full name.'
+    // Two name modes, matching the save: split names win when any part is set.
+    const hasNameParts = [form.firstName, form.middleName, form.lastName, form.suffix]
+      .some((part) => String(part || '').trim())
+    if (hasNameParts) {
+      if (!form.firstName.trim()) next.firstName = 'Enter your first name.'
+      if (!form.lastName.trim()) next.lastName = 'Enter your last name.'
+    } else if (form.name.trim().length < 3) {
+      next.name = 'Enter your full name.'
+    }
     if (!isValidPhone(form.phone)) next.phone = PHONE_ERROR
+    if (!form.birthdate) next.birthdate = 'Enter your birthday.'
+    if (!form.employmentStatus) next.employmentStatus = 'Choose your employment status.'
     if (!form.barangay) next.barangay = 'Choose your barangay.'
     if (form.address.trim().length < 5) next.address = 'Enter your address.'
+    if (!form.cityMunicipality) next.cityMunicipality = 'Choose your city / municipality.'
+    if (!form.provinceState) next.provinceState = 'Choose your province.'
+    if (form.postalCode.trim() && !/^\d{4}$/.test(form.postalCode.trim())) next.postalCode = 'Postal code must be 4 digits.'
     if (!educationLoading && !educationLoadError && !educationList.length) next.education = 'Add your education history.'
     if (!skillChips.length) next.skills = 'Add at least one skill.'
     setErrors(next)
     if (Object.keys(next).length) {
       // Show the tab that owns the first error so its message is not hidden.
       setTab(
-        next.name || next.phone ? 'personal'
-          : next.barangay || next.address ? 'address'
+        next.name || next.firstName || next.lastName || next.phone || next.birthdate || next.employmentStatus ? 'personal'
+          : next.barangay || next.address || next.cityMunicipality || next.provinceState || next.postalCode ? 'address'
             : next.skills ? 'skills'
               : 'education',
       )
@@ -596,14 +628,14 @@ function Profile() {
                 />
               </div>
               <div className="grid gap-4 sm:grid-cols-2">
-                <TextField label="First Name" value={show('firstName')} onChange={(event) => setField('firstName', event.target.value)} />
+                <TextField label="First Name" required value={show('firstName')} onChange={(event) => setField('firstName', event.target.value)} error={errors.firstName} />
                 <TextField label="Middle Name" value={show('middleName')} onChange={(event) => setField('middleName', event.target.value)} />
-                <TextField label="Last Name" value={show('lastName')} onChange={(event) => setField('lastName', event.target.value)} />
+                <TextField label="Last Name" required value={show('lastName')} onChange={(event) => setField('lastName', event.target.value)} error={errors.lastName} />
                 <TextField label="Suffix" value={show('suffix')} onChange={(event) => setField('suffix', event.target.value)} />
               </div>
               <div className="grid gap-4 sm:grid-cols-2">
-                <TextField label="Birthday" type="date" value={form.birthdate} onChange={(event) => setField('birthdate', event.target.value)} />
-                <SelectField label="Employment Status" placeholder="Select status" options={['Employed','Unemployed','Underemployed','Fresh Graduate','Student']} value={form.employmentStatus} onChange={(event) => setField('employmentStatus', event.target.value)} />
+                <TextField label="Birthday" required type="date" max={new Date().toISOString().slice(0, 10)} value={form.birthdate} onChange={(event) => setField('birthdate', event.target.value)} error={errors.birthdate} />
+                <SelectField label="Employment Status" required placeholder="Select status" options={['Employed','Unemployed','Underemployed','Fresh Graduate','Student']} value={form.employmentStatus} onChange={(event) => setField('employmentStatus', event.target.value)} error={errors.employmentStatus} />
               </div>
               <TextField label="Professional Headline" value={form.headline} onChange={(event) => setField('headline', event.target.value)} />
             </div>
@@ -620,12 +652,12 @@ function Profile() {
                 <TextField label="Subdivision / Village / Building" value={show('subdivisionBuilding')} onChange={(event) => setField('subdivisionBuilding', event.target.value)} />
               </div>
               <div className="grid gap-4 sm:grid-cols-2">
-                <SelectField label="Barangay" placeholder="Select barangay" options={barangays} value={show('barangay')} onChange={(event) => setField('barangay', event.target.value)} error={errors.barangay} />
-                <SelectField label="City / Municipality" id="cityMunicipality" placeholder="Select city / municipality" options={BULACAN_MUNICIPALITIES} value={show('cityMunicipality')} onChange={(event) => setField('cityMunicipality', event.target.value)} />
+                <SelectField label="Barangay" required placeholder="Select barangay" options={barangays} value={show('barangay')} onChange={(event) => setField('barangay', event.target.value)} error={errors.barangay} />
+                <SelectField label="City / Municipality" required id="cityMunicipality" placeholder="Select city / municipality" options={BULACAN_MUNICIPALITIES} value={show('cityMunicipality')} onChange={(event) => setField('cityMunicipality', event.target.value)} error={errors.cityMunicipality} />
               </div>
               <div className="grid gap-4 sm:grid-cols-2">
-                <SelectField label="Province / State" id="provinceState" placeholder="Select province" options={BULACAN_PROVINCES} value={show('provinceState')} onChange={(event) => setField('provinceState', event.target.value)} />
-                <TextField label="Postal Code" value={form.postalCode} onChange={(event) => setField('postalCode', event.target.value)} />
+                <SelectField label="Province / State" required id="provinceState" placeholder="Select province" options={BULACAN_PROVINCES} value={show('provinceState')} onChange={(event) => setField('provinceState', event.target.value)} error={errors.provinceState} />
+                <TextField label="Postal Code" value={form.postalCode} onChange={(event) => setField('postalCode', event.target.value)} error={errors.postalCode} />
               </div>
             </div>
             </TabsContent>
@@ -659,6 +691,44 @@ function Profile() {
                 </p>
               )}
               <TagField label="Work Experience" value={form.experience} onChange={(value) => setField('experience', value)} placeholder="Type a role or experience and press Enter" help="Add internships, volunteer work, or previous roles as separate tags." />
+              <section aria-labelledby="employment-through-joblinked" className="rounded-lg border p-4">
+                <h3 id="employment-through-joblinked" className="text-sm font-semibold text-foreground">Employment through JobLinked</h3>
+                <p className="mt-1 text-xs leading-5 text-muted-foreground">Positions confirmed through the system. Read-only.</p>
+                {employmentLoading && (
+                  <p role="status" className="mt-3 text-xs text-muted-foreground">Loading employment records…</p>
+                )}
+                {employmentLoadError && (
+                  <p role="alert" className="mt-3 text-xs text-destructive">{employmentLoadError}</p>
+                )}
+                {!employmentLoading && !employmentLoadError && (
+                  systemEmployment.length ? (
+                    <ul className="mt-3 flex flex-col gap-3">
+                      {systemEmployment.map((record) => {
+                        const current = isCurrentEmployment(record)
+                        return (
+                          <li key={record.id} className="flex flex-wrap items-start justify-between gap-2 rounded-lg border p-3 text-sm">
+                            <div className="min-w-0">
+                              <p className="font-medium">{record.position || '—'}</p>
+                              <p className="text-xs text-muted-foreground">{record.employer_name || '—'}</p>
+                              <p className="mt-1 text-xs text-muted-foreground">
+                                {formatDate(record.start_date)} – {current ? 'Present' : formatDate(record.end_date)}
+                              </p>
+                            </div>
+                            <StatusBadge status={current ? 'Active' : 'Separated'} />
+                          </li>
+                        )
+                      })}
+                    </ul>
+                  ) : (
+                    <div className="mt-3">
+                      <EmptyState
+                        title="No system-recorded employment yet."
+                        description="When an employer confirms your hire through JobLinked, the role appears here."
+                      />
+                    </div>
+                  )
+                )}
+              </section>
             </div>
             </TabsContent>
             <TabsContent value="education">
@@ -685,10 +755,10 @@ function Profile() {
             </ul>
             <div className="flex flex-col gap-3">
               <div className="grid gap-3 sm:grid-cols-2">
-                <SelectField label="Level" placeholder="Education level" options={EDUCATION_LEVELS} value={eduForm.level} onChange={(e) => setEduForm((p) => ({ ...p, level: e.target.value }))} />
-                <TextField label="School" value={titleCase(eduForm.school)} onChange={(e) => setEduForm((p) => ({ ...p, school: e.target.value }))} />
+                <SelectField label="Level" required placeholder="Education level" options={EDUCATION_LEVELS} value={eduForm.level} onChange={(e) => setEduForm((p) => ({ ...p, level: e.target.value }))} />
+                <TextField label="School" required value={titleCase(eduForm.school)} onChange={(e) => setEduForm((p) => ({ ...p, school: e.target.value }))} />
                 <TextField label="Field / Course" value={eduForm.field} onChange={(e) => setEduForm((p) => ({ ...p, field: e.target.value }))} />
-                <TextField label="Graduation Year" value={eduForm.year} disabled={eduForm.studying} onChange={(e) => setEduForm((p) => ({ ...p, year: e.target.value }))} />
+                <TextField label="Graduation Year" required={!eduForm.studying} value={eduForm.year} disabled={eduForm.studying} onChange={(e) => setEduForm((p) => ({ ...p, year: e.target.value }))} />
               </div>
               <label className="flex items-center gap-2 text-xs text-muted-foreground">
                 <input type="checkbox" checked={eduForm.studying} onChange={(e) => setEduForm((p) => ({ ...p, studying: e.target.checked }))} />

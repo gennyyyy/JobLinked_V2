@@ -10,6 +10,7 @@ vi.mock('../../../shared/services/seekers', () => ({
   listEducation: vi.fn(),
   addEducation: vi.fn(),
   removeEducation: vi.fn(),
+  listEmployment: vi.fn(),
 }))
 vi.mock('../../../shared/lib/resumeText', () => ({ extractResumeText: vi.fn() }))
 vi.mock('../../../shared/services/reference', () => ({ getReferenceValues: vi.fn() }))
@@ -23,7 +24,7 @@ vi.mock('../../../shared/services/documents', () => ({
 
 import useAuth from '../../../shared/hooks/useAuth'
 import { updateProfile } from '../../../shared/services/auth'
-import { listEducation } from '../../../shared/services/seekers'
+import { listEducation, listEmployment } from '../../../shared/services/seekers'
 import { listResumes } from '../../../shared/services/documents'
 import { extractResumeText } from '../../../shared/lib/resumeText'
 import { getReferenceValues } from '../../../shared/services/reference'
@@ -34,8 +35,13 @@ const STORED = {
   full_name: 'Juana Santos',
   phone: '09171234567',
   headline: 'Cashier',
+  birthdate: '1998-05-04',
+  employment_status: 'Employed',
   barangay_district: 'Poblacion',
   street_address: '12 Mabini Street',
+  city_municipality: 'Santa Maria',
+  province_state: 'Bulacan',
+  postal_code: '3022',
   experience_summary: 'Cashier, 2 years',
   field: 'Information Technology',
   skills: ['ms excel'],
@@ -65,6 +71,7 @@ beforeEach(() => {
   listEducation.mockResolvedValue([{
     id: 'edu1', level: 'College', school: 'Central College', field: 'Business', end_year: 2022,
   }])
+  listEmployment.mockResolvedValue([])
   updateProfile.mockResolvedValue({})
   getReferenceValues.mockImplementation(async (category) => (category === 'job_field' ? FIELDS : SKILLS))
   useAuth.mockReturnValue({ user: STORED, refreshUser: vi.fn() })

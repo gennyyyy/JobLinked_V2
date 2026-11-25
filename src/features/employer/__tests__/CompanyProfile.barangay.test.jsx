@@ -30,7 +30,7 @@ describe('CompanyProfile barangay field', () => {
     await openProfile()
     fireEvent.click(screen.getByRole('tab', { name: /contact & location/i }))
 
-    expect(screen.getByLabelText('Barangay / District')).toHaveValue('Poblacion')
+    expect(screen.getByLabelText(/^Barangay \/ District/)).toHaveValue('Poblacion')
   })
 
   it('keeps a legacy stored barangay that is not in the official list', async () => {
@@ -38,7 +38,7 @@ describe('CompanyProfile barangay field', () => {
     await openProfile()
     fireEvent.click(screen.getByRole('tab', { name: /contact & location/i }))
 
-    expect(screen.getByLabelText('Barangay / District')).toHaveValue('Sto. Rosario')
+    expect(screen.getByLabelText(/^Barangay \/ District/)).toHaveValue('Sto. Rosario')
     expect(screen.getByRole('option', { name: 'Sto. Rosario' })).toBeInTheDocument()
   })
 })

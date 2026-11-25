@@ -52,6 +52,18 @@ const TITLE_FIELDS = new Set([
 const PHONE_FIELDS = new Set(["phone", "representative_phone"]);
 const PHONE_ERROR = "Enter a valid Philippine contact number (e.g. 917 123 4567).";
 
+// Same core requirements as employer registration; these drive the red markers.
+const REQUIRED_REPRESENTATIVE_FIELDS = new Set([
+  "first_name", "last_name", "representative_position",
+  "representative_phone", "representative_email",
+]);
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+// Contact-tab keys, so a failed save can open the tab that owns the error.
+const CONTACT_KEYS = new Set([
+  "company_email", "phone", "street_address",
+  "barangay_district", "city_municipality", "province_state", "postal_code",
+]);
+
 const COMPANY_PROFILE_TABS = [
   { value: "company", label: "Company", title: "Company details", description: "These details appear alongside your public vacancies." },
   { value: "contact", label: "Contact & location", title: "Contact & location", description: "Where candidates can reach and find your office." },
@@ -160,15 +172,36 @@ function CompanyProfile() {
   if (loading) return <PageSkeleton stats={0} panels={2} />;
   if (error && !company) return <p role="alert" className="py-8 text-center text-sm text-destructive">{error}</p>;
 
-  // Phone columns are optional, so a blank stays blank; a filled value must be a
-  // Philippine number, same rules as registration.
+  // Parity with employer registration: nothing here is optional except the
+  // address extras, middle name/suffix, website, and postal code.
   function validate() {
     const next = {};
-    for (const key of ["phone", "representative_phone"]) {
-      const value = String(form[key] ?? "").trim();
-      if (value && !isValidPhone(value)) next[key] = PHONE_ERROR;
-    }
+    const value = (key) => String(form[key] ?? "").trim();
+    if (!value("name")) next.name = "Company name is required";
+    if (!value("industry")) next.industry = "Industry is required";
+    if (!value("company_email")) next.company_email = "Company email is required";
+    else if (!EMAIL_RE.test(value("company_email"))) next.company_email = "Invalid email address";
+    if (!value("phone")) next.phone = "Contact number is required";
+    else if (!isValidPhone(value("phone"))) next.phone = PHONE_ERROR;
+    if (!value("street_address")) next.street_address = "Street address is required";
+    if (!value("barangay_district")) next.barangay_district = "Barangay / District is required";
+    if (!value("city_municipality")) next.city_municipality = "City / Municipality is required";
+    if (!value("province_state")) next.province_state = "Province is required";
+    if (value("postal_code") && !/^\d{4}$/.test(value("postal_code"))) next.postal_code = "Postal code must be 4 digits";
+    if (!value("first_name")) next.first_name = "First name is required";
+    if (!value("last_name")) next.last_name = "Last name is required";
+    if (!value("representative_position")) next.representative_position = "Position is required";
+    if (!value("representative_phone")) next.representative_phone = "Representative mobile is required";
+    else if (!isValidPhone(value("representative_phone"))) next.representative_phone = PHONE_ERROR;
+    if (!value("representative_email")) next.representative_email = "Representative email is required";
+    else if (!EMAIL_RE.test(value("representative_email"))) next.representative_email = "Invalid email address";
     setErrors(next);
+    if (Object.keys(next).length) {
+      // Show the tab that owns the first error so its message is not hidden.
+      setTab(next.name || next.industry ? "company"
+        : Object.keys(next).some((key) => CONTACT_KEYS.has(key)) ? "contact"
+          : "representative");
+    }
     return Object.keys(next).length === 0;
   }
 
@@ -385,7 +418,7 @@ function CompanyProfile() {
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
             {COMPANY_FIELDS.map(([name, label, placeholder]) => (
-              <TextField key={name} label={label} placeholder={placeholder} required {...field(name)} />
+              <TextField key={name} label={label} placeholder={placeholder} required error={errors[name]} {...field(name)} />
             ))}
             <SelectField
               label="Industry"
@@ -393,11 +426,12 @@ function CompanyProfile() {
               placeholder="Select industry"
               options={INDUSTRIES}
               required
+              error={errors.industry}
               {...field("industry")}
             />
           </div>
           <div className="mt-4">
-              <TextField label="About the Company" multiline rows={5} required placeholder="Brief description of your company…" {...field("description")} />
+              <TextField label="About the Company" multiline rows={5} placeholder="Brief description of your company…" {...field("description")} />
           </div>
           <div className="mt-4">
               <TextField label="Website (Optional)" placeholder="https://…" {...field("website")} />
@@ -412,7 +446,7 @@ function CompanyProfile() {
             <div className="mt-4 grid gap-4 sm:grid-cols-2">
               {ADDRESS_FIELDS.map(([name, label, placeholder]) => (
                 <div key={name} className={name === "subdivision_building" ? "sm:col-span-2" : undefined}>
-                  <TextField label={label} placeholder={placeholder} required={name === "street_address"} {...field(name)} />
+                  <TextField label={label} placeholder={placeholder} required={name === "street_address"} error={errors[name]} {...field(name)} />
                 </div>
               ))}
             </div>
@@ -422,12 +456,16 @@ function CompanyProfile() {
                 id="barangay_district"
                 placeholder="Select barangay"
                 options={barangayOptions}
+                required
+                error={errors.barangay_district}
                 {...field("barangay_district")}
               />
               <SelectField
                 label="City / Municipality"
                 placeholder="Select city / municipality"
                 options={BULACAN_MUNICIPALITIES}
+                required
+                error={errors.city_municipality}
                 {...field("city_municipality")}
               />
             </div>
@@ -436,9 +474,11 @@ function CompanyProfile() {
                 label="Province / State"
                 placeholder="Select province"
                 options={BULACAN_PROVINCES}
+                required
+                error={errors.province_state}
                 {...field("province_state")}
               />
-              <TextField label="Postal Code" placeholder="e.g. 3022" {...field("postal_code")} />
+              <TextField label="Postal Code" placeholder="e.g. 3022" error={errors.postal_code} {...field("postal_code")} />
             </div>
         </TabsContent>
         <TabsContent value="representative" id="authorized-representative">
@@ -449,6 +489,7 @@ function CompanyProfile() {
                   label={label}
                   placeholder={placeholder}
                   type={name === "representative_email" ? "email" : name === "representative_phone" ? "tel" : "text"}
+                  required={REQUIRED_REPRESENTATIVE_FIELDS.has(name)}
                   error={errors[name]}
                   {...field(name)}
                 />

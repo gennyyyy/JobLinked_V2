@@ -43,6 +43,15 @@ describe('super-admin Profile', () => {
     expect(updateProfile.mock.calls[0][1]).not.toHaveProperty('email')
   })
 
+  it('blocks the save and asks for a full name when it is empty', async () => {
+    render(<MemoryRouter><Profile /></MemoryRouter>)
+    fireEvent.change(screen.getByLabelText(/full name/i), { target: { value: '   ' } })
+    fireEvent.click(screen.getByRole('button', { name: /save profile/i }))
+
+    expect(await screen.findByText('Enter your full name.')).toBeInTheDocument()
+    expect(updateProfile).not.toHaveBeenCalled()
+  })
+
   it('renders the security tab with sign-out-all and deactivate buttons', () => {
     render(<MemoryRouter><Profile /></MemoryRouter>)
     fireEvent.click(screen.getByRole('tab', { name: /security/i }))

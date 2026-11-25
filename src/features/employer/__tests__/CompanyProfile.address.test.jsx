@@ -20,6 +20,24 @@ import useAuth from '../../../shared/hooks/useAuth'
 import { getEmployer, updateProfile } from '../../../shared/services/auth'
 import { uploadLogo, removeLogo } from '../../../shared/services/images'
 
+// A profile that satisfies everything registration requires, so each test can
+// break exactly the field it exercises.
+const COMPLETE_COMPANY = {
+  company_name: 'Santa Maria Trading',
+  industry: 'Manufacturing',
+  company_email: 'hr@company.ph',
+  phone: '+639171234567',
+  street_address: '12 Mabini Street',
+  barangay_district: 'Poblacion',
+  city_municipality: 'Santa Maria',
+  province_state: 'Bulacan',
+  first_name: 'Maria',
+  last_name: 'Reyes',
+  representative_position: 'HR Manager',
+  representative_phone: '+639181234567',
+  representative_email: 'maria@company.ph',
+}
+
 async function openProfile() {
   render(<MemoryRouter><CompanyProfile /></MemoryRouter>)
   await screen.findByLabelText(/^company name/i)
@@ -37,27 +55,22 @@ describe('CompanyProfile address fields', () => {
   })
 
   it('loads the stored city, province, and postal code', async () => {
-    getEmployer.mockResolvedValue({
-      company_name: 'Santa Maria Trading',
-      city_municipality: 'Santa Maria',
-      province_state: 'Bulacan',
-      postal_code: '3022',
-    })
+    getEmployer.mockResolvedValue({ ...COMPLETE_COMPANY, postal_code: '3022' })
     await openProfile()
     fireEvent.click(screen.getByRole('tab', { name: /contact & location/i }))
 
-    expect(screen.getByLabelText('City / Municipality')).toHaveValue('Santa Maria')
-    expect(screen.getByLabelText('Province / State')).toHaveValue('Bulacan')
+    expect(screen.getByLabelText(/^City \/ Municipality/)).toHaveValue('Santa Maria')
+    expect(screen.getByLabelText(/^Province \/ State/)).toHaveValue('Bulacan')
     expect(screen.getByLabelText('Postal Code')).toHaveValue('3022')
   })
 
   it('saves the selected city, province, and postal code', async () => {
-    getEmployer.mockResolvedValue({ company_name: 'Santa Maria Trading' })
+    getEmployer.mockResolvedValue(COMPLETE_COMPANY)
     await openProfile()
     fireEvent.click(screen.getByRole('tab', { name: /contact & location/i }))
 
-    fireEvent.change(screen.getByLabelText('City / Municipality'), { target: { value: 'Angat' } })
-    fireEvent.change(screen.getByLabelText('Province / State'), { target: { value: 'Bulacan' } })
+    fireEvent.change(screen.getByLabelText(/^City \/ Municipality/), { target: { value: 'Angat' } })
+    fireEvent.change(screen.getByLabelText(/^Province \/ State/), { target: { value: 'Bulacan' } })
     fireEvent.change(screen.getByLabelText('Postal Code'), { target: { value: '3012' } })
     fireEvent.click(screen.getByRole('button', { name: /save company profile/i }))
 
@@ -70,12 +83,12 @@ describe('CompanyProfile address fields', () => {
   })
 
   it('renders city and province as dropdowns with the Bulacan options', async () => {
-    getEmployer.mockResolvedValue({ company_name: 'Santa Maria Trading' })
+    getEmployer.mockResolvedValue(COMPLETE_COMPANY)
     await openProfile()
     fireEvent.click(screen.getByRole('tab', { name: /contact & location/i }))
 
-    const city = screen.getByLabelText('City / Municipality')
-    const province = screen.getByLabelText('Province / State')
+    const city = screen.getByLabelText(/^City \/ Municipality/)
+    const province = screen.getByLabelText(/^Province \/ State/)
     expect(city.tagName).toBe('SELECT')
     expect(province.tagName).toBe('SELECT')
     expect(within(city).getByRole('option', { name: 'Angat' })).toBeInTheDocument()
@@ -85,20 +98,20 @@ describe('CompanyProfile address fields', () => {
 
   it('loads an out-of-list city and province as blanks', async () => {
     getEmployer.mockResolvedValue({
-      company_name: 'Santa Maria Trading',
+      ...COMPLETE_COMPANY,
       city_municipality: 'Quezon City',
       province_state: 'Metro Manila',
     })
     await openProfile()
     fireEvent.click(screen.getByRole('tab', { name: /contact & location/i }))
 
-    expect(screen.getByLabelText('City / Municipality')).toHaveValue('')
-    expect(screen.getByLabelText('Province / State')).toHaveValue('')
+    expect(screen.getByLabelText(/^City \/ Municipality/)).toHaveValue('')
+    expect(screen.getByLabelText(/^Province \/ State/)).toHaveValue('')
     expect(screen.getByRole('option', { name: 'Select city / municipality' })).toBeInTheDocument()
   })
 
   it('blocks the save when the business phone is invalid', async () => {
-    getEmployer.mockResolvedValue({ company_name: 'Santa Maria Trading' })
+    getEmployer.mockResolvedValue({ ...COMPLETE_COMPANY, phone: '' })
     await openProfile()
     fireEvent.click(screen.getByRole('tab', { name: /contact & location/i }))
 
@@ -110,11 +123,11 @@ describe('CompanyProfile address fields', () => {
   })
 
   it('blocks the save when the representative mobile is invalid', async () => {
-    getEmployer.mockResolvedValue({ company_name: 'Santa Maria Trading' })
+    getEmployer.mockResolvedValue({ ...COMPLETE_COMPANY, representative_phone: '' })
     await openProfile()
     fireEvent.click(screen.getByRole('tab', { name: /^representative$/i }))
 
-    fireEvent.change(screen.getByLabelText('Representative Mobile'), { target: { value: '12345' } })
+    fireEvent.change(screen.getByLabelText(/^Representative Mobile/), { target: { value: '12345' } })
     fireEvent.click(screen.getByRole('button', { name: /save company profile/i }))
 
     expect(await screen.findByText('Enter a valid Philippine contact number (e.g. 917 123 4567).')).toBeInTheDocument()
@@ -122,7 +135,7 @@ describe('CompanyProfile address fields', () => {
   })
 
   it('saves a spaced business phone in +63 form', async () => {
-    getEmployer.mockResolvedValue({ company_name: 'Santa Maria Trading' })
+    getEmployer.mockResolvedValue({ ...COMPLETE_COMPANY, phone: '' })
     await openProfile()
     fireEvent.click(screen.getByRole('tab', { name: /contact & location/i }))
 
@@ -135,7 +148,7 @@ describe('CompanyProfile address fields', () => {
   })
 
   it('validates the business phone on blur before saving', async () => {
-    getEmployer.mockResolvedValue({ company_name: 'Santa Maria Trading', phone: '+639171234567' })
+    getEmployer.mockResolvedValue(COMPLETE_COMPANY)
     await openProfile()
     fireEvent.click(screen.getByRole('tab', { name: /contact & location/i }))
 
@@ -155,28 +168,29 @@ describe('CompanyProfile address fields', () => {
     expect(phone).toHaveValue('917 123 4567')
   })
 
-  it('saves with blank phone fields', async () => {
-    getEmployer.mockResolvedValue({ company_name: 'Santa Maria Trading' })
+  it('blocks the save and asks for both phone numbers when they are blank', async () => {
+    getEmployer.mockResolvedValue({ ...COMPLETE_COMPANY, phone: '', representative_phone: '' })
     await openProfile()
 
     fireEvent.click(screen.getByRole('button', { name: /save company profile/i }))
 
-    await waitFor(() => expect(updateProfile).toHaveBeenCalled())
-    expect(updateProfile).toHaveBeenCalledWith('u1', expect.objectContaining({ phone: '', representative_phone: '' }))
+    expect(await screen.findByText('Contact number is required')).toBeInTheDocument()
+    expect(updateProfile).not.toHaveBeenCalled()
+    // The failed save opens the contact tab where the phone error lives.
+    expect(screen.getByRole('tab', { name: /contact & location/i })).toHaveAttribute('aria-selected', 'true')
+
+    fireEvent.click(screen.getByRole('tab', { name: /^representative$/i }))
+    expect(screen.getByText('Representative mobile is required')).toBeInTheDocument()
   })
 
   it('keeps the representative mobile separate from the business phone', async () => {
-    getEmployer.mockResolvedValue({
-      company_name: 'Santa Maria Trading',
-      phone: '+63440000000',
-      representative_phone: '+639171234567',
-    })
+    getEmployer.mockResolvedValue({ ...COMPLETE_COMPANY, phone: '+63440000000' })
     await openProfile()
     fireEvent.click(screen.getByRole('tab', { name: /^representative$/i }))
 
-    const mobile = screen.getByLabelText('Representative Mobile')
+    const mobile = screen.getByLabelText(/^Representative Mobile/)
     expect(mobile).toHaveAttribute('type', 'tel')
-    expect(mobile).toHaveValue('917 123 4567')
+    expect(mobile).toHaveValue('918 123 4567')
 
     fireEvent.change(mobile, { target: { value: '+639189998888' } })
     fireEvent.click(screen.getByRole('button', { name: /save company profile/i }))
@@ -189,11 +203,11 @@ describe('CompanyProfile address fields', () => {
   })
 
   it('does not render a login email field on the representative tab', async () => {
-    getEmployer.mockResolvedValue({ company_name: 'Santa Maria Trading', email: 'hr@company.ph' })
+    getEmployer.mockResolvedValue({ ...COMPLETE_COMPANY, email: 'hr@company.ph' })
     await openProfile()
     fireEvent.click(screen.getByRole('tab', { name: /^representative$/i }))
 
-    expect(screen.getByLabelText('Representative Mobile')).toBeInTheDocument()
+    expect(screen.getByLabelText(/^Representative Mobile/)).toBeInTheDocument()
     expect(screen.queryByLabelText(/login email/i)).not.toBeInTheDocument()
   })
 

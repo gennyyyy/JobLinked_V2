@@ -84,8 +84,8 @@ describe('Profile resume autofill', () => {
     expect(screen.getByLabelText(/contact number/i)).toHaveValue('917 123 4567')
 
     fireEvent.click(screen.getByRole('tab', { name: /address/i }))
-    await screen.findByLabelText('Barangay')
-    expect(screen.getByLabelText('Barangay')).toHaveValue('Poblacion')
+    await screen.findByLabelText(/^Barangay/)
+    expect(screen.getByLabelText(/^Barangay/)).toHaveValue('Poblacion')
     expect(screen.getByLabelText(/street or local address/i).value).toContain('Norzagaray-Santa Maria Road')
 
     fireEvent.click(screen.getByRole('tab', { name: /education/i }))

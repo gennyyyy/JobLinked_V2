@@ -10,6 +10,7 @@ vi.mock('../../../shared/services/seekers', () => ({
   listEducation: vi.fn(),
   addEducation: vi.fn(),
   removeEducation: vi.fn(),
+  listEmployment: vi.fn(),
 }))
 vi.mock('../../../shared/lib/resumeText', () => ({ extractResumeText: vi.fn() }))
 vi.mock('../../../shared/services/reference', () => ({ getReferenceValues: vi.fn() }))
@@ -24,7 +25,7 @@ vi.mock('../../../shared/services/documents', () => ({
 import useAuth from '../../../shared/hooks/useAuth'
 import { getPreferences, updatePreferences } from '../../../shared/services/account'
 import { updateProfile } from '../../../shared/services/auth'
-import { listEducation, addEducation, removeEducation } from '../../../shared/services/seekers'
+import { listEducation, addEducation, removeEducation, listEmployment } from '../../../shared/services/seekers'
 import { listResumes } from '../../../shared/services/documents'
 import { getReferenceValues } from '../../../shared/services/reference'
 
@@ -34,8 +35,13 @@ const STORED = {
   full_name: 'Juana Santos',
   phone: '09171234567',
   headline: 'Cashier',
+  birthdate: '1998-05-04',
+  employment_status: 'Employed',
   barangay_district: 'Poblacion',
   street_address: '12 Mabini Street',
+  city_municipality: 'Santa Maria',
+  province_state: 'Bulacan',
+  postal_code: '3022',
   education_summary: 'College',
   experience_summary: 'Cashier, 2 years',
   skills: ['Data Entry'],
@@ -61,6 +67,7 @@ describe('Profile fields and save', () => {
     }])
     addEducation.mockResolvedValue({})
     removeEducation.mockResolvedValue({})
+    listEmployment.mockResolvedValue([])
     updateProfile.mockResolvedValue({})
     getReferenceValues.mockImplementation(async (category) => (
       category === 'job_field' ? ['Construction', 'Information Technology'] : ['Data Entry', 'Customer Service']
@@ -76,8 +83,8 @@ describe('Profile fields and save', () => {
     expect(screen.getByLabelText(/professional headline/i)).toHaveValue('Cashier')
 
     fireEvent.click(screen.getByRole('tab', { name: /address/i }))
-    await screen.findByLabelText('Barangay')
-    expect(screen.getByLabelText('Barangay')).toHaveValue('Poblacion')
+    await screen.findByLabelText(/^Barangay/)
+    expect(screen.getByLabelText(/^Barangay/)).toHaveValue('Poblacion')
     expect(screen.getByLabelText(/street or local address/i)).toHaveValue('12 Mabini Street')
 
     fireEvent.click(screen.getByRole('tab', { name: /education/i }))
@@ -100,8 +107,8 @@ describe('Profile fields and save', () => {
     fireEvent.change(screen.getByLabelText(/professional headline/i), { target: { value: 'Head cashier' } })
 
     fireEvent.click(screen.getByRole('tab', { name: /address/i }))
-    await screen.findByLabelText('Barangay')
-    fireEvent.change(screen.getByLabelText('Barangay'), { target: { value: 'Bagbaguin' } })
+    await screen.findByLabelText(/^Barangay/)
+    fireEvent.change(screen.getByLabelText(/^Barangay/), { target: { value: 'Bagbaguin' } })
     fireEvent.change(screen.getByLabelText(/street or local address/i), { target: { value: '48 Rizal Street' } })
 
     fireEvent.click(screen.getByRole('tab', { name: /skills/i }))
@@ -217,9 +224,9 @@ describe('Profile fields and save', () => {
     fireEvent.click(screen.getByRole('tab', { name: /education/i }))
     expect(await screen.findByText('No education history added')).toBeInTheDocument()
 
-    fireEvent.change(screen.getByLabelText('Level'), { target: { value: 'College' } })
-    fireEvent.change(screen.getByLabelText('School'), { target: { value: 'Metro College' } })
-    fireEvent.change(screen.getByLabelText('Graduation Year'), { target: { value: '2025' } })
+    fireEvent.change(screen.getByLabelText(/^Level/), { target: { value: 'College' } })
+    fireEvent.change(screen.getByLabelText(/^School/), { target: { value: 'Metro College' } })
+    fireEvent.change(screen.getByLabelText(/^Graduation Year/), { target: { value: '2025' } })
     fireEvent.click(screen.getByRole('button', { name: /add education/i }))
     expect(await screen.findByText('Completed — College')).toBeInTheDocument()
 
@@ -317,8 +324,8 @@ describe('Profile fields and save', () => {
     expect(screen.getByLabelText(/first name/i)).toHaveValue('Juana')
 
     fireEvent.click(screen.getByRole('tab', { name: /address/i }))
-    await screen.findByLabelText('Barangay')
-    expect(screen.getByLabelText('Barangay')).toHaveValue('Poblacion')
+    await screen.findByLabelText(/^Barangay/)
+    expect(screen.getByLabelText(/^Barangay/)).toHaveValue('Poblacion')
     expect(screen.getByLabelText(/street or local address/i)).toHaveValue('12 Mabini Street')
   })
 
@@ -326,8 +333,8 @@ describe('Profile fields and save', () => {
     await openProfile()
     fireEvent.click(screen.getByRole('tab', { name: /address/i }))
 
-    const city = screen.getByLabelText('City / Municipality')
-    const province = screen.getByLabelText('Province / State')
+    const city = screen.getByLabelText(/^City \/ Municipality/)
+    const province = screen.getByLabelText(/^Province \/ State/)
     expect(city.tagName).toBe('SELECT')
     expect(province.tagName).toBe('SELECT')
     expect(within(city).getByRole('option', { name: 'Angat' })).toBeInTheDocument()
@@ -343,11 +350,11 @@ describe('Profile fields and save', () => {
     await openProfile()
     fireEvent.click(screen.getByRole('tab', { name: /address/i }))
 
-    expect(screen.getByLabelText('City / Municipality')).toHaveValue('Santa Maria')
-    expect(screen.getByLabelText('Province / State')).toHaveValue('Bulacan')
+    expect(screen.getByLabelText(/^City \/ Municipality/)).toHaveValue('Santa Maria')
+    expect(screen.getByLabelText(/^Province \/ State/)).toHaveValue('Bulacan')
   })
 
-  it('loads an out-of-list city and province as blanks and saves the blanks', async () => {
+  it('loads an out-of-list city and province as blanks and blocks the save', async () => {
     useAuth.mockReturnValue({
       user: { ...STORED, city_municipality: 'Quezon City', province_state: 'Metro Manila' },
       refreshUser: vi.fn(),
@@ -355,24 +362,23 @@ describe('Profile fields and save', () => {
     await openProfile()
     fireEvent.click(screen.getByRole('tab', { name: /address/i }))
 
-    expect(screen.getByLabelText('City / Municipality')).toHaveValue('')
-    expect(screen.getByLabelText('Province / State')).toHaveValue('')
+    expect(screen.getByLabelText(/^City \/ Municipality/)).toHaveValue('')
+    expect(screen.getByLabelText(/^Province \/ State/)).toHaveValue('')
     expect(screen.getByRole('option', { name: 'Select city / municipality' })).toBeInTheDocument()
 
+    // Both are required now, so an out-of-list address cannot be saved blank.
     fireEvent.click(screen.getByRole('button', { name: /save my profile/i }))
-    await waitFor(() => expect(updateProfile).toHaveBeenCalled())
-    expect(updateProfile).toHaveBeenCalledWith('u1', expect.objectContaining({
-      city_municipality: null,
-      province_state: null,
-    }))
+    expect(await screen.findByText('Choose your city / municipality.')).toBeInTheDocument()
+    expect(screen.getByText('Choose your province.')).toBeInTheDocument()
+    expect(updateProfile).not.toHaveBeenCalled()
   })
 
   it('saves the picked city and province', async () => {
     await openProfile()
     fireEvent.click(screen.getByRole('tab', { name: /address/i }))
 
-    fireEvent.change(screen.getByLabelText('City / Municipality'), { target: { value: 'Angat' } })
-    fireEvent.change(screen.getByLabelText('Province / State'), { target: { value: 'Bulacan' } })
+    fireEvent.change(screen.getByLabelText(/^City \/ Municipality/), { target: { value: 'Angat' } })
+    fireEvent.change(screen.getByLabelText(/^Province \/ State/), { target: { value: 'Bulacan' } })
     fireEvent.click(screen.getByRole('button', { name: /save my profile/i }))
 
     await waitFor(() => expect(updateProfile).toHaveBeenCalled())

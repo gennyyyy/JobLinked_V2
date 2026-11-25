@@ -51,8 +51,8 @@ describe('Profile accessibility', () => {
     }
 
     fireEvent.click(screen.getByRole('tab', { name: /address/i }))
-    await screen.findByLabelText('Barangay')
-    for (const name of ['Barangay', /street or local address/i]) {
+    await screen.findByLabelText(/^Barangay/)
+    for (const name of [/^Barangay/, /street or local address/i]) {
       expect(screen.getByLabelText(name)).toBeInTheDocument()
     }
 
