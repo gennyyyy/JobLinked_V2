@@ -87,8 +87,10 @@ const seedEmployerWithData = () => {
   state.applications.push({ id: 'a1', job_id: 'v1' }, { id: 'a2', job_id: 'v1' }, { id: 'a3', job_id: 'v2' });
 };
 
-const move = (token, role) => request(app).post(`/api/admin/users/${U}/role`)
-  .set('Cookie', token).send({ role });
+// Real moves carry the required reason; the no-op case passes '' so it stays
+// reason-free (the same-role short-circuit runs before reason validation).
+const move = (token, role, reason = 'Promoted after PESO review.') => request(app).post(`/api/admin/users/${U}/role`)
+  .set('Cookie', token).send(reason ? { role, reason } : { role });
 
 describe('F1 — admin role move never deletes (data-loss regression)', () => {
   it('employer → job-seeker leaves jobs, applications, and their rows intact', async () => {
@@ -164,7 +166,7 @@ describe('F1 — admin role move never deletes (data-loss regression)', () => {
     const token = loginAs({ id: ADMIN, role: 'super-admin' });
     state.rows.employers.push({ id: U, email: 'u@x.com', full_name: 'U', status: 'active' });
     register();
-    const res = await move(token, 'employer');
+    const res = await move(token, 'employer', '');
     expect(res.status).toBe(200);
     expect(callsOf(/^(update|insert|delete from)/)).toHaveLength(0);
   });

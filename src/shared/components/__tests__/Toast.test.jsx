@@ -17,10 +17,11 @@ describe('Toast', () => {
     expect(screen.getByText('Saved successfully')).toBeInTheDocument()
   })
 
-  it('renders the error variant as a status region too', () => {
+  it('renders the error variant as an alert region', () => {
     render(<Toast message="Something failed" variant="error" onClose={vi.fn()} />)
-    expect(screen.getByRole('status')).toBeInTheDocument()
-    expect(screen.getByText('Something failed')).toBeInTheDocument()
+    const alert = screen.getByRole('alert')
+    expect(alert).toHaveAttribute('aria-live', 'assertive')
+    expect(alert).toHaveTextContent('Something failed')
   })
 
   it('renders no dismiss button inside the status region', () => {

@@ -200,8 +200,26 @@ router.get('/admin/audit-logs', ...logsAdmin, ah(async (req, res) => {
   }
   const parsedLimit = parseInt(limit);
   vals.push(Math.min(2000, Math.max(1, Number.isFinite(parsedLimit) ? parsedLimit : 500)));
+  // target_name resolves the audited user from entity + entity_id; entity_id is
+  // text, so the id compares as text (a non-uuid value can never raise 22P02).
+  // Actor lookups are scalar subqueries for the same reason `target_name` is a
+  // CASE: a role move leaves an inactive row in the old table, so the three
+  // LEFT JOINs could multiply one audit row into several. Precedence matches
+  // resolveRole: super-admins → employers → job-seekers.
   const { rows } = await pool.query(
-    `select l.*, coalesce(js.full_name, e.full_name, s.full_name) as actor_name, coalesce(js.email, e.email, s.email) as actor_email from audit_logs l left join job_seekers js on js.id = l.user_id left join employers e on e.id = l.user_id left join super_admins s on s.id = l.user_id${conds.length ? ` where ${conds.join(' and ')}` : ''} order by l.created_at desc limit $${vals.length}`, vals);
+    `select l.*,
+       case l.entity
+         when 'super_admins' then (select s.full_name from super_admins s where s.id::text = l.entity_id)
+         when 'employers' then (select e.full_name from employers e where e.id::text = l.entity_id)
+         when 'job_seekers' then (select j.full_name from job_seekers j where j.id::text = l.entity_id)
+       end as target_name,
+       coalesce((select s.full_name from super_admins s where s.id = l.user_id),
+         (select e.full_name from employers e where e.id = l.user_id),
+         (select j.full_name from job_seekers j where j.id = l.user_id)) as actor_name,
+       coalesce((select s.email from super_admins s where s.id = l.user_id),
+         (select e.email from employers e where e.id = l.user_id),
+         (select j.email from job_seekers j where j.id = l.user_id)) as actor_email
+     from audit_logs l${conds.length ? ` where ${conds.join(' and ')}` : ''} order by l.created_at desc limit $${vals.length}`, vals);
   res.json(rows);
 }));
 

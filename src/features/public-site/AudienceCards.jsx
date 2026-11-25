@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import { ArrowRight, Check } from 'lucide-react'
+import { RevealText } from '@/shared/components/design'
 
 const AUDIENCES = [
   {
@@ -30,7 +31,7 @@ export function AudienceCards({ headingTag: Heading = 'h3' }) {
     <div className="mt-10 grid gap-x-10 gap-y-8 md:grid-cols-3">
       {AUDIENCES.map(({ title, description, items, linkLabel, href }) => (
         <article className="flex flex-col border-t border-border pt-6" key={title}>
-          <Heading className="text-lg font-semibold">{title}</Heading>
+          <RevealText as={Heading} className="text-lg font-semibold">{title}</RevealText>
           <p className="mt-2 text-sm leading-6 text-muted-foreground">{description}</p>
           <ul className="mt-5 flex flex-col gap-2.5">
             {items.map((item) => (

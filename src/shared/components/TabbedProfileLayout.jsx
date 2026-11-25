@@ -1,6 +1,7 @@
 import { Save } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { PageHeading, Panel } from '@/shared/components/design'
+import Flash from '@/shared/components/Flash'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
 export default function TabbedProfileLayout({
@@ -28,9 +29,7 @@ export default function TabbedProfileLayout({
       <div className="grid items-start gap-4 xl:grid-cols-[1fr_280px]">
         <form onSubmit={onSubmit} className="flex min-w-0 flex-col gap-4" noValidate>
           {status && (
-            <p role="status" className="rounded-lg border border-success/20 bg-success-soft px-4 py-3 text-xs font-medium text-success">
-              {status}
-            </p>
+            <Flash>{status}</Flash>
           )}
           {error && <p role="alert" className="text-xs text-destructive">{error}</p>}
           <Tabs value={activeTab} onValueChange={onTabChange} className="gap-0">
@@ -45,7 +44,7 @@ export default function TabbedProfileLayout({
           </Tabs>
           {showSave && (
             <div className="flex flex-wrap items-center justify-between gap-2">
-              {saveHint && <p role="status" className="text-[11px] text-muted-foreground">{saveHint}</p>}
+              {saveHint && <p role="status" className="text-xs text-muted-foreground">{saveHint}</p>}
               <Button type="submit" disabled={saving}>
                 <Save data-icon="inline-start" />
                 {saving ? savingLabel : saveLabel}

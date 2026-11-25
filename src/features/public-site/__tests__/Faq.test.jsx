@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render, screen, fireEvent } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import Faq from '../Faq'
 import { FAQS } from '../../../shared/constants'
@@ -36,5 +36,23 @@ describe('FAQ page', () => {
     ]
 
     questions.forEach((question) => expect(screen.getByText(question)).toBeInTheDocument())
+  })
+
+  it('links the PESO office address to its map pin', async () => {
+    render(
+      <MemoryRouter>
+        <Faq />
+      </MemoryRouter>
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: /Where is the PESO office/ }))
+
+    const address = await screen.findByRole('link', { name: 'Poblacion, Santa Maria, Bulacan 3022' })
+    expect(address).toHaveAttribute(
+      'href',
+      'https://www.bing.com/maps/default.aspx?v=2&pc=FACEBK&mid=8100&where1=14.818470214142%2C+120.95965451912&FORM=FBKPL1&name=Poblacion%2C+Santa+Maria%2C+Philippines%2C+3022&mkt=en-GB'
+    )
+    expect(address).toHaveAttribute('target', '_blank')
+    expect(address).toHaveAttribute('rel', 'noreferrer')
   })
 })

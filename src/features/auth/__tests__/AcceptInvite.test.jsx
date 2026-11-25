@@ -1,13 +1,19 @@
 import { describe, it, expect } from 'vitest'
 import { render, screen } from '@testing-library/react'
-import { MemoryRouter, Routes, Route } from 'react-router-dom'
+import { MemoryRouter, Routes, Route, useLocation } from 'react-router-dom'
 import AcceptInvite from '../AcceptInvite'
+
+function ExpiredStub() {
+  const { search } = useLocation()
+  return <div>link expired {search}</div>
+}
 
 function renderPage(entry = '/accept-invite') {
   return render(
     <MemoryRouter initialEntries={[entry]}>
       <Routes>
         <Route path="/accept-invite" element={<AcceptInvite />} />
+        <Route path="/link-expired" element={<ExpiredStub />} />
         <Route path="/reset-password" element={<div>reset password page</div>} />
         <Route path="/login" element={<div>login page</div>} />
       </Routes>
@@ -24,10 +30,9 @@ describe('AcceptInvite', () => {
     expect(await screen.findByText('reset password page')).toBeInTheDocument()
   })
 
-  it('keeps the invalid-link notice when the link has no token', () => {
+  it('redirects to the expired-link page when the link has no token', async () => {
     renderPage('/accept-invite')
 
-    expect(screen.getByText('This invite link is invalid or expired.')).toBeInTheDocument()
-    expect(screen.getByText('Go to sign in')).toBeInTheDocument()
+    expect(await screen.findByText('link expired ?type=invite')).toBeInTheDocument()
   })
 })

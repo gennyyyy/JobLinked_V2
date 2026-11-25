@@ -5,11 +5,8 @@ import { Link } from "react-router-dom";
 import {
   Plus,
   MoreHorizontal,
-  AlertTriangle,
-  CheckCircle2,
   Users,
   Building,
-  X,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -22,6 +19,7 @@ import useAuth from "../../shared/hooks/useAuth";
 import { listEmployerJobs, createJob, updateJob, changeJobStatus, deleteJob } from "../../shared/services/jobs";
 import { getEmployer } from "../../shared/services/auth";
 import ConfirmationModal from "../../shared/components/ConfirmationModal";
+import Flash from "../../shared/components/Flash";
 import { PageSkeleton } from '../../shared/components/Skeletons';
 import { Pager } from "../../shared/components/dashboard";
 import { InlineError } from "../../shared/components/dashboard";
@@ -364,27 +362,11 @@ export default function JobPosts() {
     <>
       {/* Action feedback notifications */}
       {actionSuccess && (
-        <div role="status" className="mb-4 flex items-center justify-between gap-3 rounded-xl border border-success/20 bg-success-soft px-4 py-3 text-xs font-medium text-success">
-          <div className="flex min-w-0 items-center gap-2">
-            <CheckCircle2 className="size-4 shrink-0" aria-hidden="true" />
-            <span className="min-w-0">{actionSuccess}</span>
-          </div>
-          <Button type="button" variant="ghost" size="icon-xs" onClick={() => setActionSuccess("")} aria-label="Dismiss" className="text-success hover:bg-success-soft">
-            <X />
-          </Button>
-        </div>
+        <Flash className="mb-4" onDismiss={() => setActionSuccess("")}>{actionSuccess}</Flash>
       )}
 
       {actionError && (
-        <div role="alert" className="mb-4 flex items-center justify-between gap-3 rounded-xl border border-danger/20 bg-danger-soft px-4 py-3 text-xs font-medium text-destructive">
-          <div className="flex min-w-0 items-center gap-2">
-            <AlertTriangle className="size-4 shrink-0" aria-hidden="true" />
-            <span className="min-w-0">{actionError}</span>
-          </div>
-          <Button type="button" variant="ghost" size="icon-xs" onClick={() => setActionError("")} aria-label="Dismiss" className="text-destructive hover:bg-danger-soft">
-            <X />
-          </Button>
-        </div>
+        <Flash variant="error" className="mb-4" onDismiss={() => setActionError("")}>{actionError}</Flash>
       )}
 
       {/* No Company Warning Banner */}
@@ -458,11 +440,11 @@ export default function JobPosts() {
                     <button type="button" onClick={() => setViewingJob(post)} className="text-left font-medium text-navy hover:text-primary">
                       {titleCase(post.title)}
                     </button>
-                    <p className="mt-1 text-[11px] text-muted-foreground">
+                    <p className="mt-1 text-xs text-muted-foreground">
                       {titleCase(post.location) || 'Santa Maria'} · {post.employment_type || 'Full-time'} · {post.vacancies || 1} openings
                     </p>
                     {post.remarks && (
-                      <p className="mt-2 max-w-xs text-[11px] leading-5 text-destructive">PESO feedback: {post.remarks}</p>
+                      <p className="mt-2 max-w-xs text-xs leading-5 text-destructive">PESO feedback: {post.remarks}</p>
                     )}
                   </TableCell>
                   <TableCell>

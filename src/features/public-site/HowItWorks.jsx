@@ -3,7 +3,7 @@ import { ArrowRight, ShieldCheck } from 'lucide-react'
 import SkipLink from '@/shared/components/SkipLink'
 import PublicShell from '@/shared/components/PublicShell'
 import { H3, LinkButton } from '@/shared/components/design'
-import landingBg from '@/assets/landing_page_bg.png'
+import PageHero from './PageHero'
 
 const TABS = [
   { id: 'jobseeker', label: 'For job seekers' },
@@ -79,16 +79,10 @@ export default function HowItWorks() {
     <>
       <SkipLink />
       <PublicShell>
-        <header className="page-hero bg-cover bg-center border-b border-border" style={{ backgroundImage: `linear-gradient(180deg, rgba(247,250,255,0.88) 0%, rgba(247,250,255,0.72) 100%), url(${landingBg})` }}>
-          <div className="page-container py-14 md:py-16">
-            <div>
-              <h1 className="display-heading text-navy">How It Works</h1>
-              <p className="mt-5 max-w-xl text-sm leading-7 text-muted-foreground md:text-base">
-                A clear path from your first profile to your next opportunity.
-              </p>
-            </div>
-          </div>
-        </header>
+        <PageHero
+          title="How It Works"
+          description="A clear path from your first profile to your next opportunity."
+        />
         <div className="page-container py-12 md:py-16">
           <div className="max-w-[940px]">
 
@@ -112,7 +106,7 @@ export default function HowItWorks() {
               })}
             </div>
 
-            <h2 className="mt-10 text-2xl font-semibold tracking-[-0.03em] text-navy sm:text-[28px]">
+            <h2 className="mt-10 text-2xl font-semibold tracking-[-0.03em] text-navy sm:text-3xl">
               {current.heading}
             </h2>
 

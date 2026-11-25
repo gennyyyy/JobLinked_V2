@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
-import { MemoryRouter, Routes, Route } from 'react-router-dom'
+import { MemoryRouter, Routes, Route, useLocation } from 'react-router-dom'
 import ResetPassword from '../ResetPassword'
 
 // The screen runs the real service against the shared BA client seam.
@@ -19,10 +19,16 @@ vi.mock('../../../shared/lib/supabase', () => ({
 
 import { authClientMock, resetAuthClient } from '../../../test/authClientMock'
 
+function ExpiredStub() {
+  const { search } = useLocation()
+  return <div>link expired {search}</div>
+}
+
 const renderReset = (url = '/reset-password?token=tok_1') => render(
   <MemoryRouter initialEntries={[url]}>
     <Routes>
       <Route path="/reset-password" element={<ResetPassword />} />
+      <Route path="/link-expired" element={<ExpiredStub />} />
       <Route path="/login" element={<div>login page</div>} />
       <Route path="/forgot-password" element={<div>forgot page</div>} />
     </Routes>
@@ -42,9 +48,9 @@ describe('ResetPassword', () => {
     expect(screen.getByRole('button', { name: /save new password/i })).toBeInTheDocument()
   })
 
-  it('asks for a new link when there is no token', () => {
+  it('redirects to the expired-link page when there is no token', () => {
     renderReset('/reset-password')
-    expect(screen.getByText('This reset link is invalid or expired. Request a new one.')).toBeInTheDocument()
+    expect(screen.getByText('link expired ?type=reset')).toBeInTheDocument()
     expect(screen.queryByLabelText(/new password/i)).not.toBeInTheDocument()
     expect(authClientMock.resetPassword).not.toHaveBeenCalled()
   })

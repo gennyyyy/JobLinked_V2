@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom'
 import { ArrowRight, Eye, EyeOff, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { FieldGroup, Field, FieldLabel } from '@/components/ui/field'
@@ -47,19 +47,7 @@ export default function ResetPassword() {
     }
   }
 
-  if (!token) {
-    return (
-      <PublicShell>
-        <AuthFrame title="Reset link issue." subtitle="We couldn’t open this password link.">
-          <div className="flex flex-col gap-5">
-            <p role="alert" className="text-xs leading-6 text-destructive">{INVALID}</p>
-            <Link to="/forgot-password" className="text-xs font-medium text-primary">Request a new link</Link>
-            <Link to="/login" className="text-xs font-medium text-primary">Go to sign in</Link>
-          </div>
-        </AuthFrame>
-      </PublicShell>
-    )
-  }
+  if (!token) return <Navigate to="/link-expired?type=reset" replace />
 
   return (
     <PublicShell>

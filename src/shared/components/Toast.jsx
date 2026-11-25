@@ -15,15 +15,15 @@ export default function Toast({ message, variant = "success", onClose, duration 
 
   return (
     <div
-      role="status"
-      aria-live="polite"
-      className={`fixed top-4 left-1/2 z-[9999] -translate-x-1/2 max-w-[calc(100%-2rem)] px-4 py-2.5 rounded-xl border text-sm flex items-center gap-3 shadow-xs ${
+      role={isError ? "alert" : "status"}
+      aria-live={isError ? "assertive" : "polite"}
+      className={`fixed top-4 left-1/2 z-[9999] -translate-x-1/2 max-w-[calc(100%-2rem)] px-4 py-2.5 rounded-control border text-sm flex items-center gap-3 shadow-lg ${
         isError
-          ? "bg-rose-50 border-rose-200 text-rose-800"
-          : "bg-emerald-50 border-emerald-200 text-emerald-800"
+          ? "bg-danger-soft border-danger/20 text-destructive"
+          : "bg-success-soft border-success/20 text-success"
       }`}
     >
-      <Icon className={`w-5 h-5 shrink-0 ${isError ? "text-rose-600" : "text-emerald-600"}`} />
+      <Icon className={`w-5 h-5 shrink-0 ${isError ? "text-destructive" : "text-success"}`} />
       <span>{message}</span>
     </div>
   );

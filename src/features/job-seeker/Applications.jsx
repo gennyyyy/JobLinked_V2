@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { BriefcaseBusiness } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -9,7 +8,7 @@ import { listBySeeker } from '@/shared/services/applications'
 import { PageSkeleton } from '@/shared/components/Skeletons'
 import { InlineError, Pager } from '@/shared/components/dashboard'
 import ApplicationTimeline from '@/shared/components/ApplicationTimeline'
-import { CompanyMark, EmptyState, H3, LinkButton, Notice, PageHeading, Panel, SearchInput, SelectField, StatusBadge } from '@/shared/components/design'
+import { CompanyMark, EmptyState, H3, Notice, PageHeading, Panel, SearchInput, SelectField, StatusBadge } from '@/shared/components/design'
 import { titleCase } from '@/shared/utils/titleCase'
 
 const PAGE_SIZE = 8
@@ -50,12 +49,12 @@ function ApplicationDetail({ application }) {
         )}
         <div>
           <H3 className="text-xs font-semibold text-navy" animated={false}>Your application journey</H3>
-          <p className="mt-1 text-[11px] text-muted-foreground">Updates from the employer appear here and in your notifications.</p>
+          <p className="mt-1 text-xs text-muted-foreground">Updates from the employer appear here and in your notifications.</p>
           <div className="mt-4"><ApplicationTimeline application={application} /></div>
         </div>
         {application.employer_notes && (
           <div className="rounded-xl border bg-muted p-4">
-            <p className="text-[10px] font-semibold uppercase tracking-[.08em] text-muted-foreground">Note from employer</p>
+            <p className="text-micro font-semibold uppercase tracking-[.08em] text-muted-foreground">Note from employer</p>
             <p className="mt-2 whitespace-pre-line text-xs leading-6 text-navy">{application.employer_notes}</p>
           </div>
         )}
@@ -107,12 +106,6 @@ export default function Applications() {
       <PageHeading
         title="See how your story is moving."
         description="Track your applications, from your first hello to the employer’s decision."
-        action={(
-          <LinkButton href="/job-seeker/jobs">
-            <BriefcaseBusiness data-icon="inline-start" />
-            Find more opportunities
-          </LinkButton>
-        )}
       />
       <Panel title="My applications" description="Only applications submitted by your current account are shown.">
         <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-end">
@@ -153,7 +146,7 @@ export default function Applications() {
                         <button type="button" onClick={() => setSelected(application)} className="text-left font-medium text-navy hover:text-primary">
                           {titleCase(application.job?.title) || 'Unavailable vacancy'}
                         </button>
-                        <p className="mt-1 text-[11px] text-muted-foreground">{titleCase(application.job?.employers?.company_name)}</p>
+                        <p className="mt-1 text-xs text-muted-foreground">{titleCase(application.job?.employers?.company_name)}</p>
                       </div>
                     </div>
                   </TableCell>

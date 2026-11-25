@@ -78,6 +78,7 @@ const DUP_EMAIL = /union all select 1 from super_admins where lower\(email\)/;
 const UPDATE_USER = /^update (?:super_admins|employers|job_seekers) set /;
 
 const T = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc';
+const CHANGE_ID = 'dddddddd-dddd-4ddd-8ddd-dddddddddddd';
 const ALL_KEYS = ['dashboard.view', 'accreditation.manage', 'jobs.manage', 'users.manage', 'roles.manage',
   'reports.view', 'logs.view', 'notifications.send', 'settings.manage'];
 
@@ -96,6 +97,11 @@ const deleteRef = (id) => json('DELETE', `/admin/reference/${id}`);
 const adminRow = (customRoleId = null) => [{ tbl: 'super_admins', profile: {
   id: T, role: 'super-admin', status: 'active', custom_role_id: customRoleId, email: 't@x.com', full_name: 'Target',
 } }];
+
+// The params of the audit row written for `action` — [user, action, entity,
+// entityId, JSON details]. Undefined means no such audit insert happened.
+const auditInsert = (action) => mocks.query.mock.calls.find(([sql, params]) =>
+  /^insert into audit_logs/.test(String(sql)) && params[1] === action)?.[1];
 
 // The pending grant the invite writes: [user_id, role, custom_role_id, profile].
 const inviteRow = () => mocks.txQuery.mock.calls.find(([sql]) => /insert into public\.admin_invites/.test(String(sql)));
@@ -248,8 +254,82 @@ describe('G-02 assignment: a tag is a grant and obeys the same ceiling', () => {
     sqlDb([FIND_USER, () => ({ rows: adminRow(33) })],
       [ROLE_BUNDLE, () => ({ rows: [{ permissions: ['users.manage'] }] })],
       [UPDATE_USER, () => ({ rows: [{ id: T, custom_role_id: 41 }] })]);
-    const r = await assign(T, { custom_role_id: 41 });
+    const r = await assign(T, { custom_role_id: 41, reason: 'Needs job-posting access.' });
     expect(r.status).toBe(200);
+    // The reason is persisted on the audit row the history table reads.
+    const note = auditInsert('user.custom-role.assign');
+    expect(note[2]).toBe('super_admins');
+    expect(note[3]).toBe(T);
+    expect(JSON.parse(note[4])).toEqual({
+      from_custom_role_id: 33, to_custom_role_id: 41, reason: 'Needs job-posting access.',
+    });
+  });
+
+  it('rejects a real tag change with a missing or 9-character reason and audits nothing', async () => {
+    mocks.user = taggedAdmin(['users.manage'], 31);
+    sqlDb([FIND_USER, () => ({ rows: adminRow(33) })],
+      [ROLE_BUNDLE, () => ({ rows: [{ permissions: ['users.manage'] }] })]);
+    for (const body of [{ custom_role_id: 41 }, { custom_role_id: 41, reason: 'too short' }]) {
+      const r = await assign(T, body);
+      expect(r.status).toBe(400);
+      expect((await r.json()).error.message).toBe('reason must be 10-500 characters');
+    }
+    expect(mocks.query.mock.calls.some(([t]) => /^update super_admins/.test(t))).toBe(false);
+    expect(auditInsert('user.custom-role.assign')).toBeUndefined();
+  });
+
+  it('treats a same-tag assign as a reason-free 200 no-op', async () => {
+    mocks.user = taggedAdmin(['users.manage'], 31);
+    sqlDb([FIND_USER, () => ({ rows: adminRow(33) })],
+      [ROLE_BUNDLE, () => ({ rows: [{ permissions: ['users.manage'] }] })]);
+    const r = await assign(T, { custom_role_id: 33 });
+    expect(r.status).toBe(200);
+    expect(mocks.query.mock.calls.some(([t]) => /^update super_admins/.test(t))).toBe(false);
+    expect(auditInsert('user.custom-role.assign')).toBeUndefined();
+  });
+
+  it('normalizes "33" and 33 so a string tag is the same no-op, not a phantom change', async () => {
+    sqlDb([FIND_USER, () => ({ rows: adminRow(33) })],
+      [ROLE_BUNDLE, () => ({ rows: [{ permissions: [] }] })]);
+    const r = await assign(T, { custom_role_id: '33' });
+    expect(r.status).toBe(200);
+    expect(mocks.query.mock.calls.some(([t]) => /^update super_admins/.test(t))).toBe(false);
+    expect(auditInsert('user.custom-role.assign')).toBeUndefined();
+  });
+
+  it('rejects a non-integer custom_role_id before touching the database', async () => {
+    sqlDb();
+    const r = await assign(T, { custom_role_id: 'not-a-number', reason: 'Needs job-posting access.' });
+    expect(r.status).toBe(400);
+    expect((await r.json()).error.message).toBe('custom_role_id must be an integer');
+    expect(mocks.query).not.toHaveBeenCalled();
+  });
+
+  it('persists change_id on the custom-role audit when provided', async () => {
+    sqlDb([FIND_USER, () => ({ rows: adminRow(33) })],
+      [ROLE_BUNDLE, () => ({ rows: [{ permissions: [] }] })],
+      [UPDATE_USER, () => ({ rows: [{ id: T, custom_role_id: 41 }] })]);
+    const r = await assign(T, {
+      custom_role_id: 41, reason: 'Needs job-posting access.', change_id: CHANGE_ID,
+    });
+    expect(r.status).toBe(200);
+    expect(JSON.parse(auditInsert('user.custom-role.assign')[4])).toEqual({
+      from_custom_role_id: 33,
+      to_custom_role_id: 41,
+      reason: 'Needs job-posting access.',
+      change_id: CHANGE_ID,
+    });
+  });
+
+  it('rejects a malformed change_id on a custom-role write and audits nothing', async () => {
+    sqlDb();
+    const r = await assign(T, {
+      custom_role_id: 41, reason: 'Needs job-posting access.', change_id: 'not-a-uuid',
+    });
+    expect(r.status).toBe(400);
+    expect((await r.json()).error.message).toBe('change_id must be a UUID');
+    expect(mocks.query).not.toHaveBeenCalled();
+    expect(auditInsert('user.custom-role.assign')).toBeUndefined();
   });
 
   it('the user PATCH cannot clear another admin tag either', async () => {
@@ -325,9 +405,52 @@ describe('G-07: the last break-glass admin cannot be removed', () => {
   it('allows the demotion when another full admin remains', async () => {
     sqlDb([FIND_USER, () => ({ rows: adminRow(null) })],
       [LAST_ADMIN, () => ({ rows: [{ c: 1 }] })]);
-    const r = await moveRole(T, { role: 'employer' });
+    const r = await moveRole(T, { role: 'employer', reason: 'Promoted after PESO review.' });
     expect(r.status).toBe(200);
     expect(mocks.connect).toHaveBeenCalled();
+    // The reason is persisted on the audit row the history table reads.
+    const note = auditInsert('user.role.change');
+    expect(note[2]).toBe('employers');
+    expect(note[3]).toBe(T);
+    expect(JSON.parse(note[4])).toEqual({
+      from: 'super-admin', to: 'employer', reason: 'Promoted after PESO review.',
+    });
+  });
+
+  it('persists change_id on the role audit when provided', async () => {
+    sqlDb([FIND_USER, () => ({ rows: adminRow(null) })],
+      [LAST_ADMIN, () => ({ rows: [{ c: 1 }] })]);
+    const r = await moveRole(T, {
+      role: 'employer', reason: 'Promoted after PESO review.', change_id: CHANGE_ID,
+    });
+    expect(r.status).toBe(200);
+    expect(JSON.parse(auditInsert('user.role.change')[4])).toEqual({
+      from: 'super-admin', to: 'employer', reason: 'Promoted after PESO review.', change_id: CHANGE_ID,
+    });
+  });
+
+  it('rejects a malformed change_id on a role move and audits nothing', async () => {
+    sqlDb([FIND_USER, () => ({ rows: adminRow(null) })],
+      [LAST_ADMIN, () => ({ rows: [{ c: 1 }] })]);
+    const r = await moveRole(T, {
+      role: 'employer', reason: 'Promoted after PESO review.', change_id: 'not-a-uuid',
+    });
+    expect(r.status).toBe(400);
+    expect((await r.json()).error.message).toBe('change_id must be a UUID');
+    expect(mocks.connect).not.toHaveBeenCalled();
+    expect(auditInsert('user.role.change')).toBeUndefined();
+  });
+
+  it('rejects a real role move with a missing or 9-character reason and audits nothing', async () => {
+    sqlDb([FIND_USER, () => ({ rows: adminRow(null) })],
+      [LAST_ADMIN, () => ({ rows: [{ c: 1 }] })]);
+    for (const reason of [undefined, 'too short']) {
+      const r = await moveRole(T, reason === undefined ? { role: 'employer' } : { role: 'employer', reason });
+      expect(r.status).toBe(400);
+      expect((await r.json()).error.message).toBe('reason must be 10-500 characters');
+    }
+    expect(mocks.connect).not.toHaveBeenCalled();
+    expect(auditInsert('user.role.change')).toBeUndefined();
   });
 
   it('refuses to tag the last full admin with a custom role', async () => {

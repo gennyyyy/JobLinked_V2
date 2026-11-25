@@ -89,6 +89,6 @@ describe('Super-admin Dashboard', () => {
     delete rest.placedApplicants
     delete rest.PLACED_TOTAL
     await renderDashboard(rest)
-    expect(screen.queryByText('placements', { selector: 'p' })).not.toBeInTheDocument()
+    expect(screen.queryByText('placements')).not.toBeInTheDocument()
   })
 })

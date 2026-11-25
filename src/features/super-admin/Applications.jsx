@@ -145,13 +145,13 @@ export default function Applications() {
                 <TableRow key={application.id}>
                   <TableCell>
                     <p className="font-medium text-navy">{titleCase(application.seeker?.full_name)}</p>
-                    <p className="mt-1 text-[11px] text-muted-foreground">{titleCase(application.job?.title)}</p>
-                    <p className="mt-1 text-[10px] text-muted-foreground">{titleCase(application.job?.employers?.company_name)}</p>
+                    <p className="mt-1 text-xs text-muted-foreground">{titleCase(application.job?.title)}</p>
+                    <p className="mt-1 text-micro text-muted-foreground">{titleCase(application.job?.employers?.company_name)}</p>
                   </TableCell>
                   <TableCell>{titleCase(application.seeker?.barangay_district) || '—'}</TableCell>
                   <TableCell>
                     <StatusBadge status={application.status} />
-                    {application.status === 'Placed' && <p className="mt-2 text-[10px] text-teal">placement recorded</p>}
+                    {application.status === 'Placed' && <p className="mt-2 text-micro text-teal">placement recorded</p>}
                   </TableCell>
                   <TableCell>
                     <span className="text-xs text-muted-foreground">{application.referred_by ? 'Referred' : 'Not referred'}</span>

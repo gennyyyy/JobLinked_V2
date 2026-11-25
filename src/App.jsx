@@ -33,6 +33,7 @@ const EmployerStatus = route('/employer/status')
 const CompleteRegistration = route('/complete-registration')
 const AuthCallback = route('/auth/callback')
 const AcceptInvite = route('/accept-invite')
+const LinkExpired = route('/link-expired')
 const SuperAdminLayout = route('/super-admin')
 const Accreditation = route('/super-admin/accreditation')
 const JobPosts = route('/super-admin/job-posts')
@@ -133,6 +134,9 @@ function App() {
             <Route path="/reset-password" element={<PublicRoute><ResetPassword /></PublicRoute>} />
             <Route path="/auth/callback" element={<AuthCallback />} />
             <Route path="/accept-invite" element={<AcceptInvite />} />
+            {/* Not under PublicRoute: a change-email verification may involve a
+                signed-in visitor, whose session must survive the message. */}
+            <Route path="/link-expired" element={<LinkExpired />} />
             <Route path="/register/job-seeker" element={<PublicRoute><JobSeekerRegister /></PublicRoute>} />
             <Route path="/register/employer" element={<PublicRoute><EmployerRegister /></PublicRoute>} />
             {/* The only sign-in page: /login signs any role in and forwards to

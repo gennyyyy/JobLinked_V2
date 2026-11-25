@@ -158,7 +158,8 @@ describe('Profile fields and save', () => {
     fireEvent.click(screen.getByRole('button', { name: /save my profile/i }))
 
     expect(await screen.findByText('Changes not saved')).toBeInTheDocument()
-    expect(screen.getByRole('alert')).toHaveTextContent('Profile could not be saved')
+    // The inline error and the error toast are both alert regions now.
+    expect(screen.getAllByRole('alert').some((node) => node.textContent.includes('Profile could not be saved'))).toBe(true)
   })
 
   it('saves a cleared professional headline as empty', async () => {

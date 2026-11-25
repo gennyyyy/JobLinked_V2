@@ -2,7 +2,7 @@ import { JOB_EXPERIENCE_PRESETS } from "../../shared/constants";
 
 export const POSTING_LABELS = {
   draft: 'Draft',
-  pending: 'Pending review',
+  pending: 'Pending Review',
   approved: 'Approved',
   rejected: 'Rejected',
   published: 'Published',

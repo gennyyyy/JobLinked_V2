@@ -48,7 +48,7 @@ export default function Register() {
             </div>
             <div className="grid gap-6 sm:grid-cols-2">
               {journeys.map(({ icon: Icon, title, desc, items, href, label, note }) => (
-                <div className="surface flex flex-col p-7" key={href}>
+                <div className="surface flex flex-col" key={href}>
                   <span className="soft-icon">
                     <Icon className="size-5" />
                   </span>
@@ -66,7 +66,7 @@ export default function Register() {
                     {label}
                     <ArrowRight className="size-4" />
                   </LinkButton>
-                  <p className="mt-3 min-h-5 text-center text-[11px] leading-5 text-muted-foreground">{note}</p>
+                  <p className="mt-3 min-h-5 text-center text-xs leading-5 text-muted-foreground">{note}</p>
                 </div>
               ))}
             </div>

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom';
 import { authClient } from '@/shared/lib/auth-client';
 import { setApiIdentity } from '@/shared/lib/api';
 import { getProfile, verifyEmailToken } from '@/shared/services/auth';
@@ -9,8 +9,6 @@ import PublicShell from '@/shared/components/PublicShell';
 import { PORTALS } from '@/shared/constants';
 import AuthFrame from './AuthFrame';
 
-const INVALID = 'The verification link is invalid or expired.';
-
 // The emailed link is BA's /api/auth/verify-email?token=…&callbackURL=… — BA
 // verifies server-side and redirects here (no session; sign-up never signs in).
 // A token can also arrive directly on this route, in which case we verify it
@@ -19,7 +17,7 @@ export default function AuthCallback() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { refreshUser } = useAuth();
-  const [error, setError] = useState('');
+  const [error, setError] = useState(false);
   const [verified, setVerified] = useState(false);
   const errorParam = searchParams.get('error');
   const token = searchParams.get('token');
@@ -29,7 +27,10 @@ export default function AuthCallback() {
     (async () => {
       // BA's redirect appends ?error=INVALID_TOKEN (or TOKEN_EXPIRED) when the
       // link no longer verifies.
-      if (errorParam) throw new Error(INVALID);
+      if (errorParam) {
+        if (active) setError(true);
+        return;
+      }
       if (token) await verifyEmailToken(token);
 
       const { data } = await authClient.getSession().catch(() => ({ data: null }));
@@ -47,24 +48,13 @@ export default function AuthCallback() {
       await refreshUser(sessionUser);
       const homePath = PORTALS.find((p) => p.key === profile?.role)?.homePath;
       if (active) navigate(homePath || '/complete-registration', { replace: true });
-    })().catch((err) => active && setError(err.message || 'Email verification failed.'));
+    })().catch(() => { if (active) setError(true); });
     return () => { active = false; };
   }, [navigate, refreshUser, errorParam, token]);
 
   if (!error && !verified) return <LoadingScreen />
 
-  if (error) {
-    return (
-      <PublicShell>
-        <AuthFrame title="Verification link issue." subtitle="We couldn’t verify this email link.">
-          <div className="flex flex-col gap-5">
-            <p role="alert" className="text-xs leading-6 text-destructive">{error}</p>
-            <Link to="/login" className="text-xs font-medium text-primary">Go to sign in</Link>
-          </div>
-        </AuthFrame>
-      </PublicShell>
-    )
-  }
+  if (error) return <Navigate to="/link-expired?type=verify" replace />
 
   return (
     <PublicShell>

@@ -101,7 +101,7 @@ export default function Broadcast() {
                     </div>
                     <h2 className="text-base font-semibold">{notice.title}</h2>
                     <p className="mt-3 whitespace-pre-wrap break-words text-xs leading-7 text-muted-foreground">{notice.message}</p>
-                    <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2 text-[10px] text-muted-foreground">
+                    <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2 text-micro text-muted-foreground">
                       <span>Notice date: {formatDate(notice.created_at)}</span>
                       <span className="flex items-center gap-1.5">
                         <CalendarDays className="size-3" />

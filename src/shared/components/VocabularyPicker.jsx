@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 import FormSelect from "./FormSelect";
 import useVocabulary from "../hooks/useVocabulary";
 
-const CHIP = "inline-flex items-center rounded-full border border-border bg-muted px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-secondary peer-checked:border-primary peer-checked:bg-primary peer-checked:text-primary-foreground peer-focus-visible:ring-2 peer-focus-visible:ring-ring peer-focus-visible:ring-offset-2 peer-disabled:cursor-not-allowed peer-disabled:opacity-50";
+const CHIP = "inline-flex items-center rounded-full border border-border bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-secondary peer-checked:border-primary peer-checked:bg-primary peer-checked:text-primary-foreground peer-focus-visible:ring-2 peer-focus-visible:ring-ring peer-focus-visible:ring-offset-2 peer-disabled:cursor-not-allowed peer-disabled:opacity-50";
 
 
 const byLower = (list) => new Map(list.map((value) => [String(value).toLowerCase(), value]));
@@ -164,7 +164,7 @@ export default function VocabularyPicker({
         {label}
         {required && <span aria-hidden="true" className="text-destructive">*</span>}
       </Label>
-      <div className="flex min-h-[44px] items-center rounded-xl border border-border bg-muted px-4 py-2">
+      <div className="flex min-h-11 items-center rounded-control border border-border bg-background px-3 py-1.5">
       <FormSelect
         id={fieldId}
         required={required}

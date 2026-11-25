@@ -1,6 +1,6 @@
 import SkipLink from '@/shared/components/SkipLink'
 import PublicShell from '@/shared/components/PublicShell'
-import landingBg from '@/assets/landing_page_bg.png'
+import PageHero from './PageHero'
 import { AudienceCards } from './AudienceCards'
 
 export default function About() {
@@ -8,15 +8,11 @@ export default function About() {
     <>
       <SkipLink />
       <PublicShell>
-        <header className="page-hero bg-cover bg-center border-b border-border" style={{ backgroundImage: `linear-gradient(180deg, rgba(247,250,255,0.88) 0%, rgba(247,250,255,0.72) 100%), url(${landingBg})` }}>
-          <div className="page-container py-14 md:py-16">
-            <div>
-              <h1 className="display-heading text-navy">About PESO Santa Maria</h1>
-              <p className="mt-5 max-w-xl text-sm leading-7 text-muted-foreground md:text-base">Three audiences, one shared platform for local opportunity.</p>
-            </div>
-          </div>
-        </header>
-        <div className="page-container pb-14 pt-6 md:pb-16">
+        <PageHero
+          title="About PESO Santa Maria"
+          description="Three audiences, one shared platform for local opportunity."
+        />
+        <div className="page-container py-12 md:py-16">
           <div className="mx-auto max-w-[960px]">
             <AudienceCards headingTag="h2" />
           </div>

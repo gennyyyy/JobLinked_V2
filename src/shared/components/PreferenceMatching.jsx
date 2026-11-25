@@ -76,7 +76,7 @@ export default function PreferenceMatching({ prompt, onSubmit, compact = false, 
             prompt ? 'bg-blue-soft text-primary border-primary' : 'text-muted-foreground hover:bg-muted hover:text-primary',
           )}
         >
-          <span aria-hidden="true" className="text-[10px] font-semibold leading-none tracking-wide">AI</span>
+          <span aria-hidden="true" className="text-micro font-semibold leading-none tracking-wide">AI</span>
         </button>
         {dialog}
       </>

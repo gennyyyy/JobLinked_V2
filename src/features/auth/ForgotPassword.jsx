@@ -9,6 +9,7 @@ import useCaptcha from '@/shared/hooks/useCaptcha'
 import useCooldown from '@/shared/hooks/useCooldown'
 import Turnstile from '@/shared/components/Turnstile'
 import PublicShell from '@/shared/components/PublicShell'
+import Flash from '@/shared/components/Flash'
 import AuthFrame from './AuthFrame'
 
 export default function ForgotPassword() {
@@ -78,9 +79,7 @@ export default function ForgotPassword() {
           </FieldGroup>
           {error && <p role="alert" className="text-xs leading-6 text-destructive">{error}</p>}
           {success && (
-            <p role="status" className="rounded-lg border border-success/20 bg-success-soft px-4 py-3 text-xs text-success">
-              Check your email for reset instructions
-            </p>
+            <Flash>Check your email for reset instructions</Flash>
           )}
           {captcha.required && <Turnstile onToken={captcha.setToken} resetKey={captcha.round} />}
           <Button type="submit" disabled={busy || cooldown.cooling}>

@@ -7,6 +7,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { Shield, Plus, Pencil, Trash2, Lock, X } from 'lucide-react'
 import { listRoles, createRole, updateRole, deleteRole, listPermissions } from '@/shared/services/admin'
 import ConfirmationModal from '@/shared/components/ConfirmationModal'
+import Flash from '@/shared/components/Flash'
 import { PageSkeleton } from '@/shared/components/Skeletons'
 import { H3, Panel, PageHeading, StatusBadge } from '@/shared/components/design'
 
@@ -187,13 +188,13 @@ function RoleManagement({ embedded = false, onRolesChanged }) {
         />
       )}
 
-      {flash && <p className="rounded-xl border border-success/20 bg-success-soft px-4 py-3 text-xs text-success">{flash}</p>}
+      {flash && <Flash>{flash}</Flash>}
       {error && <p role="alert" className="text-xs text-destructive">{error}</p>}
 
       <Panel
         title="Predefined roles"
         description="The three system roles define each account’s workspace and access."
-        action={<span className="inline-flex items-center gap-1.5 rounded-full border bg-muted px-2.5 py-1 text-[10px] uppercase tracking-[.14em] text-muted-foreground"><Lock className="size-3" aria-hidden="true" />Read-only</span>}
+        action={<span className="inline-flex items-center gap-1.5 rounded-full border bg-muted px-2.5 py-1 text-micro uppercase tracking-[.14em] text-muted-foreground"><Lock className="size-3" aria-hidden="true" />Read-only</span>}
       >
           <ul className="grid gap-4 md:grid-cols-3">
             {SYSTEM_ROLES.map((role) => (
@@ -202,13 +203,13 @@ function RoleManagement({ embedded = false, onRolesChanged }) {
                   <span className="soft-icon size-9"><Shield className="size-4" aria-hidden="true" /></span>
                   <div className="min-w-0">
                     <h2 className="truncate text-sm font-semibold text-navy">{role.label}</h2>
-                    <p className="mt-0.5 text-[10px] uppercase tracking-[.14em] text-muted-foreground">{role.key}</p>
+                    <p className="mt-0.5 text-micro uppercase tracking-[.14em] text-muted-foreground">{role.key}</p>
                   </div>
                 </div>
-                <p className="mt-3 text-[11px] leading-5 text-muted-foreground">{role.description}</p>
+                <p className="mt-3 text-xs leading-5 text-muted-foreground">{role.description}</p>
                 <div className="mt-3 flex flex-wrap gap-1.5">
                   {role.capabilities.map((cap) => (
-                    <span key={cap} className="rounded-full border bg-muted/60 px-2 py-0.5 text-[10px] text-muted-foreground">{cap}</span>
+                    <span key={cap} className="rounded-full border bg-muted/60 px-2 py-0.5 text-micro text-muted-foreground">{cap}</span>
                   ))}
                 </div>
               </li>
@@ -258,17 +259,17 @@ function RoleManagement({ embedded = false, onRolesChanged }) {
                     <span className="soft-icon size-9"><Shield className="size-4" aria-hidden="true" /></span>
                     <div className="min-w-0">
                       <H3 className="truncate text-sm font-semibold text-navy">{role.name}</H3>
-                      <p className="mt-0.5 text-[10px] uppercase tracking-[.14em] text-muted-foreground">
+                      <p className="mt-0.5 text-micro uppercase tracking-[.14em] text-muted-foreground">
                         base · {BASE_ROLE_OPTIONS.find((b) => b.key === role.base_role)?.label || role.base_role}
                       </p>
                     </div>
                   </div>
-                  <p className="mt-3 line-clamp-2 flex-1 text-[11px] leading-5 text-muted-foreground">
+                  <p className="mt-3 line-clamp-2 flex-1 text-xs leading-5 text-muted-foreground">
                     {role.description || 'No description provided.'}
                   </p>
                   <div className="mt-3 flex flex-wrap gap-1.5">
                     {(role.permissions || []).length === 0 ? (
-                      <span className="text-[10px] italic text-muted-foreground">No permissions selected</span>
+                      <span className="text-micro italic text-muted-foreground">No permissions selected</span>
                     ) : (
                       role.permissions.map((p) => (
                         <StatusBadge key={p} status={permissionCatalog.find((x) => x.key === p)?.label || p} />
@@ -293,9 +294,9 @@ function RoleManagement({ embedded = false, onRolesChanged }) {
 
       {/* Create / Edit modal */}
       {formOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/60 p-4">
-          <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl border bg-card shadow-xl">
-            <form onSubmit={handleSave} className="flex flex-col gap-5 p-5 md:p-6">
+        <div className="modal-overlay z-50">
+          <div className="modal-panel max-h-[90vh] w-full max-w-lg overflow-y-auto">
+            <form onSubmit={handleSave} className="flex flex-col gap-5">
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <h2 className="mt-2 text-lg font-semibold tracking-tight text-navy">
@@ -307,7 +308,7 @@ function RoleManagement({ embedded = false, onRolesChanged }) {
                 </Button>
               </div>
 
-              {formError && <p role="alert" className="rounded-xl border border-destructive/20 bg-danger-soft px-4 py-3 text-xs text-destructive">{formError}</p>}
+              {formError && <Flash variant="error">{formError}</Flash>}
 
               <div>
                 <Label htmlFor="role-name" className="mb-2 flex-col items-start gap-1 text-xs text-muted-foreground">
@@ -349,7 +350,7 @@ function RoleManagement({ embedded = false, onRolesChanged }) {
                     <option key={opt.key} value={opt.key}>{opt.label} portal</option>
                   ))}
                 </select>
-                <p className="mt-2 text-[10px] text-muted-foreground">Which portal holders of this role use to sign in.</p>
+                <p className="mt-2 text-micro text-muted-foreground">Which portal holders of this role use to sign in.</p>
               </div>
 
               <fieldset>
@@ -362,7 +363,7 @@ function RoleManagement({ embedded = false, onRolesChanged }) {
                     return (
                       <label
                         key={perm.key}
-                        className={`flex cursor-pointer items-center gap-2.5 rounded-xl border px-3 py-2.5 text-[11px] ${checked ? 'border-primary/30 bg-blue-soft font-medium text-primary' : 'text-muted-foreground hover:bg-muted/60'}`}
+                        className={`flex cursor-pointer items-center gap-2.5 rounded-xl border px-3 py-2.5 text-xs ${checked ? 'border-primary/30 bg-blue-soft font-medium text-primary' : 'text-muted-foreground hover:bg-muted/60'}`}
                       >
                         <input type="checkbox" checked={checked} onChange={() => togglePermission(perm.key)} className="size-3.5 accent-primary" />
                         {perm.label}
@@ -370,7 +371,7 @@ function RoleManagement({ embedded = false, onRolesChanged }) {
                     )
                   })}
                 </div>
-                <p className="mt-2 text-[10px] text-muted-foreground">Permissions gate the super-admin API as well as its pages (ADR-042): an account holding this role may only call what the bundle allows. An empty bundle reaches nothing; an account with no custom role keeps full access.</p>
+                <p className="mt-2 text-micro text-muted-foreground">Permissions gate the super-admin API as well as its pages (ADR-042): an account holding this role may only call what the bundle allows. An empty bundle reaches nothing; an account with no custom role keeps full access.</p>
               </fieldset>
 
               <div className="flex gap-2">

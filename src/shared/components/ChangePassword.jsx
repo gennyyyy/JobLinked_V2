@@ -1,6 +1,7 @@
 import { Button } from "../../components/ui/button";
 import { useState } from "react";
 import { Panel, TextField } from "./design";
+import Flash from "./Flash";
 import PasswordRequirements from "./PasswordRequirements";
 import useAuth from "../hooks/useAuth";
 import { changePassword } from "../services/auth";
@@ -50,8 +51,8 @@ function ChangePassword({ embedded = false }) {
 
   return (
     <Panel id="password-settings" title="Credentials" description="Your login email and password.">
-      {message && <p className="mb-4 rounded-xl border border-success/20 bg-success-soft px-4 py-3 text-xs text-success">{message}</p>}
-      {error && <p role="alert" className="mb-4 rounded-xl border border-danger/20 bg-danger-soft px-4 py-3 text-xs text-destructive">{error}</p>}
+      {message && <Flash className="mb-4">{message}</Flash>}
+      {error && <Flash variant="error" className="mb-4">{error}</Flash>}
       <PasswordForm onSubmit={embedded ? undefined : handleSubmit} onKeyDown={handleEmbeddedKeyDown} className="flex max-w-xl flex-col gap-5">
         <TextField
           label={<span>Login Email <span className="text-xs font-normal text-muted-foreground">(read only)</span></span>}

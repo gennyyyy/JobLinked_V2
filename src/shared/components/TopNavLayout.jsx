@@ -212,7 +212,7 @@ export default function TopNavLayout({ role, navItems, profileTo, roleLabel, hom
                 <>
                   <span className="flex-1">{title}</span>
                   {badge > 0 && (
-                    <span className={cn('flex size-5 items-center justify-center rounded-md text-[9px]', path.endsWith('/accreditation') ? 'bg-warning-soft text-warning' : 'bg-primary/10 text-primary')}>
+                    <span className={cn('flex size-5 items-center justify-center rounded-md text-micro', path.endsWith('/accreditation') ? 'bg-warning-soft text-warning' : 'bg-primary/10 text-primary')}>
                       {badge}
                     </span>
                   )}
@@ -255,14 +255,14 @@ export default function TopNavLayout({ role, navItems, profileTo, roleLabel, hom
             <Button variant="ghost" size="icon" className="lg:hidden" aria-label="Open workspace navigation" onClick={() => setMobile(true)}>
               <Menu />
             </Button>
-            <nav aria-label="Breadcrumb" className="hidden items-center gap-2 text-[11px] sm:flex">
+            <nav aria-label="Breadcrumb" className="hidden items-center gap-2 text-xs sm:flex">
               <Link to={home} className="text-muted-foreground">Workspace</Link>
               <ChevronRight className="size-3 text-muted-foreground" />
               <span className="truncate font-medium text-navy">{pageLabel}</span>
             </nav>
           </div>
           <div className="flex items-center gap-3">
-            <button className="mr-3 hidden min-h-10 w-[210px] items-center gap-2 rounded-lg border bg-muted/50 px-3 text-[11px] text-muted-foreground md:flex" onClick={() => setSearchOpen(true)}>
+            <button className="mr-3 hidden min-h-10 w-[210px] items-center gap-2 rounded-lg border bg-muted/50 px-3 text-xs text-muted-foreground md:flex" onClick={() => setSearchOpen(true)}>
               <Search className="size-3.5" />
               Search your workspace…
             </button>
@@ -278,10 +278,10 @@ export default function TopNavLayout({ role, navItems, profileTo, roleLabel, hom
                   <AvatarFallback>{initials}</AvatarFallback>
                 </Avatar>
                 <span className="hidden text-left sm:block">
-                  <span className="block text-[11px] font-medium text-navy">{name.includes('@') ? name : titleCase(name)}</span>
-                  <span className="mt-0.5 block text-[9px] text-muted-foreground">{label}</span>
+                  <span className="block text-xs font-medium text-navy">{name.includes('@') ? name : titleCase(name)}</span>
+                  <span className="mt-0.5 block text-micro text-muted-foreground">{label}</span>
                   {isAdmin && (
-                    <span className="block text-[9px] text-muted-foreground">{user?.permissions == null ? 'Full administrator' : 'Custom role'}</span>
+                    <span className="block text-micro text-muted-foreground">{user?.permissions == null ? 'Full administrator' : 'Custom role'}</span>
                   )}
                 </span>
                 <ChevronDown className="hidden sm:block" />
@@ -312,7 +312,7 @@ export default function TopNavLayout({ role, navItems, profileTo, roleLabel, hom
         <main id="main-content" tabIndex={-1} className={cn('w-full flex-1 p-5 sm:p-7 lg:p-8', fixedContent && 'min-h-0 overflow-hidden')}>
           <div className={cn('space-y-8', fixedContent && 'h-full min-h-0')}>
             {unprovisioned ? (
-              <section aria-labelledby="registration-title" className="max-w-2xl rounded-xl border bg-white p-6 sm:p-8">
+              <section aria-labelledby="registration-title" className="surface max-w-2xl">
                 <h1 id="registration-title" className="text-xl font-semibold text-navy">Complete your registration</h1>
                 <p className="mt-3 text-sm leading-6 text-muted-foreground">
                   Choose the registration path that matches your account to finish setting up your JobLinked profile.
@@ -349,7 +349,7 @@ export default function TopNavLayout({ role, navItems, profileTo, roleLabel, hom
                 <Link key={result.href} to={result.href} onClick={() => setSearchOpen(false)} className="flex min-h-16 items-center justify-between rounded-lg p-3 hover:bg-muted">
                   <span>
                     <span className="block text-xs font-medium text-navy">{result.title}</span>
-                    <span className="mt-1 block text-[10px] text-muted-foreground">{result.subtitle}</span>
+                    <span className="mt-1 block text-micro text-muted-foreground">{result.subtitle}</span>
                   </span>
                   <ArrowUpRight className="size-4 text-primary" />
                 </Link>
@@ -363,8 +363,8 @@ export default function TopNavLayout({ role, navItems, profileTo, roleLabel, hom
       {/* Floating help: mounted once here so every portal using this shell gets it. */}
       {user && !needsProvisioning && <HelpChat />}
       {showWarning && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
-          <div ref={afkRef} role="dialog" aria-modal="true" aria-labelledby="afk-title" className="mx-4 max-w-sm rounded-lg border border-primary bg-card p-5 shadow-xl">
+        <div className="modal-overlay z-50">
+          <div ref={afkRef} role="dialog" aria-modal="true" aria-labelledby="afk-title" className="modal-panel max-w-sm">
             <H3 animated={false} id="afk-title" className="mb-2 text-lg font-bold text-foreground">Session Expiring</H3>
             <p className="mb-6 text-sm text-muted-foreground">You will be logged out in 1 minute due to inactivity. Move your mouse or press a key to stay signed in.</p>
             <div className="flex gap-2">

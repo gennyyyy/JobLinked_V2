@@ -33,7 +33,7 @@ describe('B12 — audit-log date filters are validated', () => {
 
   it('200 and the date bounds reach SQL for valid dates', async () => {
     const token = loginAs({ id: ADMIN, role: 'super-admin' });
-    on(/coalesce\(js\.full_name/, () => ({ rows: [] }));
+    on(/as target_name/, () => ({ rows: [] }));
     const res = await request(app).get('/api/admin/audit-logs?from=2026-01-01&to=2026-01-31')
       .set('Cookie', token);
     expect(res.status).toBe(200);

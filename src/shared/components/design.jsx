@@ -24,7 +24,7 @@ export function Logo({ light = false, compact = false, imageSrc = logoImage, wor
           <img src={imageSrc} alt="JobLinked logo" width={256} height={256} decoding="async" className="size-11 shrink-0 rounded-full object-cover"/>
           <img src={wordmarkSrc} alt="JobLinked" width={400} height={133} decoding="async" className="h-auto w-[150px] object-contain"/>
         </>)}
-      {!imageSrc && (<span className={cn("text-[23px] font-bold tracking-[-1px] text-navy", light && "text-white")}>
+      {!imageSrc && (<span className={cn("text-2xl font-bold tracking-[-1px] text-navy", light && "text-white")}>
           Job
           <span className={cn("text-primary", light && "text-white")}>
             Linked
@@ -47,16 +47,20 @@ export function VerifiedBadge({ label = "Verified employer", }) {
     </Badge>);
 }
 export function StatusBadge({ status }) {
-    const good = ["Approved", "Published", "Hired", "Active", "Accepted", "Placed"].includes(status);
+    // Raw values arrive as `active` / `under_review` / `Pending Review`; normalize once.
+    const key = String(status ?? '').trim().toLowerCase().replace(/[_-]+/g, ' ');
+    const label = key.replace(/\b[a-z]/g, (c) => c.toUpperCase());
+    const good = ["approved", "published", "hired", "active", "accepted", "placed"].includes(key);
     const pending = [
-        "Pending Review",
-        "Under Review",
-        "Resubmission Requested",
-        "Draft",
-    ].includes(status);
-    const bad = ["Rejected", "Removed", "Flagged", "Suspended", "Revoked"].includes(status);
+        "pending review",
+        "under review",
+        "resubmission requested",
+        "draft",
+        "pending",
+    ].includes(key);
+    const bad = ["rejected", "removed", "flagged", "suspended", "revoked"].includes(key);
     return (<Badge variant="secondary" className={cn("whitespace-nowrap", good && "bg-success-soft text-success", pending && "bg-warning-soft text-warning", bad && "bg-danger-soft text-destructive", !good && !pending && !bad && "bg-blue-soft text-primary")}>
-      {status}
+      {label}
     </Badge>);
 }
 export function Panel({ title, description, action, children, footer, className, id, contentClassName, contentProps, size = 'default', }) {
@@ -74,10 +78,10 @@ export function Panel({ title, description, action, children, footer, className,
     </Card>);
 }
 export function PageHeading({ title, description, action, eyebrow, compact = false, }) {
-    return (<div className={cn("flex flex-col justify-between gap-4 sm:flex-row sm:items-end", compact ? "mb-4" : "mb-7")}>
+    return (<div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
       <div>
         {eyebrow && <p className="eyebrow mb-2">{eyebrow}</p>}
-        <h1 className="text-2xl font-semibold tracking-[-.035em] md:text-[30px]">
+        <h1 className="text-2xl font-semibold tracking-[-.035em] md:text-3xl">
           {title}
         </h1>
         {description && (<p className={cn("max-w-2xl text-sm text-muted-foreground", compact ? "mt-1.5 leading-5" : "mt-2 leading-6")}>
@@ -130,17 +134,17 @@ export function SearchInput({ value, onChange, placeholder = "Search records…"
     </div>);
 }
 export function StatCards({ stats, countUp = false, }) {
-    return (<div className="mb-6 grid grid-cols-2 gap-4 xl:grid-cols-4">
+    return (<div className="grid grid-cols-2 gap-5 xl:grid-cols-4">
       {stats.map(({ label, value, icon: Icon, note, tone }) => (<div className="surface flex flex-col gap-4" key={label}>
           <div className="flex items-center justify-between gap-2">
             <span className="text-xs text-muted-foreground">{label}</span>
             <Icon className={cn("size-[18px] text-primary", tone === "teal" && "text-teal")}/>
           </div>
           <div>
-            {countUp && typeof value === "number" && Number.isFinite(value) ? (<CountUp value={value} className="text-[29px] font-semibold leading-none tracking-tight text-navy"/>) : (<p className="text-[29px] font-semibold leading-none tracking-tight text-navy">
+            {countUp && typeof value === "number" && Number.isFinite(value) ? (<CountUp value={value} className="text-3xl font-semibold leading-none tracking-tight text-navy"/>) : (<p className="text-3xl font-semibold leading-none tracking-tight text-navy">
               {value}
             </p>)}
-            <p className="mt-2 text-[10px] text-muted-foreground">
+            <p className="mt-2 text-micro text-muted-foreground">
               {note ?? "Current records"}
             </p>
           </div>

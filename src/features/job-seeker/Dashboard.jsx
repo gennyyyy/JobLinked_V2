@@ -130,7 +130,7 @@ export default function Dashboard() {
       />
       <div className="mb-6 flex flex-col justify-between gap-5 rounded-2xl bg-navy p-6 text-white sm:flex-row sm:items-center">
         <div>
-          <p className="mb-2 text-[10px] font-medium uppercase tracking-[.14em] text-white/65">Opportunities close to home</p>
+          <p className="mb-2 text-micro font-medium uppercase tracking-[.14em] text-white/65">Opportunities close to home</p>
           <h2 className="text-xl font-semibold tracking-tight text-white">Your skills belong somewhere great.</h2>
           <p className="mt-2 max-w-lg text-xs leading-6 text-white/70">Explore verified employers across Santa Maria’s 24 barangays. Your next connection could be just around the corner.</p>
         </div>
@@ -141,7 +141,7 @@ export default function Dashboard() {
           <Panel
             title="Your recent applications"
             description="Every next step, in one place."
-            action={<Link to="/job-seeker/applications" className="text-link text-[11px]">View all<ArrowRight className="size-3" /></Link>}
+            action={<Link to="/job-seeker/applications" className="text-link text-xs">View all<ArrowRight className="size-3" /></Link>}
           >
             {recentApps.length ? (
               <ul className="flex flex-col divide-y">
@@ -151,7 +151,7 @@ export default function Dashboard() {
                       <CompanyMark initials={String(application.job?.employers?.company_name || 'J').charAt(0).toUpperCase()} />
                       <div className="min-w-0 flex-1">
                         <h3 className="text-xs font-semibold leading-5">{application.job?.title || 'Unavailable vacancy'}</h3>
-                        <p className="mt-1 text-[10px] text-muted-foreground">{titleCase(application.job?.employers?.company_name)} · {new Date(application.applied_at).toLocaleDateString('en-PH', { month: 'short', day: 'numeric' })}</p>
+                        <p className="mt-1 text-micro text-muted-foreground">{titleCase(application.job?.employers?.company_name)} · {new Date(application.applied_at).toLocaleDateString('en-PH', { month: 'short', day: 'numeric' })}</p>
                       </div>
                       <StatusBadge status={application.status} />
                     </Link>
@@ -165,7 +165,7 @@ export default function Dashboard() {
           <div>
             <div className="mb-4 flex items-center justify-between gap-3">
               <h2 className="text-base font-semibold">Picked for your skills</h2>
-              <Link className="text-link text-[11px]" to="/job-seeker/jobs">All recommendations<ArrowRight className="size-3" /></Link>
+              <Link className="text-link text-xs" to="/job-seeker/jobs">All recommendations<ArrowRight className="size-3" /></Link>
             </div>
             <div className="grid gap-4 md:grid-cols-2">
               {recommended.length ? recommended.map((job) => {
@@ -180,8 +180,8 @@ export default function Dashboard() {
                       <div className="mb-4 flex items-start gap-3">
                         <CompanyMark initials={String(company).charAt(0).toUpperCase()} />
                         <div className="min-w-0 flex-1 pt-0.5">
-                          <p className="truncate text-[11px] font-medium text-muted-foreground">{titleCase(company)}</p>
-                          <span className="mt-1 flex items-center gap-1 text-[10px] text-teal"><Check className="size-3" />Verified employer</span>
+                          <p className="truncate text-xs font-medium text-muted-foreground">{titleCase(company)}</p>
+                          <span className="mt-1 flex items-center gap-1 text-micro text-teal"><Check className="size-3" />Verified employer</span>
                         </div>
                         <button
                           type="button"
@@ -194,9 +194,9 @@ export default function Dashboard() {
                         </button>
                       </div>
                       <CardTitle>
-                        <Link to={`/job-seeker/jobs/${job.id}`} className="text-[17px] leading-6 tracking-[-.025em] transition-colors hover:text-primary">{job.title}</Link>
+                        <Link to={`/job-seeker/jobs/${job.id}`} className="leading-6 tracking-[-.025em] transition-colors hover:text-primary">{job.title}</Link>
                       </CardTitle>
-                      <CardDescription className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-2 text-[11px]">
+                      <CardDescription className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-2 text-xs">
                         <span className="flex items-center gap-1"><MapPin className="size-3" />{titleCase(job.location) || 'Santa Maria'}</span>
                         <span className="flex items-center gap-1"><BriefcaseBusiness className="size-3" />{job.employment_type || 'Full-time'}</span>
                       </CardDescription>
@@ -206,19 +206,19 @@ export default function Dashboard() {
                         {tags.map((tag) => <Badge key={tag} variant="secondary">{tag}</Badge>)}
                         {hasListedSkills && match.score > 0 && <Badge variant="secondary" className="bg-teal-soft text-teal">{match.score}% skills overlap</Badge>}
                       </div>
-                      <p className="text-[15px] font-semibold text-navy">
+                      <p className="text-sm font-semibold text-navy">
                         {salaryLabel(job)}
-                        {job.salary_min ? <span className="ml-1 text-[10px] font-normal text-muted-foreground">/ month</span> : null}
+                        {job.salary_min ? <span className="ml-1 text-micro font-normal text-muted-foreground">/ month</span> : null}
                       </p>
                       {hasListedSkills && match.total > 0 && (
-                        <p className="text-[11px] leading-5 text-muted-foreground">
+                        <p className="text-xs leading-5 text-muted-foreground">
                           {match.matched.length} of {match.total} listed skills match: {match.matched.join(', ') || 'no exact matches yet'}.
                         </p>
                       )}
                     </CardContent>
                     <CardFooter className="justify-between bg-white py-3">
-                      <span className="flex items-center gap-1.5 text-[10px] text-muted-foreground"><Clock3 className="size-3" />{postedLabel(job.created_at)}</span>
-                      <Link to={`/job-seeker/jobs/${job.id}`} className="flex min-h-9 items-center gap-1 text-[11px] font-medium text-primary">View job<ArrowUpRight className="size-3" /></Link>
+                      <span className="flex items-center gap-1.5 text-micro text-muted-foreground"><Clock3 className="size-3" />{postedLabel(job.created_at)}</span>
+                      <Link to={`/job-seeker/jobs/${job.id}`} className="flex min-h-9 items-center gap-1 text-xs font-medium text-primary">View job<ArrowUpRight className="size-3" /></Link>
                     </CardFooter>
                   </Card>
                 )
@@ -253,7 +253,7 @@ export default function Dashboard() {
                 {notices.map((notice) => (
                   <li key={notice.id}>
                     <p className="text-xs font-medium text-navy">{notice.title}</p>
-                    <p className="mt-1 text-[10px] text-muted-foreground">{new Date(notice.created_at).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' })}</p>
+                    <p className="mt-1 text-micro text-muted-foreground">{new Date(notice.created_at).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' })}</p>
                   </li>
                 ))}
               </ul>

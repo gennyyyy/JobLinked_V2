@@ -1,7 +1,7 @@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import VocabularyPicker from "@/shared/components/VocabularyPicker";
-import TagField from "@/features/job-seeker/TagField";
+import TagField from "@/shared/components/TagField";
 import useVocabulary from "@/shared/hooks/useVocabulary";
 import { EDUCATION_LEVELS } from "./jobSeekerRegistration";
 import FormSelect from "@/shared/components/FormSelect";
@@ -12,30 +12,30 @@ function JobSeekerBackgroundStep({ form, errors, set, education, setEducation, e
   const skillVocabulary = useVocabulary('skill');
   return (
             <section className="surface p-5">
-              <p className="font-mono text-[11px] tracking-[0.2em] text-primary uppercase mb-4 font-semibold">Step 3 — Background & Consent</p>
+              <p className="font-mono text-xs tracking-[0.2em] text-primary uppercase mb-4 font-semibold">Step 3 — Background & Consent</p>
               <div className="space-y-4">
               <div>
-              <p className="font-mono text-[11px] tracking-[0.2em] text-primary uppercase mb-4 font-semibold">Education History</p>
+              <p className="font-mono text-xs tracking-[0.2em] text-primary uppercase mb-4 font-semibold">Education History</p>
               <div className="grid gap-3 sm:grid-cols-2">
                 <div>
                   <Label htmlFor="education-level" className="mb-1 text-xs text-muted-foreground">Education Level</Label>
-                  <FormSelect aria-label="Education level" id="education-level" value={education.level} onChange={(e) => setEducation({ ...education, level: e.target.value })} className="px-4 py-2.5 rounded-xl text-sm bg-muted border border-border text-foreground focus:outline-none focus:border-primary/60 transition-all">
+                  <FormSelect aria-label="Education level" id="education-level" value={education.level} onChange={(e) => setEducation({ ...education, level: e.target.value })} className="form-field">
 
                     {EDUCATION_LEVELS.map((l) => <option key={l} value={l}>{l}</option>)}
                   </FormSelect>
                 </div>
                 <div>
                   <Label htmlFor="education-school" className="mb-1 text-xs text-muted-foreground">School Name</Label>
-                  <Input id="education-school" aria-label="School name" placeholder="School name" value={education.school} onChange={(e) => setEducation({ ...education, school: e.target.value })} className="px-4 py-2.5 rounded-xl text-sm bg-muted border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/60 transition-all" />
+                  <Input id="education-school" aria-label="School name" placeholder="School name" value={education.school} onChange={(e) => setEducation({ ...education, school: e.target.value })} className="form-field" />
                 </div>
                 <div className="grid gap-3 sm:col-span-2 sm:grid-cols-[1fr_10rem] sm:items-end">
                   <div>
                     <Label htmlFor="education-field" className="mb-1 text-xs text-muted-foreground">Course / Field <span className="text-muted-foreground">(optional)</span></Label>
-                    <Input id="education-field" aria-label="Course / field of study" placeholder="Course / field" value={education.field} onChange={(e) => setEducation({ ...education, field: e.target.value })} className="w-full px-4 py-2.5 rounded-xl text-sm bg-muted border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/60 transition-all" />
+                    <Input id="education-field" aria-label="Course / field of study" placeholder="Course / field" value={education.field} onChange={(e) => setEducation({ ...education, field: e.target.value })} className="form-field" />
                   </div>
                   <div className="w-40 shrink-0">
                     <Label htmlFor="education-year" className="mb-1 text-xs text-muted-foreground">Graduation Year</Label>
-                    <Input id="education-year" aria-label="Graduation year" placeholder="e.g. 2024" inputMode="numeric" disabled={education.studying} value={education.year} onChange={(e) => setEducation({ ...education, year: e.target.value })} className="w-full px-3 py-2.5 rounded-xl text-sm bg-muted border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/60 transition-all disabled:opacity-50" />
+                    <Input id="education-year" aria-label="Graduation year" placeholder="e.g. 2024" inputMode="numeric" disabled={education.studying} value={education.year} onChange={(e) => setEducation({ ...education, year: e.target.value })} className="form-field" />
                   </div>
                 </div>
               </div>

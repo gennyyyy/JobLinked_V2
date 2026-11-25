@@ -262,7 +262,7 @@ export default function Applicants() {
                         </span>
                         <div>
                           <p className="font-medium text-navy">{titleCase(application.seeker?.full_name)}</p>
-                          <p className="mt-1 text-[10px] text-muted-foreground">{titleCase(application.seeker?.barangay_district) || 'Santa Maria'}</p>
+                          <p className="mt-1 text-micro text-muted-foreground">{titleCase(application.seeker?.barangay_district) || 'Santa Maria'}</p>
                         </div>
                       </div>
                     </TableCell>

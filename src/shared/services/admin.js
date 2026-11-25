@@ -73,8 +73,10 @@ export async function requestDocs(id, remarks) {
   return api.patch(`accreditations/${id}`, { status: 'resubmission', remarks });
 }
 
-export async function assignRole(id, role) {
-  return api.post(`admin/users/${id}/role`, { role });
+// One confirmed access change can write a system-role row and a custom-role
+// row; changeId (one UUID per dialog session) lets the history group them.
+export async function assignRole(id, role, reason, changeId) {
+  return api.post(`admin/users/${id}/role`, { role, reason, change_id: changeId });
 }
 
 // ─── Super-admin custom roles (catalog: Roles page; assignment: Users page) ──
@@ -100,9 +102,10 @@ export async function deleteRole(id) {
   return api.del(`admin/roles/${id}`);
 }
 
-// Tag/untag a user with a custom role (Users page only).
-export async function assignCustomRole(id, customRoleId) {
-  return api.post(`admin/users/${id}/custom-role`, { custom_role_id: customRoleId ?? null });
+// Tag/untag a user with a custom role (Users page only). The reason rides on
+// the audit row and is required for a real change.
+export async function assignCustomRole(id, customRoleId, reason, changeId) {
+  return api.post(`admin/users/${id}/custom-role`, { custom_role_id: customRoleId ?? null, reason, change_id: changeId });
 }
 
 // Admin-initiated invite (ADR-024): Supabase emails the invitee; their role row

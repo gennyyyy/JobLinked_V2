@@ -212,11 +212,11 @@ function EmployerAccreditation() {
                       <FileCheck2 className={`size-5 shrink-0 ${doc ? "text-teal" : "text-muted-foreground"}`} aria-hidden="true" />
                       <div className="min-w-0">
                         <p className="text-xs font-medium text-navy">{docType}</p>
-                        <p className="mt-1 max-w-[240px] truncate text-[10px] text-muted-foreground">
+                        <p className="mt-1 max-w-[240px] truncate text-micro text-muted-foreground">
                           {doc ? `${doc.file_name} · ${doc.status}` : "Not uploaded"}
                         </p>
                         {petition && <StatusBadge status={statusLabel(petition.status)} className="mt-1" />}
-                        {fileErrors[docType] && <p className="mt-1 text-[10px] text-destructive">{fileErrors[docType]}</p>}
+                        {fileErrors[docType] && <p className="mt-1 text-micro text-destructive">{fileErrors[docType]}</p>}
                       </div>
                     </div>
                     <div className="flex shrink-0 gap-2">
@@ -257,7 +257,7 @@ function EmployerAccreditation() {
                 <li key={a.id} className="rounded-xl border p-4">
                   <StatusBadge status={statusLabel(a.status)} />
                   {a.remarks && <p className="mt-2 text-xs leading-6 text-muted-foreground">PESO remarks: {a.remarks}</p>}
-                  <p className="mt-1 text-[10px] text-muted-foreground">
+                  <p className="mt-1 text-micro text-muted-foreground">
                     Submitted {new Date(a.submitted_at).toLocaleDateString("en-PH", { dateStyle: "medium" })}
                     {a.decided_at ? ` · Decided ${new Date(a.decided_at).toLocaleDateString("en-PH", { dateStyle: "medium" })}` : ""}
                   </p>

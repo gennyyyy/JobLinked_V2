@@ -113,6 +113,17 @@ export async function findUserTable(id) {
 // demote, tag — must leave at least one behind, or no account can recover the
 // admin surface.
 const LAST_ADMIN_MSG = 'This would remove the last full admin. Assign another full admin first.';
+// Both access-change endpoints require it on a REAL change; their same-value
+// no-op runs first, so it needs none.
+const REASON_INVALID = 'reason must be 10-500 characters';
+// The column is an integer and a client may send "14": compare, store, and
+// audit the normalized number so a string/number pair is a no-op instead of a
+// phantom change. undefined marks a value that is not an integer.
+function normalizeCustomRoleId(value) {
+  if (value == null) return null;
+  const id = Number(value);
+  return Number.isInteger(id) ? id : undefined;
+}
 async function removesLastBreakGlass(table, profile, id) {
   if (table !== 'super_admins' || profile.status !== 'active' || profile.custom_role_id != null) return false;
   const { rows } = await pool.query(
@@ -375,18 +386,31 @@ router.post('/admin/users/:id/sign-out', ...admin, ah(async (req, res) => {
 // Tag a user with a custom role (assignment lives on the Users page only).
 router.post('/admin/users/:id/custom-role', ...admin, ah(async (req, res) => {
   if (req.params.id === req.user.id) return err(res, 403, 'FORBIDDEN', 'You cannot change your own role');
+  const { custom_role_id: rawCustomRoleId = null, reason: rawReason, change_id: changeId } = req.body || {};
+  const custom_role_id = normalizeCustomRoleId(rawCustomRoleId);
+  if (custom_role_id === undefined) return err(res, 400, 'BAD_REQUEST', 'custom_role_id must be an integer');
+  if (changeId != null && !isUuid(changeId)) return err(res, 400, 'BAD_REQUEST', 'change_id must be a UUID');
   const { table, profile } = await findUserTable(req.params.id);
   if (!profile) return err(res, 404, 'NOT_FOUND', 'User account not found');
-  const { custom_role_id = null } = req.body || {};
   const denied = await grantError(req, custom_role_id, profile.role);
   if (denied) return err(res, denied.status, denied.code, denied.message);
   if (custom_role_id != null && await removesLastBreakGlass(table, profile, req.params.id)) {
     return err(res, 409, 'CONFLICT', LAST_ADMIN_MSG);
   }
+  // Same tag → nothing to write or audit, and no reason required.
+  if (normalizeCustomRoleId(profile.custom_role_id) === custom_role_id) {
+    return res.json({ ...profile, custom_role_id });
+  }
+  // The reason is contract, not decoration: the history table reads it back.
+  const reason = String(rawReason ?? '').trim();
+  if (reason.length < 10 || reason.length > 500) return err(res, 400, 'BAD_REQUEST', REASON_INVALID);
   const { rows } = await pool.query(
     `update ${table} set custom_role_id = $2, updated_at = now() where id = $1 returning *`,
     [req.params.id, custom_role_id]);
-  void audit(req.user.id, 'user.custom-role.assign', table, req.params.id, { custom_role_id });
+  void audit(req.user.id, 'user.custom-role.assign', table, req.params.id, {
+    from_custom_role_id: profile.custom_role_id ?? null, to_custom_role_id: custom_role_id, reason,
+    ...(changeId ? { change_id: changeId } : {}),
+  });
   res.json({ ...rows[0], role: profile.role });
 }));
 
@@ -401,8 +425,9 @@ router.post('/admin/users/:id/custom-role', ...admin, ah(async (req, res) => {
 // the target table is a 409. 403 on self-move (lockout footgun).
 router.post('/admin/users/:id/role', ...admin, ah(async (req, res) => {
   if (req.params.id === req.user.id) return err(res, 403, 'FORBIDDEN', 'You cannot change your own role');
-  const { role } = req.body || {};
+  const { role, reason: rawReason, change_id: changeId } = req.body || {};
   if (!USER_TABLES[role]) return err(res, 400, 'BAD_REQUEST', 'Invalid role');
+  if (changeId != null && !isUuid(changeId)) return err(res, 400, 'BAD_REQUEST', 'change_id must be a UUID');
   const { table, profile } = await findUserTable(req.params.id);
   if (!profile) return err(res, 404, 'NOT_FOUND', 'User account not found');
   if (profile.role === role) return res.json({ id: req.params.id, role });
@@ -410,6 +435,8 @@ router.post('/admin/users/:id/role', ...admin, ah(async (req, res) => {
   if (await removesLastBreakGlass(table, profile, req.params.id)) {
     return err(res, 409, 'CONFLICT', LAST_ADMIN_MSG);
   }
+  const reason = String(rawReason ?? '').trim();
+  if (reason.length < 10 || reason.length > 500) return err(res, 400, 'BAD_REQUEST', REASON_INVALID);
   try {
     await withTransaction(async (client) => {
       await client.query(`update ${table} set status = 'inactive', updated_at = now() where id = $1`, [req.params.id]);
@@ -424,7 +451,9 @@ router.post('/admin/users/:id/role', ...admin, ah(async (req, res) => {
     if (e.code === '23505') return err(res, 409, 'CONFLICT', 'Another account already uses this email');
     throw e;
   }
-  void audit(req.user.id, 'user.role.change', USER_TABLES[role], req.params.id, { from: profile.role, to: role });
+  void audit(req.user.id, 'user.role.change', USER_TABLES[role], req.params.id, {
+    from: profile.role, to: role, reason, ...(changeId ? { change_id: changeId } : {}),
+  });
   res.json({ id: req.params.id, role });
 }));
 

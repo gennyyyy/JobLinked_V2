@@ -8,7 +8,7 @@ import { JOB_TAGS, JOB_BENEFITS, JOB_EDUCATION_LEVELS, JOB_EXPERIENCE_PRESETS, S
 import useDialog from "../../shared/hooks/useDialog";
 import { TextField, SelectField } from "../../shared/components/design";
 import VocabularyPicker from "../../shared/components/VocabularyPicker";
-import TagField from "../job-seeker/TagField";
+import TagField from "@/shared/components/TagField";
 import useVocabulary from "../../shared/hooks/useVocabulary";
 import { EXPERIENCE_OPTIONS, applyEducation, applyExperience, parseEducation, parseExperience } from "./jobPostFields";
 import { getFeeTerms } from "../../shared/services/feeFilter";
@@ -69,13 +69,13 @@ export default function JobPostFormDialog({ form, setForm, setErrors, errors, sa
   }, [barangayOpen]);
 
   return createPortal(
-    <div className="fixed inset-0 z-[9999] flex items-start justify-center overflow-y-auto bg-black/60 p-4 backdrop-blur-xs">
+    <div className="modal-overlay z-[9999] items-start overflow-y-auto">
       <div
         ref={formPanelRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="job-form-title"
-        className="my-8 max-h-[90vh] w-full max-w-2xl space-y-5 overflow-y-auto rounded-2xl border bg-card p-5 shadow-2xl md:p-6"
+        className="modal-panel my-8 max-h-[90vh] w-full max-w-2xl space-y-5 overflow-y-auto"
       >
         {/* Modal Header */}
         <div className="flex items-center justify-between gap-3 border-b pb-4">
@@ -209,7 +209,7 @@ export default function JobPostFormDialog({ form, setForm, setErrors, errors, sa
                 <span aria-hidden="true" className="text-xs text-muted-foreground">▾</span>
               </Button>
               {barangayOpen && (
-                <div className="absolute top-full right-0 left-0 z-50 mt-1 rounded-xl border bg-card shadow-xl">
+                <div className="absolute top-full right-0 left-0 z-50 mt-1 rounded-panel border bg-card shadow-xl">
                   <Input
                     type="text"
                     aria-label="Search barangay"

@@ -109,7 +109,7 @@ function VacancyReview({ job, onClose, onDecided }) {
           onChange={(event) => { setReason(event.target.value); setError('') }}
           placeholder="Required when flagging or removing a posting. Shared with the employer."
         />
-        <p className="mt-1 text-[10px] text-muted-foreground">Required when flagging or removing a posting. Shared with the employer.</p>
+        <p className="mt-1 text-micro text-muted-foreground">Required when flagging or removing a posting. Shared with the employer.</p>
       </div>
       {error && <p role="alert" className="text-xs text-destructive">{error}</p>}
       <div className="flex flex-wrap gap-2 border-t pt-4">
@@ -126,7 +126,7 @@ function VacancyReview({ job, onClose, onDecided }) {
           Remove posting
         </Button>
       </div>
-      <p className="text-[10px] leading-5 text-muted-foreground">
+      <p className="text-micro leading-5 text-muted-foreground">
         Approval requires an approved employer and an unexpired deadline. Removed records remain in the audit and recruitment history.
       </p>
     </>
@@ -207,7 +207,7 @@ export default function JobPosts() {
                 <TableRow key={job.id}>
                   <TableCell>
                     <p className="font-medium text-navy">{titleCase(job.title)}</p>
-                    <p className="mt-1 text-[11px] text-muted-foreground">
+                    <p className="mt-1 text-xs text-muted-foreground">
                       {titleCase(job.employers?.company_name)} · {titleCase(job.location) || 'Santa Maria'}
                     </p>
                   </TableCell>

@@ -21,7 +21,7 @@ function SidebarAccount({ user, profileTo, roleLabel, onNavigate, onLogout }) {
           </span>
           <span className="min-w-0">
             <span className="block truncate text-xs font-semibold text-white">{titleCase(name)}</span>
-            <span className="block truncate mt-0.5 text-[10px] text-white/50 uppercase tracking-wider">{roleLabel}</span>
+            <span className="block truncate mt-0.5 text-micro text-white/50 uppercase tracking-wider">{roleLabel}</span>
           </span>
         </Link>
         <Button

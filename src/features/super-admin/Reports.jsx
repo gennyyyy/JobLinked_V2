@@ -209,7 +209,7 @@ export default function Reports() {
             ))}
           </TableBody>
         </Table>
-        <p className="mt-4 text-[10px] leading-6 text-muted-foreground">
+        <p className="mt-4 text-micro leading-6 text-muted-foreground">
           *All-time provided registered residents. Other columns follow the selected period and definitions above. For platform review only.
         </p>
       </Panel>

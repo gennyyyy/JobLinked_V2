@@ -157,7 +157,7 @@ export default function PublicJobDetail() {
                 <div className="flex items-start gap-3">
                   <Banknote className="mt-0.5 size-4 text-teal" />
                   <div>
-                    <p className="text-[10px] font-medium uppercase tracking-[.14em] text-muted-foreground">Compensation</p>
+                    <p className="text-micro font-medium uppercase tracking-[.14em] text-muted-foreground">Compensation</p>
                     <p className="mt-1 text-sm font-medium text-navy">{money(job.salary_min)}{job.salary_max ? ` – ${money(job.salary_max)}` : job.salary_min ? '+' : ''}</p>
                   </div>
                 </div>
@@ -165,7 +165,7 @@ export default function PublicJobDetail() {
                   <div className="flex items-start gap-3">
                     <Layers className="mt-0.5 size-4 text-teal" />
                     <div>
-                      <p className="text-[10px] font-medium uppercase tracking-[.14em] text-muted-foreground">Field</p>
+                      <p className="text-micro font-medium uppercase tracking-[.14em] text-muted-foreground">Field</p>
                       <p className="mt-1 text-sm font-medium text-navy">{job.field}</p>
                     </div>
                   </div>
@@ -173,27 +173,27 @@ export default function PublicJobDetail() {
                 <div className="flex items-start gap-3">
                   <Building2 className="mt-0.5 size-4 text-teal" />
                   <div>
-                    <p className="text-[10px] font-medium uppercase tracking-[.14em] text-muted-foreground">Work arrangement</p>
+                    <p className="text-micro font-medium uppercase tracking-[.14em] text-muted-foreground">Work arrangement</p>
                     <p className="mt-1 text-sm font-medium text-navy">{job.work_arrangement || 'On-site'}</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-3">
                   <Users className="mt-0.5 size-4 text-teal" />
                   <div>
-                    <p className="text-[10px] font-medium uppercase tracking-[.14em] text-muted-foreground">Vacancies</p>
+                    <p className="text-micro font-medium uppercase tracking-[.14em] text-muted-foreground">Vacancies</p>
                     <p className="mt-1 text-sm font-medium text-navy">{job.vacancies ?? '—'}</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-3">
                   <CalendarDays className="mt-0.5 size-4 text-teal" />
                   <div>
-                    <p className="text-[10px] font-medium uppercase tracking-[.14em] text-muted-foreground">Application deadline</p>
+                    <p className="text-micro font-medium uppercase tracking-[.14em] text-muted-foreground">Application deadline</p>
                     <p className="mt-1 text-sm font-medium text-navy">{job.deadline ? new Date(job.deadline).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' }) : 'No deadline'}</p>
                   </div>
                 </div>
                 <div className="rounded-xl bg-muted p-4">
                   <p className="text-xs font-medium text-navy">Interested in this position?</p>
-                  <p className="mt-1 text-[11px] leading-5 text-muted-foreground">Apply online through your PESO Job Seeker account.</p>
+                  <p className="mt-1 text-xs leading-5 text-muted-foreground">Apply online through your PESO Job Seeker account.</p>
                   <LinkButton href="/login" className="mt-4 w-full">Log in to Apply</LinkButton>
                 </div>
               </CardContent>

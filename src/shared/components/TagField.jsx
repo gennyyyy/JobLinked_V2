@@ -1,10 +1,12 @@
 import { useId, useState } from 'react'
 import { Plus, X } from 'lucide-react'
+import { cn } from '@/lib/utils'
 
-// Tag-list field (education, experience, skills).
-// `value` is a comma-separated string or an array; onChange emits same shape.
-// `suggestions` feeds a native <datalist>; `max` caps the chip count.
-export function TagField({ label, value, onChange, placeholder, help, error, required, suggestions, max }) {
+// Tag-list field from the reference profile (education, experience, skills).
+// `value` is a comma-separated string (Work experience) or an array (skills);
+// onChange emits the same shape. `suggestions` feeds a native <datalist>;
+// `max` caps the chip count.
+export default function TagField({ label, value, onChange, placeholder, help, error, required, suggestions, max, labelClassName }) {
   const listId = useId()
   const arrayMode = Array.isArray(value)
   const tags = (arrayMode ? value : String(value ?? '').split(','))
@@ -27,16 +29,16 @@ export function TagField({ label, value, onChange, placeholder, help, error, req
   const helpText = [help, limit != null ? `Up to ${limit}.` : ''].filter(Boolean).join(' ')
 
   return (
-    <div className="flex flex-col gap-2">
-      <label className="text-sm font-medium text-foreground">
+    <div className="flex flex-col">
+      <label className={cn('mb-2 text-sm font-medium leading-none text-foreground', labelClassName)}>
         {label}{required ? <span className="ml-1 text-destructive">*</span> : null}
       </label>
-      <div className="flex min-h-[44px] flex-wrap items-center gap-2 rounded-xl border border-border bg-muted px-4 py-2 focus-within:border-ring focus-within:ring-2 focus-within:ring-ring/20">
+      <div className="flex min-h-11 flex-wrap items-center gap-2 rounded-control border border-input bg-background px-3 py-1.5 focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/50">
         {tags.map((tag) => (
-          <span key={tag} className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary">
+          <span key={tag} className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-0 text-xs font-medium text-primary">
             {tag}
-            <button type="button" onClick={() => removeTag(tag)} className="rounded-full p-0.5 hover:bg-primary/15" aria-label={`Remove ${tag}`}>
-              <X className="size-3" />
+            <button type="button" onClick={() => removeTag(tag)} className="flex size-6 shrink-0 items-center justify-center rounded-full p-0 hover:bg-primary/15" aria-label={`Remove ${tag}`}>
+              <X className="size-3.5" />
             </button>
           </span>
         ))}
@@ -65,10 +67,8 @@ export function TagField({ label, value, onChange, placeholder, help, error, req
           {suggestions.map((suggestion) => <option key={suggestion} value={suggestion} />)}
         </datalist>
       ) : null}
-      {helpText ? <p className="text-xs text-muted-foreground">{helpText}</p> : null}
-      {error ? <p className="text-xs text-destructive">{error}</p> : null}
+      {helpText ? <p className="mt-2 text-xs text-muted-foreground">{helpText}</p> : null}
+      {error ? <p className="mt-1 text-xs text-destructive">{error}</p> : null}
     </div>
   )
 }
-
-export default TagField

@@ -73,7 +73,7 @@ export default function EmployerStatus() {
       <CardHeader>
         <div className="flex items-start justify-between gap-3">
           <div>
-            <p className="text-[10px] font-semibold uppercase tracking-[.14em] text-primary">Accreditation status</p>
+            <p className="text-micro font-semibold uppercase tracking-[.14em] text-primary">Accreditation status</p>
             <CardTitle className="mt-1 text-2xl">{titleCase(employer.company_name)}</CardTitle>
           </div>
           <Badge variant="secondary" className={isApproved ? 'bg-success-soft text-success' : isRejected || isRevoked ? 'bg-danger-soft text-destructive' : 'bg-blue-soft text-primary'}>
@@ -84,7 +84,7 @@ export default function EmployerStatus() {
       <CardContent>
         {(isRejected || isRevoked) && remarks && (
           <div className="mb-6 rounded-xl border border-danger/20 bg-danger/5 p-4">
-            <p className="text-[10px] font-semibold uppercase tracking-[.14em] text-danger">Action required</p>
+            <p className="text-micro font-semibold uppercase tracking-[.14em] text-danger">Action required</p>
             <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">{remarks}</p>
           </div>
         )}

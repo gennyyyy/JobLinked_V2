@@ -19,7 +19,7 @@ export function PublicShell({ children }) {
   return (
     <div className="flex min-h-screen flex-col">
       <header className="relative z-30 border-b border-border/70 bg-white">
-        <div className="page-container flex h-[64px] items-center justify-between gap-4 px-3 sm:px-3 lg:px-4">
+        <div className="page-container flex h-[64px] items-center justify-between gap-4">
           <Logo />
           <nav aria-label="Main navigation" className="hidden items-center gap-7 lg:flex">
             {links.map(([label, href]) => (
@@ -63,7 +63,7 @@ export function PublicShell({ children }) {
       </Sheet>
       <main id="main-content" className="flex flex-1 flex-col">{children}</main>
       <footer className="border-t bg-white pt-8 pb-2">
-        <div className="page-container px-3 sm:px-3 lg:px-4">
+        <div className="page-container">
           <div className="grid gap-6 pb-2 sm:grid-cols-2 lg:grid-cols-[1.5fr_1fr_1fr_1fr_1fr]">
             <div>
               <Logo />
@@ -87,7 +87,7 @@ export function PublicShell({ children }) {
               </div>
             ))}
           </div>
-          <div className="flex flex-col justify-between gap-2 py-1 text-[10px] text-muted-foreground sm:flex-row sm:items-center">
+          <div className="flex flex-col justify-between gap-2 py-1 text-micro text-muted-foreground sm:flex-row sm:items-center">
             <p>© {new Date().getFullYear()} JobLinked. Built with community in mind.</p>
             <div className="flex items-center gap-3">
               <Link className="min-h-6 content-center hover:text-primary" to="/privacy">Privacy notice</Link>

@@ -29,10 +29,10 @@ export function HomeHero() {
           <div className="page-container relative">
             <div className="grid items-center gap-9 lg:grid-cols-[1.1fr_1fr] lg:gap-12">
               <div className="hero-enter relative pb-4">
-                <H1 className="max-w-[620px] text-[36px] font-semibold leading-[1.03] tracking-[-0.045em] sm:text-[52px] lg:text-[58px]">
+                <H1 className="hero-heading max-w-[620px]">
                   Find a job in Santa Maria, Bulacan
                 </H1>
-                <p className="mt-5 max-w-[470px] text-[15px] leading-7 text-muted-foreground">
+                <p className="mt-5 max-w-[470px] text-sm leading-7 md:text-base text-muted-foreground">
                   Discover verified job opportunities, track your applications, and connect with employers in Santa Maria, Bulacan—all in one platform.
                 </p>
                 <div className="mt-7 flex flex-wrap gap-3">

@@ -79,13 +79,13 @@ function HelpChat() {
         <HelpCircle className="size-6" aria-hidden="true" />
       </Button>
       {open && createPortal(
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-navy/60 p-4 backdrop-blur-xs" onClick={close}>
+        <div className="modal-overlay z-[9999]" onClick={close}>
           <div
             ref={panelRef}
             role="dialog"
             aria-modal="true"
             aria-labelledby="help-chat-title"
-            className="flex max-h-[80vh] w-full max-w-md flex-col overflow-hidden rounded-2xl bg-card shadow-2xl ring-1 ring-foreground/10"
+            className="modal-panel flex max-h-[80vh] w-full max-w-md flex-col overflow-hidden p-0"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between gap-3 border-b px-5 py-4">

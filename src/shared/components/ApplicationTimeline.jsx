@@ -53,7 +53,7 @@ export default function ApplicationTimeline({ application }) {
               <div className={cn('min-w-0 flex-1 pb-7', last && 'pb-0')}>
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <StatusBadge status={event.status} />
-                  <time className="text-[11px] text-muted-foreground" dateTime={event.changed_at}>{formatDate(event.changed_at)}</time>
+                  <time className="text-xs text-muted-foreground" dateTime={event.changed_at}>{formatDate(event.changed_at)}</time>
                 </div>
                 <p className="mt-2 text-xs leading-6 text-muted-foreground">{event.remarks || STAGE_COPY[event.status] || 'Status updated.'}</p>
               </div>
@@ -61,7 +61,7 @@ export default function ApplicationTimeline({ application }) {
           )
         })}
       </ol>
-      <p className="rounded-lg bg-muted px-4 py-3 text-[11px] leading-5 text-muted-foreground">
+      <p className="rounded-lg bg-muted px-4 py-3 text-xs leading-5 text-muted-foreground">
         This is the recorded recruitment history, not a guaranteed sequence. Employers may skip stages; rejection is a final outcome, not a required step.
       </p>
     </div>

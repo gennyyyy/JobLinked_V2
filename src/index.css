@@ -683,6 +683,12 @@
   --radius-2xl: 20px;
   --radius-3xl: 24px;
   --radius-4xl: 32px;
+  --radius-control: 12px;
+  --radius-panel: 16px;
+  --radius-badge: 6px;
+  --text-micro: 10px;
+  --text-eyebrow: 11px;
+  --shadow-surface: 0 2px 5px #12325b03;
 }
 :root {
   color-scheme: light;
@@ -719,11 +725,14 @@
 @layer components {
   .page-container { @apply mx-auto w-full max-w-[1240px] px-5 sm:px-8 lg:px-10; }
   .page-hero { @apply bg-muted text-navy; }
+  .hero-heading { @apply text-[36px] font-semibold leading-[1.03] tracking-[-0.045em] sm:text-[52px] lg:text-[58px]; }
   .display-heading { @apply text-[36px] font-semibold leading-[1.06] tracking-[-0.045em] sm:text-[44px]; }
   .section-heading { @apply text-[32px] font-semibold leading-[1.1] tracking-[-0.04em] sm:text-[36px] md:text-[40px]; }
-  .eyebrow { @apply text-[11px] font-semibold tracking-[.16em] uppercase text-teal; }
+  .eyebrow { @apply text-eyebrow font-semibold tracking-[.16em] uppercase text-teal; }
   .section-copy { @apply text-sm leading-7 text-muted-foreground md:text-base; }
-  .surface { @apply rounded-2xl border bg-card p-5 sm:p-6; box-shadow: 0 2px 5px #12325b03; }
+  .surface { @apply rounded-panel border bg-card p-5 sm:p-6 shadow-surface; }
+  .modal-overlay { @apply fixed inset-0 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs; }
+  .modal-panel { @apply rounded-panel border border-border bg-card p-6 shadow-xl; }
   .soft-icon { @apply flex size-11 shrink-0 items-center justify-center rounded-xl bg-blue-soft text-primary; }
   .teal-icon { @apply flex size-11 shrink-0 items-center justify-center rounded-xl bg-teal-soft text-teal; }
   .nav-link { @apply inline-flex min-h-11 items-center text-[13px] font-medium text-muted-foreground transition-colors hover:text-primary; }
@@ -735,17 +744,12 @@
   .job-grid { @apply grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3; }
   .portal-grid { @apply grid grid-cols-1 gap-5 xl:grid-cols-[1.6fr_1fr]; }
   .form-select { @apply h-11 w-full rounded-lg border bg-background px-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/15 disabled:opacity-50; }
+  .form-field { @apply h-11 w-full rounded-control border bg-background px-3 text-sm text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/15 disabled:opacity-50; }
   .demo-label { @apply inline-flex items-center gap-1.5 rounded-md bg-secondary px-2 py-1 text-[10px] font-medium text-muted-foreground; }
   .timeline-dot { @apply relative flex size-9 shrink-0 items-center justify-center rounded-full bg-blue-soft text-primary; }
   .prose-copy { @apply text-sm leading-7 text-muted-foreground; }
 }
-[data-slot='button'] { min-height: 44px; padding-inline: 17px; font-weight: 500; cursor: pointer; }
-[data-slot='input'], [data-slot='textarea'], [data-slot='select-trigger'] { min-height: 44px; }
-[data-slot='input-group'] { min-height: 44px; }
-[data-slot='input-group'] [data-slot='button'] { min-height: 36px; }
-[data-slot='card'] { --card-spacing: 24px; border: 1px solid var(--border); box-shadow: 0 2px 5px #12325b03; --tw-ring-color: transparent; }
 [data-slot='card-title'] { font-weight: 600; color: var(--navy); }
-[data-slot='badge'] { border-radius: 5px; font-size: 10px; line-height: 1.5; padding: 4px 7px; font-weight: 500; }
 [data-slot='dialog-content'] { max-height: 88dvh; overflow-y: auto; padding: 24px; }
 [data-slot='dialog-footer'] { margin: 0 -24px -24px; padding: 20px 24px; }
 [data-slot='dialog-title'] { font-size: 20px; font-weight: 600; color: var(--navy); padding-right: 24px; }
@@ -807,7 +811,12 @@
   from { opacity: 0; }
   to { opacity: 1; }
 }
-@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; } }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+  /* Functional progress indicators stay alive so a slow load never looks frozen. */
+  .animate-spin { animation: var(--animate-spin, spin 1s linear infinite) !important; }
+  .animate-pulse { animation: var(--animate-pulse, pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite) !important; }
+}
 @media print {
   .no-print, nav, aside, header, footer { display: none !important; }
   .portal-main { margin: 0 !important; padding: 0 !important; }

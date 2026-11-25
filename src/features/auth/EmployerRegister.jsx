@@ -131,8 +131,8 @@ function EmployerRegister() {
     return <EmployerRegisterSuccess needsConfirmation={needsConfirmation} submittedEmail={submittedEmail} />;
   }
 
-  const inputClass = "w-full min-h-[44px] px-4 rounded-xl text-sm bg-muted border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all";
-  const labelClass = "block font-mono text-[11px] tracking-wider text-muted-foreground uppercase mb-1.5";
+  const inputClass = "form-field";
+  const labelClass = "block font-mono text-xs tracking-wider text-muted-foreground uppercase mb-1.5";
   const reqMark = <span className="text-danger" aria-hidden="true"> *</span>;
 
   function focusFirstError(key) {
@@ -164,12 +164,12 @@ function EmployerRegister() {
       <PublicShell>
       <div className="bg-muted/60">
       <div className="page-container py-10 sm:py-14">
-        <div className="mx-auto w-full max-w-4xl rounded-2xl border bg-white p-6 md:p-10 shadow-xl">
+        <div className="mx-auto w-full max-w-4xl rounded-panel border bg-card p-6 md:p-10 shadow-surface">
           <div className="flex items-center justify-between mb-4">
             <Link to="/register" className="text-xs text-muted-foreground hover:text-primary transition-colors">
               ← Back to roles
             </Link>
-            <span className="font-mono text-[10px] tracking-widest uppercase px-2.5 py-1 rounded-full bg-primary/10 border border-primary/25 text-primary font-semibold">
+            <span className="font-mono text-micro tracking-widest uppercase px-2.5 py-1 rounded-full bg-primary/10 border border-primary/25 text-primary font-semibold">
               EMPLOYER ACCREDITATION
             </span>
           </div>
@@ -180,7 +180,7 @@ function EmployerRegister() {
             <p className="mt-2 rounded-lg border border-primary/30 bg-primary/5 px-3 py-2 text-xs font-medium text-primary">Accreditation takes about 3 business days.</p>
           </header>
 
-          <p className="mb-4 font-mono text-[11px] tracking-widest uppercase text-muted-foreground">Step {step + 1} of {TOTAL_STEPS}</p>
+          <p className="mb-4 font-mono text-xs tracking-widest uppercase text-muted-foreground">Step {step + 1} of {TOTAL_STEPS}</p>
 
           <form ref={formRef} onSubmit={handleSubmit} noValidate className="space-y-6 register-form">
             {step === 0 && (

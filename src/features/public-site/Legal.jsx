@@ -35,7 +35,7 @@ function Legal({ title, document = "privacy" }) {
     <>
       <SkipLink />
       <PublicShell>
-        <div className="page-container max-w-3xl py-14">
+        <div className="page-container max-w-3xl py-12 md:py-16">
           <h1 className="text-2xl font-semibold tracking-[-.035em] md:text-3xl">{title}</h1>
           {loading && <Skeleton className="mt-8 h-4 w-full" />}
           <div className="mt-8 whitespace-pre-line text-sm leading-7 text-muted-foreground">

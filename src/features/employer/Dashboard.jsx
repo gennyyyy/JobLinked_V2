@@ -70,7 +70,7 @@ export default function Dashboard() {
           <Panel
             title="Your latest applicants"
             description="Meet the people interested in joining your team."
-            action={<Link to="/employer/applicants" className="text-link text-[11px]">View all<ArrowRight className="size-3" /></Link>}
+            action={<Link to="/employer/applicants" className="text-link text-xs">View all<ArrowRight className="size-3" /></Link>}
           >
             {recent.length ? (
               <Table>
@@ -86,7 +86,7 @@ export default function Dashboard() {
                     <TableRow key={item.id}>
                       <TableCell>
                         <Link to="/employer/applicants" className="text-xs font-semibold text-navy hover:text-primary">{titleCase(item.seeker_full_name)}</Link>
-                        <p className="mt-1 text-[10px] text-muted-foreground">{item.job_title}</p>
+                        <p className="mt-1 text-micro text-muted-foreground">{item.job_title}</p>
                       </TableCell>
                       <TableCell><StatusBadge status={item.status} /></TableCell>
                       <TableCell>
@@ -103,7 +103,7 @@ export default function Dashboard() {
           <Panel
             title="Your vacancies"
             description="A quick look at the opportunities you are creating."
-            action={<Link className="text-link text-[11px]" to="/employer/job-posts">Manage jobs<ArrowRight className="size-3" /></Link>}
+            action={<Link className="text-link text-xs" to="/employer/job-posts">Manage jobs<ArrowRight className="size-3" /></Link>}
           >
             {jobs.length ? (
               <ul className="flex flex-col divide-y">
@@ -111,7 +111,7 @@ export default function Dashboard() {
                   <li key={job.id} className="flex flex-wrap items-center justify-between gap-3 py-4">
                     <div>
                       <Link to="/employer/job-posts" className="text-xs font-semibold text-navy hover:text-primary">{job.title}</Link>
-                      <p className="mt-1.5 text-[10px] text-muted-foreground">
+                      <p className="mt-1.5 text-micro text-muted-foreground">
                         {titleCase(job.location) || 'Santa Maria'} · {job.vacancies || 1} openings · {job.applicants || 0} applicants
                       </p>
                     </div>
@@ -145,7 +145,7 @@ export default function Dashboard() {
               {recent.slice(0, 3).map((item) => (
                 <li key={item.id}>
                   <p className="text-xs leading-6 text-navy">{titleCase(item.seeker_full_name)} · {titleCase(item.job_title)}</p>
-                  <p className="text-[10px] text-muted-foreground">{new Date(item.applied_at).toLocaleDateString('en-PH', { month: 'short', day: 'numeric' })}</p>
+                  <p className="text-micro text-muted-foreground">{new Date(item.applied_at).toLocaleDateString('en-PH', { month: 'short', day: 'numeric' })}</p>
                 </li>
               ))}
               {!recent.length && <li className="text-xs text-muted-foreground">Activity will appear here as candidates apply.</li>}

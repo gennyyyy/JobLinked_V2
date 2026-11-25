@@ -63,7 +63,7 @@ export function EmploymentTypeChart({ data }) {
           </Pie>
         </PieChart>
       </ChartContainer>
-      <ul className="mt-4 grid grid-cols-2 gap-3 text-[11px]">
+      <ul className="mt-4 grid grid-cols-2 gap-3 text-xs">
         {rows.map((row) => (
           <li className="flex items-center justify-between gap-2" key={row.key}>
             <span className="flex items-center gap-2 text-muted-foreground">

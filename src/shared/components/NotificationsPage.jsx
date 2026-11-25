@@ -10,13 +10,17 @@ import { getNotificationVisual } from "../utils/notificationVisual";
 import { listNotifications, markRead, markAllRead, deleteNotification } from "../services/notifications";
 import { PageSkeleton } from './Skeletons'
 import ConfirmationModal from "./ConfirmationModal";
+import Flash from "./Flash";
 import Toast from "./Toast";
 import { EmptyState, PageHeading, Panel, SelectField } from "./design";
+import { Pager } from "./dashboard";
 import { cn } from "@/lib/utils";
 
 // Same layout as the dashboard reference: PageHeading + one Panel, a search /
 // view-control row, then a divided list. Selection and bulk delete are the only
 // additions — the reference has no delete affordance, this portal does.
+
+const PAGE_SIZE = 8
 
 const VIEW_OPTIONS = [
   { value: 'all', label: 'All notifications' },
@@ -41,14 +45,14 @@ function NotificationRow({ n, role, selected, onToggleSelect, onMarkRead }) {
         <h2 className="text-sm font-medium text-navy">{n.title}</h2>
       </div>
       <p className="mt-2 text-xs leading-6 text-muted-foreground">{n.message}</p>
-      <time dateTime={n.created_at} className="mt-2 block text-[10px] text-muted-foreground">
+      <time dateTime={n.created_at} className="mt-2 block text-micro text-muted-foreground">
         {formatDate(n.created_at)}
       </time>
       {link && (
         <Link
           to={link}
           onClick={() => !n.is_read && onMarkRead?.(n.id)}
-          className="text-link mt-1 text-[11px]"
+          className="text-link mt-1 text-xs"
         >
           View details
           <ArrowUpRight data-icon="inline-end" />
@@ -97,6 +101,7 @@ export default function NotificationsPage({
   const [unreadOnly, setUnreadOnly] = useState(false);
   const [selected, setSelected] = useState(() => new Set());
   const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
   const [toast, setToast] = useState(null);
   const [confirmBulk, setConfirmBulk] = useState(false);
   const closeToast = useCallback(() => setToast(null), []);
@@ -171,9 +176,12 @@ export default function NotificationsPage({
   const unreadCount = notifications.filter((n) => !n.is_read).length;
   const allSelected = notifications.length > 0 && notifications.every((n) => selected.has(n.id));
   const someSelected = !allSelected && notifications.some((n) => selected.has(n.id));
+  const pages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
+  const currentPage = Math.min(page, pages)
+  const visible = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE)
 
   return (
-    <div className="space-y-6 pb-12">
+    <>
       <Toast message={toast?.message} variant={toast?.variant} onClose={closeToast} />
       {confirmBulk && (
         <ConfirmationModal
@@ -188,21 +196,10 @@ export default function NotificationsPage({
         />
       )}
 
-      <PageHeading
-        title={title}
-        description={subtitle}
-        action={(
-          <Button type="button" variant="outline" onClick={handleMarkAllRead} disabled={unreadCount === 0}>
-            <CheckCheck data-icon="inline-start" />
-            Mark all as read
-          </Button>
-        )}
-      />
+      <PageHeading title={title} description={subtitle} />
 
       {error && (
-        <p role="alert" className="rounded-xl border border-destructive/20 bg-danger-soft px-4 py-3 text-xs text-destructive">
-          {error}
-        </p>
+        <Flash variant="error">{error}</Flash>
       )}
 
       <Panel
@@ -210,7 +207,7 @@ export default function NotificationsPage({
         description={`${unreadCount} unread · ${notifications.length} total`}
         action={notifications.length > 0 && (
           <div className="flex items-center gap-3">
-            <label className="inline-flex items-center gap-2 text-[11px] text-muted-foreground">
+            <label className="inline-flex items-center gap-2 text-xs text-muted-foreground">
               <Input
                 type="checkbox"
                 checked={allSelected}
@@ -224,6 +221,15 @@ export default function NotificationsPage({
               />
               Select all
             </label>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleMarkAllRead}
+              disabled={unreadCount === 0}
+            >
+              <CheckCheck data-icon="inline-start" />
+              Mark all as read
+            </Button>
             <Button
               type="button"
               variant="outline"
@@ -246,7 +252,7 @@ export default function NotificationsPage({
                 id="notification-search"
                 type="text"
                 value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                onChange={(e) => { setSearch(e.target.value); setPage(1) }}
                 placeholder="Search your notifications…"
               />
               <InputGroupAddon>
@@ -260,6 +266,7 @@ export default function NotificationsPage({
               value={unreadOnly ? 'unread' : 'all'}
               onChange={(e) => {
                 setUnreadOnly(e.target.value === 'unread');
+                setPage(1);
                 setLoading(true);
               }}
               options={VIEW_OPTIONS}
@@ -285,20 +292,23 @@ export default function NotificationsPage({
             </Button>
           </div>
         ) : (
-          <ul className="flex flex-col divide-y">
-            {filtered.map((n) => (
-              <NotificationRow
-                key={n.id}
-                n={n}
-                role={user?.role}
-                selected={selected.has(n.id)}
-                onToggleSelect={handleToggleSelect}
-                onMarkRead={handleMarkRead}
-              />
-            ))}
-          </ul>
+          <>
+            <ul className="flex flex-col divide-y">
+              {visible.map((n) => (
+                <NotificationRow
+                  key={n.id}
+                  n={n}
+                  role={user?.role}
+                  selected={selected.has(n.id)}
+                  onToggleSelect={handleToggleSelect}
+                  onMarkRead={handleMarkRead}
+                />
+              ))}
+            </ul>
+            <Pager page={currentPage} pageSize={PAGE_SIZE} total={filtered.length} onChange={setPage} label="notifications" />
+          </>
         )}
       </Panel>
-    </div>
+    </>
   );
 }

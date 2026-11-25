@@ -32,7 +32,7 @@ const PILLARS = [
 export function CommunitySections() {
   return (
     <>
-      <section id="how-it-works" className="page-container py-20 parallax-reveal">
+      <section id="how-it-works" className="page-container py-16 md:py-20 parallax-reveal">
         <div className="max-w-xl">
           <RevealText as="h2" className="section-heading" tier="display">How JobLinked works</RevealText>
           <RevealText as="p" className="section-copy mt-3">Less searching, more possibility. We make finding local work a little easier.</RevealText>

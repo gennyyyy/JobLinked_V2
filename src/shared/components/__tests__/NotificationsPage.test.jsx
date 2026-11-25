@@ -180,6 +180,29 @@ describe('NotificationsPage delete', () => {
     await screen.findByText('Bad')
     expect(screen.queryByRole('link', { name: /view details/i })).toBeNull()
   })
+
+  it('paginates 8 rows per page', async () => {
+    listNotifications.mockResolvedValue(
+      Array.from({ length: 10 }, (_, i) => ({
+        id: `p${i + 1}`,
+        title: `Notice ${i + 1}`,
+        message: 'm',
+        type: 'info',
+        is_read: true,
+        created_at: '2026-01-01',
+      }))
+    )
+    renderPage()
+    await screen.findByText('Notice 1')
+    expect(screen.getByText('Notice 8')).toBeTruthy()
+    expect(screen.queryByText('Notice 9')).toBeNull()
+    expect(screen.getByText('1–8 of 10 notifications')).toBeTruthy()
+    await userEvent.click(screen.getByRole('button', { name: 'Next page' }))
+    expect(screen.getByText('Notice 9')).toBeTruthy()
+    expect(screen.getByText('Notice 10')).toBeTruthy()
+    expect(screen.queryByText('Notice 1')).toBeNull()
+    expect(screen.getByText('9–10 of 10 notifications')).toBeTruthy()
+  })
 })
 
 describe('resolveNotificationLink', () => {

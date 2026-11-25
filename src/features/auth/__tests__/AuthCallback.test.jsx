@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen } from '@testing-library/react'
-import { MemoryRouter, Routes, Route } from 'react-router-dom'
+import { MemoryRouter, Routes, Route, useLocation } from 'react-router-dom'
 import AuthCallback from '../AuthCallback'
 
 // Real service + shared client seam; the API layer answers /auth/me.
@@ -27,11 +27,17 @@ import { authClientMock, resetAuthClient } from '../../../test/authClientMock'
 
 const sessionFor = (id = 'u1') => ({ data: { user: { id, email: `${id}@test.com` } } })
 
+function ExpiredStub() {
+  const { search } = useLocation()
+  return <div>link expired {search}</div>
+}
+
 function renderCallback(entry = '/auth/callback') {
   return render(
     <MemoryRouter initialEntries={[entry]}>
       <Routes>
         <Route path="/auth/callback" element={<AuthCallback />} />
+        <Route path="/link-expired" element={<ExpiredStub />} />
         <Route path="/complete-registration" element={<div>complete registration</div>} />
         <Route path="/employer" element={<div>employer home</div>} />
         <Route path="/job-seeker" element={<div>seeker home</div>} />
@@ -90,11 +96,22 @@ describe('AuthCallback role routing (B1)', () => {
     expect(authClientMock.verifyEmail).toHaveBeenCalledWith({ query: { token: 'tok_email' } })
   })
 
-  it('shows the expired-link error when BA redirects with a rejected token', async () => {
+  it('redirects to the expired-link page when BA rejects the token', async () => {
     authClientMock.getSession.mockResolvedValue({ data: null })
     renderCallback('/auth/callback?error=INVALID_TOKEN')
 
-    expect(await screen.findByText(/verification link is invalid or expired/i)).toBeInTheDocument()
+    expect(await screen.findByText('link expired ?type=verify')).toBeInTheDocument()
     expect(authClientMock.verifyEmail).not.toHaveBeenCalled()
+  })
+
+  it('redirects to the expired-link page when the token does not verify', async () => {
+    authClientMock.verifyEmail.mockResolvedValue({
+      data: null,
+      error: { code: 'INVALID_TOKEN', message: 'Invalid token', status: 400 },
+    })
+    renderCallback('/auth/callback?token=tok_stale')
+
+    expect(await screen.findByText('link expired ?type=verify')).toBeInTheDocument()
+    expect(authClientMock.verifyEmail).toHaveBeenCalledWith({ query: { token: 'tok_stale' } })
   })
 })

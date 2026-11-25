@@ -11,7 +11,7 @@ import { titleCase } from "../../shared/utils/titleCase";
 function Fact({ label, children }) {
   return (
     <div className="min-w-0">
-      <p className="text-[10px] text-muted-foreground">{label}</p>
+      <p className="text-micro text-muted-foreground">{label}</p>
       <p className="mt-1 text-xs font-medium text-navy">{children}</p>
     </div>
   );
@@ -21,23 +21,23 @@ export default function JobPostDetailDialog({ job, company, onClose, onEdit, onT
   const viewPanelRef = useDialog(onClose);
 
   return createPortal(
-    <div className="fixed inset-0 z-[9999] flex items-start justify-center overflow-y-auto bg-black/60 p-4 backdrop-blur-xs">
+    <div className="modal-overlay z-[9999] items-start overflow-y-auto">
       <div
         ref={viewPanelRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="job-view-title"
-        className="my-8 max-h-[90vh] w-full max-w-2xl space-y-5 overflow-y-auto rounded-2xl border bg-card p-5 shadow-2xl md:p-6"
+        className="modal-panel my-8 max-h-[90vh] w-full max-w-2xl space-y-5 overflow-y-auto"
       >
         {/* Modal Top Bar */}
         <div className="flex items-start justify-between gap-3 border-b pb-4">
           <div className="min-w-0">
             <div className="mb-2 flex items-center gap-2">
               <StatusBadge status={job.status === "published" ? "Published" : job.status === "closed" ? "Closed" : "Draft"} />
-              {job.office && <span className="truncate text-[10px] text-muted-foreground">Dept: {job.office}</span>}
+              {job.office && <span className="truncate text-micro text-muted-foreground">Dept: {job.office}</span>}
             </div>
             <h2 id="job-view-title" className="text-xl font-semibold tracking-[-.02em] text-navy">{job.title}</h2>
-            <p className="mt-1 text-[10px] text-muted-foreground">
+            <p className="mt-1 text-micro text-muted-foreground">
               {titleCase(company?.company_name) || "My Company"} · Posted on {new Date(job.created_at).toLocaleDateString()}
             </p>
           </div>
@@ -59,7 +59,7 @@ export default function JobPostDetailDialog({ job, company, onClose, onEdit, onT
         {job.tags?.length > 0 && (
           <div className="flex flex-wrap gap-1.5">
             {job.tags.map((tag) => (
-              <span key={tag} className="rounded-full bg-blue-soft px-2 py-0.5 text-[10px] font-medium text-primary">
+              <span key={tag} className="rounded-full bg-blue-soft px-2 py-0.5 text-micro font-medium text-primary">
                 {tag}
               </span>
             ))}
@@ -72,7 +72,7 @@ export default function JobPostDetailDialog({ job, company, onClose, onEdit, onT
             <Users className="size-5 shrink-0 text-primary" aria-hidden="true" />
             <div>
               <p className="text-xs font-semibold text-navy">{job.applicant_count || 0} Candidates Applied</p>
-              <p className="mt-1 text-[10px] text-muted-foreground">Track and review resumes in your applicant pipeline</p>
+              <p className="mt-1 text-micro text-muted-foreground">Track and review resumes in your applicant pipeline</p>
             </div>
           </div>
           <Link to="/employer/applicants" className="text-link text-xs">

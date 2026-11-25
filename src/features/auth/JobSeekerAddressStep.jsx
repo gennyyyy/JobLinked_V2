@@ -6,7 +6,7 @@ import FormSelect from "@/shared/components/FormSelect";
 function JobSeekerAddressStep({ form, errors, set, inputClass, labelClass, reqMark }) {
   return (
             <section className="surface p-5">
-              <p className="font-mono text-[11px] tracking-[0.2em] text-primary uppercase mb-4 font-semibold">Step 2 — Address Information</p>
+              <p className="font-mono text-xs tracking-[0.2em] text-primary uppercase mb-4 font-semibold">Step 2 — Address Information</p>
               <div className="space-y-4">
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <div>

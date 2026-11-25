@@ -10,16 +10,16 @@ export default function AuthFrame({ title, subtitle, children }) {
       }}
     >
       <div className="page-container py-10 sm:py-14">
-        <div className="mx-auto grid max-w-[1020px] overflow-hidden rounded-2xl border bg-white lg:grid-cols-[.7fr_1fr]">
+        <div className="mx-auto grid max-w-[1020px] overflow-hidden rounded-panel border bg-card lg:grid-cols-[.7fr_1fr]">
           <aside className="relative hidden flex-col justify-between bg-navy p-10 text-white lg:flex">
             <div>
               <span className="flex size-12 items-center justify-center rounded-xl border border-white/15 bg-white/5">
                 <Building2 className="size-6" />
               </span>
-              <p className="mt-10 text-[10px] font-medium uppercase tracking-[.15em] text-white/55">
+              <p className="mt-10 text-micro font-medium uppercase tracking-[.15em] text-white/55">
                 Local talent. Local opportunities.
               </p>
-              <h2 className="mt-4 text-[36px] font-semibold leading-tight tracking-[-.04em] text-white">
+              <h2 className="mt-4 text-4xl font-semibold leading-tight tracking-[-.04em] text-white">
                 Your next chapter
                 <br />
                 could start
@@ -50,7 +50,7 @@ export default function AuthFrame({ title, subtitle, children }) {
             </div>
           </aside>
           <div className="p-6 sm:p-10">
-            <h1 className="text-[29px] font-semibold tracking-[-.04em]">{title}</h1>
+            <h1 className="text-3xl font-semibold tracking-[-.04em]">{title}</h1>
             <p className="mb-7 mt-2 text-xs leading-6 text-muted-foreground">{subtitle}</p>
             {children}
           </div>

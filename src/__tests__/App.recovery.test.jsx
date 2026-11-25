@@ -43,13 +43,13 @@ describe('App recovery entry', () => {
     auth = { user: { id: 'u1' }, loading: false, logout: vi.fn() }
   })
 
-  it('lands on the reset screen from a recovery fragment without signing out', async () => {
+  it('sends a stale recovery fragment to the expired-link page without signing out', async () => {
     await renderAppAt('/#access_token=x&type=recovery')
 
     // The fragment is no longer the credential (Better Auth emails ?token=…),
-    // so the screen asks for a new link — but it is the reset screen, and the
-    // tab's session is left alone (ADR-055's invariant).
-    expect(await screen.findByRole('heading', { name: /reset link issue/i }, { timeout: 5000 })).toBeInTheDocument()
+    // so the reset screen forwards to the expired-link page — and the tab's
+    // session is left alone (ADR-055's invariant).
+    expect(await screen.findByRole('heading', { name: /this link has expired/i }, { timeout: 5000 })).toBeInTheDocument()
     expect(auth.logout).not.toHaveBeenCalled()
   })
 

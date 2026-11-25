@@ -35,9 +35,9 @@ export default function JobCard({ job, href, showMatch = false, match, matchReas
         <div className="mb-4 flex items-start gap-3">
           <CompanyMark initials={companyInitial(job)} src={employerLogoUrl(job.employers)} />
           <div className="min-w-0 flex-1 pt-0.5">
-            <p className="truncate text-[11px] font-medium text-muted-foreground">{companyName(job)}</p>
+            <p className="truncate text-xs font-medium text-muted-foreground">{companyName(job)}</p>
             {job.employers?.accreditation_status === 'approved' && (
-              <span className="mt-1 flex items-center gap-1 text-[10px] text-teal"><Check className="size-3" />Verified employer</span>
+              <span className="mt-1 flex items-center gap-1 text-micro text-teal"><Check className="size-3" />Verified employer</span>
             )}
           </div>
           {canSave && (
@@ -53,9 +53,9 @@ export default function JobCard({ job, href, showMatch = false, match, matchReas
           )}
         </div>
         <CardTitle>
-          <Link to={href} className="text-[17px] leading-6 tracking-[-.025em] transition-colors hover:text-primary after:absolute after:inset-0 after:content-['']">{titleCase(job.title)}</Link>
+          <Link to={href} className="leading-6 tracking-[-.025em] transition-colors hover:text-primary after:absolute after:inset-0 after:content-['']">{titleCase(job.title)}</Link>
         </CardTitle>
-        <CardDescription className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-2 text-[11px]">
+        <CardDescription className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-2 text-xs">
           <span className="flex items-center gap-1"><MapPin className="size-3" />{jobLocation(job)}</span>
           <span className="flex items-center gap-1"><BriefcaseBusiness className="size-3" />{jobType(job)}</span>
           {job.work_arrangement && (
@@ -82,24 +82,24 @@ export default function JobCard({ job, href, showMatch = false, match, matchReas
             {highlights.map((tag) => <Badge key={tag} variant="outline">{tag}</Badge>)}
           </div>
         )}
-        <p className="text-[15px] font-semibold text-navy">
+        <p className="text-sm font-semibold text-navy">
           {salaryLabel(job)}
-          {job.salary_min ? <span className="ml-1 text-[10px] font-normal text-muted-foreground">/ month</span> : null}
+          {job.salary_min ? <span className="ml-1 text-micro font-normal text-muted-foreground">/ month</span> : null}
         </p>
         {hasMatch && (
-          <p className="text-[11px] leading-5 text-muted-foreground">
+          <p className="text-xs leading-5 text-muted-foreground">
             {match.matched.length} of {match.total} listed skills match: {match.matched.join(', ') || 'no exact matches yet'}.
           </p>
         )}
         {matchReason && (
-          <p className="text-[11px] leading-5 text-muted-foreground">{matchReason}</p>
+          <p className="text-xs leading-5 text-muted-foreground">{matchReason}</p>
         )}
       </CardContent>
       <CardFooter className="justify-between bg-white py-3">
-        <span className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+        <span className="flex items-center gap-1.5 text-micro text-muted-foreground">
           <Clock3 className="size-3" />{open ? timeAgo(job.created_at) : 'Applications closed'}
         </span>
-        <span className="text-[10px] text-muted-foreground">
+        <span className="text-micro text-muted-foreground">
           {closes ? `${open ? 'Closes' : 'Closed'} ${closes}` : 'No closing date'}
         </span>
       </CardFooter>

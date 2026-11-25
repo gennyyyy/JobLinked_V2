@@ -1,6 +1,6 @@
 import { Button } from "../../components/ui/button";
 // Shared building blocks for the three portal dashboards so headers, stat
-// cards, and section cards stay visually identical everywhere.
+// cards, and pagination stay visually identical everywhere.
 import { AlertTriangle, ChevronLeft, ChevronRight } from "lucide-react";
 
 // The one load-error treatment (role=alert + danger token); replaces three
@@ -23,28 +23,7 @@ export function InlineError({ message, onRetry }) {
   );
 }
 
-export function SectionCard({ title, subtitle, action, children, className = "", titleAs = "h2" }) {
-  const TitleTag = titleAs;
-  return (
-    <section className={`surface overflow-hidden rounded-2xl ${className}`}>
-      <div className="flex items-center justify-between gap-3 border-b px-5 py-4">
-        <div className="flex min-w-0 items-center gap-3">
-          <div className="min-w-0">
-            <TitleTag className="truncate text-base font-semibold text-navy">{title}</TitleTag>
-            {subtitle ? <p className="mt-1 text-xs text-muted-foreground">{subtitle}</p> : null}
-          </div>
-        </div>
-        {action}
-      </div>
-      <div className="p-5">{children}</div>
-    </section>
-  );
-}
-
-// Prev/next footer for the paginated admin lists ({ data, total, page,
-// pageSize } envelopes). Renders nothing while everything fits on one page —
-// so small datasets (and tests with short fixtures) see no UI change.
-export function Pager({ page, pageSize, total, onChange, align = 'between', label = 'records' }) {
+export function Pager({ page, pageSize, total, onChange, align = 'center', label = 'records' }) {
   // Reference list pagination: "1–8 of 26 records" plus icon prev/next.
   const pages = Math.max(1, Math.ceil((total || 0) / (pageSize || 1)))
   const current = Math.min(page || 1, pages)

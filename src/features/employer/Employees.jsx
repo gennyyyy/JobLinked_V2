@@ -162,7 +162,7 @@ export default function Employees() {
                 <TableRow key={employee.id}>
                   <TableCell>
                     <p className="font-medium text-navy">{titleCase(employee.seeker?.full_name)}</p>
-                    <p className="mt-1 text-[10px] text-muted-foreground">{employee.seeker?.email}</p>
+                    <p className="mt-1 text-micro text-muted-foreground">{employee.seeker?.email}</p>
                   </TableCell>
                   <TableCell className="text-xs text-muted-foreground">{employee.job?.title}</TableCell>
                   <TableCell className="whitespace-nowrap">{formatDate(employee.updated_at)}</TableCell>

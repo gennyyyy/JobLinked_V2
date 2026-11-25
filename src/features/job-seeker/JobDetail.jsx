@@ -93,7 +93,7 @@ function JobDetail() {
           <div className="flex min-w-0 gap-5">
             <CompanyMark initials={String(job.employers?.company_name || "J").slice(0, 2).toUpperCase()} src={employerLogoUrl(job.employers)} large />
             <div className="min-w-0">
-              <h1 className="text-2xl font-semibold tracking-[-.035em] md:text-[30px]">{titleCase(job.title)}</h1>
+              <h1 className="text-2xl font-semibold tracking-[-.035em] md:text-3xl">{titleCase(job.title)}</h1>
               <p className="mt-2 text-sm text-muted-foreground">{companyName}</p>
               <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-muted-foreground">
                 <span className="flex items-center gap-1.5"><MapPin className="size-3.5" />Brgy. {titleCase(job.location)}, Santa Maria</span>
@@ -103,7 +103,7 @@ function JobDetail() {
           </div>
           <p className="text-sm font-semibold text-navy sm:text-right">
             {salary}
-            <span className="mt-1 block text-[10px] font-normal text-muted-foreground">{job.salary_min ? "per month" : "salary"}</span>
+            <span className="mt-1 block text-micro font-normal text-muted-foreground">{job.salary_min ? "per month" : "salary"}</span>
           </p>
         </div>
       </div>
@@ -176,7 +176,7 @@ function JobDetail() {
                 <div className="flex gap-3" key={label}>
                   <Icon className="mt-0.5 size-4 shrink-0 text-primary" />
                   <div className="min-w-0">
-                    <dt className="text-[10px] text-muted-foreground">{label}</dt>
+                    <dt className="text-micro text-muted-foreground">{label}</dt>
                     <dd className="mt-1 text-xs font-medium text-navy">{value}</dd>
                   </div>
                 </div>
@@ -184,7 +184,7 @@ function JobDetail() {
               <div className="flex gap-3">
                 <CheckCircle2 className={`mt-0.5 size-4 shrink-0 ${deadlinePassed ? "text-muted-foreground" : "text-success"}`} />
                 <div className="min-w-0">
-                  <dt className="text-[10px] text-muted-foreground">Listing status</dt>
+                  <dt className="text-micro text-muted-foreground">Listing status</dt>
                   <dd className={`mt-1 text-xs font-medium ${deadlinePassed ? "text-muted-foreground" : "text-success"}`}>
                     {deadlinePassed ? "Closed — application deadline passed" : "Verified Open"}
                   </dd>
@@ -220,7 +220,7 @@ function JobDetail() {
                       </select>
                     </>
                   )}
-                  <p className="text-[10px] leading-5 text-muted-foreground">PDF up to 2 MB; DOC or DOCX up to 5 MB.</p>
+                  <p className="text-micro leading-5 text-muted-foreground">PDF up to 2 MB; DOC or DOCX up to 5 MB.</p>
                   {deadlinePassed && (
                     <p className="text-xs text-danger">Applications are closed — the deadline has passed.</p>
                   )}

@@ -42,33 +42,33 @@ function SeekerProfileCard({ applicant }) {
   }
 
   return (
-    <div className="bg-card border border-border rounded-xl p-4 md:p-5 shadow-xs space-y-4">
+    <div className="surface space-y-4">
       <div className="flex items-center gap-2">
         <div className="w-7 h-7 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
           <FileText className="w-3.5 h-3.5 text-primary" />
         </div>
         <div>
           <p className="text-sm font-semibold text-foreground">Credentials — <span>{titleCase(applicant.seeker?.full_name)}</span></p>
-          <p className="text-[11px] text-muted-foreground">Contact, preferences, education & work history</p>
+          <p className="text-xs text-muted-foreground">Contact, preferences, education & work history</p>
         </div>
       </div>
 
       <div>
-        <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground mb-2">Contact & Preferences</p>
+        <p className="font-mono text-micro uppercase tracking-widest text-muted-foreground mb-2">Contact & Preferences</p>
         <dl className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
-          <div className="p-3 rounded-xl bg-muted border border-border"><dt className="font-mono text-[10px] tracking-widest uppercase text-muted-foreground">Email</dt><dd className="mt-1 text-xs text-muted-foreground break-all">{applicant.seeker?.email || "—"}</dd></div>
-          <div className="p-3 rounded-xl bg-muted border border-border"><dt className="font-mono text-[10px] tracking-widest uppercase text-muted-foreground">Phone</dt><dd className="mt-1 text-xs text-muted-foreground">{applicant.seeker?.phone || "—"}</dd></div>
-          <div className="p-3 rounded-xl bg-muted border border-border"><dt className="font-mono text-[10px] tracking-widest uppercase text-muted-foreground">Barangay</dt><dd className="mt-1 text-xs text-muted-foreground">{titleCase(applicant.seeker?.barangay_district) || "—"}</dd></div>
-          <div className="p-3 rounded-xl bg-muted border border-border"><dt className="font-mono text-[10px] tracking-widest uppercase text-muted-foreground">Employment Status</dt><dd className="mt-1 text-xs text-muted-foreground">{applicant.seeker?.employment_status || "—"}</dd></div>
-          <div className="p-3 rounded-xl bg-muted border border-border"><dt className="font-mono text-[10px] tracking-widest uppercase text-muted-foreground">Preferred Jobs</dt><dd className="mt-1 text-xs text-muted-foreground">{splitPref(applicant.seeker?.preferred_position).join(", ") || "—"}</dd></div>
-          <div className="p-3 rounded-xl bg-muted border border-border"><dt className="font-mono text-[10px] tracking-widest uppercase text-muted-foreground">Preferred Locations</dt><dd className="mt-1 text-xs text-muted-foreground">{splitPref(applicant.seeker?.preferred_location).join(", ") || "—"}</dd></div>
+          <div className="p-3 rounded-xl bg-muted border border-border"><dt className="font-mono text-micro tracking-widest uppercase text-muted-foreground">Email</dt><dd className="mt-1 text-xs text-muted-foreground break-all">{applicant.seeker?.email || "—"}</dd></div>
+          <div className="p-3 rounded-xl bg-muted border border-border"><dt className="font-mono text-micro tracking-widest uppercase text-muted-foreground">Phone</dt><dd className="mt-1 text-xs text-muted-foreground">{applicant.seeker?.phone || "—"}</dd></div>
+          <div className="p-3 rounded-xl bg-muted border border-border"><dt className="font-mono text-micro tracking-widest uppercase text-muted-foreground">Barangay</dt><dd className="mt-1 text-xs text-muted-foreground">{titleCase(applicant.seeker?.barangay_district) || "—"}</dd></div>
+          <div className="p-3 rounded-xl bg-muted border border-border"><dt className="font-mono text-micro tracking-widest uppercase text-muted-foreground">Employment Status</dt><dd className="mt-1 text-xs text-muted-foreground">{applicant.seeker?.employment_status || "—"}</dd></div>
+          <div className="p-3 rounded-xl bg-muted border border-border"><dt className="font-mono text-micro tracking-widest uppercase text-muted-foreground">Preferred Jobs</dt><dd className="mt-1 text-xs text-muted-foreground">{splitPref(applicant.seeker?.preferred_position).join(", ") || "—"}</dd></div>
+          <div className="p-3 rounded-xl bg-muted border border-border"><dt className="font-mono text-micro tracking-widest uppercase text-muted-foreground">Preferred Locations</dt><dd className="mt-1 text-xs text-muted-foreground">{splitPref(applicant.seeker?.preferred_location).join(", ") || "—"}</dd></div>
         </dl>
         <div className="mt-2.5">
-          <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground mb-1.5">Skills</p>
+          <p className="font-mono text-micro uppercase tracking-widest text-muted-foreground mb-1.5">Skills</p>
           {applicant.seeker?.skills?.length ? (
             <div className="flex flex-wrap gap-1.5">
               {applicant.seeker.skills.map((skill) => (
-                <span key={skill} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-medium bg-primary/10 border border-primary/20 text-primary">{skill}</span>
+                <span key={skill} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-primary/10 border border-primary/20 text-primary">{skill}</span>
               ))}
             </div>
           ) : <p className="text-xs text-muted-foreground">No skills listed.</p>}
@@ -84,7 +84,7 @@ function SeekerProfileCard({ applicant }) {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
         <div className="p-3 rounded-xl bg-muted border border-border">
-          <p className="font-mono text-[10px] tracking-widest uppercase text-muted-foreground mb-2 flex items-center gap-1.5">
+          <p className="font-mono text-micro tracking-widest uppercase text-muted-foreground mb-2 flex items-center gap-1.5">
             <GraduationCap className="w-3.5 h-3.5" /> Education
           </p>
           {!credentials && <p className="text-xs text-muted-foreground">Loading credentials…</p>}
@@ -99,7 +99,7 @@ function SeekerProfileCard({ applicant }) {
           )}
         </div>
         <div className="p-3 rounded-xl bg-muted border border-border">
-          <p className="font-mono text-[10px] tracking-widest uppercase text-muted-foreground mb-2 flex items-center gap-1.5">
+          <p className="font-mono text-micro tracking-widest uppercase text-muted-foreground mb-2 flex items-center gap-1.5">
             <Briefcase className="w-3.5 h-3.5" /> Work Experience
           </p>
           {!credentials && <p className="text-xs text-muted-foreground">Loading credentials…</p>}

@@ -89,7 +89,7 @@ function TermsModal({ open, onClose, onRead, onAccept, title = "Data Collection 
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-xs"
+      className="modal-overlay z-[9999]"
       onClick={(e) => {
         if (e.target === e.currentTarget) closeIfRead();
       }}
@@ -99,7 +99,7 @@ function TermsModal({ open, onClose, onRead, onAccept, title = "Data Collection 
         role="dialog"
         aria-modal="true"
         aria-labelledby="terms-title"
-        className="bg-card border border-primary rounded-lg p-5 max-w-lg w-[calc(100%-2rem)] max-h-[80vh] flex flex-col shadow-2xl"
+        className="modal-panel max-w-lg max-h-[80vh] flex flex-col"
       >
         <h2 id="terms-title" className="text-base font-bold text-dark-blue mb-3">
           {title}
@@ -128,7 +128,7 @@ function TermsModal({ open, onClose, onRead, onAccept, title = "Data Collection 
                 onAccept?.();
                 onClose?.();
               }}
-              className="px-4 py-2 text-sm font-medium text-white rounded-xl bg-primary hover:bg-primary-hover transition-colors cursor-pointer"
+              className="text-sm font-medium text-white bg-primary hover:bg-primary-hover transition-colors cursor-pointer"
             >
               Close &amp; Accept
             </Button>

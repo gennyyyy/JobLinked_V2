@@ -411,9 +411,9 @@ function CompanyProfile() {
               <label htmlFor="company-logo-picker" className="text-sm font-semibold text-foreground">Company Logo</label>
               <p className="text-xs leading-5 text-muted-foreground">Upload a logo to appear with your company details and public job listings.</p>
               <input id="company-logo-picker" type="file" accept="image/png,image/jpeg,image/webp" disabled={logoBusy} className="sr-only" aria-label="Upload company logo" onChange={handleLogo} />
-              {logoBusy && <p role="status" className="text-[11px] text-muted-foreground">Uploading…</p>}
-              {logoStatus && !logoBusy && <p role="status" className="text-[11px] font-medium text-success">{logoStatus}</p>}
-              {logoError && <p role="alert" className="text-[11px] text-destructive">{logoError}</p>}
+              {logoBusy && <p role="status" className="text-xs text-muted-foreground">Uploading…</p>}
+              {logoStatus && !logoBusy && <p role="status" className="text-xs font-medium text-success">{logoStatus}</p>}
+              {logoError && <p role="alert" className="text-xs text-destructive">{logoError}</p>}
             </div>
           </div>
           <div className="grid gap-4 sm:grid-cols-2">

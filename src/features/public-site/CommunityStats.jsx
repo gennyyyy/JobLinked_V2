@@ -58,7 +58,7 @@ export default function CommunityStats() {
 
   return (
     <section className="bg-navy text-white">
-      <div className="page-container flex flex-col gap-10 py-14 md:py-16 lg:flex-row lg:items-end lg:justify-between">
+      <div className="page-container flex flex-col gap-10 py-16 md:py-20 lg:flex-row lg:items-end lg:justify-between">
         <div className="max-w-sm">
           <RevealText as="h2" className="text-2xl font-semibold leading-[1.15] tracking-[-0.03em] text-white" tier="display">Local connections. Real potential.</RevealText>
           <RevealText as="p" className="mt-3 text-sm leading-6 text-white/70">Platform counts only—not municipal employment statistics.</RevealText>
@@ -67,7 +67,7 @@ export default function CommunityStats() {
           {STAT_ITEMS.map(({ key, label, format }) => (
             <div key={key}>
               <CountUp
-                className="text-[38px] font-semibold leading-none tracking-[-0.04em] text-white tabular-nums md:text-[46px]"
+                className="text-4xl font-semibold leading-none tracking-[-0.04em] text-white tabular-nums md:text-5xl"
                 aria-label={`${label} count`}
                 value={format ? format() : (stats?.[key] ?? null)}
               />

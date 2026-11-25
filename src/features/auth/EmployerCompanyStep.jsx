@@ -20,7 +20,7 @@ function EmployerCompanyStep({ errors, setErrors, inputClass, labelClass, reqMar
   }
   return (
             <section className="surface p-5">
-              <p className="font-mono text-[11px] tracking-[0.2em] text-primary uppercase mb-4 font-semibold">Step 1 — Company Details</p>
+              <p className="font-mono text-xs tracking-[0.2em] text-primary uppercase mb-4 font-semibold">Step 1 — Company Details</p>
               <div className="space-y-4">
                 <div className="grid gap-4 sm:grid-cols-2">
                 <div className="sm:col-span-2">

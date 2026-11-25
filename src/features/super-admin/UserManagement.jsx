@@ -23,6 +23,7 @@ import useAuth from '@/shared/hooks/useAuth'
 import { hasPermission } from '@/shared/lib/permissions'
 import { PageSkeleton } from '@/shared/components/Skeletons'
 import { InlineError, Pager } from '@/shared/components/dashboard'
+import Flash from '@/shared/components/Flash'
 import useDialog from '@/shared/hooks/useDialog'
 import { titleCase } from '@/shared/utils/titleCase'
 import { formatPhoneDisplay, normalizePhone, withPrefix } from '@/shared/utils/phone'
@@ -64,13 +65,57 @@ const detailPeriod = (start, end) => (start || end
   ? `${formatDetailDate(start)} – ${end ? formatDetailDate(end) : 'Present'}`
   : '—')
 
+// One confirmed access change can write two audit rows (system role + custom
+// role). The history table renders one entry per change; the raw rows stay the
+// records. Dedupe by id first so a repeated API row can never duplicate a row.
+const LEGACY_PAIR_WINDOW_MS = 10_000
+
+function accessEntries(logs) {
+  const seen = new Set()
+  const rows = []
+  for (const log of logs) {
+    if (!log || seen.has(String(log.id))) continue
+    seen.add(String(log.id))
+    rows.push(log)
+  }
+  const entries = []
+  const byChange = new Map()
+  const roles = []
+  const tags = []
+  for (const log of rows) {
+    if (log.details?.change_id) {
+      const key = String(log.details.change_id)
+      const entry = byChange.get(key) || { key, role: null, tag: null }
+      if (log.action === 'user.role.change') entry.role = log
+      else if (log.action === 'user.custom-role.assign') entry.tag = log
+      else continue
+      byChange.set(key, entry)
+    } else if (log.action === 'user.role.change') roles.push(log)
+    else if (log.action === 'user.custom-role.assign') tags.push(log)
+  }
+  entries.push(...byChange.values())
+  // ponytail: rows written before change_id existed are paired by target,
+  // actor, and a ≤10 s window — display-only, one role + one tag per entry.
+  for (const tag of tags) {
+    const i = roles.findIndex((role) => String(role.entity_id) === String(tag.entity_id)
+      && String(role.user_id) === String(tag.user_id)
+      && Math.abs(new Date(role.created_at) - new Date(tag.created_at)) <= LEGACY_PAIR_WINDOW_MS)
+    const role = i >= 0 ? roles.splice(i, 1)[0] : null
+    entries.push({ key: `${role?.id ?? 'tag'}-${tag.id}`, role, tag })
+  }
+  for (const role of roles) entries.push({ key: `role-${role.id}`, role, tag: null })
+  return entries
+    .sort((a, b) => new Date((b.role || b.tag).created_at) - new Date((a.role || a.tag).created_at))
+    .slice(0, 50)
+}
+
 function DetailRecord({ items }) {
   return (
     <li className="rounded-xl border p-3">
       <dl className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         {items.map(([label, value]) => (
           <div key={label}>
-            <dt className="text-[10px] uppercase tracking-[.14em] text-muted-foreground">{label}</dt>
+            <dt className="text-micro uppercase tracking-[.14em] text-muted-foreground">{label}</dt>
             <dd className="mt-0.5 text-xs text-navy">{value || '—'}</dd>
           </div>
         ))}
@@ -107,6 +152,7 @@ function UserManagement() {
   const [inviting, setInviting] = useState(false)
   const [history, setHistory] = useState([])
   const [accessTarget, setAccessTarget] = useState(null)
+  const [accessChangeId, setAccessChangeId] = useState('')
   const [accessRole, setAccessRole] = useState('')
   const [accessStatus, setAccessStatus] = useState('active')
   const [accessReason, setAccessReason] = useState('')
@@ -173,6 +219,21 @@ function UserManagement() {
     return () => clearTimeout(t)
   }, [seekerFilter])
 
+  // Both access-change actions feed the one history table; each is capped at
+  // 50 and the render view merges them. Kept as its own callback so a confirmed
+  // change can refresh the table without a page reload.
+  const loadHistory = useCallback(() => {
+    if (!(canRoles && canHistory)) return Promise.resolve([])
+    return Promise.all([
+      listAuditLogs({ action: 'user.role.change', limit: 50 }).catch(() => []),
+      listAuditLogs({ action: 'user.custom-role.assign', limit: 50 }).catch(() => []),
+    ]).then(([roleLogs, tagLogs]) => {
+      const merged = [...(roleLogs || []), ...(tagLogs || [])]
+      setHistory(merged)
+      return merged
+    })
+  }, [canRoles, canHistory])
+
   // ADR-042 gates the calls, not just the UI: a roles-only admin never touches
   // the user directory, and the access history is read only with logs.view.
   useEffect(() => {
@@ -190,16 +251,15 @@ function UserManagement() {
     }
     Promise.all([
       canUsers || canRoles ? listRoles().catch(() => []) : Promise.resolve([]),
-      canRoles && canHistory ? listAuditLogs({ action: 'user.role.change', limit: 50 }).catch(() => []) : Promise.resolve([]),
+      loadHistory(),
       canUsers ? loadAll().catch(() => []) : Promise.resolve([]),
     ])
-      .then(([roles, logs, everyone]) => {
+      .then(([roles, , everyone]) => {
         setCustomRoles(roles || [])
-        setHistory(Array.isArray(logs) ? logs : [])
         setAllUsers(Array.isArray(everyone) ? everyone : (everyone?.data || []))
       })
       .finally(() => setLoading(false))
-  }, [canUsers, canRoles, canHistory])
+  }, [canUsers, canRoles, loadHistory])
 
   // Admin seeker depth (Addendum A): the four child reads fire together when
   // the dialog opens, so tab switches are instant and there is one error line.
@@ -223,6 +283,9 @@ function UserManagement() {
 
   function openAccess(user) {
     setAccessTarget(user)
+    // One id per dialog session: a role write and a custom-role write from the
+    // same confirm share it, and a retry after a partial failure reuses it.
+    setAccessChangeId(crypto.randomUUID())
     setAccessRole(user.custom_role_id ? `custom:${user.custom_role_id}` : `sys:${user.role}`)
     setAccessStatus(user.status === 'active' ? 'active' : 'suspended')
     setAccessReason('')
@@ -266,19 +329,21 @@ function UserManagement() {
     }
     setAccessBusy(true)
     setAccessError('')
+    const reason = accessReason.trim()
     try {
       if (accessRole.startsWith('custom:')) {
         const role = customRoles.find((item) => String(item.id) === accessRole.slice(7))
         if (!role) throw new Error('Custom role not found — refresh the page')
-        if (accessTarget.role !== role.base_role) await assignRole(accessTarget.id, role.base_role)
-        await assignCustomRole(accessTarget.id, role.id)
+        if (accessTarget.role !== role.base_role) await assignRole(accessTarget.id, role.base_role, reason, accessChangeId)
+        await assignCustomRole(accessTarget.id, role.id, reason, accessChangeId)
       } else if (accessRole.startsWith('sys:')) {
         const role = accessRole.slice(4)
-        if (accessTarget.custom_role_id) await assignCustomRole(accessTarget.id, null)
-        if (accessTarget.role !== role) await assignRole(accessTarget.id, role)
+        if (accessTarget.custom_role_id) await assignCustomRole(accessTarget.id, null, reason, accessChangeId)
+        if (accessTarget.role !== role) await assignRole(accessTarget.id, role, reason, accessChangeId)
       }
       if (accessStatus !== accessTarget.status) await updateUser(accessTarget.id, { status: accessStatus })
       await loadUsers(page)
+      await loadHistory()
       setSuccess(`Access updated for ${titleCase(accessTarget.full_name) || accessTarget.email}.`)
       setAccessTarget(null)
       setTimeout(() => setSuccess(''), 4000)
@@ -400,20 +465,40 @@ function UserManagement() {
     .filter(Boolean)
     .join(', ')
 
+  // History rows are grouped at render time; the raw audit rows stay in state.
+  const historyEntries = accessEntries(history)
+
+  // Access column: the custom-role row's new tag. Only a custom-role change
+  // names a role there — a system role move already reads under Previous/New
+  // role. Rows written before `to_custom_role_id` existed stored
+  // `custom_role_id` instead; a missing key means the entry has no custom-role
+  // detail at all. An id that no longer resolves means the role was deleted.
+  const accessLabel = (entry) => {
+    if (!entry.tag) return '—'
+    const details = entry.tag.details || {}
+    if (!('to_custom_role_id' in details) && !('custom_role_id' in details)) return '—'
+    const id = details.to_custom_role_id ?? details.custom_role_id
+    if (id == null) return 'No custom role'
+    return customRoles.find((role) => String(role.id) === String(id))?.name || `Custom role #${id}`
+  }
+
+  const entryReason = (entry) => [entry.role, entry.tag]
+    .map((log) => log?.details?.reason)
+    .find((reason) => reason && String(reason).trim()) || 'Not recorded'
+
+  // target_name comes from the audit endpoint, so a user outside the current
+  // page still resolves; the loaded page is only a fallback.
+  const entryUser = (entry) => titleCase(entry.role?.target_name || entry.tag?.target_name)
+    || titleCase(users.find((row) => String(row.id) === String(entry.role?.entity_id || entry.tag?.entity_id))?.full_name)
+    || '—'
+
   return (
-    <div className="space-y-6 pb-12">
-      <div>
-        <PageHeading
-          title="User Management"
-          description="Find registered users, assign their system roles, and define the custom roles that bundle their permissions."
-          compact
-          action={canUsers ? (
-            <Button type="button" onClick={() => { setActionError(''); setShowInvite(true) }}>
-              Add user
-            </Button>
-          ) : undefined}
-        />
-      </div>
+    <>
+      <PageHeading
+        title="User Management"
+        description="Find registered users, assign their system roles, and define the custom roles that bundle their permissions."
+        compact
+      />
 
       {!canView ? (
         <Panel title="No access to user management">
@@ -423,24 +508,34 @@ function UserManagement() {
         </Panel>
       ) : (
         <Tabs value={activeSection.value} onValueChange={setTab}>
-          <Panel title={activeSection.title} description={activeSection.description} size="sm">
-            <TabsList className="mb-3 h-auto w-full flex-wrap group-data-horizontal/tabs:h-auto">
-              {visibleTabs.map((t) => (
-                <TabsTrigger key={t.value} value={t.value}>{t.label}</TabsTrigger>
-              ))}
-            </TabsList>
+          <div className="mb-4 space-y-1">
+            <h2 className="text-base font-medium leading-snug">{activeSection.title}</h2>
+            <p className="text-sm text-muted-foreground">{activeSection.description}</p>
+          </div>
+          <TabsList className="mb-3 h-auto w-full flex-wrap group-data-horizontal/tabs:h-auto">
+            {visibleTabs.map((t) => (
+              <TabsTrigger key={t.value} value={t.value}>{t.label}</TabsTrigger>
+            ))}
+          </TabsList>
           {canUsers && (
             <TabsContent value="users" className="space-y-6">
-              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                <Panel title="Total system users"><CountUp value={totalUsers} className="text-2xl font-semibold text-navy" /></Panel>
-                <Panel title="Job seekers"><CountUp value={jobSeekerCount} className="text-2xl font-semibold text-navy" /></Panel>
-                <Panel title="Employers"><CountUp value={employerCount} className="text-2xl font-semibold text-navy" /></Panel>
-                <Panel title="PESO administrators"><CountUp value={adminCount} className="text-2xl font-semibold text-navy" /></Panel>
-                <Panel title="Active accounts"><CountUp value={activeCount} className="text-2xl font-semibold text-navy" /></Panel>
-                <Panel title="Suspended accounts"><CountUp value={suspendedCount} className="text-2xl font-semibold text-navy" /></Panel>
+              <div className="surface grid grid-cols-2 gap-4 sm:grid-cols-3 xl:grid-cols-6">
+                {[
+                  ['Total system users', totalUsers],
+                  ['Job seekers', jobSeekerCount],
+                  ['Employers', employerCount],
+                  ['PESO administrators', adminCount],
+                  ['Active accounts', activeCount],
+                  ['Suspended accounts', suspendedCount],
+                ].map(([label, value]) => (
+                  <div key={label}>
+                    <CountUp value={value} className="text-xl font-semibold text-navy" />
+                    <p className="mt-1 text-xs text-muted-foreground">{label}</p>
+                  </div>
+                ))}
               </div>
 
-              {success && <p className="rounded-xl border border-success/20 bg-success-soft px-4 py-3 text-xs text-success">{success}</p>}
+              {success && <Flash>{success}</Flash>}
               {actionError && <InlineError message={actionError} />}
 
               <Panel
@@ -473,6 +568,7 @@ function UserManagement() {
                       onChange={(e) => { setStatusFilter(e.target.value); setPage(1) }}
                     />
                   </div>
+                  <Button type="button" className="sm:shrink-0" onClick={() => { setActionError(''); setShowInvite(true) }}>Add user</Button>
                 </div>
 
                 {/* Seeker profile filters: only meaningful for job_seekers, so they
@@ -533,19 +629,19 @@ function UserManagement() {
                       <TableBody>
                         {users.map((user) => (
                           <TableRow key={user.id}>
-                            <TableCell className="whitespace-normal break-all text-[10px] text-muted-foreground">{user.id}</TableCell>
+                            <TableCell className="whitespace-normal break-all text-micro text-muted-foreground">{user.id}</TableCell>
                             <TableCell className="whitespace-normal break-words text-xs font-medium text-navy">{titleCase(user.full_name)}</TableCell>
-                            <TableCell className="whitespace-normal break-all text-[11px] text-muted-foreground">{user.email}</TableCell>
+                            <TableCell className="whitespace-normal break-all text-xs text-muted-foreground">{user.email}</TableCell>
                             <TableCell className="whitespace-normal">
                               <div className="flex flex-col gap-1">
-                                <span className="text-[11px] font-medium text-navy">{SYSTEM_ROLE_LABELS[user.role] || user.role}</span>
+                                <span className="text-xs font-medium text-navy">{SYSTEM_ROLE_LABELS[user.role] || user.role}</span>
                                 {user.custom_role_id && (
-                                  <span className="text-[10px] text-primary">
+                                  <span className="text-micro text-primary">
                                     {customRoles.find((role) => String(role.id) === String(user.custom_role_id))?.name || 'Custom role'}
                                   </span>
                                 )}
                                 {currentUser && user.id === currentUser.id && (
-                                  <span className="text-[9px] uppercase tracking-[.14em] text-muted-foreground">You — role locked</span>
+                                  <span className="text-micro uppercase tracking-[.14em] text-muted-foreground">You — role locked</span>
                                 )}
                               </div>
                             </TableCell>
@@ -554,14 +650,14 @@ function UserManagement() {
                                 them (employers carry a barangay too, but not the seeker
                                 meaning), so any other role reads as "—". */}
                             {SEEKER_COLUMNS.map(([field]) => (
-                              <TableCell key={field} className="whitespace-normal break-words text-[11px] text-muted-foreground">
+                              <TableCell key={field} className="whitespace-normal break-words text-xs text-muted-foreground">
                                 {user.role === 'job-seeker' ? (user[field] || '—') : '—'}
                               </TableCell>
                             ))}
-                            <TableCell className="whitespace-normal text-[11px] text-muted-foreground">
+                            <TableCell className="whitespace-normal text-xs text-muted-foreground">
                               {new Date(user.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
                             </TableCell>
-                            <TableCell className="whitespace-normal text-[11px] text-muted-foreground">
+                            <TableCell className="whitespace-normal text-xs text-muted-foreground">
                               {new Date(user.updated_at || user.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
                             </TableCell>
                             <TableCell className="text-center">
@@ -611,7 +707,7 @@ function UserManagement() {
                     title="Role and access change history"
                     description="Previous role, new role, responsible administrator, timestamp, and reason are retained."
                   >
-                    {history.length ? (
+                    {historyEntries.length ? (
                       <Table>
                         <TableHeader>
                           <TableRow>
@@ -621,15 +717,15 @@ function UserManagement() {
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {history.map((log) => (
-                            <TableRow key={log.id}>
-                              <TableCell className="text-xs">{titleCase(users.find((row) => String(row.id) === String(log.entity_id))?.full_name) || '—'}</TableCell>
-                              <TableCell className="text-xs">{SYSTEM_ROLE_LABELS[log.details?.from] || log.details?.from || '—'}</TableCell>
-                              <TableCell className="text-xs">{SYSTEM_ROLE_LABELS[log.details?.to] || log.details?.to || '—'}</TableCell>
-                              <TableCell className="text-xs">—</TableCell>
-                              <TableCell className="text-xs">{log.actor_name || '—'}</TableCell>
-                              <TableCell className="text-xs">{new Date(log.created_at).toLocaleString('en-PH')}</TableCell>
-                              <TableCell className="max-w-64 whitespace-normal break-words text-xs">{log.details?.reason || '—'}</TableCell>
+                          {historyEntries.map((entry) => (
+                            <TableRow key={entry.key}>
+                              <TableCell className="text-xs">{entryUser(entry)}</TableCell>
+                              <TableCell className="text-xs">{SYSTEM_ROLE_LABELS[entry.role?.details?.from] || entry.role?.details?.from || '—'}</TableCell>
+                              <TableCell className="text-xs">{SYSTEM_ROLE_LABELS[entry.role?.details?.to] || entry.role?.details?.to || '—'}</TableCell>
+                              <TableCell className="text-xs">{accessLabel(entry)}</TableCell>
+                              <TableCell className="text-xs">{entry.role?.actor_name || entry.tag?.actor_name || '—'}</TableCell>
+                              <TableCell className="text-xs">{new Date((entry.role || entry.tag).created_at).toLocaleString('en-PH')}</TableCell>
+                              <TableCell className="max-w-64 whitespace-normal break-words text-xs">{entryReason(entry)}</TableCell>
                             </TableRow>
                           ))}
                         </TableBody>
@@ -641,12 +737,11 @@ function UserManagement() {
                 )}
             </TabsContent>
           )}
-          </Panel>
         </Tabs>
       )}
 
       {showInvite && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/60 p-4">
+        <div className="modal-overlay z-50">
           <form
             ref={inviteRef}
             onSubmit={handleInvite}
@@ -654,12 +749,12 @@ function UserManagement() {
             role="dialog"
             aria-modal="true"
             aria-labelledby="invite-title"
-            className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl border bg-card p-5 shadow-xl"
+            className="modal-panel max-h-[90vh] w-full max-w-lg overflow-y-auto"
           >
             <div className="flex items-start justify-between gap-3 border-b pb-4">
               <div>
                 <h2 id="invite-title" className="mt-2 text-lg font-semibold tracking-tight text-navy">Add user</h2>
-                <p className="mt-1 text-[11px] leading-5 text-muted-foreground">Send an invitation email to onboard a new municipal user or partner.</p>
+                <p className="mt-1 text-xs leading-5 text-muted-foreground">Send an invitation email to onboard a new municipal user or partner.</p>
               </div>
               <Button type="button" variant="ghost" size="icon" onClick={() => setShowInvite(false)} aria-label="Close">
                 <X aria-hidden="true" />
@@ -720,7 +815,7 @@ function UserManagement() {
               )}
             </div>
 
-            {actionError && <p role="alert" className="mt-4 rounded-xl border border-destructive/20 bg-danger-soft px-4 py-3 text-xs text-destructive">{actionError}</p>}
+            {actionError && <Flash variant="error" className="mt-4">{actionError}</Flash>}
 
             <div className="mt-6 flex justify-end gap-3 border-t pt-4">
               <Button type="button" variant="outline" onClick={() => setShowInvite(false)}>Cancel</Button>
@@ -739,7 +834,7 @@ function UserManagement() {
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={confirmAccess} className="flex flex-col gap-5">
-            <TextField label="User ID" readOnly value={accessTarget?.id || ''} />
+            <TextField label="User ID" disabled value={accessTarget?.id || ''} />
             <SelectField
               id="access-role"
               label="Assigned system role"
@@ -765,6 +860,7 @@ function UserManagement() {
                 value={accessReason}
                 onChange={(event) => { setAccessReason(event.target.value); setAccessError('') }}
                 placeholder="Explain why this access change is needed."
+                maxLength={500}
               />
             </div>
             <Field orientation="horizontal">
@@ -819,7 +915,7 @@ function UserManagement() {
               </div>
             )}
             {accountNotice && (
-              <p role="status" className="mt-3 rounded-xl border border-success/20 bg-success-soft px-4 py-3 text-xs text-success">{accountNotice}</p>
+              <Flash className="mt-3">{accountNotice}</Flash>
             )}
             {accountError && <p role="alert" className="mt-3 text-xs text-destructive">{accountError}</p>}
           </section>
@@ -934,7 +1030,7 @@ function UserManagement() {
                       <li key={resume.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border p-3">
                         <div className="min-w-0">
                           <p className="truncate text-xs font-medium text-navy">{resume.file_name}</p>
-                          <p className="mt-1 text-[10px] text-muted-foreground">Uploaded {formatDetailDate(resume.uploaded_at)}</p>
+                          <p className="mt-1 text-micro text-muted-foreground">Uploaded {formatDetailDate(resume.uploaded_at)}</p>
                         </div>
                         <div className="flex items-center gap-3">
                           {resume.is_active && <StatusBadge status="Active" />}
@@ -959,7 +1055,7 @@ function UserManagement() {
           )}
         </DialogContent>
       </Dialog>
-    </div>
+    </>
   )
 }
 

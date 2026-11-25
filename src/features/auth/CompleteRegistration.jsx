@@ -112,7 +112,7 @@ export default function CompleteRegistration() {
                 id="role"
                 value={role}
                 onChange={(e) => setRole(e.target.value)}
-                className="w-full min-h-[44px] px-4 rounded-xl text-sm bg-muted border border-border text-foreground focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30"
+                className="form-field"
               >
                 <option value="job-seeker">Job seeker</option>
                 <option value="employer">Employer</option>

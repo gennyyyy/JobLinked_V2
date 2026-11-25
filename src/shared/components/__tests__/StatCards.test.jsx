@@ -36,6 +36,6 @@ describe('StatCards', () => {
     const { container } = render(<StatCards countUp stats={[{ label: 'Empty', value: 0, icon: NoIcon }]} />)
     const p = container.querySelector('p')
     expect(p).toHaveTextContent('0')
-    expect(p.className).toContain('text-[29px]')
+    expect(p.className).toContain('text-3xl')
   })
 })

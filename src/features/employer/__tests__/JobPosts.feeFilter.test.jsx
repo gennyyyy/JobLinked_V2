@@ -116,7 +116,7 @@ describe('JobPosts fee filter', () => {
     )
   })
 
-  it('renders the Pending review badge for a pending job', async () => {
+  it('renders the Pending Review badge for a pending job', async () => {
     getEmployer.mockResolvedValue(APPROVED_EMPLOYER)
     listEmployerJobs.mockResolvedValue({ data: [job({ status: 'pending' })], total: 1, page: 1, pageSize: 25 })
     getFeeTerms.mockResolvedValue({ block: [], hold: [] })
@@ -127,6 +127,6 @@ describe('JobPosts fee filter', () => {
     )
     const titleBtn = await screen.findByRole('button', { name: 'Warehouse Associate' })
     const row = titleBtn.closest('tr')
-    expect(within(row).getByText('Pending review')).toBeInTheDocument()
+    expect(within(row).getByText('Pending Review')).toBeInTheDocument()
   })
 })

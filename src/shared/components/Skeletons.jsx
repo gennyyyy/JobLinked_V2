@@ -2,7 +2,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Card, CardContent, CardDescription, CardHeader } from '@/components/ui/card'
 
 // Loading placeholders that occupy the same box as the content they replace.
-// `surface` / `Card` / `SectionCard` are reused so padding, borders, and radius
+// `surface` / `Card` are reused so padding, borders, and radius
 // match the real components exactly — that is what keeps CLS at zero.
 // Reduced motion is already handled globally in index.css (`prefers-reduced-motion`
 // kills every animation), so the primitives keep plain `animate-pulse`.
@@ -74,7 +74,7 @@ export function StatCardSkeleton() {
 
 export function StatRowSkeleton({ count = 4, label = 'Loading summary…' }) {
   return (
-    <Busy label={label} className="mb-6 grid grid-cols-2 gap-4 xl:grid-cols-4">
+    <Busy label={label} className="grid grid-cols-2 gap-5 xl:grid-cols-4">
       {Array.from({ length: count }, (_, index) => <StatCardSkeleton key={index} />)}
     </Busy>
   )
@@ -99,10 +99,10 @@ export function PanelSkeleton({ title = true, lines = 4, label = 'Loading panel�
   )
 }
 
-// A `SectionCard` holding a table: header strip, column heads, five body rows.
+// A table card: header strip, column heads, five body rows.
 export function TableSkeleton({ columns = 5, rows = 5, title = 'Loading records…' }) {
   return (
-    <Busy label={title} className="surface overflow-hidden rounded-2xl">
+    <Busy label={title} className="surface overflow-hidden">
       <div className="flex items-center justify-between gap-3 border-b px-5 py-4">
         <div className="space-y-2">
           <Skeleton className="h-4 w-36" />
@@ -129,8 +129,8 @@ export function TableSkeleton({ columns = 5, rows = 5, title = 'Loading records�
 // optional stat row, then either a table or a stack of panels.
 export function PageSkeleton({ stats = 0, panels = 1, table = false, label = 'Loading page…' }) {
   return (
-    <Busy label={label} className="space-y-6">
-      <div className="mb-7 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
+    <Busy label={label} className="space-y-8">
+      <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
         <div className="min-w-0">
           <Skeleton className="mb-2 h-2.5 w-32" />
           <Skeleton className="h-8 w-full max-w-md md:h-9" />

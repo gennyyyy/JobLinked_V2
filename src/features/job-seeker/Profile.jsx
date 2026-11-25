@@ -30,7 +30,7 @@ import { BULACAN_MUNICIPALITIES, BULACAN_PROVINCES, SANTA_MARIA_BARANGAYS } from
 import { EDUCATION_LEVELS } from '../auth/jobSeekerRegistration'
 import useVocabulary from '@/shared/hooks/useVocabulary'
 import VocabularyPicker from '@/shared/components/VocabularyPicker'
-import TagField from './TagField'
+import TagField from '@/shared/components/TagField'
 import ResumeAutofill from './ResumeAutofill'
 
 const splitList = (value) => String(value || '').split(',').map((item) => item.trim()).filter(Boolean)
@@ -598,9 +598,9 @@ function Profile() {
                 <label htmlFor="profile-picture" className="text-sm font-semibold text-foreground">Profile Picture</label>
                 <p className="text-xs leading-5 text-muted-foreground">Upload a clear face photo. It is saved to your account and stays after refresh.</p>
                 <input id="profile-picture" type="file" accept="image/png,image/jpeg,image/webp" disabled={photoBusy} className="sr-only" onChange={handlePicture} />
-                {photoBusy && <p role="status" className="text-[11px] text-muted-foreground">Uploading…</p>}
-                {photoStatus && !photoBusy && <p role="status" className="text-[11px] font-medium text-success">{photoStatus}</p>}
-                {photoError && <p role="alert" className="text-[11px] text-destructive">{photoError}</p>}
+                {photoBusy && <p role="status" className="text-xs text-muted-foreground">Uploading…</p>}
+                {photoStatus && !photoBusy && <p role="status" className="text-xs font-medium text-success">{photoStatus}</p>}
+                {photoError && <p role="alert" className="text-xs text-destructive">{photoError}</p>}
               </div>
             </div>
             <div className="flex flex-col gap-4">
@@ -782,7 +782,7 @@ function Profile() {
                       <span className="soft-icon"><FileText className="size-5" /></span>
                       <div className="min-w-0 flex-1">
                         <h2 className="break-all text-sm font-medium">{resumes[0].file_name}</h2>
-                        <p className="mt-2 text-[11px] text-muted-foreground">
+                        <p className="mt-2 text-xs text-muted-foreground">
                           Added {new Date(resumes[0].uploaded_at).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' })}
                         </p>
                       </div>
@@ -811,7 +811,7 @@ function Profile() {
                   onFileSelected={pickResume}
                   uploadError={uploadError}
                 />
-                <p className="mt-3 text-[11px] leading-6 text-muted-foreground">
+                <p className="mt-3 text-xs leading-6 text-muted-foreground">
                   Replacing your resume updates what employers see for applications attached to it.                </p>
               </div>
             </TabsContent>

@@ -6,6 +6,9 @@
 - **Method:** static review. All JSX files were scanned for spacing, type, radius, shadow, and max-width utilities; each page archetype and shell was read; cascade behaviour of the unlayered rules in `index.css` was verified against the Tailwind v4 utilities. No browser session was run, so no pixel screenshots back these findings. Line numbers reflect the worktree at audit time and will drift with in-flight edits.
 - **Database / API:** no changes. This audit proposes no schema or contract change.
 - **Coordination:** the worktree contains uncommitted auth/profile required-field work by another agent. Phase 2 must build on that work, not revert it.
+- **Progress:** Phase 0 implemented and verified 2026-11-26 — `npm run lint` exit 0, `npm run build` exit 0, `npm test` 264 files / 1853 tests passed (7 skipped). Phase 1 implemented and verified 2026-11-26 — lint/build exit 0, 264 files / 1848 tests passed (7 skipped; the 5 fewer are the removed legacy-header/footer tests). Phase 2a implemented and verified 2026-11-26 — lint/build exit 0, 264 files / 1848 tests passed (7 skipped); one TermsModal mobile-inset fix applied. Phase 2b implemented and verified 2026-11-26 — lint/build exit 0, 263 files / 1846 tests passed (7 skipped; 2 fewer from the removed dead TagInput suite); chip remove targets are 24 px. Phase 3a implemented and verified 2026-11-26 — 170 arbitrary text sizes under `src/features` + `src/shared` reduced to 0; one stale StatCards class assertion updated to `text-3xl`. Phase 3b implemented and verified 2026-11-26 — lint/build exit 0, 263 files / 1846 tests passed; two `StatCards` on the super-admin dashboard, flattened UserManagement, `surface` profile/auth cards, `SectionCard` removed.
+- **Final automated state:** `npm run lint` exit 0; `npm run build` exit 0; `npm test` 263 files passed / 1 skipped, 1846 tests passed / 7 skipped.
+- **Remaining before done:** the 360/768/1280 visual pass (Phase 4). This environment has no browser tool, so the visual check must be run before the plan moves to `docs/plan/done/`. Intentional exceptions are recorded in Phase 4.
 
 ## Brief (for sign-off)
 
@@ -258,17 +261,16 @@ These values are chosen from what the code already uses most, so migration is mo
 
 | Role | Value |
 |---|---|
-| Page-level block stack (portal) | 32 px, one owner |
-| Page heading → first block | 24 px |
-| Panel padding | 24 px desktop / 20 px mobile, one primitive |
+| Page-level block stack (portal) | 32 px, one owner; the page heading is a normal block in this stack and carries no margin |
+| Panel padding | 24 px default; 16 px compact; no other values |
 | Panel internal stack | 16 px |
 | Panel grid gap | 20 px |
 | Form field stack | 16 px |
 | Label → control | 8 px |
 | Public section vertical | 64 px mobile / 80 px desktop |
 | Public hero → content | 48 px mobile / 64 px desktop |
-| Control height | 40 or 44 px, documented per size |
-| Icon hit area | square, 36/40/44 px |
+| Control height | 44 px default; 36 px sm; 28 px xs |
+| Icon hit area | square: 40 px default, 32 px sm, 24 px xs |
 | Table head / cell | 48 px / 16 px vertical |
 
 Type roles: display 36/44 (home hero 52/58 token), page 24/30, section 32/36/40, card 16, body 14, small 12, micro 10, eyebrow 11 uppercase.
@@ -282,13 +284,25 @@ Sequencing matters: page sweeps before Phase 0 will fight the cascade and be red
 **Owner:** `frontend` (build), reviewed by `review` and signed off by `arch`.
 
 - Move button/input/card/badge sizing out of unlayered `index.css` into the component variants. Restore real size variants; make icon sizes square.
-- Make `size="sm"` panels actually smaller or remove the dead prop.
-- Fold `.surface` into `Panel`; one padding/radius.
-- Remove margins from `PageHeading` / `StatCards`; expose the 32/24 rhythm from the page wrapper only.
-- Add semantic tokens (spacing roles, type roles, radius roles, elevation roles) in the theme.
-- Fix the badge box so padding and height agree.
+- Make `size="sm"` panels actually smaller (16 px vs 24 px) instead of the dead global override.
+- Re-point `.surface` at the panel geometry (16 px radius, panel shadow); keep its current responsive padding until call-site migration in Phase 3, because auth call sites are being edited concurrently. Do not delete the class while callers still use it.
+- Remove margins from `PageHeading` / `StatCards`; the page wrapper owns the 32 px stack.
+- Add semantic tokens: `--text-micro`, `--text-eyebrow`, `--radius-control`, `--radius-panel`, `--radius-badge`, `--shadow-surface`.
+- Fix the badge box so a 10 px label fits a 20 px pill without clipping.
 
-**Acceptance:** lint and tests pass; one portal page and one public page checked at three widths; no `[data-slot]` sizing override remains in `index.css`; icon buttons are square; Panel padding is one value.
+**Phase 0 geometry decisions**
+
+| Primitive | Decision |
+|---|---|
+| Button default / lg | 44 px tall; default `px-4` |
+| Button sm / xs | 36 px / 28 px |
+| Icon buttons | square 40 px default, 32 px sm, 24 px xs |
+| Input / input-group | 44 px; inner input fills the group; compact overrides may shrink the group |
+| Card / Panel | 24 px default padding, 16 px `size="sm"`; 16 px radius; one surface shadow |
+| Badge | 20 px tall, 10 px type, 7 px horizontal padding, 6 px radius, no vertical padding |
+| Focus | keep the single component ring; do not add a second outline |
+
+**Acceptance:** `npm run lint`, `npm test`, and `npm run build` pass; no button/input/card/badge sizing override remains in `index.css`; icon buttons are square; compact panels are 16 px; the compact search row in `JobsBrowser` is 36 px tall without overflow.
 
 **Database:** none.
 
@@ -296,46 +310,72 @@ Sequencing matters: page sweeps before Phase 0 will fight the cascade and be red
 
 **Owner:** `frontend`.
 
-- `PublicShell`: remove gutter overrides; delete `PublicHeader` and `PublicFooter` (0 imports).
-- Introduce `PageHero` and replace the five copies.
-- Apply the public vertical archetype (including a decision on Legal).
-- Remove page-owned `space-y-6 pb-12` wrappers; one portal page stack.
+- `PublicShell`: remove the header/footer `px-3 sm:px-3 lg:px-4` overrides so `page-container` owns the gutter; delete `PublicHeader` and `PublicFooter` and trim the dead blocks in `PublicChrome.test.jsx` (keep the `PublicShell` footer tests).
+- Introduce `src/features/public-site/PageHero.jsx` and replace the five copies (About, Faq, HowItWorks, PesoServices, PublicJobs).
+- Public rhythm decisions:
+  - Standard marketing pages: hero `py-14 md:py-16`, content `py-12 md:py-16`. About changes from `pt-6` to `py-12 md:py-16`; PublicJobs changes from `py-10` to `py-12 md:py-16`.
+  - Landing bands: every section uses `py-16 md:py-20`, including the first band and Stats.
+  - Legal stays a documented exception (no hero, 24/30 title) but uses `py-12 md:py-16`.
+  - Job/employer detail pages stay a documented dense exception at `py-8`.
+- Portal rhythm: remove the page-root `space-y-6 pb-12` wrappers in `UserManagement` and `NotificationsPage` and the extra wrapper around the `PageHeading`; keep the embedded `RoleManagement` stack and inner `TabsContent` stacks. Update `PageSkeleton`/`StatRowSkeleton` to mirror the new 32 px stack and 20 px stat gap.
 
-**Acceptance:** header, hero, content, and footer share one left edge at 360/768/1280; all public pages use `PageHero`; no `space-y-6` page wrapper remains.
+**Acceptance:** `npm run lint`, `npm test`, `npm run build` pass; `page-hero` appears only inside `PageHero`; no `PublicHeader`/`PublicFooter` references; no page-root `space-y-6 pb-12`; all landing bands use `py-16 md:py-20`; header, hero, content, and footer share one gutter at every breakpoint.
 
 ### Phase 2 — forms, modals, feedback
 
+Split into two reversible dispatches. The modal pieces keep their proven focus/scroll behaviour (`useDialog`) and adopt one visual contract; replacing every implementation with the base `Dialog` is deferred until behaviour is covered by tests.
+
+#### Phase 2a — modal chrome + feedback
+
 **Owner:** `frontend` (no API work).
 
-- One modal primitive; migrate `ConfirmationModal`, `TermsModal`, job post dialogs, AFK, role/user dialogs.
-- One `Flash` for success/error; replace the eight hand-rolled banners.
-- One `TagInput`; delete the duplicate `TagField` and the two extra chip implementations.
-- Convert auth steps to the field primitive (filled variant if the design requires it).
+- Add `.modal-overlay` and `.modal-panel` in `index.css`: one overlay (`bg-black/60` + `backdrop-blur-xs` + `p-4`), one panel (`rounded-panel`, `border-border`, `bg-card`, `p-6`, `shadow-xl`).
+- Adopt them in `ConfirmationModal`, `TermsModal`, `HelpChat`, the AFK warning, both job-post dialogs, the role/user dialogs, and align the base `Dialog` overlay/panel classes. Keep each component's z-index, focus trap, scroll lock, and close rules.
+- Add `Flash` for success/error/warning/info with optional dismiss; replace the hand-rolled banners. Update `Toast` to the semantic success/danger tokens and the same control radius.
+- Keep `Notice` for informational content.
 
-**Acceptance:** one overlay implementation; one flash radius; one chip input; auth and portal fields match at the same viewport.
+**Acceptance:** one overlay colour/blur, one panel radius/elevation/padding; no `border-primary` modal panels; every action banner uses `Flash`; Toast uses tokens.
 
-### Phase 3 — feature sweeps (parallel after Phase 0–2)
+#### Phase 2b — form controls
 
-**Owner:** one `frontend` dispatch per feature: `public-site`, `auth`, `job-seeker`, `employer`, `super-admin`, `shared`.
+**Owner:** `frontend` (no API work).
 
-- Replace arbitrary type sizes and one-off paddings with the contract.
-- Replace ad-hoc empty states and card shells.
-- Split the two stat systems on the super-admin dashboard; flatten the nested user-management panels.
+- Auth steps: remove the repeated raw `rounded-xl bg-muted px-4 py-2.5` classes so inputs/selects use the shared control geometry (44 px, 12 px radius, outlined). Keep labels, error text, and required markers.
+- Move the live `features/job-seeker/TagField.jsx` to `shared/components/TagField.jsx`; delete the unused shared `TagField` and `TagInput`, then update the three imports.
+- Align `TagField` and `VocabularyPicker` to one 44 px `rounded-control` box; chip remove buttons become 24 px targets (not a default-size `Button`).
 
-**Acceptance per feature:** no new arbitrary spacing/type values; all pages checked at three widths; feature tests pass.
+**Acceptance:** one field geometry across auth and portals; one chip input; no dead tag components; auth and portal fields match at the same viewport.
 
-### Phase 4 — verification
+### Phase 3 — typography and structure sweeps
+
+Implemented in two dispatches (2026-11-26):
+
+- **3a — typography:** replaced all 170 arbitrary text sizes under `src/features` + `src/shared` with the standard scale and tokens; centralized the home hero as `.hero-heading`; updated the one stale StatCards class assertion to `text-3xl`.
+- **3b — structure:** one `StatCards` language on the super-admin dashboard; flattened User Management (no panel around tabs, one surface stat row); `surface` profile/auth cards; `rounded-panel` dropdowns and error card; removed the unused `SectionCard`.
+
+**Acceptance:** arbitrary text sizes in features/shared = 0; no nested card wrapper in User Management; two `StatCards` on the admin dashboard; feature tests pass.
+
+### Phase 4 — verification (remaining)
 
 **Owner:** `review` + `ui-ux-designer`; `tester` where behaviour changed.
 
-- Run `npm run lint` and `npm test`.
-- Visual pass at 360 / 768 / 1280 on every page in the feature.
+- Automated checks are green: `npm run lint`, `npm test` (1846 passed / 7 skipped), `npm run build`.
+- **Still required:** visual pass at 360 / 768 / 1280 on every page archetype. This environment has no browser tool, so this pass has not been claimed.
 - Compare against the contract table; log intentional exceptions in this file.
+
+**Intentional exceptions to verify, not “fix”:**
+
+- Legal pages have no marketing hero and keep the 24/30 title; they use the standard vertical padding.
+- Job/employer detail pages keep the dense `py-8` rhythm.
+- Small inline “No X records” messages stay compact inside tables/dialogs; full-page empties use `EmptyState`.
+- `src/components/ui` keeps its own control token (`text-[0.8rem]` in button/toggle); feature/shared code does not.
+- `.display-heading`, `.section-heading`, and `.hero-heading` keep their px declarations centralized in `index.css`.
+- Table cells keep the global 13 px size.
 
 ## Guardrails
 
 - New code may not add arbitrary `text-[…px]`, `p-[…]`, or a new overlay shell.
-- A page uses `Panel`, `PageHeading`, `EmptyState`, `Flash`, and `TagInput` rather than local versions.
+- A page uses `Panel`, `PageHeading`, `EmptyState`, `Flash`, and `TagField` rather than local versions.
 - Any intentional exception is recorded here with a reason.
 - No new dependency is needed; every primitive already exists.
 
@@ -348,10 +388,11 @@ Sequencing matters: page sweeps before Phase 0 will fight the cascade and be red
 
 ## Approval
 
-- [ ] Spacing contract accepted
-- [ ] Phase 0 authorized (tokens + primitives)
-- [ ] Phase 1 authorized
-- [ ] Phase 2 authorized
-- [ ] Phase 3 feature dispatch authorized
+- [x] Spacing contract accepted (user: “okay go”)
+- [x] Phase 0 authorized and verified
+- [x] Phase 1 authorized and verified
+- [x] Phase 2a/2b authorized and verified
+- [x] Phase 3a/3b authorized and verified
+- [ ] Phase 4 visual pass at 360/768/1280
 
-No implementation file has been changed by this audit.
+The audit itself changed no implementation files. Remediation was implemented by dispatched `frontend` agents in Phases 0–3b; the plan file is the only direct edit by the architect.

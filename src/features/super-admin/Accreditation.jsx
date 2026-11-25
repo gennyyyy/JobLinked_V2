@@ -43,7 +43,7 @@ const JOB_STATUS_LABELS = {
 function InfoRow({ label, value }) {
   return (
     <div>
-      <dt className="text-[10px] uppercase tracking-[.14em] text-muted-foreground">{label}</dt>
+      <dt className="text-micro uppercase tracking-[.14em] text-muted-foreground">{label}</dt>
       <dd className="mt-1 text-xs font-medium text-navy">{value || '—'}</dd>
     </div>
   )
@@ -179,7 +179,7 @@ function ReviewModal({ accreditation, onClose, onDecided }) {
                     <li key={doc.id} className="flex flex-wrap items-center justify-between gap-3 py-3 first:pt-0 last:pb-0">
                       <div className="min-w-0">
                         <p className="truncate text-xs font-medium text-navy">{doc.doc_type}</p>
-                        <p className="mt-0.5 truncate text-[11px] text-muted-foreground">{doc.file_name}</p>
+                        <p className="mt-0.5 truncate text-xs text-muted-foreground">{doc.file_name}</p>
                       </div>
                       <div className="flex flex-wrap items-center gap-2">
                         <StatusBadge status={doc.status === 'verified' ? 'Approved' : doc.status === 'rejected' ? 'Rejected' : 'Pending Review'} />
@@ -207,7 +207,7 @@ function ReviewModal({ accreditation, onClose, onDecided }) {
                     <li key={p.id} className="flex flex-wrap items-start justify-between gap-3 py-3 first:pt-0 last:pb-0">
                       <div className="min-w-0">
                         <p className="truncate text-xs font-medium text-navy">{p.doc_type}</p>
-                        <p className="mt-0.5 text-[11px] text-muted-foreground">{p.reason}</p>
+                        <p className="mt-0.5 text-xs text-muted-foreground">{p.reason}</p>
                       </div>
                       <div className="flex flex-wrap items-center gap-2">
                         <StatusBadge status={p.status === 'approved' ? 'Approved' : p.status === 'rejected' ? 'Rejected' : 'Pending Review'} />
@@ -243,7 +243,7 @@ function ReviewModal({ accreditation, onClose, onDecided }) {
                     {Object.entries(JOB_STATUS_LABELS)
                       .filter(([status]) => jobCounts[status])
                       .map(([status, label]) => (
-                        <li key={status} className="text-[11px] text-muted-foreground">
+                        <li key={status} className="text-xs text-muted-foreground">
                           {`${jobCounts[status]} ${label}`}
                         </li>
                       ))}
@@ -263,7 +263,7 @@ function ReviewModal({ accreditation, onClose, onDecided }) {
               onChange={(event) => setReason(event.target.value)}
               placeholder="Explain what the employer needs to do next. Required for rejection or resubmission."
             />
-            <p className="mt-1 text-[10px] text-muted-foreground">A reason is required for rejection or resubmission. Approval feedback is optional.</p>
+            <p className="mt-1 text-micro text-muted-foreground">A reason is required for rejection or resubmission. Approval feedback is optional.</p>
           </div>
 
           {error && <p role="alert" className="text-xs text-destructive">{error}</p>}
@@ -378,7 +378,7 @@ export default function Accreditation() {
                       <CompanyMark initials={String(item.employers?.company_name || 'E').split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]).join('').toUpperCase()} />
                       <div>
                         <p className="font-medium text-navy">{titleCase(item.employers?.company_name)}</p>
-                        <p className="mt-1 text-[10px] text-muted-foreground">
+                        <p className="mt-1 text-micro text-muted-foreground">
                           {titleCase(item.employers?.barangay_district) || 'Santa Maria'} · {item.employers?.industry || 'Employer'}
                         </p>
                       </div>
