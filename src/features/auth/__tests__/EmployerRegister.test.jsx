@@ -100,13 +100,13 @@ async function submit() {
 }
 
 // The term gate ships disabled: open the notice, wait until the read state
-// unlocks the checkbox, close the modal, then agree.
+// unlocks the checkbox, then close and accept to check it.
 async function openTermsAndAgree() {
   fireEvent.click(screen.getByRole('button', { name: /view terms/i }))
   const agree = screen.getByLabelText(/agree to the municipal data collection terms/i)
   await waitFor(() => expect(agree).toBeEnabled())
-  fireEvent.click(screen.getByRole('button', { name: /^close$/i }))
-  fireEvent.click(agree)
+  fireEvent.click(screen.getByRole('button', { name: /close & accept/i }))
+  expect(agree).toBeChecked()
 }
 
 describe('EmployerRegister address', () => {
