@@ -13,7 +13,7 @@ const transportFor = () =>
     auth: process.env.SMTP_USER ? { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS } : undefined,
   }));
 
-const deliver = async ({ to, url, kind, subject, text }) => {
+const deliver = async ({ to, url, kind, subject, text, html }) => {
   if (!process.env.SMTP_HOST) {
     if (process.env.NODE_ENV === 'production') {
       // Fail closed: the operator sees the outage, and the token stays out of
@@ -23,7 +23,14 @@ const deliver = async ({ to, url, kind, subject, text }) => {
     }
     // Dev has no sender: the URL (with its token) is the only log that carries
     // it. A multi-link message logs its body instead. Neither runs in production.
-    logger.info('dev_mail', { event: 'dev_mail', to, kind, ...(url ? { url } : {}), ...(text ? { text } : {}) });
+    logger.info('dev_mail', {
+      event: 'dev_mail',
+      to,
+      kind,
+      ...(url ? { url } : {}),
+      ...(text ? { text } : {}),
+      ...(html ? { html } : {}),
+    });
     return true;
   }
 
@@ -32,7 +39,14 @@ const deliver = async ({ to, url, kind, subject, text }) => {
   // whatever the callback returns. The boolean lets callers tell delivery from
   // a swallowed failure (the existing-account cooldown only starts on success).
   try {
-    await transportFor().sendMail({ from: process.env.SMTP_FROM, to, subject, text: text ?? `${subject}\n\n${url}` });
+    await transportFor().sendMail({
+      from: process.env.SMTP_FROM,
+      to,
+      subject,
+      text: text ?? `${subject}\n\n${url}`,
+      // Mails without an html part (the existing-account one) omit it entirely.
+      ...(html ? { html } : {}),
+    });
     logger.info('mail_sent', { event: 'mail_sent', to, kind });
     return true;
   } catch (error) {
@@ -89,8 +103,59 @@ export const sendExistingAccountEmail = async ({ user }) => {
   if (sent) existingAccountSentAt.set(key, now);
 };
 
+const escapeHtml = (value) =>
+  value.replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+
+// The 1-hour line mirrors Better Auth's defaults for
+// emailVerification.expiresIn and emailAndPassword.resetPasswordTokenExpiresIn.
+// This repo sets no override; update this copy if either is ever configured.
+const EXPIRY = 'This link expires in 1 hour.';
+
+// Both auth mails share one body shape: greeting, purpose, URL, expiry note,
+// sign-off. The URL is Better Auth's and trusted; the name is user data, so the
+// html part escapes it. Text stays the fallback part.
+const authEmail = ({ user, url, purpose, cta, note }) => {
+  const name = user?.name?.trim() || 'there';
+  const expiry = `${EXPIRY} ${note}`;
+  return {
+    text: [`Hi ${name},`, '', purpose, '', url, '', expiry, '', '— The JobLinked team'].join('\n'),
+    html: [
+      `<p>Hi ${escapeHtml(name)},</p>`,
+      `<p>${purpose}</p>`,
+      `<p><a href="${url}">${cta}</a></p>`,
+      `<p>${expiry}</p>`,
+      '<p>— The JobLinked team</p>',
+    ].join('\n'),
+  };
+};
+
 export const sendResetPassword = ({ user, url }) =>
-  deliver({ to: user.email, url, kind: 'reset_password', subject: 'Reset your JobLinked password' });
+  deliver({
+    to: user.email,
+    url,
+    kind: 'reset_password',
+    subject: 'Reset your JobLinked password',
+    ...authEmail({
+      user,
+      url,
+      purpose:
+        'We received a request to reset the password for your JobLinked account. Open the link below to choose a new password.',
+      cta: 'Reset my password',
+      note: "If you didn't request this, you can ignore this email — your password will stay the same.",
+    }),
+  });
 
 export const sendVerificationEmail = ({ user, url }) =>
-  deliver({ to: user.email, url, kind: 'verify_email', subject: 'Verify your JobLinked email' });
+  deliver({
+    to: user.email,
+    url,
+    kind: 'verify_email',
+    subject: 'Verify your JobLinked email',
+    ...authEmail({
+      user,
+      url,
+      purpose: 'Welcome to JobLinked! Please confirm your email address by opening the link below.',
+      cta: 'Verify my email',
+      note: "If you didn't create a JobLinked account, you can ignore this email.",
+    }),
+  });

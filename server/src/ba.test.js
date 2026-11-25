@@ -235,7 +235,76 @@ describe('mailer', () => {
     expect(mail.text).toContain('https://jobs.example.com/login');
     expect(mail.text).toContain('https://jobs.example.com/forgot-password');
     expect(mail.text).toContain('ignore this email');
+    // No html part is built for this mail; the dev log must not invent one.
+    expect(mail.html).toBeUndefined();
     expect(error).not.toHaveBeenCalled();
+  });
+
+  it('logs the verification email with greeting, URL, expiry line, and html in development', async () => {
+    const { sendVerificationEmail } = await loadMailer({ NODE_ENV: 'development' });
+    vi.stubEnv('SMTP_HOST', undefined);
+    const info = vi.spyOn(console, 'info').mockImplementation(() => {});
+
+    const url = 'https://api.joblinked.site/api/auth/verify-email?token=tok_dev456';
+    await sendVerificationEmail({ user: { email: 'nova@example.com', name: '  Nova  ' }, url });
+
+    const mail = jsonLines(info).find((line) => line.event === 'dev_mail');
+    expect(mail).toMatchObject({ kind: 'verify_email', to: 'nova@example.com', url });
+    expect(mail.text).toContain('Hi Nova,');
+    expect(mail.text).toContain('Welcome to JobLinked!');
+    expect(mail.text).toContain(url);
+    expect(mail.text).toContain('This link expires in 1 hour.');
+    expect(mail.text).toContain('— The JobLinked team');
+    expect(mail.html).toContain('<p>Hi Nova,</p>');
+    expect(mail.html).toContain(`<a href="${url}">Verify my email</a>`);
+    expect(mail.html).toContain('This link expires in 1 hour.');
+    expect(mail.html).toContain('— The JobLinked team');
+  });
+
+  it('falls back to "there" and escapes the name in the reset email html', async () => {
+    const { sendResetPassword } = await loadMailer({ NODE_ENV: 'development' });
+    vi.stubEnv('SMTP_HOST', undefined);
+    const info = vi.spyOn(console, 'info').mockImplementation(() => {});
+
+    const url = 'http://localhost:5173/reset-password?token=tok_dev789';
+    await sendResetPassword({ user: { email: 'anon@example.com' }, url });
+    await sendResetPassword({ user: { email: 'esc@example.com', name: 'A <b>B</b>' }, url });
+
+    const mails = jsonLines(info).filter((line) => line.event === 'dev_mail');
+    const [anon, escaped] = mails;
+    expect(anon.text).toContain('Hi there,');
+    expect(anon.html).toContain('<p>Hi there,</p>');
+    expect(escaped.text).toContain('Hi A <b>B</b>,');
+    expect(escaped.html).toContain('Hi A &lt;b&gt;B&lt;/b&gt;,');
+    expect(escaped.html).not.toContain('<b>B</b>');
+    expect(escaped.html).toContain(`<a href="${url}">Reset my password</a>`);
+    expect(escaped.html).toContain('This link expires in 1 hour.');
+    expect(escaped.html).toContain('your password will stay the same');
+  });
+
+  it('passes html to the transport and omits it when absent', async () => {
+    const sendMail = vi.fn().mockResolvedValue({});
+    vi.doMock('nodemailer', () => ({ default: { createTransport: () => ({ sendMail }) } }));
+    vi.spyOn(console, 'info').mockImplementation(() => {});
+
+    try {
+      const { sendResetPassword, sendExistingAccountEmail } = await loadMailer({
+        NODE_ENV: 'production',
+        SMTP_HOST: 'smtp.test',
+      });
+
+      const url = 'https://jobs.example.com/reset-password?token=tok_html1';
+      await sendResetPassword({ user: { email: 'html@example.com' }, url });
+      expect(sendMail.mock.calls[0][0]).toMatchObject({
+        to: 'html@example.com',
+        html: expect.stringContaining(`<a href="${url}">Reset my password</a>`),
+      });
+
+      await sendExistingAccountEmail({ user: { email: 'plain@example.com' } });
+      expect(sendMail.mock.calls[1][0]).not.toHaveProperty('html');
+    } finally {
+      vi.doUnmock('nodemailer');
+    }
   });
 
   it('sends one existing-account email per address inside the 10-minute cooldown', async () => {
