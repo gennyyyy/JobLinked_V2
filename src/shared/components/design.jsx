@@ -54,7 +54,7 @@ export function StatusBadge({ status }) {
         "Resubmission Requested",
         "Draft",
     ].includes(status);
-    const bad = ["Rejected", "Removed", "Flagged", "Suspended"].includes(status);
+    const bad = ["Rejected", "Removed", "Flagged", "Suspended", "Revoked"].includes(status);
     return (<Badge variant="secondary" className={cn("whitespace-nowrap", good && "bg-success-soft text-success", pending && "bg-warning-soft text-warning", bad && "bg-danger-soft text-destructive", !good && !pending && !bad && "bg-blue-soft text-primary")}>
       {status}
     </Badge>);

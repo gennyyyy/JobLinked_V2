@@ -25,8 +25,8 @@ import ConfirmationModal from "../../shared/components/ConfirmationModal";
 import { PageSkeleton } from '../../shared/components/Skeletons';
 import { Pager } from "../../shared/components/dashboard";
 import { InlineError } from "../../shared/components/dashboard";
-import { EmptyState, Notice, PageHeading, Panel, SearchInput, StatusBadge, SelectField } from "../../shared/components/design";
-import { POSTING_LABELS, POSTING_STATUSES, ACCREDITATION_LABELS, formatDate, initialForm } from "./jobPostFields";
+import { EmptyState, PageHeading, Panel, SearchInput, StatusBadge, SelectField } from "../../shared/components/design";
+import { POSTING_LABELS, POSTING_STATUSES, formatDate, initialForm } from "./jobPostFields";
 import JobPostFormDialog from "./JobPostFormDialog";
 import JobPostDetailDialog from "./JobPostDetailDialog";
 import { titleCase } from "../../shared/utils/titleCase";
@@ -418,12 +418,6 @@ export default function JobPosts() {
           </Button>
         )}
       />
-      {accreditationStatus !== "approved" && (
-        <Notice title={`Accreditation: ${ACCREDITATION_LABELS[accreditationStatus] || accreditationStatus || 'pending'}`} warning>
-          You can prepare drafts, but publishing is unavailable until PESO approves your accreditation.{" "}
-          <Link to="/employer/accreditation" className="font-medium underline underline-offset-4">Review requirements and feedback.</Link>
-        </Notice>
-      )}
       <Panel
         title="Your job postings"
         description="Only vacancies owned by your current company are shown."

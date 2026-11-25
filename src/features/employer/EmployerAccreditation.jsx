@@ -13,17 +13,11 @@ import { PageSkeleton } from '../../shared/components/Skeletons'
 import { InlineError } from "../../shared/components/dashboard";
 import { EmptyState, Notice, PageHeading, Panel, StatusBadge } from "../../shared/components/design";
 import { titleCase } from "../../shared/utils/titleCase";
+import { ACCREDITATION_LABELS } from "./jobPostFields";
 
 // Accreditation rows store lowercase statuses; StatusBadge speaks the portal's
 // review vocabulary, so map once and use it for the heading and the history.
-const STATUS_LABELS = {
-  pending: "Pending Review",
-  approved: "Approved",
-  rejected: "Rejected",
-  revoked: "Suspended",
-  resubmission: "Resubmission Requested",
-};
-const statusLabel = (value = "") => STATUS_LABELS[value] || value.charAt(0).toUpperCase() + value.slice(1);
+const statusLabel = (value = "") => ACCREDITATION_LABELS[value] || value.charAt(0).toUpperCase() + value.slice(1);
 
 function EmployerAccreditation() {
   const { user, refreshUser } = useAuth();

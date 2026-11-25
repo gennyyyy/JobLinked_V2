@@ -27,7 +27,7 @@ const emptyPage = { data: [], total: 0, page: 1, pageSize: 25 }
 describe('JobPosts empty state (U5)', () => {
   beforeEach(() => vi.clearAllMocks())
 
-  it('warns a non-accredited employer and links to the accreditation page', async () => {
+  it('leaves the accreditation warning to the layout banner', async () => {
     getEmployer.mockResolvedValue({ id: 'emp-1', accreditation_status: 'pending' })
     listEmployerJobs.mockResolvedValue(emptyPage)
 
@@ -37,9 +37,9 @@ describe('JobPosts empty state (U5)', () => {
       </MemoryRouter>,
     )
 
-    expect(await screen.findByText(/publishing is unavailable until PESO approves your accreditation/i)).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: /review requirements and feedback/i })).toHaveAttribute('href', '/employer/accreditation')
-    expect(screen.getByText('No job posts match this view.')).toBeInTheDocument()
+    expect(await screen.findByText('No job posts match this view.')).toBeInTheDocument()
+    expect(screen.queryByText(/publishing is unavailable/i)).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: /review requirements and feedback/i })).not.toBeInTheDocument()
   })
 
   it('keeps the create advice for approved employers with no posts', async () => {

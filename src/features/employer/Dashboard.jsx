@@ -6,9 +6,10 @@ import { getEmployerDashboard } from '@/shared/services/applications'
 import { getEmployer } from '@/shared/services/auth'
 import { PageSkeleton } from '@/shared/components/Skeletons'
 import { InlineError } from '@/shared/components/dashboard'
-import { EmptyState, LinkButton, Notice, PageHeading, Panel, StatCards, StatusBadge } from '@/shared/components/design'
+import { EmptyState, LinkButton, PageHeading, Panel, StatCards, StatusBadge } from '@/shared/components/design'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
 import { titleCase } from '@/shared/utils/titleCase'
+import { ACCREDITATION_LABELS } from './jobPostFields'
 
 export default function Dashboard() {
   const { user } = useAuth()
@@ -50,12 +51,6 @@ export default function Dashboard() {
         description={`Good people make great teams. Here’s what’s happening at ${titleCase(companyName)}.`}
         action={<LinkButton href="/employer/job-posts"><Plus data-icon="inline-start" />Post a Job</LinkButton>}
       />
-      {accreditation && accreditation !== 'approved' && (
-        <Notice title={`Accreditation: ${accreditation}`} warning>
-          You can prepare drafts, but publishing is unavailable until PESO approves your accreditation.{' '}
-          <Link to="/employer/accreditation" className="font-medium underline underline-offset-4">Review requirements and feedback.</Link>
-        </Notice>
-      )}
       <StatCards
         stats={[
           { label: 'Active vacancies', value: jobs.filter((job) => job.status === 'published').length, icon: BriefcaseBusiness },
@@ -125,7 +120,7 @@ export default function Dashboard() {
         </div>
         <div className="flex min-w-0 flex-col gap-6">
           <Panel title="Your accreditation" action={<ShieldCheck className="size-5 text-teal" />}>
-            {accreditation ? <StatusBadge status={{ approved: 'Approved', pending: 'Pending Review', rejected: 'Rejected', resubmission: 'Resubmission Requested', revoked: 'Suspended', none: 'Pending Review' }[accreditation] || accreditation} /> : null}
+            {accreditation ? <StatusBadge status={ACCREDITATION_LABELS[accreditation] || accreditation} /> : null}
             <p className="mt-4 text-xs leading-6 text-muted-foreground">
               {accreditation === 'approved'
                 ? 'Your business is approved to publish vacancies.'

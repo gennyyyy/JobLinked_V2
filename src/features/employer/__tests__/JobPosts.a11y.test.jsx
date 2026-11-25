@@ -168,7 +168,7 @@ describe('JobPosts accessibility', () => {
       </MemoryRouter>
     )
 
-    expect(await screen.findByText(/publishing is unavailable until PESO approves/i)).toBeInTheDocument()
+    expect(await screen.findByText('No job posts match this view.')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Actions for Warehouse Associate' })).toBeNull()
   })
 
