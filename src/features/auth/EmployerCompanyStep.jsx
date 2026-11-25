@@ -28,7 +28,7 @@ function EmployerCompanyStep({ errors, setErrors, inputClass, labelClass, reqMar
                   <Input id="companyName" name="companyName" type="text" placeholder="e.g. Santa Maria Logistics Inc." value={form?.companyName ?? ""} className={inputClass} onChange={(e) => field("companyName", e.target.value)} />
                   {errors?.companyName && <p className="text-danger text-xs mt-1">{errors.companyName}</p>}
                 </div>
-                <div>
+                <div className="sm:col-span-2">
                   <Label htmlFor="industry" className={labelClass}>Company Industry{reqMark}</Label>
                   <FormSelect id="industry" name="industry" value={form?.industry ?? ""} className={inputClass} onChange={(e) => field("industry", e.target.value)}>
   <option value="">Select industry</option>
@@ -36,37 +36,12 @@ function EmployerCompanyStep({ errors, setErrors, inputClass, labelClass, reqMar
 </FormSelect>
                   {errors?.industry && <p className="text-danger text-xs mt-1">{errors.industry}</p>}
                 </div>
-                <div>
-                  <Label htmlFor="houseNumberUnit" className={labelClass}>House / Building / Unit No. <span className="text-muted-foreground font-normal">(optional)</span></Label>
-                  <Input id="houseNumberUnit" name="houseNumberUnit" type="text" placeholder="e.g. Unit 402 or Bldg 3" value={form?.houseNumberUnit ?? ""} className={inputClass} onChange={(e) => field("houseNumberUnit", e.target.value)} />
-                </div>
                 </div>
                 <div>
-                  <p className={labelClass}>Address Information</p>
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <div>
-                      <Label htmlFor="streetAddress" className={labelClass}>Street Address & Lot / Block{reqMark}</Label>
-                      <Input id="streetAddress" name="streetAddress" type="text" placeholder="e.g. Norzagaray-Santa Maria Road" value={form?.streetAddress ?? ""} className={inputClass} onChange={(e) => field("streetAddress", e.target.value)} />
-                      {errors?.streetAddress && <p className="text-danger text-xs mt-1">{errors.streetAddress}</p>}
-                    </div>
-                    <div>
-                      <Label htmlFor="subdivisionBuilding" className={labelClass}>Subdivision / Village / Building Name <span className="text-muted-foreground font-normal">(optional)</span></Label>
-                      <Input id="subdivisionBuilding" name="subdivisionBuilding" type="text" placeholder="e.g. Greenview Heights" value={form?.subdivisionBuilding ?? ""} className={inputClass} onChange={(e) => field("subdivisionBuilding", e.target.value)} />
-                    </div>
-                    <div>
-                      <Label htmlFor="barangayDistrict" className={labelClass}>Barangay / District <span className="text-danger">*</span></Label>
-                      <FormSelect id="barangayDistrict" name="barangayDistrict" value={form?.barangayDistrict ?? ""} className={inputClass} onChange={(e) => field("barangayDistrict", e.target.value)}>
-                        <option value="">Select barangay</option>
-                        {SANTA_MARIA_BARANGAYS.map((b) => <option key={b} value={b}>{b}</option>)}
-                      </FormSelect>
-                    </div>
-                    <div>
-                      <Label htmlFor="cityMunicipality" className={labelClass}>City / Municipality{reqMark}</Label>
-                      <FormSelect id="cityMunicipality" name="cityMunicipality" value={form?.cityMunicipality ?? ""} className={inputClass} onChange={(e) => field("cityMunicipality", e.target.value)}>
-                        <option value="">Select city / municipality</option>
-                        {BULACAN_MUNICIPALITIES.map((m) => <option key={m} value={m}>{m}</option>)}
-                      </FormSelect>
-                      {errors?.cityMunicipality && <p className="text-danger text-xs mt-1">{errors.cityMunicipality}</p>}
+                      <Label htmlFor="houseNumberUnit" className={labelClass}>House / Building / Unit No. <span className="text-muted-foreground font-normal">(optional)</span></Label>
+                      <Input id="houseNumberUnit" name="houseNumberUnit" type="text" placeholder="e.g. Unit 402 or Bldg 3" value={form?.houseNumberUnit ?? ""} className={inputClass} onChange={(e) => field("houseNumberUnit", e.target.value)} />
                     </div>
                     <div>
                       <Label htmlFor="provinceState" className={labelClass}>Province / State{reqMark}</Label>
@@ -77,9 +52,33 @@ function EmployerCompanyStep({ errors, setErrors, inputClass, labelClass, reqMar
                       {errors?.provinceState && <p className="text-danger text-xs mt-1">{errors.provinceState}</p>}
                     </div>
                     <div>
+                      <Label htmlFor="cityMunicipality" className={labelClass}>City / Municipality{reqMark}</Label>
+                      <FormSelect id="cityMunicipality" name="cityMunicipality" value={form?.cityMunicipality ?? ""} className={inputClass} onChange={(e) => field("cityMunicipality", e.target.value)}>
+                        <option value="">Select city / municipality</option>
+                        {BULACAN_MUNICIPALITIES.map((m) => <option key={m} value={m}>{m}</option>)}
+                      </FormSelect>
+                      {errors?.cityMunicipality && <p className="text-danger text-xs mt-1">{errors.cityMunicipality}</p>}
+                    </div>
+                    <div>
+                      <Label htmlFor="barangayDistrict" className={labelClass}>Barangay / District <span className="text-danger">*</span></Label>
+                      <FormSelect id="barangayDistrict" name="barangayDistrict" value={form?.barangayDistrict ?? ""} className={inputClass} onChange={(e) => field("barangayDistrict", e.target.value)}>
+                        <option value="">Select barangay</option>
+                        {SANTA_MARIA_BARANGAYS.map((b) => <option key={b} value={b}>{b}</option>)}
+                      </FormSelect>
+                    </div>
+                    <div>
                       <Label htmlFor="postalCode" className={labelClass}>Postal Code <span className="text-muted-foreground font-normal">(optional)</span></Label>
                       <Input id="postalCode" name="postalCode" type="text" inputMode="numeric" maxLength={4} placeholder="e.g. 3022" value={form?.postalCode ?? ""} className={inputClass} onChange={(e) => field("postalCode", e.target.value)} />
                       {errors?.postalCode && <p className="text-danger text-xs mt-1">{errors.postalCode}</p>}
+                    </div>
+                    <div>
+                      <Label htmlFor="streetAddress" className={labelClass}>Street Address & Lot / Block{reqMark}</Label>
+                      <Input id="streetAddress" name="streetAddress" type="text" placeholder="e.g. Norzagaray-Santa Maria Road" value={form?.streetAddress ?? ""} className={inputClass} onChange={(e) => field("streetAddress", e.target.value)} />
+                      {errors?.streetAddress && <p className="text-danger text-xs mt-1">{errors.streetAddress}</p>}
+                    </div>
+                    <div>
+                      <Label htmlFor="subdivisionBuilding" className={labelClass}>Subdivision / Village / Building Name <span className="text-muted-foreground font-normal">(optional)</span></Label>
+                      <Input id="subdivisionBuilding" name="subdivisionBuilding" type="text" placeholder="e.g. Greenview Heights" value={form?.subdivisionBuilding ?? ""} className={inputClass} onChange={(e) => field("subdivisionBuilding", e.target.value)} />
                     </div>
                   </div>
                 </div>
