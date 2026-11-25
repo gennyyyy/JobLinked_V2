@@ -249,7 +249,12 @@ function JobSeekerRegister() {
       </div>
       </div>
       </PublicShell>
-      <TermsModal open={termsOpen} onClose={() => setTermsOpen(false)} onRead={() => setTermsRead(true)} />
+      <TermsModal
+        open={termsOpen}
+        onClose={() => setTermsOpen(false)}
+        onRead={() => setTermsRead(true)}
+        onAccept={() => set("agree", true)}
+      />
       <RegistrationConfirmModal
         open={confirmOpen}
         error={error}

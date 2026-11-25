@@ -273,7 +273,12 @@ function EmployerRegister() {
       </div>
       </div>
       </PublicShell>
-      <TermsModal open={termsOpen} onClose={() => setTermsOpen(false)} onRead={() => setTermsRead(true)} />
+      <TermsModal
+        open={termsOpen}
+        onClose={() => setTermsOpen(false)}
+        onRead={() => setTermsRead(true)}
+        onAccept={() => syncAgree(true)}
+      />
       <RegistrationConfirmModal
         open={confirmOpen}
         error={error}

@@ -43,7 +43,8 @@ describe('terms gate', () => {
     fireEvent.click(screen.getByRole('button', { name: /view terms/i }))
     await waitFor(() => expect(agree).toBeEnabled())
     expect(document.body.style.overflow).toBe('hidden')
-    fireEvent.click(screen.getByRole('button', { name: /^close$/i }))
+    fireEvent.click(screen.getByRole('button', { name: /close & accept/i }))
+    await waitFor(() => expect(agree).toBeChecked())
     await waitFor(() => expect(document.body.style.overflow).toBe(priorOverflow))
   })
 

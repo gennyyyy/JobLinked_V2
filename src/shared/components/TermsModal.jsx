@@ -14,7 +14,7 @@ const TERMS_PLACEHOLDER = PRIVACY_NOTICE;
 // Fractional scroll offsets mean "bottom" is never exactly max - scrollTop.
 const atBottom = (el) => el.scrollHeight - el.clientHeight - el.scrollTop <= 1;
 
-function TermsModal({ open, onClose, onRead, title = "Data Collection Terms & Privacy Policy", body: bodyProp }) {
+function TermsModal({ open, onClose, onRead, onAccept, title = "Data Collection Terms & Privacy Policy", body: bodyProp }) {
   const bodyRef = useRef(null);
   const readRef = useRef(false);
   const [read, setRead] = useState(false);
@@ -124,10 +124,13 @@ function TermsModal({ open, onClose, onRead, title = "Data Collection Terms & Pr
           {read && (
             <Button
               type="button"
-              onClick={onClose}
+              onClick={() => {
+                onAccept?.();
+                onClose?.();
+              }}
               className="px-4 py-2 text-sm font-medium text-white rounded-xl bg-primary hover:bg-primary-hover transition-colors cursor-pointer"
             >
-              Close
+              Close &amp; Accept
             </Button>
           )}
         </div>

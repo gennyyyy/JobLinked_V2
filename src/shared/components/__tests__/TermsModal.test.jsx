@@ -27,7 +27,16 @@ describe('TermsModal acceptance gate', () => {
   it('calls onClose when the Close button is clicked', () => {
     const onClose = vi.fn()
     renderModal({ onClose })
-    fireEvent.click(screen.getByRole('button', { name: /close/i }))
+    fireEvent.click(screen.getByRole('button', { name: /close & accept/i }))
+    expect(onClose).toHaveBeenCalledTimes(1)
+  })
+
+  it('calls onAccept and onClose when the acceptance button is clicked', () => {
+    const onAccept = vi.fn()
+    const onClose = vi.fn()
+    renderModal({ onAccept, onClose })
+    fireEvent.click(screen.getByRole('button', { name: /close & accept/i }))
+    expect(onAccept).toHaveBeenCalledTimes(1)
     expect(onClose).toHaveBeenCalledTimes(1)
   })
 
