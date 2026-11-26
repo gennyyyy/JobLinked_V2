@@ -2,7 +2,7 @@
 
 - Status: Accepted (2026-11-11) — heuristic-mode corpus accuracy 100% (18 fields × 7 fixtures); LLM mode is the safety net for layouts outside the corpus. **Amended 2026-11-13: the server endpoint was never shipped; autofill is client-side only — see Amendment.**
 - Date: 2026-11-11
-- Related: ADR-023 (AI provider / OpenRouter), ADR-038 (rate limiting), ADR-041 (Turnstile), plan `docs/plan/2026-11-11-resume-autofill-accuracy.md`
+- Related: ADR-023 (AI provider / OpenRouter), ADR-038 (rate limiting), ADR-041 (Turnstile), plans `docs/plan/2026-11-11-resume-autofill-accuracy.md`, `docs/plan/2026-11-26-resume-autofill-accuracy-real-corpus.md`
 
 ## Context
 
@@ -42,3 +42,11 @@ cleanup removed them, and registration auto-fill runs entirely client-side (pdfj
 `src/shared/utils/resumeAutofill.js` regex heuristics). No resume text leaves the browser and nothing
 is sent to OpenRouter. Decisions 2-4 above (privacy gate, abuse control, availability) apply only if
 the server path is ever reintroduced; the shipped state is the client-side path.
+
+## Amendment (2026-11-26) — phase order
+
+The LLM path stays deferred behind a measurement. The accuracy plan of record is corpus-first regex
+hardening: grow the golden corpus with real anonymized Filipino resumes, fix the mapper misses they
+reveal (≤3 TDD clusters in `resumeAutofill.js`), and re-open this ADR's server endpoint only if any
+long-string field measures <90% correct/filled on that corpus. That phase makes no server, DB, or
+dependency changes.
