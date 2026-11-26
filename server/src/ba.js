@@ -6,6 +6,7 @@ import bcrypt from 'bcrypt';
 import { admin, captcha, twoFactor } from 'better-auth/plugins';
 import { sendExistingAccountEmail, sendResetPassword, sendVerificationEmail } from './mailer.js';
 import { passwordPolicyError } from './passwordPolicy.js';
+import { canRequestReset, recordResetRequest } from './requestResetCooldown.js';
 import logger from './logger.js';
 
 // The only place betterAuth() is configured. Later tasks import { auth }.
@@ -63,6 +64,13 @@ export const auth = betterAuth({
     // it is exactly the failure mode Review Focus 2 pins (a wrong trustedOrigins
     // list must be caught by the suite, not only in production).
     disableOriginCheck: false,
+    backgroundTasks: {
+      // Auth mail goes out off the request path: SMTP latency must not hold the
+      // sign-up / reset / verification response open. The API is long-lived
+      // (Express), so the in-process send survives the response; BA's wrapper
+      // logs failures.
+      handler: (promise) => { promise.catch(() => {}); },
+    },
     database: {
       generateId: 'uuid', // Decision 2 — uuid user ids
       // BA 1.7 introspects the schema from onRequest before every endpoint (once,
@@ -103,16 +111,37 @@ export const auth = betterAuth({
     // Decision 11 — the server, not the client, enforces the policy, so a
     // direct POST /sign-up/email cannot bypass it.
     before: createAuthMiddleware(async (ctx) => {
+      // One reset email per address per 60s, keyed by the submitted address so
+      // no account lookup can reveal whether it exists. The client mirrors the
+      // same window for the returning page's countdown.
+      if (ctx.path === '/request-password-reset') {
+        if (!canRequestReset(ctx.body?.email).allowed) {
+          throw new APIError('TOO_MANY_REQUESTS', {
+            message: 'A reset email was already sent. Please wait a minute before trying again.',
+          });
+        }
+        return;
+      }
       if (!['/sign-up/email', '/reset-password', '/change-password'].includes(ctx.path)) return;
       const issue = passwordPolicyError(ctx.body?.password ?? ctx.body?.newPassword);
       if (issue) throw new APIError('BAD_REQUEST', { message: issue });
     }),
+    // Only an accepted request starts the window, so a failed captcha,
+    // validation, or origin check never locks the address. Two concurrent
+    // requests can both pass the check before either records; the client's
+    // in-flight guard and the 3/60 per-IP backstop cover that tiny race.
+    after: createAuthMiddleware(async (ctx) => {
+      if (ctx.path !== '/request-password-reset') return;
+      // A handler-level rejection still reaches this hook; it sent no mail.
+      if (ctx.context.returned instanceof APIError) return;
+      recordResetRequest(ctx.body?.email);
+    }),
   },
   plugins,
   // Pinned, not inherited: BA 1.7 already defaults these two email endpoints to
-  // 3 per 60s per IP, but an upgrade may change that silently. The client holds
-  // its buttons for the same 60s, so a mismatch would only show as a surprise
-  // 429 (or a wasted send).
+  // 3 per 60s per IP, but an upgrade may change that silently. The `before` hook
+  // enforces the per-email 60s window the client mirrors; this IP rule stays as
+  // a backstop against many addresses from one source.
   rateLimit: {
     enabled: true,
     customRules: {

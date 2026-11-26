@@ -47,6 +47,7 @@ beforeEach(() => {
   captcha.siteKey = ''
   vi.clearAllMocks()
   resetAuthClient()
+  localStorage.clear()
 })
 
 function renderForgot() {
@@ -97,7 +98,8 @@ describe('ForgotPassword', () => {
   })
 })
 
-// The server allows 3 sends per 60s per IP and the button mirrors that window.
+// The server allows 1 reset per email per 60s (3 per 60s per IP as a backstop)
+// and the button mirrors the per-email window, persisting it across navigation.
 // fireEvent + a flushed microtask keeps the click deterministic under the fake
 // clock (findBy/waitFor would need real timers).
 async function submitAndFlush() {
@@ -153,6 +155,38 @@ describe('ForgotPassword cooldown', () => {
     expect(screen.getByRole('alert')).toHaveTextContent('Too many attempts. Please wait a moment and try again.')
     expect(screen.getByRole('button', { name: 'Send again in 60s' })).toBeDisabled()
     expect(authClientMock.requestPasswordReset).toHaveBeenCalledTimes(1)
+  })
+
+  it('restores the stored countdown for the same address after unmounting', async () => {
+    const first = renderForgot()
+    fireEvent.change(screen.getByLabelText(/email/i), { target: { value: 'jane@example.com' } })
+    await submitAndFlush()
+    expect(authClientMock.requestPasswordReset).toHaveBeenCalledTimes(1)
+    first.unmount()
+
+    // Navigating away and back is a fresh mount: the countdown must come from
+    // the stored record, not from an enabled button.
+    const { container } = renderForgot()
+    fireEvent.change(screen.getByLabelText(/email/i), { target: { value: 'jane@example.com' } })
+
+    expect(screen.getByRole('button', { name: 'Send again in 60s' })).toBeDisabled()
+    fireEvent.submit(container.querySelector('form'))
+    await act(async () => {})
+    expect(authClientMock.requestPasswordReset).toHaveBeenCalledTimes(1)
+  })
+
+  it('leaves a different address enabled after another address sent a reset', async () => {
+    const first = renderForgot()
+    fireEvent.change(screen.getByLabelText(/email/i), { target: { value: 'jane@example.com' } })
+    await submitAndFlush()
+    first.unmount()
+
+    renderForgot()
+    fireEvent.change(screen.getByLabelText(/email/i), { target: { value: 'jane@example.com' } })
+    expect(screen.getByRole('button', { name: 'Send again in 60s' })).toBeDisabled()
+
+    fireEvent.change(screen.getByLabelText(/email/i), { target: { value: 'bob@example.com' } })
+    expect(screen.getByRole('button', { name: 'Send Reset Link' })).toBeEnabled()
   })
 })
 

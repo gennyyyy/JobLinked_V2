@@ -18,6 +18,10 @@ const transportFor = () =>
     port: Number(process.env.SMTP_PORT || 587),
     secure: Number(process.env.SMTP_PORT) === 465,
     auth: process.env.SMTP_USER ? { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS } : undefined,
+    // Bound the attempt: background sends must not pile up behind a dead server.
+    connectionTimeout: 10_000,
+    greetingTimeout: 10_000,
+    socketTimeout: 20_000,
   }));
 
 const deliver = async ({ to, url, kind, subject, text, html }) => {

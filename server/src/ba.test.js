@@ -64,6 +64,12 @@ describe('better-auth instance', () => {
     expect(auth.options.advanced.database.generateId).toBe('uuid');
   });
 
+  it('sends auth mail off the request path via the background task handler', async () => {
+    const auth = await loadAuth();
+
+    expect(typeof auth.options.advanced.backgroundTasks.handler).toBe('function');
+  });
+
   it('gives the auth database its own `auth` schema', async () => {
     const auth = await loadAuth();
 

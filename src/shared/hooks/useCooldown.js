@@ -13,6 +13,7 @@ export default function useCooldown(seconds = 60) {
   }, [cooling]);
 
   const start = useCallback((length = seconds) => setRemaining(length), [seconds]);
+  const stop = useCallback(() => setRemaining(0), []);
 
-  return { seconds: remaining, cooling, start };
+  return { seconds: remaining, cooling, start, stop };
 }
