@@ -21,7 +21,7 @@ you can exercise over it.
 - Employment profile: education, skills, qualifications, certifications, work
   experience, employment status, and job preferences.
 - Application records: résumés and supporting documents you upload, the
-  vacancies you applied to, referral records, and recruitment status updates.
+  vacancies you applied to, and recruitment status updates.
 - Service records: notifications sent to you, and technical logs needed to keep
   the service secure (access times, request identifiers).
 
@@ -32,7 +32,7 @@ only when necessary, with its purpose and legal basis explained before collectio
 2. Why we use it
 - Create and manage your JobLinked account and applicant profile.
 - Match your qualifications and preferences with job vacancies.
-- Process applications and facilitate PESO employment assistance and referrals.
+- Process applications and facilitate PESO employment assistance.
 - Display and update your application status.
 - Send account, application, and service notifications.
 - Prepare authorized municipal employment reports using aggregated employment
@@ -47,8 +47,6 @@ to confidentiality and security obligations.
 
 When you apply for a vacancy, the application screen names the receiving employer
 and the information and documents to be shared before you confirm submission.
-Sharing your profile with other prospective employers for additional PESO referrals
-requires a separate legal basis, including your optional consent where applicable.
 Your profile is not sold and is not published as a public applicant directory.
 
 4. How it is stored and protected
@@ -65,7 +63,9 @@ erase records that must lawfully be retained.
 5. Your rights
 Subject to applicable law, you may request access to your records, ask for
 corrections, object to processing, withdraw consent, or request deletion or
-blocking of your information. You may file a complaint with the National Privacy
+blocking of your information. You can download your data and erase your account
+from Account settings; erasure anonymizes your profile and keeps only the records
+PESO must retain by law. You may file a complaint with the National Privacy
 Commission. Requests are submitted to the PESO office handling your registration
 for referral to the Municipality's designated Data Protection Officer.
 
@@ -116,8 +116,8 @@ or using the service you accept them.
   the listings and of the reports it prepares.
 
 4. What the service does and does not do
-- JobLinked is a matching and referral service. Registration, matching, and
-  referral do not guarantee employment. Hiring decisions rest with employers.
+- JobLinked is a matching service. Registration and matching do not guarantee
+  employment. Hiring decisions rest with employers.
 - JobLinked does not process payroll, salary payments, or any monetary
   transaction between employers and job seekers, and never asks for payment to
   apply for a vacancy.
@@ -126,8 +126,8 @@ or using the service you accept them.
 5. Content and records
 - You keep ownership of the documents you upload and grant PESO permission to
   store and process them for the purposes in the Privacy Notice.
-- Application and referral records are retained as described in the Privacy
-  Notice and in applicable government records rules.
+- Application records are retained as described in the Privacy Notice and in
+  applicable government records rules.
 - We may suspend or close an account that breaches these terms, with notice where
   the law or an investigation allows it.
 

@@ -56,6 +56,15 @@ describe('cookie transport', () => {
     expect(init.headers.Authorization).toBeUndefined()
   })
 
+  it('sends a DELETE body when one is given', async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue(json(200, { erased: true }))
+    await api.del('account', { confirm: 'ERASE' })
+    const [url, init] = globalThis.fetch.mock.calls[0]
+    expect(url).toBe('http://localhost:4000/api/account')
+    expect(init.method).toBe('DELETE')
+    expect(JSON.parse(init.body)).toEqual({ confirm: 'ERASE' })
+  })
+
   it('blob() sends cookies and no Authorization header', async () => {
     globalThis.fetch = vi.fn().mockResolvedValue(json(200, { file: true }))
     await api.blob('documents/x')

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Clock3, Download, Handshake, Users } from 'lucide-react'
+import { Clock3, Download, Users } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
@@ -25,7 +25,6 @@ export default function Applications() {
   const [query, setQuery] = useState('')
   const [status, setStatus] = useState('')
   const [barangay, setBarangay] = useState('')
-  const [referral, setReferral] = useState('')
   const [page, setPage] = useState(1)
   const [selected, setSelected] = useState(null)
 
@@ -42,10 +41,9 @@ export default function Applications() {
       const haystack = `${application.seeker?.full_name || ''} ${application.job?.title || ''} ${application.job?.employers?.company_name || ''}`.toLowerCase()
       return (!status || application.status === status)
         && (!barangay || application.seeker?.barangay_district === barangay)
-        && (!referral || Boolean(application.referred_by) === (referral === 'Referred'))
         && haystack.includes(text)
     })
-  }, [applications, query, status, barangay, referral])
+  }, [applications, query, status, barangay])
 
   const pages = Math.max(1, Math.ceil(records.length / PAGE_SIZE))
   const currentPage = Math.min(page, pages)
@@ -53,7 +51,7 @@ export default function Applications() {
 
   function exportCsv() {
     const rows = [
-      ['Application ID', 'Job title', 'Employer', 'Barangay', 'Submitted', 'Current status', 'Referral', 'Placement'],
+      ['Application ID', 'Job title', 'Employer', 'Barangay', 'Submitted', 'Current status', 'Placement'],
       ...records.map((application) => [
         application.id,
         application.job?.title || '',
@@ -61,7 +59,6 @@ export default function Applications() {
         application.seeker?.barangay_district || '',
         String(application.applied_at || '').slice(0, 10),
         application.status || '',
-        application.referred_by ? 'Yes' : 'No',
         application.status === 'Placed' ? 'Yes' : 'No',
       ]),
     ]
@@ -75,14 +72,14 @@ export default function Applications() {
     URL.revokeObjectURL(url)
   }
 
-  if (loading) return <PageSkeleton stats={4} table label="Loading page." />
+  if (loading) return <PageSkeleton stats={3} table label="Loading page." />
   if (error) return <InlineError message={error} />
 
   return (
     <>
       <PageHeading
         title="From opportunity to a new beginning."
-        description="Monitor recruitment outcomes and record referral markers. No external referral is sent."
+        description="Monitor recruitment outcomes across every posted vacancy."
         action={(
           <Button variant="outline" disabled={!records.length} onClick={exportCsv}>
             <Download data-icon="inline-start" />
@@ -94,7 +91,6 @@ export default function Applications() {
         countUp
         stats={[
           { label: 'Applications in view', value: records.length, icon: Clock3 },
-          { label: 'Recorded referrals', value: records.filter((application) => application.referred_by).length, icon: Handshake },
           { label: 'placements', value: records.filter((application) => application.status === 'Placed').length, icon: Users, tone: 'teal' },
           { label: 'Interview stage', value: records.filter((application) => application.status === 'Interview').length, icon: Users, tone: 'teal' },
         ]}
@@ -102,7 +98,7 @@ export default function Applications() {
       <Panel title="Applications & placements" description="Placement means an application currently marked Placed. These are provided outcomes.">
         <div className="mb-5 flex flex-col gap-3">
           <SearchInput value={query} onChange={(value) => { setQuery(value); setPage(1) }} placeholder="Search candidate, vacancy, or employer…" />
-          <div className="grid gap-3 sm:grid-cols-3">
+          <div className="grid gap-3 sm:grid-cols-2">
             <SelectField
               id="applications-status"
               label="Recruitment status"
@@ -119,14 +115,6 @@ export default function Applications() {
               value={barangay}
               onChange={(event) => { setBarangay(event.target.value); setPage(1) }}
             />
-            <SelectField
-              id="applications-referral"
-              label="Referral marker"
-              placeholder="All referral outcomes"
-              options={['Referred', 'Not referred']}
-              value={referral}
-              onChange={(event) => { setReferral(event.target.value); setPage(1) }}
-            />
           </div>
         </div>
         {records.length ? (
@@ -136,7 +124,6 @@ export default function Applications() {
                 <TableHead>Candidate & vacancy</TableHead>
                 <TableHead>Barangay</TableHead>
                 <TableHead>Outcome</TableHead>
-                <TableHead>Referral</TableHead>
                 <TableHead>History</TableHead>
               </TableRow>
             </TableHeader>
@@ -152,9 +139,6 @@ export default function Applications() {
                   <TableCell>
                     <StatusBadge status={application.status} />
                     {application.status === 'Placed' && <p className="mt-2 text-micro text-teal">placement recorded</p>}
-                  </TableCell>
-                  <TableCell>
-                    <span className="text-xs text-muted-foreground">{application.referred_by ? 'Referred' : 'Not referred'}</span>
                   </TableCell>
                   <TableCell>
                     <Button

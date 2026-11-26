@@ -45,5 +45,6 @@ describe('legal documents', () => {
     expect(notice).toMatch(/retained as employment records/)
     expect(notice).toMatch(/limited applicant details/)
     expect(notice).not.toMatch(/aggregated or anonymized/)
+    expect(notice).toMatch(/download your data and erase your account/i)
   })
 })

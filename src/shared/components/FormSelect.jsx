@@ -3,7 +3,7 @@ import { cn } from "@/lib/utils";
 
 export default function FormSelect({ className, children, ...props }) {
   return (
-    <div className="relative">
+    <div className="relative w-full">
       <select {...props} className={cn("w-full appearance-none pr-10", className)}>
         {children}
       </select>

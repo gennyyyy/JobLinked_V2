@@ -13,7 +13,7 @@ describe('profiles PATCH empty-vs-null', () => {
   });
 
   it('lists the not-null text columns', () => {
-    for (const c of ['first_name', 'middle_name', 'last_name', 'suffix', 'full_name', 'country', 'company_name']) {
+    for (const c of ['first_name', 'middle_name', 'last_name', 'suffix', 'full_name', 'country', 'nationality', 'company_name']) {
       expect(profilesSrc).toContain(`'${c}'`);
     }
   });

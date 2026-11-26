@@ -16,7 +16,7 @@ const app = makeApp();
 beforeEach(() => { reset(); resetAuth(); });
 
 const priorName = (row) =>
-  on(/select first_name, middle_name, last_name, suffix from job_seekers where id = \$1/, () => ({ rows: [row] }));
+  on(/select first_name, middle_name, last_name, suffix, full_name, name_changed_at from job_seekers where id = \$1/, () => ({ rows: [row] }));
 const updateReturns = (row) => on(/update job_seekers set/, () => ({ rows: [{ id: SEEKER, ...row }] }));
 
 const patchMe = (token, body) => request(app)
@@ -38,14 +38,14 @@ describe('PATCH /api/seekers/me — full_name derivation', () => {
     expect(callsOf(/update job_seekers set/)[0].params).toEqual([SEEKER, 'john', 'smith', 'john smith']);
   });
 
-  it('stores a full_name-only patch verbatim, without the extra component SELECT', async () => {
+  it('writes a full_name-only patch verbatim and reads the prior row for the cooldown', async () => {
     const token = loginAs({ id: SEEKER, role: 'job-seeker' });
     updateReturns({ full_name: 'jane doe' });
 
     const res = await patchMe(token, { full_name: 'Jane Doe' });
 
     expect(res.status).toBe(200);
-    expect(callsOf(/select first_name, middle_name, last_name, suffix from/)).toHaveLength(0);
+    expect(callsOf(/select first_name, middle_name, last_name, suffix, full_name, name_changed_at from/)).toHaveLength(1);
     expect(callsOf(/update job_seekers set/)[0].params).toEqual([SEEKER, 'jane doe']);
   });
 

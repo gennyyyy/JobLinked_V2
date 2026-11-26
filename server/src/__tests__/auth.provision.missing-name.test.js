@@ -23,7 +23,7 @@ describe('auth.provision missing name fields (B16 regression)', () => {
       () => ({ rows: [{ id: SEEKER, email: 'u@test.local', full_name: 'ana cruz' }] }));
     const res = await request(app).post('/api/auth/provision')
       .set('Cookie', token)
-      .send({ role: 'job-seeker', first_name: 'Ana', last_name: 'Cruz' });
+      .send({ role: 'job-seeker', terms_accepted: true, first_name: 'Ana', last_name: 'Cruz' });
     expect(res.status).toBe(201);
     const [, params] = [null, callsOf(/insert into job_seekers/)[0].params];
     // Column order: id, email, first_name, middle_name, last_name, suffix, ...
@@ -37,7 +37,7 @@ describe('auth.provision missing name fields (B16 regression)', () => {
       () => ({ rows: [{ id: SEEKER, email: 'u2@test.local', full_name: 'an co' }] }));
     const res = await request(app).post('/api/auth/provision')
       .set('Cookie', token)
-      .send({ role: 'employer', last_name: 'Co' });
+      .send({ role: 'employer', terms_accepted: true, last_name: 'Co' });
     expect(res.status).toBe(201);
     const params = callsOf(/insert into employers/)[0].params;
     // id, email, first_name, middle_name, last_name, suffix, full_name, ...

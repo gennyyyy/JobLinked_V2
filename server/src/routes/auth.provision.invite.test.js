@@ -69,7 +69,7 @@ describe('provision on better-auth: the admin_invites grant wins', () => {
     expect(insert.params[4]).toBe('cruz');
     expect(insert.params[6]).toBe('ana cruz');
     // The body tag was ignored: the invite's null means "no custom role".
-    expect(insert.params[22]).toBeNull();
+    expect(insert.params[23]).toBeNull();
     expect(callsOf(/category = 'custom_role'/)).toHaveLength(0);
   });
 
@@ -104,7 +104,7 @@ describe('provision on better-auth: the admin_invites grant wins', () => {
     const res = await provision(cookie);
 
     expect(res.status).toBe(201);
-    expect(callsOf(/insert into job_seekers/)[0].params[22]).toBe(7);
+    expect(callsOf(/insert into job_seekers/)[0].params[23]).toBe(7);
     const ordered = callsOf(/category = 'custom_role'|^delete from public\.admin_invites/);
     expect(ordered).toHaveLength(2);
     expect(ordered[0].sql).toMatch(/category = 'custom_role'/);
@@ -217,11 +217,29 @@ describe('provision on better-auth: the admin_invites grant wins', () => {
     unprovisioned();
     seekerInsert();
 
-    const res = await provision(cookie, { role: 'job-seeker', first_name: 'Ana', last_name: 'Cruz' });
+    const res = await provision(cookie, { role: 'job-seeker', terms_accepted: true, first_name: 'Ana', last_name: 'Cruz' });
 
     expect(res.status).toBe(201);
-    expect(callsOf(/insert into job_seekers/)[0].params[22]).toBeNull();
+    expect(callsOf(/insert into job_seekers/)[0].params[23]).toBeNull();
     expect(callsOf(/^delete from public\.admin_invites/)).toHaveLength(0);
+  });
+
+  // ADR-059: staff consent is an HR/onboarding act — an invite needs no
+  // checkbox, and no consent is stamped on the row.
+  it('an admin invite provisions without terms_accepted and stamps no consent', async () => {
+    const cookie = loginAs({ id: SEEKER, role: 'job-seeker' });
+    unprovisioned();
+    withInvite(inviteRow());
+    inviteClaimed();
+    seekerInsert();
+
+    const res = await provision(cookie);
+
+    expect(res.status).toBe(201);
+    const insert = callsOf(/insert into job_seekers/)[0];
+    expect(insert.params[24]).toBe(false); // not a self-signup
+    expect(insert.params[25]).toBeNull(); // no consent recorded
+    expect(callsOf(/from public\.legal_documents/)).toHaveLength(0);
   });
 });
 

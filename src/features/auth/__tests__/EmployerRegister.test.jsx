@@ -169,6 +169,17 @@ describe('EmployerRegister address', () => {
     expect(parked().representative_phone).not.toMatch(/\s/)
   })
 
+  it('parks terms_accepted once the terms gate is passed', async () => {
+    signedUp({ id: 'employer-1' })
+    renderPage()
+    fillRequired()
+    await openTermsAndAgree()
+    await submit()
+
+    await waitFor(() => expect(api.post).toHaveBeenCalled())
+    expect(parked()).toMatchObject({ role: 'employer', terms_accepted: true })
+  })
+
   it('blocks a non-4-digit postal code', async () => {
     renderPage()
     fillRequired()

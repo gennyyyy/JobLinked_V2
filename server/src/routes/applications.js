@@ -12,8 +12,13 @@ const appSelect = (seekerJoin, withHistory = false) => `select a.*,
     'employment_type', j.employment_type, 'company_id', j.company_id,
     'employers', json_build_object('id', e.id, 'company_name', e.company_name)) as job,
   ${seekerJoin ? `json_build_object(${SEEKER_COLS.split(', ').map((c) => `'${c.trim()}', s.${c.trim()}`).join(', ')}) as seeker,` : ''}
-  (select json_build_object('id', r.id, 'file_name', r.file_name, 'file_path', r.file_path)
-   from resumes r where r.id = a.resume_id) as resume${withHistory ? `,
+  coalesce(
+    (select json_build_object('id', r.id, 'file_name', r.file_name, 'file_path', r.file_path)
+       from resumes r where r.id = a.resume_id),
+    (select json_build_object('id', r.id, 'file_name', r.file_name, 'file_path', r.file_path)
+       from resumes r where r.seeker_id = a.seeker_id and r.is_active
+       order by r.uploaded_at desc limit 1)
+  ) as resume${withHistory ? `,
   (select coalesce(json_agg(json_build_object('status', h.status, 'changed_at', h.changed_at) order by h.changed_at), '[]'::json)
    from application_status_history h where h.application_id = a.id) as history` : ''}
 from job_applications a
@@ -78,9 +83,10 @@ router.post('/applications', auth, requireRole('job-seeker'), ah(async (req, res
     throw e;
   }
   void audit(req.user.id, 'application.create', 'job_applications', row.id);
-  const { rows: srows } = await pool.query('select full_name from job_seekers where id = $1', [req.user.id]);
+  // ADR-060: no applicant name in a third party's notification — the employer
+  // opens the applicant list for identity.
   void notifyUser(job.company_id, { type: 'application', title: 'New applicant',
-    message: `${srows[0]?.full_name || 'A job seeker'} applied for ${job.title}.`, link: '/employer/applicants' });
+    message: `A new applicant applied for ${job.title}.`, link: '/employer/applicants' });
   res.status(201).json(row);
 }));
 

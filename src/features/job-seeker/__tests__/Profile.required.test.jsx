@@ -121,10 +121,22 @@ describe('Profile required fields', () => {
     expect(updateProfile).toHaveBeenCalledWith('u1', expect.objectContaining({ full_name: 'Juana Santos' }))
   })
 
+  it('prefills nationality and blocks a blank one', async () => {
+    useAuth.mockReturnValue({ user: STORED, refreshUser: vi.fn() })
+    await openProfile()
+    const nationality = screen.getByLabelText(/^Nationality/)
+    expect(nationality.tagName).toBe('SELECT')
+    expect(nationality).toHaveValue('Filipino')
+    fireEvent.change(nationality, { target: { value: '' } })
+    save()
+    expect(await screen.findByText('Enter your nationality.')).toBeInTheDocument()
+    expect(updateProfile).not.toHaveBeenCalled()
+  })
+
   it('marks required controls with a red asterisk and leaves optional ones unmarked', async () => {
     await openProfile()
 
-    for (const name of [/^Full Name/, /^Contact Number/, /^First Name/, /^Last Name/, /^Birthday/, /^Employment Status/]) {
+    for (const name of [/^Full Name/, /^Contact Number/, /^First Name/, /^Last Name/, /^Birthday/, /^Nationality/, /^Employment Status/]) {
       expect(hasMarker(name), `required marker missing on ${name}`).toBe(true)
     }
     for (const name of [/^Middle Name/, /^Suffix/]) {

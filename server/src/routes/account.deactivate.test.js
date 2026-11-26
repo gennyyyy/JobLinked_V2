@@ -6,12 +6,14 @@ import { err } from '../util.js';
 const mocks = vi.hoisted(() => ({
   poolQuery: vi.fn(),
   resolveRole: vi.fn(async () => ({ role: 'employer', profile: { id: 'user-1', status: 'active' } })),
+  clearTokenCache: vi.fn(),
 }));
 vi.mock('../db.js', () => ({ pool: { query: mocks.poolQuery } }));
 vi.mock('../auth.js', () => ({
   tokenAuth: (req, _res, next) => { req.user = { id: 'user-1', email: 'u@x.com' }; next(); },
   resolveRole: mocks.resolveRole,
 }));
+vi.mock('../tokenCache.js', () => ({ clearTokenCache: mocks.clearTokenCache }));
 process.env.SUPABASE_URL = 'https://supa.test';
 process.env.SUPABASE_SERVICE_ROLE_KEY = 'service-key';
 const { default: accountRoutes } = await import('./account.js');
@@ -37,6 +39,7 @@ beforeEach(() => {
   process.env.SUPABASE_SERVICE_ROLE_KEY = 'service-key';
   upstream.mockReset().mockResolvedValue({ ok: true, status: 200, body: { cancel: vi.fn() } });
   mocks.poolQuery.mockReset().mockResolvedValue({ rows: [], rowCount: 1 });
+  mocks.clearTokenCache.mockReset();
   mocks.resolveRole.mockReset().mockResolvedValue({ role: 'employer', profile: { id: 'user-1', status: 'active' } });
 });
 
@@ -100,6 +103,8 @@ describe('POST /account/deactivate', () => {
     expect(baDelete()[0][1]).toEqual(['user-1']);
 
     expect(upstream).toHaveBeenCalledTimes(1);
+    // Dual window: a memoized legacy principal must not outlive the revocation.
+    expect(mocks.clearTokenCache).toHaveBeenCalledTimes(1);
   });
 
   it('deactivates and revokes BA sessions with no Supabase key: 200, no 503, no legacy call', async () => {
@@ -110,6 +115,7 @@ describe('POST /account/deactivate', () => {
     expect(updateCalls()).toHaveLength(1);
     expect(baDelete()).toHaveLength(1);
     expect(upstream).not.toHaveBeenCalled();
+    expect(mocks.clearTokenCache).toHaveBeenCalledTimes(1);
     expect(auditCalls()).toHaveLength(1);
   });
 

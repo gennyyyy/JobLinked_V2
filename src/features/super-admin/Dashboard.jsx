@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ArrowRight, BriefcaseBusiness, Building2, ChartNoAxesCombined, CheckCircle2, ClipboardCheck, Handshake, ShieldCheck, Users } from 'lucide-react'
+import { ArrowRight, BriefcaseBusiness, Building2, ChartNoAxesCombined, CheckCircle2, ClipboardCheck, ShieldCheck, Users } from 'lucide-react'
 import { getStats, listAllAccreditations, listAllApplications, listAuditLogs } from '@/shared/services/admin'
 import { PageSkeleton } from '@/shared/components/Skeletons'
 import { InlineError } from '@/shared/components/dashboard'
@@ -76,7 +76,6 @@ export default function Dashboard() {
         stats={[
           { label: 'applications', value: stats.applications ?? 0, icon: ClipboardCheck, note: 'submitted' },
           { label: 'accepted', value: stats.ACCEPTED_TOTAL ?? stats.acceptedApplicants ?? 0, icon: CheckCircle2, note: 'employer accepted', tone: 'teal' },
-          { label: 'Recorded referrals', value: applications.filter((application) => application.referred_by).length, icon: Handshake, note: 'PESO referrals', tone: 'teal' },
           ...(stats.PLACED_TOTAL !== undefined || stats.placedApplicants !== undefined
             ? [{ label: 'placements', value: stats.PLACED_TOTAL ?? stats.placedApplicants, icon: Users, note: 'confirmed hires', tone: 'teal' }]
             : []),

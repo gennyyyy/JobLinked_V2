@@ -5,11 +5,12 @@ import express from 'express';
 import { describe, it, expect, vi, beforeAll, afterAll, beforeEach } from 'vitest';
 import { err } from '../util.js';
 
-const mocks = vi.hoisted(() => ({ poolQuery: vi.fn() }));
+const mocks = vi.hoisted(() => ({ poolQuery: vi.fn(), clearTokenCache: vi.fn() }));
 vi.mock('../db.js', () => ({ pool: { query: mocks.poolQuery } }));
 vi.mock('../auth.js', () => ({
   tokenAuth: (req, _res, next) => { req.user = { id: 'user-1', email: 'u@x.com' }; next(); },
 }));
+vi.mock('../tokenCache.js', () => ({ clearTokenCache: mocks.clearTokenCache }));
 process.env.SUPABASE_URL = 'https://supa.test';
 process.env.SUPABASE_SERVICE_ROLE_KEY = 'service-key';
 const { default: accountRoutes } = await import('./account.js');
@@ -35,6 +36,7 @@ beforeEach(() => {
   process.env.SUPABASE_SERVICE_ROLE_KEY = 'service-key';
   upstream.mockReset().mockResolvedValue({ ok: true, status: 200, body: { cancel: vi.fn() } });
   mocks.poolQuery.mockReset().mockResolvedValue({ rows: [] });
+  mocks.clearTokenCache.mockReset();
 });
 
 const post = () => fetch(`${base}/account/sessions/revoke-all`, {
@@ -66,6 +68,7 @@ describe('POST /account/sessions/revoke-all', () => {
     const [sql, params] = auditCalls()[0];
     expect(String(sql)).toContain('audit_logs');
     expect(params[1]).toBe('account.sessions.revoke');
+    expect(mocks.clearTokenCache).toHaveBeenCalledTimes(1);
   });
 
   it('revokes BA sessions with no Supabase service key: 200, no 503, no legacy call', async () => {

@@ -35,7 +35,8 @@ function PickerFeedback({ helpId, helpText, loading, error, errorId, loadError, 
 
 // Controlled vocabulary picker fed by GET /reference/:category.
 //   multiple (skills) -> native checkbox chips in canonical order, capped at `max`
-//   single (job field) -> native <select>; "Not set" emits null
+//   single (job field) -> native <select>; "Not set" emits null, or a disabled
+//   `placeholder` when required so the empty choice cannot look like a value
 // `value` is string[] for multiple (a comma-separated string is also accepted)
 // and string|null for single. Selected values are matched case-insensitively
 // and emitted in the vocabulary's canonical casing/order.
@@ -49,6 +50,7 @@ export default function VocabularyPicker({
   max = 20,
   help,
   required = false,
+  placeholder = "Select an option",
   error,
   labelClassName,
 }) {
@@ -175,7 +177,9 @@ export default function VocabularyPicker({
         aria-describedby={describedBy}
         className="w-full border-0 bg-transparent text-sm text-foreground outline-none disabled:cursor-not-allowed disabled:opacity-60"
       >
-        <option value="">Not set</option>
+        {required
+          ? <option value="" disabled>{placeholder}</option>
+          : <option value="">Not set</option>}
         {options.map((option) => <option key={option} value={option}>{option}</option>)}
       </FormSelect>
       </div>

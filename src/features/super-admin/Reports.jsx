@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { BriefcaseBusiness, ClipboardCheck, Download, Handshake, Printer, Users } from 'lucide-react'
+import { BriefcaseBusiness, ClipboardCheck, Download, Printer, Users } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
 import { listAllApplications, listAllJobs, listUsers } from '@/shared/services/admin'
@@ -75,7 +75,6 @@ export default function Reports() {
       vacancies: published.length,
       openings: published.reduce((sum, job) => sum + (Number(job.vacancies) || 0), 0),
       applications: periodApplications.length,
-      referrals: periodApplications.filter((application) => application.referred_by).length,
       placements: placements.length,
       months,
       barangays,
@@ -110,7 +109,7 @@ export default function Reports() {
       </div>
       <PageHeading
         title="Insights that keep people at the center."
-        description="Explore provided vacancies, referrals, and placement outcomes across Santa Maria’s 24 barangays."
+        description="Explore provided vacancies and placement outcomes across Santa Maria’s 24 barangays."
         action={(
           <>
             <Button variant="outline" onClick={exportReport} disabled={!valid}>
@@ -148,13 +147,12 @@ export default function Reports() {
         stats={[
           { label: 'Published vacancy records', value: report.vacancies, icon: BriefcaseBusiness, note: `${report.openings} openings in these postings` },
           { label: 'applications', value: report.applications, icon: ClipboardCheck },
-          { label: 'Recorded referrals', value: report.referrals, icon: Handshake, tone: 'teal' },
           { label: 'placements', value: report.placements, icon: Users, tone: 'teal' },
         ]}
       />
       <div className="mb-6">
         <Notice title="How to read this report">
-          All data is provided. Applications are grouped by submission date; placements and referrals reflect their current outcome. Vacancy counts include currently published postings from approved employers posted in the selected period. Resident counts are all-time registrations, not municipal population data.
+          All data is provided. Applications are grouped by submission date; placements reflect their current outcome. Vacancy counts include currently published postings from approved employers posted in the selected period. Resident counts are all-time registrations, not municipal population data.
         </Notice>
       </div>
       <div className="mb-6 grid items-start gap-6 xl:grid-cols-[1.6fr_1fr]">
@@ -174,10 +172,6 @@ export default function Reports() {
             <div>
               <dt className="font-semibold text-navy">Vacancy record ≠ opening</dt>
               <dd className="mt-2 leading-6 text-muted-foreground">One posting can include multiple openings. This period has {report.vacancies} postings with {report.openings} openings.</dd>
-            </div>
-            <div>
-              <dt className="font-semibold text-navy">Referral marker</dt>
-              <dd className="mt-2 leading-6 text-muted-foreground">An administrator recorded a referral. No external message or referral form was sent.</dd>
             </div>
             <div>
               <dt className="font-semibold text-navy">Placement outcome</dt>

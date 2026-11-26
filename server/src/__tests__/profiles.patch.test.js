@@ -31,6 +31,18 @@ describe('PATCH /api/seekers/me', () => {
     expect(callsOf(/insert into audit_logs/)[0].params[1]).toBe('profile.update');
   });
 
+  it('persists nationality as typed', async () => {
+    const token = loginAs({ id: SEEKER, role: 'job-seeker' });
+    on((sql) => /update job_seekers set/.test(sql), () => ({ rows: [{ id: SEEKER, nationality: 'Japanese' }] }));
+    const res = await request(app).patch('/api/seekers/me')
+      .set('Cookie', token)
+      .send({ nationality: 'Japanese' });
+    expect(res.status).toBe(200);
+    const update = callsOf(/update job_seekers set/)[0];
+    expect(update.sql).toMatch(/nationality = \$\d+/);
+    expect(update.params).toContain('Japanese');
+  });
+
   it('400 BAD_REQUEST when no allow-listed field is present', async () => {
     const token = loginAs({ id: SEEKER, role: 'job-seeker' });
     const res = await request(app).patch('/api/seekers/me')

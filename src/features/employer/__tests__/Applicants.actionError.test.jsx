@@ -56,13 +56,20 @@ describe('Applicants — error handling', () => {
     await waitFor(() => expect(screen.queryByRole('table')).toBeNull())
   })
 
-  it('surfaces a 403 resume read through InlineError and keeps the list', async () => {
+  it('surfaces a 403 resume read through InlineError inside the review dialog', async () => {
     signedUrl.mockRejectedValue(Object.assign(new Error('Not your file'), { status: 403 }))
     render(<Applicants />)
-    fireEvent.click(await screen.findByRole('button', { name: /view resume for juan dela cruz/i }))
+    const review = await screen.findByRole('button', { name: /review candidate juan dela cruz/i })
+    const row = review.closest('tr')
+    fireEvent.click(review)
 
-    const alert = await screen.findByRole('alert')
-    expect(alert.textContent).toMatch(/no longer have access to this resume/i)
-    expect(screen.getByRole('button', { name: /review candidate juan dela cruz/i })).toBeInTheDocument()
+    const dialog = await screen.findByRole('dialog')
+    fireEvent.click(within(dialog).getByRole('button', { name: /view resume for juan dela cruz/i }))
+
+    const alert = await within(dialog).findByText(/no longer have access to this resume/i)
+    expect(alert.closest('[role="alert"]')).toBeInTheDocument()
+    expect(dialog).toContainElement(alert)
+    expect(row).toBeInTheDocument()
+    expect(row).toHaveTextContent(/warehouse associate/i)
   })
 })

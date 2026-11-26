@@ -195,6 +195,6 @@ export const api = {
   get: (path, params) => request('GET', withQuery(path, params)),
   post: (path, body) => request('POST', path, body),
   patch: (path, body) => request('PATCH', path, body),
-  del: (path) => request('DELETE', path),
+  del: (path, body) => request('DELETE', path, body),
   blob: (path) => blob(path),
 };

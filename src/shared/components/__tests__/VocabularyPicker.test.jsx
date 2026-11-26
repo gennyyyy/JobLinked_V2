@@ -112,6 +112,29 @@ describe('VocabularyPicker', () => {
     expect(onChange).toHaveBeenLastCalledWith(null)
   })
 
+  it('shows a disabled "Select a field" placeholder and no "Not set" when required', async () => {
+    getReferenceValues.mockResolvedValue(['Construction'])
+    render(
+      <VocabularyPicker
+        id="field-required"
+        label="Field"
+        category="job_field-required"
+        multiple={false}
+        required
+        placeholder="Select a field"
+        value=""
+        onChange={() => {}}
+      />,
+    )
+
+    await waitFor(() => expect(screen.getByRole('option', { name: 'Construction' })).toBeInTheDocument())
+    const placeholder = screen.getByRole('option', { name: 'Select a field' })
+    expect(placeholder).toBeDisabled()
+    expect(placeholder).toHaveAttribute('value', '')
+    expect(screen.queryByRole('option', { name: 'Not set' })).toBeNull()
+    expect(screen.getByLabelText(/^field/i)).toBeRequired()
+  })
+
   it('announces loading and disables the single control', () => {
     getReferenceValues.mockReturnValue(new Promise(() => {}))
     render(

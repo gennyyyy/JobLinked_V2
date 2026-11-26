@@ -64,7 +64,6 @@ describe('Super-admin Dashboard', () => {
     expect(statValue('Active vacancies')).toBe('12')
     expect(statValue('applications')).toBe('5')
     expect(statValue('accepted')).toBe('13')
-    expect(statValue('Recorded referrals')).toBe('0')
     expect(statValue('placements')).toBe('14')
   })
 

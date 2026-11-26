@@ -7,12 +7,13 @@ import { ah, err, audit, notifyUser, notifyAdmins, buildFullName, isUuid, isNume
 import { uploadSingle, uploadImage, uploadDir, relPath, mimeForExt } from '../upload.js';
 import { putImage, getImage, deleteImage } from '../profileImages.js';
 import { MAX_SKILLS, canonicalizeField, canonicalizeSkills } from '../vocabulary.js';
+import { NAME_FIELDS, NAME_STAMP_SQL, NAME_GUARD_SQL, isNameChange, nameLimitMessage } from '../nameChange.js';
 
 const router = Router();
 
 const SEEKER_ALLOW = ['first_name', 'middle_name', 'last_name', 'suffix', 'full_name', 'phone',
   'lot', 'block', 'house_number_unit', 'street_address', 'subdivision_building', 'barangay_district',
-  'city_municipality', 'province_state', 'postal_code', 'country', 'birthdate', 'headline',
+  'city_municipality', 'province_state', 'postal_code', 'country', 'nationality', 'birthdate', 'headline',
   'education_summary', 'experience_summary',
   'skills', 'field', 'employment_status', 'preferred_position', 'preferred_location'];
 const EMPLOYER_ALLOW = ['first_name', 'middle_name', 'last_name', 'suffix', 'full_name', 'phone',
@@ -25,8 +26,7 @@ const LOWERCASE_FIELDS = new Set(['first_name', 'middle_name', 'last_name', 'suf
   'barangay_district', 'city_municipality', 'province_state', 'postal_code', 'country']);
 // Declared `not null default ''` in job_seekers/employers — emptying one of these
 // must persist '' (NULL violates the constraint and 500s the whole PATCH).
-const REQUIRED_TEXT = new Set(['first_name', 'middle_name', 'last_name', 'suffix', 'full_name', 'country', 'company_name']);
-const NAME_FIELDS = ['first_name', 'middle_name', 'last_name', 'suffix'];
+const REQUIRED_TEXT = new Set(['first_name', 'middle_name', 'last_name', 'suffix', 'full_name', 'country', 'nationality', 'company_name']);
 const meRoutes = (path, table, role, allow) => {
   // ADR-040: expose image presence + version without ever selecting the bytes.
   const isEmployer = table === 'employers';
@@ -73,20 +73,32 @@ const meRoutes = (path, table, role, allow) => {
     // component is patched, rebuild it from the patched (already normalized)
     // values plus the stored components the patch did not send. A patch that
     // sends ONLY full_name keeps the invite/legacy verbatim contract.
-    if (NAME_FIELDS.some((c) => patch[c] !== undefined)) {
+    // ADR-058: the same read also decides whether this patch changes the
+    // displayed name, which gates the atomic 30-day cooldown in the UPDATE.
+    let nameChanging = false;
+    if (NAME_FIELDS.some((c) => patch[c] !== undefined) || patch.full_name !== undefined) {
       const { rows } = await pool.query(
-        `select first_name, middle_name, last_name, suffix from ${table} where id = $1`, [req.user.id]);
-      const prior = rows[0] || {};
-      patch.full_name = buildFullName(
-        ...NAME_FIELDS.map((c) => (patch[c] !== undefined ? patch[c] : prior[c])),
-      );
+        `select first_name, middle_name, last_name, suffix, full_name, name_changed_at from ${table} where id = $1`, [req.user.id]);
+      const priorRow = rows[0] || {};
+      if (NAME_FIELDS.some((c) => patch[c] !== undefined)) {
+        patch.full_name = buildFullName(
+          ...NAME_FIELDS.map((c) => (patch[c] !== undefined ? patch[c] : priorRow[c])),
+        );
+      }
+      nameChanging = isNameChange(patch, priorRow);
     }
     if (!Object.keys(patch).length) return err(res, 400, 'BAD_REQUEST', 'Nothing to update');
     const keys = Object.keys(patch);
     const { rows } = await pool.query(
-      `update ${table} set ${keys.map((k, i) => `${k} = $${i + 2}`).join(', ')}, updated_at = now() where id = $1 returning *`,
+      `update ${table} set ${keys.map((k, i) => `${k} = $${i + 2}`).join(', ')}${nameChanging ? NAME_STAMP_SQL : ''}, updated_at = now()
+        where id = $1${nameChanging ? NAME_GUARD_SQL : ''} returning *`,
       [req.user.id, ...keys.map((k) => patch[k])]);
-    if (!rows[0]) return err(res, 404, 'NOT_FOUND', 'Profile not found');
+    if (!rows[0]) {
+      if (!nameChanging) return err(res, 404, 'NOT_FOUND', 'Profile not found');
+      const { rows: probe } = await pool.query(`select name_changed_at from ${table} where id = $1`, [req.user.id]);
+      if (!probe[0]) return err(res, 404, 'NOT_FOUND', 'Profile not found');
+      return err(res, 409, 'NAME_CHANGE_LIMIT', nameLimitMessage(probe[0].name_changed_at));
+    }
     void audit(req.user.id, 'profile.update', table, req.user.id, { fields: keys });
     res.json(rows[0]);
   }));
@@ -196,10 +208,12 @@ router.patch('/accreditations/:id', auth, requireRole('super-admin'), ah(async (
   if (!rows[0]) return err(res, 404, 'NOT_FOUND', 'Accreditation not found');
   void audit(req.user.id, `accreditation.${status}`, 'employer_accreditations', rows[0].id);
   if (['approved', 'rejected', 'resubmission', 'revoked'].includes(status)) {
-    const { rows: crows } = await pool.query('select id, company_name from employers where id = $1', [rows[0].company_id]);
+    // ADR-060: status only — no company name, no PESO remarks (the employer
+    // reads the remarks on the accreditation page).
+    const { rows: crows } = await pool.query('select id from employers where id = $1', [rows[0].company_id]);
     if (crows[0]) {
       void notifyUser(crows[0].id, { type: 'accreditation', title: `Accreditation ${status}`,
-        message: `Your accreditation for ${crows[0].company_name} has been ${status}.${remarks ? ` PESO remarks: ${remarks}` : ''}`,
+        message: `Your accreditation has been ${status}.`,
         link: '/employer/accreditation' });
     }
   }
@@ -262,11 +276,12 @@ async function storeDocument(companyId, docType, accreditationId, file) {
   }
 }
 
-async function notifyDocAdmins(companyId, docType) {
+async function notifyDocAdmins(docType) {
   try {
-    const { rows } = await pool.query('select company_name from employers where id = $1', [companyId]);
+    // ADR-060: no employer identity in the admin notification — the review
+    // queue names the company.
     await notifyAdmins({ type: 'document', title: 'New document for review',
-      message: `${rows[0]?.company_name || 'An employer'} uploaded ${String(docType).replace(/_/g, ' ')} for PESO verification.`,
+      message: `An employer uploaded ${String(docType).replace(/_/g, ' ')} for PESO verification.`,
       link: '/super-admin/accreditation' });
   } catch { /* ponytail: best-effort, never fails the upload */ }
 }
@@ -277,7 +292,7 @@ router.post('/documents', auth, requireRole('employer'), uploadSingle('documents
   if (!doc_type) return;
   const doc = await storeDocument(req.user.id, doc_type, accreditation_id, req.file);
   void audit(req.user.id, 'document.upload', 'employer_documents', doc.id, { doc_type });
-  void notifyDocAdmins(req.user.id, doc_type);
+  void notifyDocAdmins(doc_type);
   res.status(201).json(doc);
 }));
 
@@ -304,10 +319,10 @@ router.patch('/documents/:id', auth, requireRole('super-admin'), ah(async (req, 
   if (!rows[0]) return err(res, 404, 'NOT_FOUND', 'Document not found');
   void audit(req.user.id, `document.${status}`, 'employer_documents', rows[0].id);
   if (['verified', 'rejected', 'missing'].includes(status)) {
-    const { rows: crows } = await pool.query('select id, company_name from employers where id = $1', [rows[0].company_id]);
+    const { rows: crows } = await pool.query('select id from employers where id = $1', [rows[0].company_id]);
     if (crows[0]) {
       void notifyUser(crows[0].id, { type: 'document', title: `Document ${status}`,
-        message: `Your ${String(rows[0].doc_type).replace(/_/g, ' ')} for ${crows[0].company_name} was ${status}.${remarks ? ` PESO remarks: ${remarks}` : ''}`,
+        message: `Your ${String(rows[0].doc_type).replace(/_/g, ' ')} document was ${status}.`,
         link: '/employer/accreditation' });
     }
   }
@@ -362,7 +377,7 @@ router.post('/files/documents', auth, requireRole('employer'), uploadSingle('doc
   const rel = relPath('documents', req.user.id, path.basename(req.file.path));
   const document = await storeDocument(req.user.id, doc_type, accreditation_id, req.file);
   void audit(req.user.id, 'document.upload', 'employer_documents', document.id, { doc_type });
-  void notifyDocAdmins(req.user.id, doc_type);
+  void notifyDocAdmins(doc_type);
   res.status(201).json({ path: rel, document });
 }));
 
@@ -563,10 +578,10 @@ router.patch('/petitions/:id', auth, requireRole('super-admin'), ah(async (req, 
      where id=$1 returning *`, [req.params.id, status, remarks, req.user.id]);
   if (!rows[0]) return err(res, 404, 'NOT_FOUND', 'Petition not found');
   void audit(req.user.id, `petition.${status}`, 'employer_document_petitions', rows[0].id);
-  const { rows: crows } = await pool.query('select id, company_name from employers where id=$1', [rows[0].company_id]);
+  const { rows: crows } = await pool.query('select id from employers where id=$1', [rows[0].company_id]);
   if (crows[0]) {
     void notifyUser(crows[0].id, { type: 'petition', title: `Petition ${status}`,
-      message: `Your petition for ${rows[0].doc_type} was ${status}.${remarks ? ` PESO remarks: ${remarks}` : ''}`,
+      message: `Your petition for ${rows[0].doc_type} was ${status}.`,
       link: '/employer/accreditation' });
   }
   res.json(rows[0]);

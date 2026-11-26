@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Navigate, useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { FieldGroup, Field, FieldLabel } from '@/components/ui/field';
 import { InputGroup, InputGroupInput } from '@/components/ui/input-group';
@@ -30,6 +30,7 @@ export default function CompleteRegistration() {
   const [suffix, setSuffix] = useState('');
   const [companyName, setCompanyName] = useState('');
   const [companyEmail, setCompanyEmail] = useState('');
+  const [termsAccepted, setTermsAccepted] = useState(false);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const canAutoProvision = Boolean(needsProvisioning || sessionUser) && !user;
@@ -75,6 +76,12 @@ export default function CompleteRegistration() {
   async function handleSubmit(event) {
     event.preventDefault();
     setError('');
+    // ADR-059: the fallback form is also a self-signup, so the server needs the
+    // same consent flag the registration form parks.
+    if (!termsAccepted) {
+      setError('You must agree to the Terms of Use to continue.');
+      return;
+    }
     setBusy(true);
     try {
       const payload = {
@@ -84,6 +91,7 @@ export default function CompleteRegistration() {
         last_name: lastName.trim(),
         suffix: suffix.trim(),
         email: sessionUser?.email,
+        terms_accepted: true,
       };
       if (role === 'employer') {
         payload.company_name = companyName.trim();
@@ -202,6 +210,27 @@ export default function CompleteRegistration() {
               </Field>
             </FieldGroup>
           )}
+
+          <label htmlFor="terms-accepted" className="flex items-start gap-2.5 text-xs leading-5 text-muted-foreground">
+            <input
+              id="terms-accepted"
+              type="checkbox"
+              required
+              checked={termsAccepted}
+              onChange={(e) => {
+                setTermsAccepted(e.target.checked);
+                if (e.target.checked) setError('');
+              }}
+              className="mt-0.5 size-4 shrink-0 accent-primary"
+            />
+            <span>
+              I agree to the{' '}
+              <Link to="/terms" target="_blank" rel="noreferrer" className="text-primary hover:underline underline-offset-4">
+                Terms of Use
+              </Link>{' '}
+              and the Privacy Notice.
+            </span>
+          </label>
 
           {error && <p role="alert" className="text-xs leading-6 text-destructive">{error}</p>}
 

@@ -295,6 +295,18 @@ describe('signUp', () => {
     expect(api.post.mock.calls[0][1]).toMatchObject({ employment_status: 'Student' })
   })
 
+  it('parks terms_accepted only when the registration consent flag is true', async () => {
+    created()
+    api.post.mockResolvedValue({ saved: true })
+
+    await signUp(signUpPayload({ termsAccepted: true }))
+    expect(api.post.mock.calls[0][1]).toMatchObject({ terms_accepted: true })
+
+    api.post.mockClear()
+    await signUp(signUpPayload())
+    expect(api.post.mock.calls[0][1]).not.toHaveProperty('terms_accepted')
+  })
+
   it('defaults employment_status to null when not given', async () => {
     created()
     api.post.mockResolvedValue({ saved: true })

@@ -130,6 +130,7 @@ describe('CompleteRegistration', () => {
     await userEvent.type(await screen.findByLabelText(/first name/i), 'John');
     await userEvent.type(screen.getByLabelText(/middle name/i), 'M');
     await userEvent.type(screen.getByLabelText(/last name/i), 'Doe');
+    await userEvent.click(screen.getByRole('checkbox', { name: /terms of use/i }));
     await userEvent.click(screen.getByRole('button', { name: /complete registration/i }));
 
     await waitFor(() => expect(api.post).toHaveBeenLastCalledWith('auth/provision', {
@@ -139,8 +140,26 @@ describe('CompleteRegistration', () => {
       last_name: 'Doe',
       suffix: '',
       email: 'test@example.com',
+      terms_accepted: true,
     }));
     expect(await screen.findByText('Job Seeker Portal')).toBeInTheDocument();
+  });
+
+  it('blocks the fallback submit until the terms box is checked', async () => {
+    unprovisioned();
+    api.post.mockRejectedValueOnce(NO_PENDING());
+    renderWithRouter(<CompleteRegistration />);
+
+    await userEvent.type(await screen.findByLabelText(/first name/i), 'John');
+    await userEvent.type(screen.getByLabelText(/last name/i), 'Doe');
+    const terms = screen.getByRole('checkbox', { name: /terms of use/i });
+    expect(terms).toBeRequired();
+    expect(terms).not.toBeChecked();
+    await userEvent.click(screen.getByRole('button', { name: /complete registration/i }));
+
+    // Native required validation stops the submit; only the automatic merge
+    // attempt reached the server.
+    expect(api.post).toHaveBeenCalledTimes(1);
   });
 
   it('calls provision with company fields for employer', async () => {
@@ -155,6 +174,7 @@ describe('CompleteRegistration', () => {
     await userEvent.type(screen.getByLabelText(/last name/i), 'Smith');
     await userEvent.type(screen.getByLabelText(/company name/i), 'Acme Corp');
     await userEvent.type(screen.getByLabelText(/company email/i), 'info@acme.com');
+    await userEvent.click(screen.getByRole('checkbox', { name: /terms of use/i }));
     await userEvent.click(screen.getByRole('button', { name: /complete registration/i }));
 
     await waitFor(() => expect(api.post).toHaveBeenLastCalledWith('auth/provision', {
@@ -166,6 +186,7 @@ describe('CompleteRegistration', () => {
       email: 'test@example.com',
       company_name: 'Acme Corp',
       company_email: 'info@acme.com',
+      terms_accepted: true,
     }));
     expect(await screen.findByText('Employer Portal')).toBeInTheDocument();
   });

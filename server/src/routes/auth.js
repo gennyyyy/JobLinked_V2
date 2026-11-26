@@ -11,7 +11,7 @@ const router = Router();
 
 const PERSON = ['first_name', 'middle_name', 'last_name', 'suffix', 'full_name', 'phone',
   'house_number_unit', 'street_address', 'subdivision_building', 'barangay_district',
-  'city_municipality', 'province_state', 'postal_code', 'country', 'birthdate', 'employment_status'];
+  'city_municipality', 'province_state', 'postal_code', 'country', 'nationality', 'birthdate', 'employment_status'];
 const LOWERCASE_PERSON = new Set(['first_name', 'middle_name', 'last_name', 'suffix', 'full_name',
   'house_number_unit', 'street_address', 'subdivision_building', 'barangay_district',
   'city_municipality', 'province_state', 'postal_code', 'country']);
@@ -195,6 +195,25 @@ router.post('/auth/provision', tokenAuth, express.json(), ah(async (req, res) =>
     }
   }
 
+  // ADR-059: a self-signup must affirm the Terms, and only the server stamps the
+  // record — a client timestamp/version is never trusted. Checked last so every
+  // ordinary validation error keeps its specific code; no write happens before
+  // this point. Admin invites are exempt (staff consent is an HR/onboarding act),
+  // so their rows stay exactly as before.
+  const selfSignup = !invite && (role === 'job-seeker' || role === 'employer');
+  // ADR-059: the flag may arrive in the body or in the registration form parked
+  // by /auth/pending-signup (the /complete-registration flow sends {}).
+  const termsAccepted = b.terms_accepted === true || pending?.profile?.terms_accepted === true;
+  if (selfSignup && !termsAccepted) {
+    return err(res, 400, 'CONSENT_REQUIRED', 'Terms must be accepted to register');
+  }
+  let termsVersion = null;
+  if (selfSignup) {
+    const { rows: terms } = await pool.query(
+      `select updated_at from public.legal_documents where key = 'terms'`);
+    termsVersion = terms[0]?.updated_at ? new Date(terms[0].updated_at).toISOString() : 'unknown';
+  }
+
   let row;
   try {
     const result = await withTransaction(async (client) => {
@@ -228,16 +247,18 @@ router.post('/auth/provision', tokenAuth, express.json(), ah(async (req, res) =>
         const r = await client.query(
           `insert into job_seekers (id, email, first_name, middle_name, last_name, suffix, full_name, phone,
             lot, block, street_address, house_number_unit, subdivision_building, barangay_district, city_municipality,
-            province_state, postal_code, country, birthdate, employment_status, field, skills, custom_role_id)
-           values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23) returning *`,
+            province_state, postal_code, country, nationality, birthdate, employment_status, field, skills, custom_role_id,
+            terms_accepted_at, terms_version)
+           values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,
+                   case when $25 then now() end, $26) returning *`,
           [req.user.id, email, person.first_name, person.middle_name, person.last_name, person.suffix,
             person.full_name, person.phone,
             typeof p.lot === 'string' ? p.lot.trim().toLowerCase() : null,
             typeof p.block === 'string' ? p.block.trim().toLowerCase() : null, person.street_address,
             person.house_number_unit, person.subdivision_building, person.barangay_district,
             person.city_municipality, person.province_state, person.postal_code,
-            person.country ?? 'Philippines', person.birthdate, person.employment_status,
-            field, skills, tag]
+            person.country ?? 'Philippines', person.nationality || 'Filipino', person.birthdate,
+            person.employment_status, field, skills, tag, selfSignup, termsVersion]
         );
         created = r.rows[0];
         if (education) {
@@ -253,15 +274,18 @@ router.post('/auth/provision', tokenAuth, express.json(), ah(async (req, res) =>
           `insert into employers (id, email, first_name, middle_name, last_name, suffix, full_name, phone,
             company_name, company_email, industry, house_number_unit, street_address, subdivision_building,
             barangay_district, city_municipality, province_state, postal_code, country,
-            representative_email, representative_position, custom_role_id, representative_phone)
-           values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23) returning *`,
+            representative_email, representative_position, custom_role_id, representative_phone,
+            terms_accepted_at, terms_version)
+           values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,
+                   case when $24 then now() end, $25) returning *`,
           [req.user.id, email, person.first_name, person.middle_name, person.last_name, person.suffix,
             person.full_name, person.phone,
             typeof p.company_name === 'string' ? p.company_name.trim().toLowerCase() : '', p.company_email ?? null,
             p.industry ?? null, person.house_number_unit, person.street_address, person.subdivision_building,
             person.barangay_district, person.city_municipality, person.province_state, person.postal_code,
             person.country ?? 'Philippines', p.representative_email ?? null,
-            p.representative_position ?? null, tag, p.representative_phone ?? null]
+            p.representative_position ?? null, tag, p.representative_phone ?? null,
+            selfSignup, termsVersion]
         );
         created = r.rows[0];
         // Mirror handle_new_user: employer signup opens a pending accreditation row.

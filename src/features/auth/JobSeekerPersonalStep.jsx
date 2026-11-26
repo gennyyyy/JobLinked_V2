@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Eye, EyeOff } from "lucide-react";
-import { EMPLOYMENT_STATUSES } from "@/shared/constants";
+import { EMPLOYMENT_STATUSES, NATIONALITIES } from "@/shared/constants";
 import { formatPhoneDisplay, normalizePhone, withPrefix } from "@/shared/utils/phone";
 import { PASSWORD_HINT } from "@/shared/utils/password";
 import ResumePicker from "@/shared/components/ResumePicker";
@@ -61,6 +61,13 @@ function JobSeekerPersonalStep({ form, errors, set, autofillStatus, autofillTouc
                 <Label htmlFor="birthdate" className={labelClass}>Birthday{reqMark}</Label>
                 <Input id="birthdate" name="birthdate" type="date" max={new Date().toISOString().slice(0, 10)} value={form.birthdate} onChange={(e) => set("birthdate", e.target.value)} className={inputClass} />
                 {errors.birthdate && <p className="text-danger text-xs mt-1">{errors.birthdate}</p>}
+              </div>
+              <div data-invalid={!!errors.nationality}>
+                <Label htmlFor="nationality" className={labelClass}>Nationality{reqMark}</Label>
+                <FormSelect id="nationality" name="nationality" value={form.nationality} onChange={(e) => set("nationality", e.target.value)} className={inputClass}>
+                  {NATIONALITIES.map((n) => <option key={n} value={n}>{n}</option>)}
+                </FormSelect>
+                {errors.nationality && <p className="text-danger text-xs mt-1">{errors.nationality}</p>}
               </div>
               <div data-invalid={!!errors.employmentStatus}>
                 <Label htmlFor="employmentStatus" className={labelClass}>Employment Status{reqMark}</Label>

@@ -62,6 +62,14 @@ export const PORTAL_NAV = {
 
 export const EMPLOYMENT_STATUSES = ['Employed', 'Unemployed', 'Underemployed', 'Fresh Graduate', 'Student'];
 
+// Curated nationality options; the server still stores free text.
+export const NATIONALITIES = [
+  'Filipino', 'American', 'Australian', 'Brazilian', 'British', 'Canadian', 'Chinese',
+  'Dutch', 'Emirati', 'French', 'German', 'Indian', 'Indonesian', 'Italian', 'Japanese',
+  'Korean', 'Malaysian', 'Nigerian', 'Pakistani', 'Saudi Arabian', 'Singaporean',
+  'Spanish', 'Taiwanese', 'Thai', 'Vietnamese', 'Other',
+];
+
 // Official 24 barangays of Santa Maria, Bulacan — used for location filters.
 export const SANTA_MARIA_BARANGAYS = [
   'Bagbaguin',

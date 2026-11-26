@@ -13,7 +13,7 @@ import useAuth from '@/shared/hooks/useAuth'
 import { updateProfile } from '@/shared/services/auth'
 import { listResumes, uploadResume, deleteResume, validateFile, signedUrl } from '@/shared/services/documents'
 import { uploadAvatar, removeAvatar, fetchAvatarObjectUrl } from '@/shared/services/images'
-import { buildFullName } from '@/shared/utils/names'
+import { buildFullName, nameChangeLockHelp } from '@/shared/utils/names'
 import { titleCase } from '@/shared/utils/titleCase'
 import { formatPhoneDisplay, isValidPhone, normalizePhone, withPrefix } from '@/shared/utils/phone'
 import { listEducation, addEducation, removeEducation, listEmployment } from '@/shared/services/seekers'
@@ -26,7 +26,7 @@ import TabbedProfileLayout from '@/shared/components/TabbedProfileLayout'
 import AccountSettings, { PrivacyPanel } from '@/shared/components/AccountSettings'
 import ChangePassword from '@/shared/components/ChangePassword'
 import { TabsContent } from '@/components/ui/tabs'
-import { BULACAN_MUNICIPALITIES, BULACAN_PROVINCES, SANTA_MARIA_BARANGAYS } from '@/shared/constants'
+import { BULACAN_MUNICIPALITIES, BULACAN_PROVINCES, NATIONALITIES, SANTA_MARIA_BARANGAYS } from '@/shared/constants'
 import { EDUCATION_LEVELS } from '../auth/jobSeekerRegistration'
 import useVocabulary from '@/shared/hooks/useVocabulary'
 import VocabularyPicker from '@/shared/components/VocabularyPicker'
@@ -46,7 +46,7 @@ const PHONE_ERROR = 'Enter a valid Philippine contact number.'
 
 const EMPTY_FORM = {
   name: '', firstName: '', middleName: '', lastName: '', suffix: '',
-  phone: '', headline: '', birthdate: '', employmentStatus: '',
+  phone: '', headline: '', birthdate: '', nationality: '', employmentStatus: '',
   lot: '', block: '', barangay: '', address: '', subdivisionBuilding: '',
   cityMunicipality: '', provinceState: '', postalCode: '',
   experience: '', skills: [], field: '',
@@ -86,6 +86,7 @@ function formFromUser(user) {
     phone: user.phone || '',
     headline: user.headline || '',
     birthdate: user.birthdate || '',
+    nationality: user.nationality || 'Filipino',
     employmentStatus: user.employment_status || '',
     lot: titleCase(user.lot),
     block: titleCase(user.block),
@@ -270,11 +271,18 @@ function Profile() {
   // Edit-view capitalization: show names/addresses title-cased while the form
   // state (and the submitted lowercase value) stays raw.
   const show = (key) => titleCase(form[key])
+  // ADR-058: disable only the name fields while the 30-day window is open.
+  const nameLockHelp = nameChangeLockHelp(user?.name_changed_at)
   // A stored barangay the official list no longer carries stays selectable so
   // opening the page cannot silently blank the saved address.
   const barangays = show('barangay') && !SANTA_MARIA_BARANGAYS.includes(show('barangay'))
     ? [...SANTA_MARIA_BARANGAYS, show('barangay')]
     : SANTA_MARIA_BARANGAYS
+  // Same rule for nationality: a stored value outside the curated list stays
+  // selectable instead of silently blanking.
+  const nationalities = form.nationality && !NATIONALITIES.includes(form.nationality)
+    ? [...NATIONALITIES, form.nationality]
+    : NATIONALITIES
   const currentEducation = educationList.find((education) => education.end_year === null)
   const educationStatus = currentEducation
     ? `Currently studying — ${titleCase(currentEducation.level)}`
@@ -309,6 +317,7 @@ function Profile() {
     }
     if (!isValidPhone(form.phone)) next.phone = PHONE_ERROR
     if (!form.birthdate) next.birthdate = 'Enter your birthday.'
+    if (!form.nationality.trim()) next.nationality = 'Enter your nationality.'
     if (!form.employmentStatus) next.employmentStatus = 'Choose your employment status.'
     if (!form.barangay) next.barangay = 'Choose your barangay.'
     if (form.address.trim().length < 5) next.address = 'Enter your address.'
@@ -321,7 +330,7 @@ function Profile() {
     if (Object.keys(next).length) {
       // Show the tab that owns the first error so its message is not hidden.
       setTab(
-        next.name || next.firstName || next.lastName || next.phone || next.birthdate || next.employmentStatus ? 'personal'
+        next.name || next.firstName || next.lastName || next.phone || next.birthdate || next.nationality || next.employmentStatus ? 'personal'
           : next.barangay || next.address || next.cityMunicipality || next.provinceState || next.postalCode ? 'address'
             : next.skills ? 'skills'
               : 'education',
@@ -358,6 +367,7 @@ function Profile() {
         phone,
         headline: form.headline.trim(),
         birthdate: form.birthdate || null,
+        nationality: form.nationality.trim(),
         employment_status: form.employmentStatus || null,
         lot: form.lot.trim() || null,
         block: form.block.trim() || null,
@@ -605,7 +615,7 @@ function Profile() {
             </div>
             <div className="flex flex-col gap-4">
               <div className="grid gap-4 sm:grid-cols-2">
-                <TextField label="Full Name" required value={show('name')} onChange={(event) => setField('name', event.target.value)} error={errors.name} />
+                <TextField label="Full Name" required value={show('name')} onChange={(event) => setField('name', event.target.value)} error={errors.name} disabled={Boolean(nameLockHelp)} help={nameLockHelp || undefined} />
                 <TextField
                   label="Contact Number"
                   required
@@ -628,13 +638,14 @@ function Profile() {
                 />
               </div>
               <div className="grid gap-4 sm:grid-cols-2">
-                <TextField label="First Name" required value={show('firstName')} onChange={(event) => setField('firstName', event.target.value)} error={errors.firstName} />
-                <TextField label="Middle Name" value={show('middleName')} onChange={(event) => setField('middleName', event.target.value)} />
-                <TextField label="Last Name" required value={show('lastName')} onChange={(event) => setField('lastName', event.target.value)} error={errors.lastName} />
-                <TextField label="Suffix" value={show('suffix')} onChange={(event) => setField('suffix', event.target.value)} />
+                <TextField label="First Name" required value={show('firstName')} onChange={(event) => setField('firstName', event.target.value)} error={errors.firstName} disabled={Boolean(nameLockHelp)} help={nameLockHelp || undefined} />
+                <TextField label="Middle Name" value={show('middleName')} onChange={(event) => setField('middleName', event.target.value)} disabled={Boolean(nameLockHelp)} help={nameLockHelp || undefined} />
+                <TextField label="Last Name" required value={show('lastName')} onChange={(event) => setField('lastName', event.target.value)} error={errors.lastName} disabled={Boolean(nameLockHelp)} help={nameLockHelp || undefined} />
+                <TextField label="Suffix" value={show('suffix')} onChange={(event) => setField('suffix', event.target.value)} disabled={Boolean(nameLockHelp)} help={nameLockHelp || undefined} />
               </div>
               <div className="grid gap-4 sm:grid-cols-2">
                 <TextField label="Birthday" required type="date" max={new Date().toISOString().slice(0, 10)} value={form.birthdate} onChange={(event) => setField('birthdate', event.target.value)} error={errors.birthdate} />
+                <SelectField label="Nationality" required placeholder="Select nationality" options={nationalities} value={form.nationality} onChange={(event) => setField('nationality', event.target.value)} error={errors.nationality} />
                 <SelectField label="Employment Status" required placeholder="Select status" options={['Employed','Unemployed','Underemployed','Fresh Graduate','Student']} value={form.employmentStatus} onChange={(event) => setField('employmentStatus', event.target.value)} error={errors.employmentStatus} />
               </div>
               <TextField label="Professional Headline" value={form.headline} onChange={(event) => setField('headline', event.target.value)} />

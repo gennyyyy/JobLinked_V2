@@ -12,6 +12,7 @@ import DangerZonePanel from '@/shared/components/DangerZonePanel'
 import TabbedProfileLayout from '@/shared/components/TabbedProfileLayout'
 import { Panel, TextField } from '@/shared/components/design'
 import { ROLE_LABELS } from '@/shared/constants'
+import { nameChangeLockHelp } from '@/shared/utils/names'
 
 const PROFILE_TABS = [
   { value: 'account', label: 'Account', title: 'Account details', description: 'Your profile information and administrator access.' },
@@ -22,6 +23,8 @@ export default function Profile() {
   const { user, refreshUser } = useAuth() || {}
   const [activeTab, setActiveTab] = useState('account')
   const [name, setName] = useState(user?.full_name || user?.name || '')
+  // ADR-058: the full name locks while the account's 30-day window is open.
+  const nameLockHelp = nameChangeLockHelp(user?.name_changed_at)
   const [email] = useState(user?.email || '')
   const [nameError, setNameError] = useState('')
   const [saving, setSaving] = useState(false)
@@ -92,6 +95,8 @@ export default function Profile() {
               required
               value={name}
               error={nameError}
+              disabled={Boolean(nameLockHelp)}
+              help={nameLockHelp || undefined}
               onChange={(event) => { setName(event.target.value); setNameError('') }}
             />
             <TextField label="Email Address" type="email" value={email} readOnly />

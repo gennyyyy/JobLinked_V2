@@ -28,7 +28,7 @@ const initialsOf = (name) => String(name || 'Candidate')
   .join('')
   .toUpperCase()
 
-function CandidateDetail({ application, onClose, onUpdated }) {
+function CandidateDetail({ application, onClose, onUpdated, onViewResume, resumeError }) {
   const [status, setStatus] = useState(application.status)
   const [interviewAt, setInterviewAt] = useState(
     application.interview_at ? String(application.interview_at).slice(0, 16) : '',
@@ -69,9 +69,9 @@ function CandidateDetail({ application, onClose, onUpdated }) {
 
   return (
     <>
-      <DialogHeader>
-        <DialogTitle>{titleCase(seeker?.full_name)}</DialogTitle>
-        <DialogDescription>
+      <DialogHeader className="min-w-0">
+        <DialogTitle className="break-words">{titleCase(seeker?.full_name)}</DialogTitle>
+        <DialogDescription className="break-words">
           Applied for {titleCase(application.job?.title) || 'a vacancy'} · {formatDate(application.applied_at)}
         </DialogDescription>
       </DialogHeader>
@@ -80,11 +80,22 @@ function CandidateDetail({ application, onClose, onUpdated }) {
           <Panel
             title="Candidate profile"
             description="Shared for this application only. Use the information only for the intended recruitment purpose."
+            action={application.resume?.file_path && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={onViewResume}
+                aria-label={`View resume for ${titleCase(seeker?.full_name)}`}
+              >
+                View resume
+              </Button>
+            )}
           >
             <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
               <p className="flex items-center gap-2 break-all"><Mail className="size-4 shrink-0" />{seeker?.email || '—'}</p>
-              <p className="flex items-center gap-2"><MapPin className="size-4" />{titleCase(seeker?.barangay_district) || 'Santa Maria'}</p>
+              <p className="flex min-w-0 items-center gap-2 break-words"><MapPin className="size-4 shrink-0" />{titleCase(seeker?.barangay_district) || 'Santa Maria'}</p>
             </div>
+            {resumeError && <div className="mt-5"><InlineError message={resumeError} /></div>}
             <div className="mt-5"><SeekerProfileCard applicant={application} /></div>
           </Panel>
           <Panel title="Application history">
@@ -241,7 +252,6 @@ export default function Applicants() {
         </div>
         {records.length ? (
           <>
-            {resumeError && <div className="mb-4"><InlineError message={resumeError} /></div>}
             <Table>
               <TableHeader>
                 <TableRow>
@@ -270,20 +280,9 @@ export default function Applicants() {
                     <TableCell className="whitespace-nowrap">{formatDate(application.applied_at)}</TableCell>
                     <TableCell><StatusBadge status={application.status} /></TableCell>
                     <TableCell>
-                      <div className="flex flex-wrap items-center gap-2">
-                        {application.resume?.file_path && (
-                          <Button
-                            variant="ghost"
-                            onClick={() => openResume(application)}
-                            aria-label={`View resume for ${titleCase(application.seeker?.full_name)}`}
-                          >
-                            View resume
-                          </Button>
-                        )}
-                        <Button variant="outline" onClick={() => setSelected(application)} aria-label={`Review candidate ${titleCase(application.seeker?.full_name)}`}>
-                          Review candidate
-                        </Button>
-                      </div>
+                      <Button variant="outline" onClick={() => { setResumeError(''); setSelected(application) }} aria-label={`Review candidate ${titleCase(application.seeker?.full_name)}`}>
+                        Review candidate
+                      </Button>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -307,6 +306,8 @@ export default function Applicants() {
               application={selected}
               onClose={() => setSelected(null)}
               onUpdated={handleUpdated}
+              onViewResume={() => openResume(selected)}
+              resumeError={resumeError}
             />
           )}
         </DialogContent>

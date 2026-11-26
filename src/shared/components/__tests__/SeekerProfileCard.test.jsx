@@ -46,6 +46,20 @@ describe('SeekerProfileCard', () => {
     expect(screen.getByRole('button', { name: /View Resume \(cv\.pdf\)/ })).toBeInTheDocument()
   })
 
+  it('wraps a long phone number inside its own contact card', () => {
+    listSeekerEducation.mockResolvedValue([])
+    listSeekerExperience.mockResolvedValue([])
+    render(
+      <SeekerProfileCard
+        applicant={{ ...applicant, seeker: { ...applicant.seeker, phone: '+639084651249' } }}
+      />,
+    )
+
+    const phone = screen.getByText('+639084651249')
+    expect(phone).toHaveClass('break-all')
+    expect(phone.closest('div')).toHaveClass('min-w-0')
+  })
+
   it('falls back to empty credentials when the reads fail', async () => {
     listSeekerEducation.mockRejectedValue(new Error('nope'))
     listSeekerExperience.mockRejectedValue(new Error('nope'))

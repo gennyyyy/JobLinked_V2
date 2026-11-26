@@ -7,6 +7,7 @@ import { requirePermission, unheldKey } from '../middleware/permissions.js';
 import { ah, err, audit, buildFullName, isUuid, pageParams, withTransaction } from '../util.js';
 import { USER_TABLES, ACCOUNT_STATUSES, likeFilter } from './admin-shared.js';
 import { appOrigin } from '../appOrigin.js';
+import { NAME_FIELDS, NAME_STAMP_SQL, NAME_GUARD_SQL, isNameChange, nameLimitMessage } from '../nameChange.js';
 import logger from '../logger.js';
 
 const router = Router();
@@ -201,12 +202,27 @@ router.patch('/admin/users/:id', ...admin, ah(async (req, res) => {
       await removesLastBreakGlass(table, profile, req.params.id)) {
     return err(res, 409, 'CONFLICT', LAST_ADMIN_MSG);
   }
+  // ADR-058: derive full_name the same way the self-service route does, then
+  // decide whether this write changes the displayed name. Admin edits are not
+  // exempt from the target's window.
+  if (NAME_FIELDS.some((c) => patch[c] !== undefined)) {
+    patch.full_name = buildFullName(
+      ...NAME_FIELDS.map((c) => (patch[c] !== undefined ? patch[c] : profile[c])),
+    );
+  }
+  const nameChanging = isNameChange(patch, profile);
   const keys = Object.keys(patch);
   if (!keys.length) return err(res, 400, 'BAD_REQUEST', 'Nothing to update');
   try {
     const { rows } = await pool.query(
-      `update ${table} set ${keys.map((k, i) => `${k} = $${i + 2}`).join(', ')}, updated_at = now() where id = $1 returning *`,
+      `update ${table} set ${keys.map((k, i) => `${k} = $${i + 2}`).join(', ')}${nameChanging ? NAME_STAMP_SQL : ''}, updated_at = now()
+        where id = $1${nameChanging ? NAME_GUARD_SQL : ''} returning *`,
       [req.params.id, ...keys.map((k) => patch[k])]);
+    if (!rows[0] && nameChanging) {
+      const { rows: probe } = await pool.query(`select name_changed_at from ${table} where id = $1`, [req.params.id]);
+      if (!probe[0]) return err(res, 404, 'NOT_FOUND', 'User account not found');
+      return err(res, 409, 'NAME_CHANGE_LIMIT', nameLimitMessage(probe[0].name_changed_at));
+    }
     void audit(req.user.id, 'user.update', table, req.params.id, { fields: keys });
     res.json(rows[0]);
   } catch (e) {

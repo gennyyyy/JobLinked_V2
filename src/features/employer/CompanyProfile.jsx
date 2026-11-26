@@ -10,7 +10,7 @@ import ChangePassword from "../../shared/components/ChangePassword";
 import TabbedProfileLayout from "../../shared/components/TabbedProfileLayout";
 import AccountSettings, { PrivacyPanel } from "../../shared/components/AccountSettings";
 import { TabsContent } from "../../components/ui/tabs";
-import { buildFullName } from "../../shared/utils/names";
+import { buildFullName, nameChangeLockHelp } from "../../shared/utils/names";
 import { titleCase } from "../../shared/utils/titleCase";
 import { formatPhoneDisplay, isValidPhone, normalizePhone, withPrefix } from "../../shared/utils/phone";
 import { BULACAN_MUNICIPALITIES, BULACAN_PROVINCES, INDUSTRIES, SANTA_MARIA_BARANGAYS } from "../../shared/constants";
@@ -40,6 +40,9 @@ const REPRESENTATIVE_FIELDS = [
   ["representative_phone", "Representative Mobile", "917 123 4567"],
   ["representative_email", "Representative Email", "maria@company.com"],
 ];
+
+// ADR-058: only these representative fields are the displayed name.
+const REPRESENTATIVE_NAME_FIELDS = new Set(["first_name", "middle_name", "last_name", "suffix"]);
 
 // Stored lowercase by the API (LOWERCASE_FIELDS); show title case in edit view.
 const TITLE_FIELDS = new Set([
@@ -110,6 +113,8 @@ function CompanyProfile() {
   const [error, setError] = useState("");
   const [saved, setSaved] = useState(false);
   const [company, setCompany] = useState(null);
+  // ADR-058: the representative's name fields lock while the target's window is open.
+  const nameLockHelp = nameChangeLockHelp(company?.name_changed_at);
   const [form, setForm] = useState({});
   const [errors, setErrors] = useState({});
   const [tab, setTab] = useState("company");
@@ -491,6 +496,8 @@ function CompanyProfile() {
                   type={name === "representative_email" ? "email" : name === "representative_phone" ? "tel" : "text"}
                   required={REQUIRED_REPRESENTATIVE_FIELDS.has(name)}
                   error={errors[name]}
+                  disabled={REPRESENTATIVE_NAME_FIELDS.has(name) && Boolean(nameLockHelp)}
+                  help={REPRESENTATIVE_NAME_FIELDS.has(name) ? nameLockHelp || undefined : undefined}
                   {...field(name)}
                 />
               ))}

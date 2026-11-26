@@ -118,20 +118,6 @@ router.get('/admin/employees', ...viewer, ah(async (req, res) => {
   res.json(rows);
 }));
 
-router.get('/admin/referrals', ...viewer, ah(async (req, res) => {
-  const pg = pageParams(res, req.query, 25, 500);
-  if (!pg) return;
-  const { rows } = await pool.query(
-    `select a.*, json_build_object('id', j.id, 'title', j.title,
-       'employers', json_build_object('company_name', e.company_name)) as job,
-     json_build_object(${SEEKER_COLS.split(', ').map((c) => `'${c.trim()}', s.${c.trim()}`).join(', ')}) as seeker
-     from job_applications a join job_vacancies j on j.id = a.job_id
-     join employers e on e.id = j.company_id join job_seekers s on s.id = a.seeker_id
-     where a.referred_by is not null order by a.applied_at desc limit $1 offset $2`,
-    [pg.pageSize, (pg.page - 1) * pg.pageSize]);
-  res.json(rows);
-}));
-
 router.get('/admin/accreditations', ...accreditationAdmin, ah(async (req, res) => {
   const pg = pageParams(res, req.query, 25, 500);
   if (!pg) return;
@@ -150,24 +136,76 @@ router.get('/admin/accreditations', ...accreditationAdmin, ah(async (req, res) =
 
 // Automated retention job implementing Terms §4 (Protection and Retention —
 // read-only): runs on a fixed server-side schedule, no manual trigger and no
-// request input. Deletes stale non-employment applications only (12+ months
-// old). Accepted / Placed / Terminated are lawfully retained as employment
-// records (closing an account does not erase records that must be retained)
-// and feed municipal reports (§2); deleting them would cascade-wipe linked
-// employment_history rows. Runs as user_id NULL (system) in the audit log.
+// request input. One transaction purges every data class with its own window.
+// Accepted / Placed / Terminated are lawfully retained as employment records
+// (closing an account does not erase records that must be retained) and feed
+// municipal reports (§2); deleting them would falsify placement counts.
+// Unread notifications stay (still owed to their user); employment_history and
+// employer_accreditations are never purged. Runs as user_id NULL (system) in
+// the audit log.
 const RETENTION_MONTHS = 12;
+const RETENTION_NOTIFICATION_DAYS = 90;
+const RETENTION_PENDING_SIGNUP_DAYS = 30;
+const RETENTION_AUTH_DAYS = 30;
 const RETENTION_INTERVAL_MS = 24 * 60 * 60 * 1000;
 const RETAINED_STATUSES = ['Accepted', 'Placed', 'Terminated'];
 
 export async function runRetentionPurge() {
-  // B10: the cutoff is computed by Postgres (`now() - make_interval`), never by
-  // JS setMonth — that overflows short months (Jan 31 - 12mo lands in early
+  // B10: every cutoff is computed by Postgres (`now() - make_interval`), never
+  // by JS setMonth — that overflows short months (Jan 31 - 12mo lands in early
   // March) and purged rows inside the Terms §4 window on those dates.
   return withTransaction(async (client) => {
-    const { rowCount } = await client.query(
-      `delete from job_applications where applied_at < now() - make_interval(months => $1) and status not in ('Accepted', 'Placed', 'Terminated')`, [RETENTION_MONTHS]);
-    void audit(null, 'data.purge', 'job_applications', null, { automated: true, monthsOld: RETENTION_MONTHS, retainedStatuses: RETAINED_STATUSES, deleted: rowCount });
-    return rowCount;
+    const applications = (await client.query(
+      `delete from job_applications where applied_at < now() - make_interval(months => $1) and status not in ('Accepted', 'Placed', 'Terminated')`,
+      [RETENTION_MONTHS])).rowCount;
+    const auditLogs = (await client.query(
+      `delete from audit_logs where created_at < now() - make_interval(months => $1)`,
+      [RETENTION_MONTHS])).rowCount;
+    // Read only: an unread notification has not reached its user yet.
+    const notifications = (await client.query(
+      `delete from notifications where is_read = true and created_at < now() - make_interval(days => $1)`,
+      [RETENTION_NOTIFICATION_DAYS])).rowCount;
+    // Unverified registration forms that never provisioned: PII with no account.
+    const pendingSignups = (await client.query(
+      `delete from pending_signups where created_at < now() - make_interval(days => $1)`,
+      [RETENTION_PENDING_SIGNUP_DAYS])).rowCount;
+    const verifications = (await client.query(
+      `delete from auth."verification" where "expiresAt" < now() - make_interval(days => $1)`,
+      [RETENTION_AUTH_DAYS])).rowCount;
+    const sessions = (await client.query(
+      `delete from auth."session" where "expiresAt" < now() - make_interval(days => $1)`,
+      [RETENTION_AUTH_DAYS])).rowCount;
+    // Never-verified signups that never became an account. Guarded so a role
+    // row or an outstanding invite is never orphaned; cascades pending_signups.
+    const authUsers = (await client.query(
+      `delete from auth."user" u
+        where u."emailVerified" = false
+          and u."createdAt" < now() - make_interval(days => $1)
+          and not exists (select 1 from public.job_seekers j where j.id = u.id)
+          and not exists (select 1 from public.employers e where e.id = u.id)
+          and not exists (select 1 from public.super_admins s where s.id = u.id)
+          and not exists (select 1 from public.admin_invites i where i.user_id = u.id)`,
+      [RETENTION_PENDING_SIGNUP_DAYS])).rowCount;
+
+    // ADR-060: the purge marker commits or rolls back with the deletes — the
+    // transaction client, not the best-effort pool helper.
+    await client.query(
+      'insert into audit_logs (user_id, action, entity, entity_id, details) values ($1,$2,$3,$4,$5)',
+      [null, 'data.purge', 'retention', null, JSON.stringify({
+        automated: true,
+        monthsOld: RETENTION_MONTHS,
+        retainedStatuses: RETAINED_STATUSES,
+        deleted: {
+          job_applications: applications,
+          audit_logs: auditLogs,
+          notifications,
+          pending_signups: pendingSignups,
+          verifications,
+          sessions,
+          auth_users: authUsers,
+        },
+      })]);
+    return applications;
   });
 }
 

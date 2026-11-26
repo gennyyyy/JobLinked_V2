@@ -486,7 +486,6 @@ if (enabled('admin')) {
   ok('admin applications list', await req('GET', '/api/admin/applications', { token: F.admin.token }))
   ok('admin applications bad status -> 400', await req('GET', '/api/admin/applications?status=Hired', { token: F.admin.token }), 400)
   ok('admin employees list', await req('GET', '/api/admin/employees', { token: F.admin.token }))
-  ok('admin referrals list', await req('GET', '/api/admin/referrals', { token: F.admin.token }))
   ok('admin accreditations list', await req('GET', '/api/admin/accreditations', { token: F.admin.token }))
 
   ok('audit logs list', await req('GET', '/api/admin/audit-logs?limit=5', { token: F.admin.token }))

@@ -174,7 +174,7 @@ export async function completeTwoFactor(code) {
 
 const ALLOWED_SIGNUP_ROLES = ['job-seeker', 'employer'];
 
-export async function signUp({ email, password, role, firstName, middleName = '', lastName, suffix = '', captchaToken, extra = {} }) {
+export async function signUp({ email, password, role, firstName, middleName = '', lastName, suffix = '', captchaToken, termsAccepted = false, extra = {} }) {
   if (!ALLOWED_SIGNUP_ROLES.includes(role)) throw new Error('Invalid role');
   const fullName = [firstName, middleName, lastName, suffix].filter(Boolean).join(' ');
   const lower = (value) => typeof value === 'string' ? value.trim().toLowerCase() : value;
@@ -197,6 +197,7 @@ export async function signUp({ email, password, role, firstName, middleName = ''
     province_state: lower(extra.provinceState) || null,
     postal_code: lower(extra.postalCode) || null,
     country: lower(extra.country) || 'philippines',
+    nationality: String(extra.nationality ?? '').trim() || 'Filipino',
     birthdate: extra.birthdate || null,
     employment_status: extra.employmentStatus || null,
     field: extra.field || null,
@@ -214,6 +215,9 @@ export async function signUp({ email, password, role, firstName, middleName = ''
     company_email: extra.companyEmail || null,
     representative_email: extra.representativeEmail || null,
     representative_position: extra.representativePosition || null,
+    // ADR-059: only the user's checkbox state rides along; the server stamps
+    // the acceptance time and the terms version.
+    ...(termsAccepted === true ? { terms_accepted: true } : {}),
   };
   let result;
   try {

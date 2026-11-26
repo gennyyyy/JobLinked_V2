@@ -149,10 +149,10 @@ describe('provision custom-role tag (G-01)', () => {
   });
 
   it('seeker self-signup keeps null despite a body tag', async () => {
-    const r = await post({ role: 'job-seeker', custom_role_id: 7, first_name: 'Ana', last_name: 'Cruz' });
+    const r = await post({ role: 'job-seeker', terms_accepted: true, custom_role_id: 7, first_name: 'Ana', last_name: 'Cruz' });
     expect(r.status).toBe(201);
     const params = insertParams(/insert into job_seekers/i);
-    expect(params[params.length - 1]).toBeNull();
+    expect(params[23]).toBeNull();
   });
 });
 
@@ -181,7 +181,7 @@ describe('provision super-admin guard', () => {
   });
 
   it('201 job-seeker provisioning keeps working with no app_metadata', async () => {
-    const r = await post({ role: 'job-seeker', first_name: 'Ana', last_name: 'Cruz' });
+    const r = await post({ role: 'job-seeker', terms_accepted: true, first_name: 'Ana', last_name: 'Cruz' });
     expect(r.status).toBe(201);
     expect((await r.json()).role).toBe('job-seeker');
     const insert = mocks.clientQuery.mock.calls.map((c) => c[0]).find((s) => /insert into job_seekers/i.test(s));
@@ -189,7 +189,7 @@ describe('provision super-admin guard', () => {
   });
 
   it('201 employer provisioning keeps working with no app_metadata', async () => {
-    const r = await post({ role: 'employer', first_name: 'Ben', last_name: 'Yu', company_name: 'Acme' });
+    const r = await post({ role: 'employer', terms_accepted: true, first_name: 'Ben', last_name: 'Yu', company_name: 'Acme' });
     expect(r.status).toBe(201);
     expect((await r.json()).role).toBe('employer');
     const sqls = mocks.clientQuery.mock.calls.map((c) => c[0]);

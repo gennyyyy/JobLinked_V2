@@ -39,6 +39,7 @@ export function buildEmployerSignUpPayload(values) {
     middleName: values.repMiddleName?.trim() || "",
     lastName: values.repLastName.trim(),
     suffix: values.repSuffix?.trim() || "",
+    termsAccepted: values.agree === true,
     extra: {
       phone: normalizePhone(values.contactNumber),
       representativePhone: normalizePhone(values.repMobile),

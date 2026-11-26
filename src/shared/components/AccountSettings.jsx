@@ -1,15 +1,16 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Save, ShieldCheck } from 'lucide-react'
+import { Download, Save, ShieldCheck } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
 import { Field, FieldDescription, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { PageHeading, Panel } from './design'
 import { LinkButton } from './design'
+import DangerZonePanel from './DangerZonePanel'
 import useAuth from '../hooks/useAuth'
 import { ROLE_LABELS } from '../constants'
 import { titleCase } from '../utils/titleCase'
-import { getPreferences, updatePreferences } from '../services/account'
+import { exportAccount, getPreferences, updatePreferences } from '../services/account'
 
 // Equal-height settings cards: the fixed height keeps the grid rows level and
 // the body scrolls instead of stretching the card.
@@ -38,6 +39,9 @@ export default function AccountSettings({ embedded = false, children, childrenBe
   const [savingPrefs, setSavingPrefs] = useState(false)
   const [prefsMessage, setPrefsMessage] = useState('')
   const [prefsSaveError, setPrefsSaveError] = useState('')
+  const [exporting, setExporting] = useState(false)
+  const [exportMessage, setExportMessage] = useState('')
+  const [exportError, setExportError] = useState('')
 
 
   useEffect(() => {
@@ -98,6 +102,21 @@ export default function AccountSettings({ embedded = false, children, childrenBe
     setPrefsSaveError('')
   }
 
+  async function handleExport() {
+    if (exporting) return
+    setExporting(true)
+    setExportMessage('')
+    setExportError('')
+    try {
+      await exportAccount()
+      setExportMessage('Your data export was downloaded.')
+    } catch (err) {
+      setExportError(err?.message || 'Failed to export your data.')
+    } finally {
+      setExporting(false)
+    }
+  }
+
   const isAdmin = user?.role === 'super-admin'
   const profilePath = user?.role === 'employer' ? '/employer/company' : user?.role === 'super-admin' ? '/super-admin/profile' : '/job-seeker/profile'
   const PreferencesForm = embedded ? 'div' : 'form'
@@ -111,11 +130,21 @@ export default function AccountSettings({ embedded = false, children, childrenBe
         <dt className="text-muted-foreground">Workspace</dt>
         <dd>{ROLE_LABELS[user?.role] || '—'}</dd>
       </dl>
-      {!embedded && !isAdmin && (
-        <LinkButton href={profilePath} variant="outline" className="mt-5">
-          Edit {user?.role === 'employer' ? 'company' : 'my'} profile
-        </LinkButton>
+      {!isAdmin && (
+        <div className="mt-5 flex flex-wrap items-center gap-3">
+          {!embedded && (
+            <LinkButton href={profilePath} variant="outline">
+              Edit {user?.role === 'employer' ? 'company' : 'my'} profile
+            </LinkButton>
+          )}
+          <Button type="button" variant="outline" disabled={exporting} onClick={handleExport}>
+            <Download data-icon="inline-start" />
+            {exporting ? 'Preparing export…' : 'Export my data'}
+          </Button>
+        </div>
       )}
+      {exportMessage && <p role="status" className="mt-3 text-xs text-success">{exportMessage}</p>}
+      {exportError && <p role="alert" className="mt-3 text-xs text-destructive">{exportError}</p>}
     </Panel>
   )
   const notificationsPanel = (panelProps) => (
@@ -180,6 +209,7 @@ export default function AccountSettings({ embedded = false, children, childrenBe
           <div className="flex min-w-0 flex-col gap-6">
             {!embedded && notificationsPanel()}
             {!childrenBelow && children}
+            {user?.role && user?.role !== 'super-admin' && <DangerZonePanel />}
           </div>
         </div>
       )}

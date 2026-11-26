@@ -114,7 +114,7 @@ describe('PATCH /api/documents/:id notifies the employer', () => {
     on(/update employer_documents set status/, () => ({
       rows: [{ id: DOC, company_id: COMPANY, doc_type: 'business_permit', status }],
     }));
-    on(/select id, company_name from employers/, () => ({ rows: [{ id: COMPANY, company_name: 'Acme Corp' }] }));
+    on(/select id from employers/, () => ({ rows: [{ id: COMPANY }] }));
   };
 
   it('sends one document notification when a document is marked missing', async () => {
@@ -128,8 +128,10 @@ describe('PATCH /api/documents/:id notifies the employer', () => {
     expect(type).toBe('document');
     expect(title).toBe('Document missing');
     expect(message).toContain('business permit');
-    expect(message).toContain('Acme Corp');
-    expect(message).toContain('Expired permit');
+    // ADR-060: no company identity and no PESO remarks in the copy — the
+    // employer reads both on the accreditation page.
+    expect(message).not.toContain('Acme Corp');
+    expect(message).not.toContain('Expired permit');
     expect(link).toBe('/employer/accreditation');
   });
 

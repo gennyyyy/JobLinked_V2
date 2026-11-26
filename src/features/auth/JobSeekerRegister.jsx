@@ -22,7 +22,7 @@ import {
 
 const TOTAL_STEPS = 3;
 const STEP_FIELDS = [
-  ["firstName", "lastName", "email", "mobileNumber", "birthdate", "employmentStatus", "password", "confirmPassword", "resumeReviewConfirmed"],
+  ["firstName", "lastName", "email", "mobileNumber", "birthdate", "nationality", "employmentStatus", "password", "confirmPassword", "resumeReviewConfirmed"],
   ["streetAddress", "barangayDistrict", "cityMunicipality", "provinceState", "postalCode"],
   ["agree", "confirmAccurate"],
 ];

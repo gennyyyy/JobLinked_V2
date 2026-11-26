@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, fireEvent, within } from '@testing-library/react'
+import { render, screen, fireEvent } from '@testing-library/react'
 
 vi.mock('../../../shared/services/admin', () => ({ listAllApplications: vi.fn() }))
 vi.mock('../../../shared/services/applications', () => ({ getApplicationHistory: vi.fn() }))
@@ -12,7 +12,6 @@ const row = (id, overrides = {}) => ({
   id,
   status: 'Applied',
   applied_at: '2026-01-05T00:00:00.000Z',
-  referred_by: null,
   seeker: { full_name: 'ada lovelace', barangay_district: 'Poblacion' },
   job: { title: 'Cook', employers: { company_name: 'acme corp' } },
   ...overrides,
@@ -28,19 +27,18 @@ describe('Application monitoring', () => {
     ])
   })
 
-  it('renders candidates, barangay, and the referral state', async () => {
+  it('renders candidates, barangay, and vacancy', async () => {
     render(<Applications />)
     expect(await screen.findByText('Ada Lovelace')).toBeInTheDocument()
     expect(screen.getByRole('cell', { name: 'Poblacion' })).toBeInTheDocument()
-    expect(within(screen.getByRole('table')).getByText('Not referred')).toBeInTheDocument()
     expect(screen.getByText('Cook')).toBeInTheDocument()
   })
 
-  it('filters by status, barangay, and referral marker', async () => {
+  it('filters by status and barangay', async () => {
     listAllApplications.mockResolvedValue({
       data: [
         row('a1'),
-        row('a2', { status: 'Placed', referred_by: 'staff-1', seeker: { full_name: 'ben hale', barangay_district: 'Bagbaguin' } }),
+        row('a2', { status: 'Placed', seeker: { full_name: 'ben hale', barangay_district: 'Bagbaguin' } }),
       ],
       total: 2,
       page: 1,
@@ -57,11 +55,6 @@ describe('Application monitoring', () => {
     fireEvent.change(screen.getByLabelText(/candidate barangay/i), { target: { value: 'Poblacion' } })
     expect(screen.getByText('Ada Lovelace')).toBeInTheDocument()
     expect(screen.queryByText('Ben Hale')).toBeNull()
-
-    fireEvent.change(screen.getByLabelText(/candidate barangay/i), { target: { value: '' } })
-    fireEvent.change(screen.getByLabelText(/referral marker/i), { target: { value: 'Referred' } })
-    expect(screen.queryByText('Ada Lovelace')).toBeNull()
-    expect(screen.getByText('Ben Hale')).toBeInTheDocument()
   })
 
   it('opens the recorded status history for an application', async () => {

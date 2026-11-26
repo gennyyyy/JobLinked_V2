@@ -171,18 +171,18 @@ describe('provision claims the pending self-signup row', () => {
     pendingClaimed();
     seekerInsert();
 
-    const res = await provision(cookie, {});
+    const res = await provision(cookie, { terms_accepted: true });
 
     expect(res.status).toBe(201);
     expect(res.body.role).toBe('job-seeker');
     const params = callsOf(/insert into job_seekers/)[0].params;
     expect(params[1]).toBe(`${SEEKER}@test.local`);
     expect(params.slice(2, 8)).toEqual(['ana', 'b', 'cruz', 'jr', 'ana b cruz jr', '09171234567']);
-    expect(params.slice(10, 20)).toEqual([
+    expect(params.slice(10, 21)).toEqual([
       'rizal st', '12a', 'sunrise', 'poblacion', 'cebu city', 'cebu', '6000',
-      'philippines', '1998-05-04', 'Employed',
+      'philippines', 'Filipino', '1998-05-04', 'Employed',
     ]);
-    expect(params[22]).toBeNull(); // pending rows never carry a custom-role tag
+    expect(params[23]).toBeNull(); // pending rows never carry a custom-role tag
     const claim = callsOf(/^delete from public\.pending_signups/);
     expect(claim).toHaveLength(1);
     expect(claim[0].via).toBe('tx');
@@ -206,7 +206,7 @@ describe('provision claims the pending self-signup row', () => {
     employerInsert();
 
     const res = await provision(cookie, {
-      role: 'employer', first_name: 'Ben', company_name: 'Acme',
+      role: 'employer', terms_accepted: true, first_name: 'Ben', company_name: 'Acme',
       phone: '440000000', representative_phone: '09171234567',
     });
 
@@ -218,11 +218,12 @@ describe('provision claims the pending self-signup row', () => {
     expect(params.slice(2, 7)).toEqual(['ben', 'b', 'cruz', 'jr', 'ben b cruz jr']);
     expect(params[8]).toBe('acme');
     expect(params.slice(14, 19)).toEqual(['poblacion', 'cebu city', null, null, 'philippines']);
-    // The two numbers land in separate columns: phone stays $8, the new
-    // representative_phone is appended last so earlier parameter indices hold.
+    // The two numbers land in separate columns: phone stays $8, and
+    // representative_phone is its own column (index 22) before the appended
+    // consent pair, so earlier parameter indices hold.
     expect(params[7]).toBe('440000000');
-    expect(insert.sql).toMatch(/representative_phone\)\s+values/);
-    expect(params.at(-1)).toBe('09171234567');
+    expect(insert.sql).toMatch(/custom_role_id, representative_phone/);
+    expect(params[22]).toBe('09171234567');
     expect(callsOf(/^delete from public\.pending_signups/)[0].via).toBe('tx');
   });
 
@@ -287,7 +288,7 @@ describe('provision claims the pending self-signup row', () => {
     withPending({ role: 'job-seeker', profile: { first_name: 'Ana' } });
     on(/^delete from public\.pending_signups/, () => ({ rows: [], rowCount: 0 }));
 
-    const res = await provision(cookie);
+    const res = await provision(cookie, { terms_accepted: true });
 
     expect(res.status).toBe(200);
     expect(res.body.id).toBe(SEEKER);
@@ -300,7 +301,7 @@ describe('provision claims the pending self-signup row', () => {
     withPending({ role: 'job-seeker', profile: { first_name: 'Ana' } });
     on(/^delete from public\.pending_signups/, () => ({ rows: [], rowCount: 0 }));
 
-    const res = await provision(cookie);
+    const res = await provision(cookie, { terms_accepted: true });
 
     expect(res.status).toBe(403);
     expect(res.body.error.code).toBe('FORBIDDEN');

@@ -91,7 +91,7 @@ describe('B11 — provision double-submit answers 200, not 500', () => {
     });
     const res = await request(app).post('/api/auth/provision')
       .set('Cookie', token)
-      .send({ role: 'job-seeker', first_name: 'Ana', last_name: 'Cruz' });
+      .send({ role: 'job-seeker', terms_accepted: true, first_name: 'Ana', last_name: 'Cruz' });
     expect(res.status).toBe(200);
     expect(res.body.role).toBe('job-seeker');
     expect(res.body.id).toBe(SEEKER);
@@ -104,7 +104,7 @@ describe('B11 — provision double-submit answers 200, not 500', () => {
     on((sql) => /insert into job_seekers/.test(sql), () => { throw new Error('disk full'); });
     const res = await request(app).post('/api/auth/provision')
       .set('Cookie', token)
-      .send({ role: 'job-seeker', first_name: 'Ana', last_name: 'Cruz' });
+      .send({ role: 'job-seeker', terms_accepted: true, first_name: 'Ana', last_name: 'Cruz' });
     expect(res.status).toBe(500);
     expect(res.body.error.code).toBe('INTERNAL');
   });

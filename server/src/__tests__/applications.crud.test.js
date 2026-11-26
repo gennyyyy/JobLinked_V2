@@ -37,6 +37,10 @@ describe('POST /api/applications', () => {
     expect(res.status).toBe(201);
     expect(res.body.status).toBe('Applied');
     expect(callsOf(/insert into job_applications/)[0].params[1]).toBe(SEEKER); // seeker_id from token
+    // ADR-060: the employer's notification names the job, never the applicant.
+    const notify = callsOf(/insert into notifications/)[0];
+    expect(notify.params[3]).toBe('A new applicant applied for Dev.');
+    expect(callsOf(/select full_name from job_seekers/)).toHaveLength(0);
   });
 
   it('409 CONFLICT on a duplicate application', async () => {
@@ -145,6 +149,25 @@ describe('POST /api/applications/:id/status', () => {
       .send({ status: 'Interview' });
     expect(res.status).toBe(403);
     expect(res.body.error.code).toBe('FORBIDDEN');
+  });
+});
+
+describe('GET /api/applications/company/:companyId', () => {
+  it('embeds the linked resume, falling back to the seeker\'s active resume', async () => {
+    const token = loginAs({ id: EMPLOYER, role: 'employer' });
+    const resume = { id: APP, file_name: 'cv.pdf', file_path: 'resumes/cv.pdf' };
+    on((sql) => /where j\.company_id = \$1/.test(sql), () => ({ rows: [{ ...appRow, resume }] }));
+    const res = await request(app).get(`/api/applications/company/${EMPLOYER}`)
+      .set('Cookie', token);
+    expect(res.status).toBe(200);
+    const list = callsOf(/where j\.company_id = \$1/)[0];
+    expect(list.params).toEqual([EMPLOYER]);
+    // Applied-with resume first, then the seeker's current active resume, so a
+    // null resume_id still yields a resume object the modal can link to.
+    expect(list.sql).toContain('r.id = a.resume_id');
+    expect(list.sql).toContain('r.seeker_id = a.seeker_id and r.is_active');
+    expect(list.sql).toMatch(/order by r\.uploaded_at desc limit 1/);
+    expect(res.body[0].resume).toEqual(resume);
   });
 });
 

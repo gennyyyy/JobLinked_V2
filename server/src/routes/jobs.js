@@ -376,11 +376,11 @@ router.post('/jobs', auth, requireRole('employer'), ah(async (req, res) => {
   void audit(req.user.id, 'job.create', 'job_vacancies', job.id);
   if (finalStatus === 'published') {
     void notifyAdmins({ type: 'job', title: 'Job published',
-      message: `"${job.title}" (${job.company_name}) is now live on the job board.`, link: '/super-admin/job-posts' });
+      message: `"${job.title}" is now live on the job board.`, link: '/super-admin/job-posts' });
     void notifyMatchingSeekers(job);
   } else if (held) {
     void notifyAdmins({ type: 'job', title: 'Job held for fee review',
-      message: `"${job.title}" (${job.company_name}) mentions fees/payments and needs PESO clearance.`, link: '/super-admin/job-posts' });
+      message: `"${job.title}" mentions fees/payments and needs PESO clearance.`, link: '/super-admin/job-posts' });
     void notifyUser(req.user.id, { type: 'job', title: 'Submitted for PESO review',
       message: `Your post "${job.title}" mentions fees/payments and needs PESO clearance before it goes live.`, link: '/employer/job-posts' });
   }
@@ -462,7 +462,7 @@ router.patch('/jobs/:id', auth, ah(async (req, res) => {
       void audit(req.user.id, 'job.update', 'job_vacancies', job.id);
       const patched = await loadJob(job.id);
       void notifyAdmins({ type: 'job', title: 'Job held for fee review',
-        message: `"${patched.title}" (${patched.company_name}) mentions fees/payments and needs PESO clearance.`, link: '/super-admin/job-posts' });
+        message: `"${patched.title}" mentions fees/payments and needs PESO clearance.`, link: '/super-admin/job-posts' });
       void notifyUser(req.user.id, { type: 'job', title: 'Submitted for PESO review',
         message: `Your post "${patched.title}" mentions fees/payments and needs PESO clearance before it goes live.`, link: '/employer/job-posts' });
       return res.json(embed(patched));
@@ -507,7 +507,7 @@ router.patch('/jobs/:id', auth, ah(async (req, res) => {
     void audit(req.user.id, 'job.update', 'job_vacancies', job.id);
     const patched = await loadJob(job.id);
     void notifyAdmins({ type: 'job', title: 'Job held for fee review',
-      message: `"${patched.title}" (${patched.company_name}) mentions fees/payments and needs PESO clearance.`, link: '/super-admin/job-posts' });
+      message: `"${patched.title}" mentions fees/payments and needs PESO clearance.`, link: '/super-admin/job-posts' });
     void notifyUser(req.user.id, { type: 'job', title: 'Submitted for PESO review',
       message: `Your post "${patched.title}" mentions fees/payments and needs PESO clearance before it goes live.`, link: '/employer/job-posts' });
     return res.json(embed(patched));
@@ -620,7 +620,7 @@ router.post('/jobs/:id/status', auth, ah(async (req, res) => {
     void audit(req.user.id, `job.status.pending`, 'job_vacancies', job.id);
     const fresh = await loadJob(job.id);
     void notifyAdmins({ type: 'job', title: 'Job held for fee review',
-      message: `"${fresh.title}" (${fresh.company_name}) mentions fees/payments and needs PESO clearance.`, link: '/super-admin/job-posts' });
+      message: `"${fresh.title}" mentions fees/payments and needs PESO clearance.`, link: '/super-admin/job-posts' });
     void notifyUser(req.user.id, { type: 'job', title: 'Submitted for PESO review',
       message: `Your post "${fresh.title}" mentions fees/payments and needs PESO clearance before it goes live.`, link: '/employer/job-posts' });
     return res.json(embed(fresh));
@@ -633,7 +633,7 @@ router.post('/jobs/:id/status', auth, ah(async (req, res) => {
   const fresh = await loadJob(job.id);
   if (status === 'published') {
     void notifyAdmins({ type: 'job', title: 'Job published',
-      message: `"${fresh.title}" (${fresh.company_name}) is now live on the job board.`, link: '/super-admin/job-posts' });
+      message: `"${fresh.title}" is now live on the job board.`, link: '/super-admin/job-posts' });
     void notifyMatchingSeekers(fresh);
   }
   res.json(embed(fresh));

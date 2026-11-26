@@ -55,7 +55,7 @@ export default function ApplicationTimeline({ application }) {
                   <StatusBadge status={event.status} />
                   <time className="text-xs text-muted-foreground" dateTime={event.changed_at}>{formatDate(event.changed_at)}</time>
                 </div>
-                <p className="mt-2 text-xs leading-6 text-muted-foreground">{event.remarks || STAGE_COPY[event.status] || 'Status updated.'}</p>
+                <p className="mt-2 text-xs leading-6 text-muted-foreground break-words">{event.remarks || STAGE_COPY[event.status] || 'Status updated.'}</p>
               </div>
             </li>
           )

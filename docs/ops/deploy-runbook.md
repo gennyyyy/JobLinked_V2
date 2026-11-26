@@ -10,6 +10,17 @@ in-process daily `setInterval`. All three assume exactly one long-lived process:
 never run replicas, never move the API to serverless. Scaling out requires the
 rework listed in ADR-037 first.
 
+**Retention purge (daily, in-process).** Each run deletes, in one transaction:
+non-employment `job_applications` older than 12 months (Accepted / Placed /
+Terminated are retained as employment records); `audit_logs` older than 12
+months; read `notifications` older than 90 days (unread rows are kept);
+`pending_signups` older than 30 days; Better Auth `verification` /
+expired `session` rows more than 30 days past `"expiresAt"`; and unverified
+`auth."user"` rows older than 30 days that have no role row and no
+`admin_invites` row (cascading any remaining pending signups).
+`employment_history`, `employer_accreditations`, and retained applications are
+never purged. One `data.purge` audit row records the per-table counts.
+
 ## 1. Env checklist (API host)
 
 Put these in an env file owned by the service user, mode `600`

@@ -72,6 +72,6 @@ describe('F-04 — POST /files/documents requires doc_type', () => {
   it('keeps the storeDocument + audit + notify happy path', () => {
     expect(route).toContain('storeDocument(req.user.id, doc_type, accreditation_id, req.file)');
     expect(route).toContain("void audit(req.user.id, 'document.upload'");
-    expect(route).toContain('void notifyDocAdmins(req.user.id, doc_type)');
+    expect(route).toContain('void notifyDocAdmins(doc_type)');
   });
 });

@@ -11,6 +11,7 @@ export const EMPTY_FORM = {
   lastName: "",
   suffix: "",
   birthdate: "",
+  nationality: "Filipino",
   mobileNumber: "",
   email: "",
   password: "",
@@ -41,6 +42,7 @@ export function validate(values) {
   if (!values.mobileNumber?.trim()) e.mobileNumber = "Mobile number is required";
   else if (!isValidPhone(values.mobileNumber)) e.mobileNumber = "Enter a valid number (e.g. 917 123 4567)";
   if (!values.birthdate) e.birthdate = "Birthday is required";
+  if (!values.nationality?.trim()) e.nationality = "Nationality is required";
   if (!values.streetAddress?.trim()) e.streetAddress = "Street address is required";
   if (!values.barangayDistrict?.trim()) e.barangayDistrict = "Barangay / District is required";
   if (!values.cityMunicipality?.trim()) e.cityMunicipality = "City / Municipality is required";
@@ -75,9 +77,11 @@ export function buildJobSeekerSignUpPayload(form, education) {
     middleName: form.middleName?.trim() || "",
     lastName: form.lastName.trim(),
     suffix: form.suffix?.trim() || "",
+    termsAccepted: form.agree === true,
     extra: {
       phone: normalizePhone(form.mobileNumber),
       birthdate: form.birthdate,
+      nationality: form.nationality.trim(),
       lot: form.lot.trim(),
       block: form.block.trim(),
       streetAddress: form.streetAddress.trim(),

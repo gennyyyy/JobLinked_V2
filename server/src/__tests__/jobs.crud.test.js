@@ -32,6 +32,7 @@ describe('POST /api/jobs', () => {
   it('creates a published job for an accredited employer', async () => {
     const token = loginAs({ id: EMPLOYER, role: 'employer' });
     on(/select accreditation_status from employers/, () => ({ rows: [{ accreditation_status: 'approved' }] }));
+    on(/select id from super_admins/, () => ({ rows: [{ id: ADMIN }] }));
     on((sql) => /insert into job_vacancies/.test(sql) && /returning id/.test(sql), () => ({ rows: [{ id: JOB }] }));
     requireJobLoad(EMPLOYER);
     const res = await request(app).post('/api/jobs')
@@ -42,6 +43,9 @@ describe('POST /api/jobs', () => {
     // company_id comes from the token, never the body.
     expect(callsOf(/insert into job_vacancies/)[0].params[0]).toBe(EMPLOYER);
     expect(callsOf(/insert into job_status_history/)?.every((c) => c.via === 'tx')).toBe(true);
+    // ADR-060: the PESO notification names the job, never the employer company.
+    const adminNote = callsOf(/insert into notifications/)[0];
+    expect(adminNote.params[3]).toBe('"Dev" is now live on the job board.');
   });
 
   it('403 when a non-accredited employer tries to publish', async () => {

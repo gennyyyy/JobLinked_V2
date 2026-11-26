@@ -17,8 +17,8 @@ const JOBS = [
   { id: 'j2', title: 'Baker', status: 'draft', location: 'Poblacion', employment_type: 'Full-time', vacancies: 1, created_at: '2026-01-03' },
 ]
 const APPS = [
-  { id: 'a1', status: 'Placed', applied_at: '2026-01-05', referred_by: null, seeker: { full_name: 'Ana', barangay_district: 'Poblacion' }, job: { title: 'Cook' } },
-  { id: 'a2', status: 'Pending', applied_at: '2026-01-06', referred_by: 'staff-1', seeker: { full_name: 'Ben', barangay_district: 'Poblacion' }, job: { title: 'Cook' } },
+  { id: 'a1', status: 'Placed', applied_at: '2026-01-05', seeker: { full_name: 'Ana', barangay_district: 'Poblacion' }, job: { title: 'Cook' } },
+  { id: 'a2', status: 'Pending', applied_at: '2026-01-06', seeker: { full_name: 'Ben', barangay_district: 'Poblacion' }, job: { title: 'Cook' } },
 ]
 const USERS = [{ id: 'u1', role: 'job-seeker', barangay_district: 'Poblacion' }]
 
@@ -72,7 +72,6 @@ describe('Reports', () => {
     const statValue = (label) => screen.getAllByText(label).map((el) => el.closest('.surface')).find(Boolean).querySelector('p').textContent
     expect(statValue('Published vacancy records')).toBe('1')
     expect(statValue('applications')).toBe('2')
-    expect(statValue('Recorded referrals')).toBe('1')
     expect(statValue('placements')).toBe('1')
     expect(screen.getByText('Across all 24 barangays')).toBeInTheDocument()
     expect(screen.getByRole('cell', { name: 'Poblacion' })).toBeInTheDocument()
@@ -114,7 +113,6 @@ describe('Applications CSV export', () => {
         id: 'a1',
         status: 'Placed',
         applied_at: '2026-01-05T00:00:00.000Z',
-        referred_by: null,
         seeker: { full_name: 'Ana', barangay_district: 'Poblacion' },
         job: { title: 'Cook', employers: { company_name: 'Café Niña' } },
       }],
@@ -130,9 +128,9 @@ describe('Applications CSV export', () => {
 
     const csv = await readBlob(capturedBlob)
     expect(csv.split('\n')[0]).toBe(
-      '"Application ID","Job title","Employer","Barangay","Submitted","Current status","Referral","Placement"',
+      '"Application ID","Job title","Employer","Barangay","Submitted","Current status","Placement"',
     )
-    expect(csv).toContain('"a1","Cook","Café Niña","Poblacion","2026-01-05","Placed","No","Yes"')
+    expect(csv).toContain('"a1","Cook","Café Niña","Poblacion","2026-01-05","Placed","Yes"')
     expect(capturedName).toBe('joblinked-DEMO-applications.csv')
   })
 })

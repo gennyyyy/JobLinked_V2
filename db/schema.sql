@@ -42,6 +42,7 @@ create table if not exists public.job_seekers (
   province_state       text,
   postal_code          text,
   country              text        not null default 'Philippines',
+  nationality          text        not null default 'Filipino',
   birthdate            date,
   headline             text,
   education_summary    text,
@@ -52,20 +53,24 @@ create table if not exists public.job_seekers (
   field                text,
   preferred_location   text,
   status               account_status not null default 'active',
-  referral_opt_in      boolean not null default false,
+  -- RA 10173 registration consent (ADR-059); null before migration 022.
+  terms_accepted_at    timestamptz,
+  terms_version        text,
   -- super-admin custom-role tag (null = no custom role); FK added after reference_data exists
   custom_role_id       bigint,
   created_at           timestamptz not null default now(),
   updated_at           timestamptz not null default now()
 );
 
-alter table public.job_seekers add column if not exists referral_opt_in boolean not null default false;
 alter table public.job_seekers add column if not exists lot text;
 alter table public.job_seekers add column if not exists block text;
 alter table public.job_seekers add column if not exists headline text;
 alter table public.job_seekers add column if not exists education_summary text;
 alter table public.job_seekers add column if not exists experience_summary text;
 alter table public.job_seekers add column if not exists field text;
+alter table public.job_seekers add column if not exists nationality text not null default 'Filipino';
+alter table public.job_seekers add column if not exists terms_accepted_at timestamptz;
+alter table public.job_seekers add column if not exists terms_version text;
 
 create table if not exists public.employers (
   id                     uuid        primary key,
@@ -97,12 +102,18 @@ create table if not exists public.employers (
   -- trg_sync_accreditation_status trigger below.
   accreditation_status   accreditation_status default null,
   accreditation_remarks  text        default null,
+  -- RA 10173 registration consent (ADR-059); null before migration 022.
+  terms_accepted_at      timestamptz,
+  terms_version          text,
   status                 account_status not null default 'active',
   -- super-admin custom-role tag (null = no custom role); FK added after reference_data exists
   custom_role_id         bigint,
   created_at             timestamptz not null default now(),
   updated_at             timestamptz not null default now()
 );
+
+alter table public.employers add column if not exists terms_accepted_at timestamptz;
+alter table public.employers add column if not exists terms_version text;
 
 create table if not exists public.super_admins (
   id         uuid        primary key,
@@ -278,7 +289,6 @@ create table if not exists public.job_applications (
   interview_instructions text,
   applied_at             timestamptz        not null default now(),
   updated_at             timestamptz        not null default now(),
-  referred_by            uuid               references public.job_seekers(id) on delete set null,
   unique (job_id, seeker_id)
 );
 
@@ -452,10 +462,9 @@ create index if not exists job_vacancies_status_created_idx on public.job_vacanc
 create index if not exists job_vacancies_deadline_idx on public.job_vacancies(deadline);
 create index if not exists job_applications_job_idx on public.job_applications(job_id);
 create index if not exists job_applications_seeker_idx on public.job_applications(seeker_id);
-create index if not exists job_applications_referred_idx on public.job_applications(referred_by) where referred_by is not null;
 -- Unfiltered `order by a.applied_at desc` (admin.js /admin/applications:226,
--- /admin/referrals:248, reports.js applicants:25) — the filtered seeker/job
--- lists keep using the seeker/job indexes above plus a sort.
+-- reports.js applicants:25) — the filtered seeker/job lists keep using the
+-- seeker/job indexes above plus a sort.
 create index if not exists job_applications_applied_idx on public.job_applications(applied_at desc);
 create index if not exists job_status_history_job_idx on public.job_status_history(job_id);
 create index if not exists job_prohibited_flags_job_resolved_idx on public.job_prohibited_flags(job_id, resolved_at desc);
@@ -608,7 +617,7 @@ you can exercise over it.
 - Employment profile: education, skills, qualifications, certifications, work
   experience, employment status, and job preferences.
 - Application records: résumés and supporting documents you upload, the
-  vacancies you applied to, referral records, and recruitment status updates.
+  vacancies you applied to, and recruitment status updates.
 - Service records: notifications sent to you, and technical logs needed to keep
   the service secure (access times, request identifiers).
 
@@ -619,7 +628,7 @@ only when necessary, with its purpose and legal basis explained before collectio
 2. Why we use it
 - Create and manage your JobLinked account and applicant profile.
 - Match your qualifications and preferences with job vacancies.
-- Process applications and facilitate PESO employment assistance and referrals.
+- Process applications and facilitate PESO employment assistance.
 - Display and update your application status.
 - Send account, application, and service notifications.
 - Prepare authorized municipal employment reports using aggregated employment
@@ -634,8 +643,6 @@ to confidentiality and security obligations.
 
 When you apply for a vacancy, the application screen names the receiving employer
 and the information and documents to be shared before you confirm submission.
-Sharing your profile with other prospective employers for additional PESO referrals
-requires a separate legal basis, including your optional consent where applicable.
 Your profile is not sold and is not published as a public applicant directory.
 
 4. How it is stored and protected
@@ -652,7 +659,9 @@ erase records that must lawfully be retained.
 5. Your rights
 Subject to applicable law, you may request access to your records, ask for
 corrections, object to processing, withdraw consent, or request deletion or
-blocking of your information. You may file a complaint with the National Privacy
+blocking of your information. You can download your data and erase your account
+from Account settings; erasure anonymizes your profile and keeps only the records
+PESO must retain by law. You may file a complaint with the National Privacy
 Commission. Requests are submitted to the PESO office handling your registration
 for referral to the Municipality's designated Data Protection Officer.
 
@@ -702,8 +711,8 @@ or using the service you accept them.
   the listings and of the reports it prepares.
 
 4. What the service does and does not do
-- JobLinked is a matching and referral service. Registration, matching, and
-  referral do not guarantee employment. Hiring decisions rest with employers.
+- JobLinked is a matching service. Registration and matching do not guarantee
+  employment. Hiring decisions rest with employers.
 - JobLinked does not process payroll, salary payments, or any monetary
   transaction between employers and job seekers, and never asks for payment to
   apply for a vacancy.
@@ -712,8 +721,8 @@ or using the service you accept them.
 5. Content and records
 - You keep ownership of the documents you upload and grant PESO permission to
   store and process them for the purposes in the Privacy Notice.
-- Application and referral records are retained as described in the Privacy
-  Notice and in applicable government records rules.
+- Application records are retained as described in the Privacy Notice and in
+  applicable government records rules.
 - We may suspend or close an account that breaches these terms, with notice where
   the law or an investigation allows it.
 
@@ -775,3 +784,10 @@ create table if not exists public.pending_signups (
   profile jsonb not null default '{}'::jsonb,
   created_at timestamptz not null default now()
 );
+
+-- ---------------------------------------------------------------------------
+-- ADR-058: displayed-name cooldown. NULL = never changed (first change free).
+-- ---------------------------------------------------------------------------
+alter table public.job_seekers  add column if not exists name_changed_at timestamptz;
+alter table public.employers    add column if not exists name_changed_at timestamptz;
+alter table public.super_admins add column if not exists name_changed_at timestamptz;

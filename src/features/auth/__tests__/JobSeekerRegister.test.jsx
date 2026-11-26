@@ -372,6 +372,22 @@ describe('JobSeekerRegister autofill', () => {
     expect(parked()).toMatchObject({ employment_status: 'Student' })
   })
 
+  it('sends nationality, defaulting to Filipino and accepting an edit', async () => {
+    signedUp({ id: 'seeker-1' })
+    renderPage()
+    // Step 1 is the only step that owns the field, so pin the default before
+    // fillRequired() advances to the consent step.
+    const nationality = screen.getByLabelText(/^nationality/i)
+    expect(nationality.tagName).toBe('SELECT')
+    expect(nationality).toHaveValue('Filipino')
+    fireEvent.change(nationality, { target: { value: 'Japanese' } })
+    expect(nationality).toHaveValue('Japanese')
+    fillRequired()
+    await confirmCreateAccount()
+    await waitFor(() => expect(api.post).toHaveBeenCalled())
+    expect(parked()).toMatchObject({ nationality: 'Japanese' })
+  })
+
   it('skips year validation when currently studying and posts end_year null', async () => {
     signedUp({ id: 'seeker-1' })
     renderPage()
@@ -454,6 +470,16 @@ describe('JobSeekerRegister autofill', () => {
       postal_code: '3022',
       country: 'philippines',
     })
+  })
+
+  it('parks terms_accepted once the terms gate is passed', async () => {
+    signedUp({ id: 'seeker-1' })
+    renderPage()
+    fillRequired()
+    await confirmCreateAccount()
+
+    await waitFor(() => expect(api.post).toHaveBeenCalled())
+    expect(parked()).toMatchObject({ role: 'job-seeker', terms_accepted: true })
   })
 
 

@@ -94,7 +94,7 @@ describe('better-auth mount', () => {
       () => ({ rows: [{ id: SEEKER, email: 'u@test.local', full_name: 'ana cruz' }] }));
     const res = await request(app).post('/api/auth/provision')
       .set('Authorization', `Bearer ${token}`)
-      .send({ role: 'job-seeker', first_name: 'Ana', last_name: 'Cruz' });
+      .send({ role: 'job-seeker', terms_accepted: true, first_name: 'Ana', last_name: 'Cruz' });
     expect(res.status).toBe(201);
     expect(res.body.role).toBe('job-seeker');
   });

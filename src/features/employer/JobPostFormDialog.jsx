@@ -123,6 +123,7 @@ export default function JobPostFormDialog({ form, setForm, setErrors, errors, sa
               category="job_field"
               multiple={false}
               required={!editingId}
+              placeholder="Select a field"
               value={form.field ?? null}
               onChange={(value) => {
                 setForm((f) => ({ ...f, field: value }));

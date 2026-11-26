@@ -85,3 +85,37 @@ describe('POST /accreditations under the one-pending-row partial index', () => {
     expect(accInsert()).toBeUndefined();
   });
 });
+
+// ADR-060: the employer's copy carries the status only — the company name and
+// PESO remarks live on the accreditation page and must not be baked into a
+// retained notification.
+describe('PATCH /accreditations/:id — neutral notification copy', () => {
+  const ACC = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+
+  it('says only the status: no company name, no PESO remarks', async () => {
+    mocks.role = 'super-admin';
+    mocks.poolQuery.mockImplementation(async (sql) => {
+      const s = norm(sql);
+      if (s.startsWith('update employer_accreditations set')) {
+        return { rows: [{ id: ACC, company_id: 'emp-1', status: 'approved' }] };
+      }
+      if (s.startsWith('select id from employers')) return { rows: [{ id: 'emp-1' }] };
+      return { rows: [] };
+    });
+
+    const r = await fetch(`${base}/accreditations/${ACC}`, {
+      method: 'PATCH',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ status: 'approved', remarks: 'internal PESO note' }),
+    });
+
+    expect(r.status).toBe(200);
+    const insert = mocks.poolQuery.mock.calls
+      .map(([sql, params]) => ({ sql: norm(sql), params }))
+      .find((c) => c.sql.startsWith('insert into notifications'));
+    expect(insert).toBeTruthy();
+    expect(insert.params[3]).toBe('Your accreditation has been approved.');
+    expect(insert.params[3]).not.toContain('internal PESO note');
+    expect(insert.params[3]).not.toContain('Acme');
+  });
+});
