@@ -140,6 +140,15 @@ function printTable(report) {
 }
 
 async function main() {
+  // Debug flag: print one fixture's extracted text and skip the report.
+  // ponytail: ext is the raw file extension; only pdf takes the pdfjs path.
+  const textArg = process.argv.find((arg) => arg.startsWith("--text="));
+  if (textArg) {
+    const filePath = textArg.slice("--text=".length);
+    console.log(await extractText(filePath, path.extname(filePath).slice(1).toLowerCase()));
+    return;
+  }
+
   const report = {
     mode: MODE,
     perFieldAccuracy: Object.fromEntries(FIELDS.map((f) => [f, { correct: 0, filled: 0, total: 0 }])),
