@@ -662,7 +662,7 @@ function Profile() {
               </div>
               <div className="grid gap-4 sm:grid-cols-2">
                 <SelectField label="Province / State" required id="provinceState" options={[FIXED_PROVINCE]} value={FIXED_PROVINCE} disabled />
-                <TextField label="Postal Code" value={FIXED_POSTAL_CODE} disabled />
+                <TextField label="Postal Code" value={FIXED_POSTAL_CODE} disabled className="form-select disabled:bg-background" />
               </div>
             </div>
             </TabsContent>
