@@ -6,17 +6,15 @@ import { AlignmentType, BorderStyle, Document, Packer, Paragraph, TextRun } from
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June',
   'July', 'August', 'September', 'October', 'November', 'December'];
 
-// Brand tokens from src/index.css (--navy/dark-blue, --muted-foreground,
-// --border, --foreground). docx takes hex without the leading '#'.
-const DARK_BLUE = '#12325B';
-const MUTED = '#475569';
-const RULE = '#E4EAF1';
-const BODY = '#0F172A';
+// Neutral black-and-white system from the Canva reference
+// (sample_pdf/resume_sample.pdf). docx takes hex without the leading '#'.
+const BODY = '#111111';
+const MUTED = '#444440';
+const RULE = '#D9D9D9';
 const DOC = {
-  darkBlue: DARK_BLUE.slice(1),
+  body: BODY.slice(1),
   muted: MUTED.slice(1),
   rule: RULE.slice(1),
-  body: BODY.slice(1),
 };
 
 const trim = (v) => (typeof v === 'string' ? v.trim() : '');
@@ -84,13 +82,13 @@ export function renderResumePdf(resume) {
   const left = doc.page.margins.left;
   const width = doc.page.width - left - doc.page.margins.right;
 
-  const centered = (text, { bold = false, size = 10, color = MUTED, gap = 0 } = {}) => {
+  const centered = (text, { size = 10, color = MUTED, gap = 0 } = {}) => {
     if (gap) doc.moveDown(gap);
-    doc.font(bold ? 'Helvetica-Bold' : 'Helvetica').fontSize(size).fillColor(color)
+    doc.font('Helvetica').fontSize(size).fillColor(color)
       .text(text, { width, align: 'center' });
   };
 
-  centered(m.fullName, { bold: true, size: 20, color: DARK_BLUE });
+  centered(m.fullName, { size: 32, color: BODY });
   if (m.contactLine) centered(m.contactLine, { gap: 0.6 });
   if (m.addressLine) centered(m.addressLine, { gap: 0.2 });
   if (m.personalLine) centered(m.personalLine, { gap: 0.2 });
@@ -98,8 +96,8 @@ export function renderResumePdf(resume) {
   const section = (title, draw) => {
     // Keep a heading with its first lines instead of orphaning it at a page edge.
     if (doc.y > doc.page.height - doc.page.margins.bottom - 90) doc.addPage();
-    doc.moveDown(1.4).font('Helvetica-Bold').fontSize(11).fillColor(DARK_BLUE)
-      .text(title.toUpperCase(), { width });
+    doc.moveDown(1.4).font('Helvetica').fontSize(11).fillColor(MUTED)
+      .text(title.toUpperCase(), { width, characterSpacing: 3 });
     const ruleY = doc.y + 3;
     doc.moveTo(left, ruleY).lineTo(left + width, ruleY).lineWidth(0.75).strokeColor(RULE).stroke();
     doc.y = ruleY + 8;
@@ -117,7 +115,7 @@ export function renderResumePdf(resume) {
     section('Experience', () => {
       m.experience.forEach((e, i) => {
         if (i) doc.moveDown(1);
-        if (e.heading) doc.font('Helvetica-Bold').fontSize(10).fillColor(BODY).text(e.heading, { width });
+        if (e.heading) doc.font('Helvetica').fontSize(10).fillColor(BODY).text(e.heading, { width });
         if (e.dates) doc.moveDown(0.2).font('Helvetica').fontSize(9).fillColor(MUTED).text(e.dates, { width });
         if (e.description) doc.moveDown(0.3).font('Helvetica').fontSize(10).fillColor(BODY).text(e.description, { width });
       });
@@ -132,22 +130,23 @@ export function renderResumePdf(resume) {
   return done;
 }
 
-const paragraph = (text, { bold = false, size = 20, color = DOC.body, align = AlignmentType.LEFT, after = 40 } = {}) => new Paragraph({
+const paragraph = (text, { size = 20, color = DOC.body, align = AlignmentType.LEFT, after = 40 } = {}) => new Paragraph({
   alignment: align,
   spacing: { after },
-  children: [new TextRun({ text, bold, size, color })],
+  children: [new TextRun({ text, size, color })],
 });
 
+// 0.75pt rule = 6 border units (1/8 pt); 3pt tracking = 60 twips.
 const heading = (text) => new Paragraph({
   spacing: { before: 240, after: 120 },
-  border: { bottom: { style: BorderStyle.SINGLE, size: 4, color: DOC.rule } },
-  children: [new TextRun({ text: text.toUpperCase(), bold: true, size: 22, color: DOC.darkBlue })],
+  border: { bottom: { style: BorderStyle.SINGLE, size: 6, color: DOC.rule } },
+  children: [new TextRun({ text: text.toUpperCase(), size: 22, color: DOC.muted, characterSpacing: 60 })],
 });
 
 export async function renderResumeDocx(resume) {
   const m = normalizeResume(resume);
   const children = [paragraph(m.fullName, {
-    bold: true, size: 40, color: DOC.darkBlue, align: AlignmentType.CENTER, after: 60,
+    size: 64, color: DOC.body, align: AlignmentType.CENTER, after: 60,
   })];
 
   for (const text of [m.contactLine, m.addressLine, m.personalLine]) {
@@ -161,7 +160,7 @@ export async function renderResumeDocx(resume) {
   if (m.experience.length) {
     children.push(heading('Experience'));
     for (const e of m.experience) {
-      if (e.heading) children.push(paragraph(e.heading, { bold: true }));
+      if (e.heading) children.push(paragraph(e.heading));
       if (e.dates) children.push(paragraph(e.dates, { size: 18, color: DOC.muted, after: 30 }));
       if (e.description) children.push(paragraph(e.description, { after: 160 }));
     }
