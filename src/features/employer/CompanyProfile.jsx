@@ -481,7 +481,7 @@ function CompanyProfile() {
                 disabled
                 required
               />
-              <TextField label="Postal Code" value={FIXED_POSTAL_CODE} disabled />
+              <TextField label="Postal Code" value={FIXED_POSTAL_CODE} disabled className="form-select disabled:bg-background" />
             </div>
         </TabsContent>
         <TabsContent value="representative" id="authorized-representative">

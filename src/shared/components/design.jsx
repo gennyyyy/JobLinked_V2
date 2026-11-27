@@ -184,7 +184,7 @@ export function SelectField({ label, options, placeholder, error, ...props }) {
               </option>);
           })}
         </select>
-        <ChevronDown aria-hidden="true" className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+        {!props.disabled && <ChevronDown aria-hidden="true" className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />}
       </div>
       {error && <FieldError id={`${fieldId}-error`}>{error}</FieldError>}
     </Field>);
