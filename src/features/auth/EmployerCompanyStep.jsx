@@ -3,7 +3,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Eye, EyeOff } from "lucide-react";
 
-import { FIXED_MUNICIPALITY, FIXED_PROVINCE, INDUSTRIES, SANTA_MARIA_BARANGAYS } from "@/shared/constants";
+import { FIXED_MUNICIPALITY, FIXED_POSTAL_CODE, FIXED_PROVINCE, INDUSTRIES, SANTA_MARIA_BARANGAYS } from "@/shared/constants";
 
 import { PASSWORD_HINT } from "@/shared/utils/password";
 import { formatPhoneDisplay, toLocalDigits } from "@/shared/utils/phone";
@@ -63,9 +63,8 @@ function EmployerCompanyStep({ errors, setErrors, inputClass, labelClass, reqMar
                       </FormSelect>
                     </div>
                     <div>
-                      <Label htmlFor="postalCode" className={labelClass}>Postal Code <span className="text-muted-foreground font-normal">(optional)</span></Label>
-                      <Input id="postalCode" name="postalCode" type="text" inputMode="numeric" maxLength={4} placeholder="e.g. 3022" value={form?.postalCode ?? ""} className={inputClass} onChange={(e) => field("postalCode", e.target.value)} />
-                      {errors?.postalCode && <p className="text-danger text-xs mt-1">{errors.postalCode}</p>}
+                      <Label htmlFor="postalCode" className={labelClass}>Postal Code</Label>
+                      <Input id="postalCode" name="postalCode" type="text" disabled value={FIXED_POSTAL_CODE} className={inputClass} />
                     </div>
                     <div>
                       <Label htmlFor="streetAddress" className={labelClass}>Street Address & Lot / Block{reqMark}</Label>

@@ -9,7 +9,6 @@ export function validate(values) {
   if (!values.barangayDistrict?.trim()) e.barangayDistrict = "Barangay / District is required";
   if (!values.cityMunicipality?.trim()) e.cityMunicipality = "City / Municipality is required";
   if (!values.provinceState?.trim()) e.provinceState = "Province is required";
-  if (values.postalCode?.trim() && !/^\d{4}$/.test(values.postalCode.trim())) e.postalCode = "Postal code must be 4 digits";
   if (!values.contactNumber?.trim()) e.contactNumber = "Contact number is required";
   else if (!isValidPhone(values.contactNumber)) e.contactNumber = "Enter a valid number (e.g. 44 000 0000)";
   if (!values.companyEmail?.trim()) e.companyEmail = "Company email is required";

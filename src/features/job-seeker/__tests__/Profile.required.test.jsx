@@ -83,17 +83,21 @@ describe('Profile required fields', () => {
     expect(screen.getByRole('tab', { name: /personal/i })).toHaveAttribute('aria-selected', 'true')
   })
 
-  it('blocks the save on a malformed postal code and keeps the fixed city and province', async () => {
+  it('blocks the save on a missing street address and keeps the fixed city and province', async () => {
     useAuth.mockReturnValue({
-      user: { ...STORED, city_municipality: null, province_state: null, postal_code: '302' },
+      user: { ...STORED, city_municipality: null, province_state: null, street_address: '' },
       refreshUser: vi.fn(),
     })
     await openProfile()
+    fireEvent.click(screen.getByRole('tab', { name: /address/i }))
+    await screen.findByLabelText(/^Barangay/)
     save()
 
-    expect(await screen.findByText('Postal code must be 4 digits.')).toBeInTheDocument()
+    expect(await screen.findByText('Enter your address.')).toBeInTheDocument()
     expect(screen.getByLabelText(/^City \/ Municipality/)).toHaveValue('Santa Maria')
     expect(screen.getByLabelText(/^Province \/ State/)).toHaveValue('Bulacan')
+    expect(screen.getByLabelText(/^Postal Code/)).toBeDisabled()
+    expect(screen.getByLabelText(/^Postal Code/)).toHaveValue('3022')
     expect(updateProfile).not.toHaveBeenCalled()
     expect(screen.getByRole('tab', { name: /address/i })).toHaveAttribute('aria-selected', 'true')
   })

@@ -110,11 +110,11 @@ async function openTermsAndAgree() {
 describe('EmployerRegister address', () => {
   beforeEach(() => vi.clearAllMocks())
 
-  it('renders the barangay select and numeric postal field', () => {
+  it('renders the barangay select and the locked postal field', () => {
     renderPage()
     expect(screen.getByLabelText(/barangay/i).tagName).toBe('SELECT')
-    expect(screen.getByLabelText(/postal/i)).toHaveAttribute('inputMode', 'numeric')
-    expect(screen.getByLabelText(/postal/i)).toHaveAttribute('maxLength', '4')
+    expect(screen.getByLabelText(/postal/i)).toBeDisabled()
+    expect(screen.getByLabelText(/postal/i)).toHaveValue('3022')
   })
 
   it('keeps the password field named for FormData while driving the checklist', () => {
@@ -132,7 +132,6 @@ describe('EmployerRegister address', () => {
     fillRequired()
     fireEvent.click(screen.getByRole('button', { name: /^back$/i }))
     fireEvent.change(screen.getByLabelText(/barangay/i), { target: { value: 'Pulong Buhangin' } })
-    fireEvent.change(screen.getByLabelText(/postal/i), { target: { value: '3022' } })
     fireEvent.click(screen.getByRole('button', { name: /^next$/i }))
     // Term gate ships disabled until the notice is opened and read.
     await openTermsAndAgree()
@@ -176,17 +175,6 @@ describe('EmployerRegister address', () => {
 
     await waitFor(() => expect(api.post).toHaveBeenCalled())
     expect(parked()).toMatchObject({ role: 'employer', terms_accepted: true })
-  })
-
-  it('blocks a non-4-digit postal code', async () => {
-    renderPage()
-    fillRequired()
-    fireEvent.click(screen.getByRole('button', { name: /^back$/i }))
-    fireEvent.change(screen.getByLabelText(/postal/i), { target: { value: '302' } })
-    fireEvent.click(screen.getByRole('button', { name: /^next$/i }))
-
-    await waitFor(() => expect(screen.getByText(/postal code must be 4 digits/i)).toBeInTheDocument())
-    expect(authClientMock.signUp.email).not.toHaveBeenCalled()
   })
 
   it('rejects a weak password and does not submit', async () => {

@@ -67,6 +67,7 @@ describe('CompanyProfile address fields', () => {
 
     expect(screen.getByLabelText(/^City \/ Municipality/)).toHaveValue('Santa Maria')
     expect(screen.getByLabelText(/^Province \/ State/)).toHaveValue('Bulacan')
+    expect(screen.getByLabelText('Postal Code')).toBeDisabled()
     expect(screen.getByLabelText('Postal Code')).toHaveValue('3022')
   })
 
@@ -75,14 +76,13 @@ describe('CompanyProfile address fields', () => {
     await openProfile()
     fireEvent.click(screen.getByRole('tab', { name: /contact & location/i }))
 
-    fireEvent.change(screen.getByLabelText('Postal Code'), { target: { value: '3012' } })
     fireEvent.click(screen.getByRole('button', { name: /save company profile/i }))
 
     await waitFor(() => expect(updateProfile).toHaveBeenCalled())
     expect(updateProfile).toHaveBeenCalledWith('u1', expect.objectContaining({
       city_municipality: 'Santa Maria',
       province_state: 'Bulacan',
-      postal_code: '3012',
+      postal_code: '3022',
     }))
   })
 

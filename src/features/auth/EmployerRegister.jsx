@@ -13,7 +13,7 @@ import EmployerRegisterSuccess from "./EmployerRegisterSuccess";
 import EmployerCompanyStep from "./EmployerCompanyStep";
 import EmployerRepresentativeStep from "./EmployerRepresentativeStep";
 import { validate, buildEmployerSignUpPayload } from "./employerRegistration";
-import { FIXED_MUNICIPALITY, FIXED_PROVINCE } from "@/shared/constants";
+import { FIXED_MUNICIPALITY, FIXED_POSTAL_CODE, FIXED_PROVINCE } from "@/shared/constants";
 
 const TOTAL_STEPS = 2;
 const STEP0_FIELDS = ["companyName", "industry", "streetAddress", "barangayDistrict", "cityMunicipality", "provinceState", "postalCode", "contactNumber", "companyEmail", "password", "confirmPassword"];
@@ -21,7 +21,7 @@ const STEP0_FIELDS = ["companyName", "industry", "streetAddress", "barangayDistr
 
 const EMPTY_FORM = {
   companyName: "", industry: "", houseNumberUnit: "", streetAddress: "", subdivisionBuilding: "",
-  barangayDistrict: "", cityMunicipality: FIXED_MUNICIPALITY, provinceState: FIXED_PROVINCE, postalCode: "", contactNumber: "",
+  barangayDistrict: "", cityMunicipality: FIXED_MUNICIPALITY, provinceState: FIXED_PROVINCE, postalCode: FIXED_POSTAL_CODE, contactNumber: "",
   companyEmail: "", password: "", confirmPassword: "",
   repFirstName: "", repMiddleName: "", repLastName: "", repSuffix: "", repPosition: "", repMobile: "", repEmail: "",
   agree: false, confirmAccurate: false,

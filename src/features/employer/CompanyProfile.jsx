@@ -13,7 +13,7 @@ import { TabsContent } from "../../components/ui/tabs";
 import { buildFullName, nameChangeLockHelp } from "../../shared/utils/names";
 import { titleCase } from "../../shared/utils/titleCase";
 import { formatPhoneDisplay, isValidPhone, normalizePhone, withPrefix } from "../../shared/utils/phone";
-import { FIXED_MUNICIPALITY, FIXED_PROVINCE, INDUSTRIES, SANTA_MARIA_BARANGAYS } from "../../shared/constants";
+import { FIXED_MUNICIPALITY, FIXED_POSTAL_CODE, FIXED_PROVINCE, INDUSTRIES, SANTA_MARIA_BARANGAYS } from "../../shared/constants";
 import { SelectField, TextField } from "../../shared/components/design";
 
 const COMPANY_FIELDS = [
@@ -113,6 +113,7 @@ function CompanyProfile() {
   const [form, setForm] = useState({
     city_municipality: FIXED_MUNICIPALITY,
     province_state: FIXED_PROVINCE,
+    postal_code: FIXED_POSTAL_CODE,
   });
   const [errors, setErrors] = useState({});
   const [tab, setTab] = useState("company");
@@ -142,7 +143,7 @@ function CompanyProfile() {
             barangay_district: titleCase(data.barangay_district),
             city_municipality: FIXED_MUNICIPALITY,
             province_state: FIXED_PROVINCE,
-            postal_code: data.postal_code || "",
+            postal_code: FIXED_POSTAL_CODE,
             phone: data.phone || "",
             email: data.email || "",
             company_email: data.company_email || data.email || "",
@@ -176,7 +177,7 @@ function CompanyProfile() {
   if (error && !company) return <p role="alert" className="py-8 text-center text-sm text-destructive">{error}</p>;
 
   // Parity with employer registration: nothing here is optional except the
-  // address extras, middle name/suffix, website, and postal code.
+  // address extras, middle name/suffix, and website.
   function validate() {
     const next = {};
     const value = (key) => String(form[key] ?? "").trim();
@@ -190,7 +191,6 @@ function CompanyProfile() {
     if (!value("barangay_district")) next.barangay_district = "Barangay / District is required";
     if (!value("city_municipality")) next.city_municipality = "City / Municipality is required";
     if (!value("province_state")) next.province_state = "Province is required";
-    if (value("postal_code") && !/^\d{4}$/.test(value("postal_code"))) next.postal_code = "Postal code must be 4 digits";
     if (!value("first_name")) next.first_name = "First name is required";
     if (!value("last_name")) next.last_name = "Last name is required";
     if (!value("representative_position")) next.representative_position = "Position is required";
@@ -481,7 +481,7 @@ function CompanyProfile() {
                 disabled
                 required
               />
-              <TextField label="Postal Code" placeholder="e.g. 3022" error={errors.postal_code} {...field("postal_code")} />
+              <TextField label="Postal Code" value={FIXED_POSTAL_CODE} disabled />
             </div>
         </TabsContent>
         <TabsContent value="representative" id="authorized-representative">

@@ -26,7 +26,7 @@ import TabbedProfileLayout from '@/shared/components/TabbedProfileLayout'
 import AccountSettings, { PrivacyPanel } from '@/shared/components/AccountSettings'
 import ChangePassword from '@/shared/components/ChangePassword'
 import { TabsContent } from '@/components/ui/tabs'
-import { FIXED_MUNICIPALITY, FIXED_PROVINCE, NATIONALITIES, SANTA_MARIA_BARANGAYS } from '@/shared/constants'
+import { FIXED_MUNICIPALITY, FIXED_POSTAL_CODE, FIXED_PROVINCE, NATIONALITIES, SANTA_MARIA_BARANGAYS } from '@/shared/constants'
 import { EDUCATION_LEVELS } from '../auth/jobSeekerRegistration'
 import useVocabulary from '@/shared/hooks/useVocabulary'
 import VocabularyPicker from '@/shared/components/VocabularyPicker'
@@ -48,7 +48,7 @@ const EMPTY_FORM = {
   name: '', firstName: '', middleName: '', lastName: '', suffix: '',
   phone: '', headline: '', birthdate: '', nationality: '', employmentStatus: '',
   lot: '', block: '', barangay: '', address: '', subdivisionBuilding: '',
-  cityMunicipality: FIXED_MUNICIPALITY, provinceState: FIXED_PROVINCE, postalCode: '',
+  cityMunicipality: FIXED_MUNICIPALITY, provinceState: FIXED_PROVINCE, postalCode: FIXED_POSTAL_CODE,
   experience: '', skills: [], field: '',
 }
 
@@ -90,7 +90,7 @@ function formFromUser(user) {
     subdivisionBuilding: titleCase(user.subdivision_building),
     cityMunicipality: FIXED_MUNICIPALITY,
     provinceState: FIXED_PROVINCE,
-    postalCode: user.postal_code || '',
+    postalCode: FIXED_POSTAL_CODE,
     experience: user.experience_summary || '',
     skills: Array.isArray(user.skills) ? [...user.skills] : splitList(user.skills),
     field: user.field || '',
@@ -318,7 +318,6 @@ function Profile() {
     if (form.address.trim().length < 5) next.address = 'Enter your address.'
     if (!form.cityMunicipality) next.cityMunicipality = 'Choose your city / municipality.'
     if (!form.provinceState) next.provinceState = 'Choose your province.'
-    if (form.postalCode.trim() && !/^\d{4}$/.test(form.postalCode.trim())) next.postalCode = 'Postal code must be 4 digits.'
     if (!educationLoading && !educationLoadError && !educationList.length) next.education = 'Add your education history.'
     if (!skillChips.length) next.skills = 'Add at least one skill.'
     setErrors(next)
@@ -326,7 +325,7 @@ function Profile() {
       // Show the tab that owns the first error so its message is not hidden.
       setTab(
         next.name || next.firstName || next.lastName || next.phone || next.birthdate || next.nationality || next.employmentStatus ? 'personal'
-          : next.barangay || next.address || next.cityMunicipality || next.provinceState || next.postalCode ? 'address'
+          : next.barangay || next.address || next.cityMunicipality || next.provinceState ? 'address'
             : next.skills ? 'skills'
               : 'education',
       )
@@ -439,7 +438,7 @@ function Profile() {
       const next = { ...previous }
       for (const [key, value] of Object.entries(details)) {
         if (!value) continue
-        if (key === 'education' || key === 'skills') continue
+        if (key === 'education' || key === 'skills' || key === 'postalCode') continue
         if (key in next) next[key] = value
       }
       return next
@@ -663,7 +662,7 @@ function Profile() {
               </div>
               <div className="grid gap-4 sm:grid-cols-2">
                 <SelectField label="Province / State" required id="provinceState" options={[FIXED_PROVINCE]} value={FIXED_PROVINCE} disabled />
-                <TextField label="Postal Code" value={form.postalCode} onChange={(event) => setField('postalCode', event.target.value)} error={errors.postalCode} />
+                <TextField label="Postal Code" value={FIXED_POSTAL_CODE} disabled />
               </div>
             </div>
             </TabsContent>

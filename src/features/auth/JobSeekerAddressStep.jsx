@@ -17,8 +17,7 @@ function JobSeekerAddressStep({ form, errors, set, inputClass, labelClass, reqMa
                 </div>
                 <div>
                   <Label htmlFor="postalCode" className={labelClass}>Postal Code</Label>
-                  <Input id="postalCode" name="postalCode" type="text" inputMode="numeric" maxLength={4} placeholder="e.g. 3022" disabled value={FIXED_POSTAL_CODE} className={inputClass} />
-                  {errors.postalCode && <p className="text-danger text-xs mt-1">{errors.postalCode}</p>}
+                  <Input id="postalCode" name="postalCode" type="text" disabled value={FIXED_POSTAL_CODE} className={inputClass} />
                 </div>
                 <div>
                   <Label htmlFor="cityMunicipality" className={labelClass}>City / Municipality{reqMark}</Label>

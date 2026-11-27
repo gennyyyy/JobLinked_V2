@@ -43,7 +43,6 @@ export function validate(values) {
   if (!values.barangayDistrict?.trim()) e.barangayDistrict = "Barangay / District is required";
   if (!values.cityMunicipality?.trim()) e.cityMunicipality = "City / Municipality is required";
   if (!values.provinceState?.trim()) e.provinceState = "Province is required";
-  if (values.postalCode?.trim() && !/^\d{4}$/.test(values.postalCode.trim())) e.postalCode = "Postal code must be 4 digits";
   const passwordIssue = passwordError(values.password);
   if (passwordIssue) e.password = passwordIssue;
   if (!values.confirmPassword) e.confirmPassword = "Please confirm your password";

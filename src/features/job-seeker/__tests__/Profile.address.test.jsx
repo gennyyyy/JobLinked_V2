@@ -86,6 +86,8 @@ describe('Profile fields and save', () => {
     await screen.findByLabelText(/^Barangay/)
     expect(screen.getByLabelText(/^Barangay/)).toHaveValue('Poblacion')
     expect(screen.getByLabelText(/street or local address/i)).toHaveValue('12 Mabini Street')
+    expect(screen.getByLabelText(/^Postal Code/)).toBeDisabled()
+    expect(screen.getByLabelText(/^Postal Code/)).toHaveValue('3022')
 
     fireEvent.click(screen.getByRole('tab', { name: /education/i }))
     expect(await screen.findByText('Completed — College')).toBeInTheDocument()
@@ -390,6 +392,7 @@ describe('Profile fields and save', () => {
     expect(updateProfile).toHaveBeenCalledWith('u1', expect.objectContaining({
       city_municipality: 'Santa Maria',
       province_state: 'Bulacan',
+      postal_code: '3022',
     }))
   })
 })
