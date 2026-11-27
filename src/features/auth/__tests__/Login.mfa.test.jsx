@@ -158,4 +158,53 @@ describe('Login MFA', () => {
     await userEvent.click(screen.getByRole('button', { name: /verify/i }))
     expect(await screen.findByText('seeker job page')).toBeInTheDocument()
   })
+
+  it('accepts a backup code instead of a TOTP code', async () => {
+    authClientMock.signIn.email.mockResolvedValue({
+      data: { twoFactorRedirect: true, twoFactorMethods: ['totp'] },
+      error: null,
+    })
+    authClientMock.twoFactor.verifyBackupCode.mockResolvedValue({ data: { token: 'session' }, error: null })
+    const authenticate = vi.fn()
+    useAuth.mockReturnValue({ user: null, authenticate })
+    renderLogin()
+    await userEvent.type(screen.getByLabelText(/email/i), 'good@test.com')
+    await userEvent.type(screen.getByLabelText(/password/i), 'secret123')
+    await userEvent.click(screen.getByRole('button', { name: /sign in/i }))
+
+    await screen.findByLabelText(/verification code/i)
+    await userEvent.click(screen.getByRole('button', { name: /use a backup code/i }))
+    const input = screen.getByLabelText(/backup code/i)
+    await userEvent.type(input, 'abcd1234efgh')
+    await userEvent.click(screen.getByRole('button', { name: /verify/i }))
+
+    await waitFor(() => expect(authClientMock.twoFactor.verifyBackupCode).toHaveBeenCalledWith({ code: 'abcd1234efgh' }))
+    expect(await screen.findByText('employer home')).toBeInTheDocument()
+  })
+
+  it('returns to authenticator mode after cancel', async () => {
+    authClientMock.signIn.email.mockResolvedValue({
+      data: { twoFactorRedirect: true, twoFactorMethods: ['totp'] },
+      error: null,
+    })
+    renderLogin()
+    await userEvent.type(screen.getByLabelText(/email/i), 'good@test.com')
+    await userEvent.type(screen.getByLabelText(/password/i), 'secret123')
+    await userEvent.click(screen.getByRole('button', { name: /sign in/i }))
+    await screen.findByLabelText(/verification code/i)
+
+    await userEvent.click(screen.getByRole('button', { name: /use a backup code/i }))
+    expect(screen.getByLabelText(/backup code/i)).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: /cancel/i }))
+    await screen.findByLabelText(/email/i)
+
+    // Sign in again: the code step must be back in TOTP mode.
+    await userEvent.clear(screen.getByLabelText(/email/i))
+    await userEvent.clear(screen.getByLabelText(/password/i))
+    await userEvent.type(screen.getByLabelText(/email/i), 'good@test.com')
+    await userEvent.type(screen.getByLabelText(/password/i), 'secret123')
+    await userEvent.click(screen.getByRole('button', { name: /sign in/i }))
+    expect(await screen.findByLabelText(/verification code/i)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /use a backup code/i })).toBeInTheDocument()
+  })
 })

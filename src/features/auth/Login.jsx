@@ -4,7 +4,7 @@ import { ArrowRight, Eye, EyeOff, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { FieldGroup, Field, FieldLabel } from '@/components/ui/field'
 import { InputGroup, InputGroupInput, InputGroupAddon, InputGroupButton } from '@/components/ui/input-group'
-import { signIn, completeTwoFactor, signOut } from '@/shared/services/auth'
+import { signIn, completeTwoFactor, completeTwoFactorBackupCode, signOut } from '@/shared/services/auth'
 import { takeApplyIntent } from '@/shared/lib/applyIntent'
 import { PORTALS } from '@/shared/constants'
 import useAuth from '@/shared/hooks/useAuth'
@@ -33,6 +33,7 @@ function Login() {
   const [mfaCode, setMfaCode] = useState('')
   const [mfaLoading, setMfaLoading] = useState(false)
   const [mfaError, setMfaError] = useState('')
+  const [mfaMode, setMfaMode] = useState('totp')
   const captcha = useCaptcha()
 
   const signedInRole = role || user?.role
@@ -84,13 +85,15 @@ function Login() {
   }
 
   async function handleVerifyMfa() {
-    if (mfaCode.length !== 6) return
+    if (mfaMode === 'totp' ? mfaCode.length !== 6 : mfaCode.length < 6) return
     setMfaLoading(true)
     setMfaError('')
     try {
       // BA sets the session cookie on a valid code; the service then resolves
       // the session user and their profile.
-      const loggedIn = await completeTwoFactor(mfaCode)
+      const loggedIn = mfaMode === 'totp'
+        ? await completeTwoFactor(mfaCode)
+        : await completeTwoFactorBackupCode(mfaCode)
       authenticate?.(loggedIn)
       const applyPath = takeApplyIntent()
       navigate(applyPath && loggedIn.role === 'job-seeker' ? applyPath : portalPath(loggedIn.role))
@@ -106,6 +109,7 @@ function Login() {
     // The half-signed-in session is useless without the code step.
     await signOut()
     setMfaStep(false)
+    setMfaMode('totp')
     setMfaCode('')
     setMfaError('')
   }
@@ -117,15 +121,19 @@ function Login() {
           <Panel title="Verification code">
             <div className="flex flex-col gap-4">
               <TextField
-                label="Verification code"
+                label={mfaMode === 'totp' ? 'Verification code' : 'Backup code'}
                 value={mfaCode}
                 onChange={(e) => setMfaCode(e.target.value)}
-                inputMode="numeric"
-                maxLength={6}
+                inputMode={mfaMode === 'totp' ? 'numeric' : undefined}
+                maxLength={mfaMode === 'totp' ? 6 : 24}
               />
               {mfaError && <p role="alert" className="text-xs leading-6 text-destructive">{mfaError}</p>}
               <div className="flex gap-2">
-                <Button type="button" disabled={mfaLoading || mfaCode.length !== 6} onClick={handleVerifyMfa}>
+                <Button
+                  type="button"
+                  disabled={mfaLoading || (mfaMode === 'totp' ? mfaCode.length !== 6 : mfaCode.length < 6)}
+                  onClick={handleVerifyMfa}
+                >
                   {mfaLoading ? <Loader2 data-icon="inline-start" className="animate-spin" /> : null}
                   {mfaLoading ? 'Verifying…' : 'Verify'}
                 </Button>
@@ -133,6 +141,18 @@ function Login() {
                   Cancel
                 </Button>
               </div>
+              <Button
+                type="button"
+                variant="link"
+                disabled={mfaLoading}
+                onClick={() => {
+                  setMfaMode((mode) => (mode === 'totp' ? 'backup' : 'totp'))
+                  setMfaCode('')
+                  setMfaError('')
+                }}
+              >
+                {mfaMode === 'totp' ? 'Use a backup code instead' : 'Use an authenticator app code'}
+              </Button>
             </div>
           </Panel>
         </AuthFrame>
