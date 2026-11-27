@@ -15,8 +15,8 @@ import { ROLE_LABELS } from '@/shared/constants'
 import { nameChangeLockHelp } from '@/shared/utils/names'
 
 const PROFILE_TABS = [
-  { value: 'account', label: 'Account', title: 'Account details', description: 'Your profile information and administrator access.' },
-  { value: 'security', label: 'Security', title: 'Security & access', description: 'Password, sessions, and account deactivation.' },
+  { value: 'account', label: 'Personal', title: 'Account details', description: 'Your profile information and administrator access.' },
+  { value: 'security', label: 'Account settings', title: 'Security & access', description: 'Password, sessions, and account deactivation.' },
 ]
 
 export default function Profile() {

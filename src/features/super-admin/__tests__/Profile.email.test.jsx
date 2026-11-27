@@ -54,7 +54,7 @@ describe('super-admin Profile', () => {
 
   it('renders the security tab with sign-out-all and deactivate buttons', () => {
     render(<MemoryRouter><Profile /></MemoryRouter>)
-    fireEvent.click(screen.getByRole('tab', { name: /security/i }))
+    fireEvent.click(screen.getByRole('tab', { name: /account settings/i }))
     expect(screen.getByRole('button', { name: /sign out all devices/i })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /deactivate account/i })).toBeInTheDocument()
   })
