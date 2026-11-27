@@ -1,6 +1,6 @@
 import { Suspense, useEffect, useState } from 'react'
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
-import StaticUrlRouter from './shared/lib/StaticUrlRouter'
+import StaticUrlRouter, { restoredEntry } from './shared/lib/StaticUrlRouter'
 import ProtectedRoute from './shared/components/ProtectedRoute'
 import LoadingScreen from './shared/components/LoadingScreen'
 import ErrorBoundary from './shared/components/ErrorBoundary'
@@ -79,10 +79,15 @@ const JobSeekerDashboard = lazyRoute(() => import('./features/job-seeker/Dashboa
 // append it to the Site URL instead of /reset-password. Snapshot it before
 // supabase-js consumes and clears it, then route that tab to the reset screen
 // and keep its one-time session alive (see PublicRoute below).
+//
+// The tab's route is persisted in history.state (StaticUrlRouter), so a reload
+// re-enters the page it was on instead of `/` — a PublicRoute that would sign
+// the user out (ADR-021). The fragment still wins: it is that flow's credential.
 const recoveryLanding = /(^|[#&])type=recovery\b/.test(window.location.hash)
-const entryPath = recoveryLanding
+// eslint-disable-next-line react-refresh/only-export-components -- exported for the reload-route test
+export const entryPath = recoveryLanding
   ? `/reset-password${window.location.hash}`
-  : `${window.location.pathname}${window.location.search}${window.location.hash}`
+  : restoredEntry() || `${window.location.pathname}${window.location.search}${window.location.hash}`
 
 function App() {
   return (

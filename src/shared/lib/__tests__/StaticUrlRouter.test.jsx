@@ -1,8 +1,8 @@
-import { describe, it, expect, beforeEach } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { act, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { Link, Routes, Route } from 'react-router-dom'
-import StaticUrlRouter from '../StaticUrlRouter'
+import { Link, Routes, Route, useLocation, useNavigate } from 'react-router-dom'
+import StaticUrlRouter, { restoredEntry } from '../StaticUrlRouter'
 
 function Page({ name }) {
   return (
@@ -61,5 +61,104 @@ describe('StaticUrlRouter', () => {
     expect(screen.getByRole('heading', { name: 'Reset' })).toBeInTheDocument()
     expect(window.location.pathname).toBe('/reset-password')
     expect(window.location.search).toBe('?code=x')
+  })
+})
+
+// A reload keeps the session (HttpOnly cookie + server-side session row), so
+// the router must re-enter the page the tab was on — never `/`, which would be
+// a PublicRoute and sign the user out (ADR-021). The route rides in
+// history.state, which is per-history-entry: a fresh tab still has none.
+function Path() {
+  const { pathname } = useLocation()
+  return <p>{pathname}</p>
+}
+
+function NavigateProbe() {
+  const navigate = useNavigate()
+  return (
+    <>
+      <Path />
+      <button onClick={() => navigate('/employer/jobs')}>Go employer</button>
+    </>
+  )
+}
+
+function renderRoutes(entry = '/') {
+  return render(
+    <StaticUrlRouter entry={entry}>
+      <Routes>
+        <Route path="/" element={<NavigateProbe />} />
+        <Route path="/employer/jobs" element={<Path />} />
+      </Routes>
+    </StaticUrlRouter>,
+  )
+}
+
+describe('StaticUrlRouter route restoration', () => {
+  beforeEach(() => {
+    window.history.replaceState(null, '', '/')
+  })
+
+  it('push persists the route in history state', async () => {
+    renderRoutes('/')
+
+    await userEvent.click(screen.getByRole('button', { name: /go employer/i }))
+
+    expect(window.history.state.joblinkedLocation).toEqual({
+      pathname: '/employer/jobs',
+      search: '',
+      hash: '',
+    })
+  })
+
+  it('restoredEntry returns the persisted route', async () => {
+    renderRoutes('/')
+
+    await userEvent.click(screen.getByRole('button', { name: /go employer/i }))
+
+    expect(restoredEntry()).toBe('/employer/jobs')
+  })
+
+  // Tested directly on the App entry expression (exported for this pin): a
+  // recovery fragment (ADR-055) must beat a stale stored route, and with no
+  // fragment the stored route must beat the tab's frozen URL.
+  it('recovery-style entry URL wins in App seeding', async () => {
+    window.history.replaceState(
+      { joblinkedLocation: { pathname: '/employer/jobs', search: '', hash: '' } },
+      '',
+      '/#access_token=x&type=recovery',
+    )
+    vi.resetModules()
+    let app = await import('../../../App')
+    expect(app.entryPath).toBe('/reset-password#access_token=x&type=recovery')
+
+    window.history.replaceState(
+      { joblinkedLocation: { pathname: '/employer/jobs', search: '', hash: '' } },
+      '',
+      '/',
+    )
+    vi.resetModules()
+    app = await import('../../../App')
+    expect(app.entryPath).toBe('/employer/jobs')
+  })
+
+  it('popstate restores a route after the stack is lost', async () => {
+    const view = renderRoutes('/')
+    await userEvent.click(screen.getByRole('button', { name: /go employer/i }))
+    const saved = window.history.state
+    view.unmount()
+
+    // Fresh router, as after a reload: the in-memory stack no longer holds the
+    // entry, but the history entry still carries the route it showed.
+    renderRoutes('/')
+    act(() => {
+      window.dispatchEvent(new PopStateEvent('popstate', { state: saved }))
+    })
+
+    expect(screen.getByText('/employer/jobs')).toBeInTheDocument()
+  })
+
+  it('restoredEntry returns null without stored state', () => {
+    expect(restoredEntry()).toBe(null)
   })
 })
