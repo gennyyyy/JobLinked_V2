@@ -30,15 +30,19 @@ sends. Barangay was already locked to the 24 Santa Maria barangays
    `FIXED_MUNICIPALITY` in `src/shared/constants.js`. The server duplicates the
    literals (it cannot import the client's aliased module) with a comment
    pointing back here.
-4. Postal code stays editable/optional. Barangay is unchanged (already
+4. Postal code is fixed at `'3022'` (Santa Maria's postal code), read-only on
+   every address surface and clamped on the same two server write paths
+   (`person.postal_code = '3022'`, `if (patch.postal_code !== undefined)
+   patch.postal_code = '3022'`). The former 4-digit format validation is
+   removed — the value can no longer vary. Barangay is unchanged (already
    SM-only). No schema change.
 
 ## Consequences
 
-- Legacy rows holding another LGU keep their stored value until the owner
-  saves; the edit forms always show the fixed values and every save rewrites
-  the row to them, so old data converges.
+- Legacy rows holding another LGU or postal code keep their stored values
+  until the owner saves; the edit forms always show the fixed values and every
+  save rewrites the row to them, so old data converges.
 - A modified client can no longer register or save profiles outside
-  Santa Maria, Bulacan.
+  Santa Maria, Bulacan (province, city, or postal code).
 - `pickListed` normalization for these two fields is no longer needed; the
   general helper stays (barangay/other lists still use it).
