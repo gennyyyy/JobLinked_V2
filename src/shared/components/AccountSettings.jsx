@@ -30,7 +30,7 @@ export function PrivacyPanel({ className, contentClassName, size = 'default' }) 
   )
 }
 
-export default function AccountSettings({ embedded = false, children, childrenBelow = false, showPrivacy = true, uniform = false }) {
+export default function AccountSettings({ embedded = false, children, childrenBelow = false, showPrivacy = true, uniform = false, aside }) {
   const { user } = useAuth() || {}
   const [prefs, setPrefs] = useState(null)
   const [loadingPrefs, setLoadingPrefs] = useState(true)
@@ -205,6 +205,7 @@ export default function AccountSettings({ embedded = false, children, childrenBe
           <div className="flex min-w-0 flex-col gap-6">
             {accountOverviewPanel()}
             {embedded ? notificationsPanel() : showPrivacy && <PrivacyPanel />}
+            {aside}
             {user?.role && user?.role !== 'super-admin' && <DangerZonePanel />}
           </div>
           <div className="flex min-w-0 flex-col gap-6">

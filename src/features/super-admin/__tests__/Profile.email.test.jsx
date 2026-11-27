@@ -12,7 +12,12 @@ vi.mock('../../../shared/services/auth', () => ({
   verifyMfaEnrollment: vi.fn(),
   unenrollMfa: vi.fn(),
 }))
-vi.mock('../../../shared/services/account', () => ({ revokeAllSessions: vi.fn(), deactivateAccount: vi.fn() }))
+vi.mock('../../../shared/services/account', () => ({
+  revokeAllSessions: vi.fn(),
+  getPreferences: vi.fn().mockResolvedValue({ application_updates: true, community_announcements: true }),
+  updatePreferences: vi.fn(),
+  exportAccount: vi.fn(),
+}))
 vi.mock('../../../shared/components/ChangePassword', () => ({ default: () => <div>ChangePassword</div> }))
 
 import useAuth from '../../../shared/hooks/useAuth'
@@ -52,11 +57,10 @@ describe('super-admin Profile', () => {
     expect(updateProfile).not.toHaveBeenCalled()
   })
 
-  it('renders the security tab with sign-out-all and deactivate buttons', () => {
+  it('renders the security tab with the sign-out-all button', () => {
     render(<MemoryRouter><Profile /></MemoryRouter>)
     fireEvent.click(screen.getByRole('tab', { name: /account settings/i }))
     expect(screen.getByRole('button', { name: /sign out all devices/i })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /deactivate account/i })).toBeInTheDocument()
   })
 
   it('renders the account tab with the ChangePassword component', () => {

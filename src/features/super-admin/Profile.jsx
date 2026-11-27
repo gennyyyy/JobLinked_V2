@@ -6,9 +6,8 @@ import useAuth from '@/shared/hooks/useAuth'
 import { updateProfile } from '@/shared/services/auth'
 import { revokeAllSessions } from '@/shared/services/account'
 import ChangePassword from '@/shared/components/ChangePassword'
-import { PrivacyPanel } from '@/shared/components/AccountSettings'
+import AccountSettings, { PrivacyPanel } from '@/shared/components/AccountSettings'
 import MfaPanel from '@/shared/components/MfaPanel'
-import DangerZonePanel from '@/shared/components/DangerZonePanel'
 import TabbedProfileLayout from '@/shared/components/TabbedProfileLayout'
 import { Panel, TextField } from '@/shared/components/design'
 import { ROLE_LABELS } from '@/shared/constants'
@@ -16,7 +15,7 @@ import { nameChangeLockHelp } from '@/shared/utils/names'
 
 const PROFILE_TABS = [
   { value: 'account', label: 'Personal', title: 'Account details', description: 'Your profile information and administrator access.' },
-  { value: 'security', label: 'Account settings', title: 'Security & access', description: 'Password, sessions, and account deactivation.' },
+  { value: 'security', label: 'Account settings', title: 'Security & access', description: 'Password, sessions, and multi-factor authentication.' },
 ]
 
 export default function Profile() {
@@ -115,10 +114,10 @@ export default function Profile() {
         </div>
       </TabsContent>
       <TabsContent value="security" id="security" keepMounted>
-        <div className="flex flex-col gap-4">
-          <ChangePassword embedded />
-          <div className="grid items-start gap-4 md:grid-cols-2">
-            <MfaPanel />
+        <AccountSettings
+          embedded
+          showPrivacy={false}
+          aside={(
             <Panel id="sessions" title="Sessions" description="Sign out every active device.">
               <p className="text-xs text-muted-foreground">If you think your account is compromised, revoke all sessions and sign back in.</p>
               <Button type="button" variant="outline" className="mt-3" disabled={revoking} onClick={handleSignOutAll}>
@@ -127,9 +126,11 @@ export default function Profile() {
               {revokeMessage && <p role="status" className="mt-3 text-xs text-success">{revokeMessage}</p>}
               {revokeError && <p role="alert" className="mt-3 text-xs text-destructive">{revokeError}</p>}
             </Panel>
-            <DangerZonePanel />
-          </div>
-        </div>
+          )}
+        >
+          <ChangePassword embedded />
+          <MfaPanel />
+        </AccountSettings>
       </TabsContent>
     </TabbedProfileLayout>
   )
