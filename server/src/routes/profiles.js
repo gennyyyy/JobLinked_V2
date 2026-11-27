@@ -72,6 +72,7 @@ const meRoutes = (path, table, role, allow) => {
     // Fixed service scope: Santa Maria, Bulacan only (ADR-062).
     if (patch.city_municipality !== undefined) patch.city_municipality = 'santa maria';
     if (patch.province_state !== undefined) patch.province_state = 'bulacan';
+    if (patch.postal_code !== undefined) patch.postal_code = '3022';
     // full_name is derived, not independently writable (ADR-046): when a name
     // component is patched, rebuild it from the patched (already normalized)
     // values plus the stored components the patch did not send. A patch that

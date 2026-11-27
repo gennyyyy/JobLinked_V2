@@ -125,6 +125,7 @@ router.post('/auth/provision', tokenAuth, express.json(), ah(async (req, res) =>
   // match the LOWERCASE_PERSON convention these two keys already follow.
   person.city_municipality = 'santa maria';
   person.province_state = 'bulacan';
+  person.postal_code = '3022';
   // first/middle/last/suffix are `not null default ''` in all three role tables
   // (schema.sql). An omitted field inserted as an explicit NULL raises 23502 and
   // 500s the provision — the schema default only applies to ABSENT columns, and
