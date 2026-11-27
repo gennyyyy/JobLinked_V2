@@ -57,6 +57,13 @@ function stateOf(index, location) {
   }
 }
 
+// The current entry's real index survives a reload. Entries before this one
+// still carry theirs, so re-claiming 0 would shadow the tab's oldest page.
+function enteredIndex() {
+  const stored = window.history.state?.[ENTRY_INDEX]
+  return Number.isInteger(stored) && stored >= 0 ? stored : 0
+}
+
 // The route of the entry this tab was reloaded on, or null when there is none
 // (fresh tab, bookmark, or a history entry written by something else). A path,
 // never a credential: the session is still restored by the server.
@@ -69,15 +76,19 @@ export function restoredEntry() {
 
 export default function StaticUrlRouter({ entry = '/', children }) {
   const initial = useMemo(() => locationOf(entry), [entry])
-  const stack = useRef([initial])
-  const index = useRef(0)
+  const [startIndex] = useState(enteredIndex)
+  const stack = useRef([])
+  const index = useRef(startIndex)
   const [current, setCurrent] = useState({ location: initial, action: 'POP' })
 
   useLayoutEffect(() => {
-    // Runs before any in-app navigation: point the seeded entry at the frozen
-    // URL, without changing the route the router already read from `entry`.
-    window.history.replaceState(stateOf(0, initial), '', frozenHref())
-  }, [initial])
+    // Runs before any in-app navigation: seed the sparse stack at the entry's
+    // real index (earlier entries rebuild from their own state when Back/Forward
+    // reaches them), then point the seeded entry at the frozen URL without
+    // changing the route the router already read from `entry`.
+    stack.current[startIndex] = initial
+    window.history.replaceState(stateOf(startIndex, initial), '', frozenHref())
+  }, [initial, startIndex])
 
   useLayoutEffect(() => {
     function onPopState(event) {

@@ -73,12 +73,12 @@ function Path() {
   return <p>{pathname}</p>
 }
 
-function NavigateProbe() {
+function NavigateProbe({ to }) {
   const navigate = useNavigate()
   return (
     <>
       <Path />
-      <button onClick={() => navigate('/employer/jobs')}>Go employer</button>
+      <button onClick={() => navigate(to)}>Go {to}</button>
     </>
   )
 }
@@ -87,8 +87,9 @@ function renderRoutes(entry = '/') {
   return render(
     <StaticUrlRouter entry={entry}>
       <Routes>
-        <Route path="/" element={<NavigateProbe />} />
-        <Route path="/employer/jobs" element={<Path />} />
+        <Route path="/" element={<NavigateProbe to="/employer/jobs" />} />
+        <Route path="/employer/jobs" element={<NavigateProbe to="/employer/applicants" />} />
+        <Route path="/employer/applicants" element={<Path />} />
       </Routes>
     </StaticUrlRouter>,
   )
@@ -102,7 +103,7 @@ describe('StaticUrlRouter route restoration', () => {
   it('push persists the route in history state', async () => {
     renderRoutes('/')
 
-    await userEvent.click(screen.getByRole('button', { name: /go employer/i }))
+    await userEvent.click(screen.getByRole('button', { name: 'Go /employer/jobs' }))
 
     expect(window.history.state.joblinkedLocation).toEqual({
       pathname: '/employer/jobs',
@@ -114,7 +115,7 @@ describe('StaticUrlRouter route restoration', () => {
   it('restoredEntry returns the persisted route', async () => {
     renderRoutes('/')
 
-    await userEvent.click(screen.getByRole('button', { name: /go employer/i }))
+    await userEvent.click(screen.getByRole('button', { name: 'Go /employer/jobs' }))
 
     expect(restoredEntry()).toBe('/employer/jobs')
   })
@@ -144,18 +145,44 @@ describe('StaticUrlRouter route restoration', () => {
 
   it('popstate restores a route after the stack is lost', async () => {
     const view = renderRoutes('/')
-    await userEvent.click(screen.getByRole('button', { name: /go employer/i }))
-    const saved = window.history.state
-    view.unmount()
+    const atRoot = window.history.state
 
-    // Fresh router, as after a reload: the in-memory stack no longer holds the
-    // entry, but the history entry still carries the route it showed.
-    renderRoutes('/')
-    act(() => {
-      window.dispatchEvent(new PopStateEvent('popstate', { state: saved }))
+    await userEvent.click(screen.getByRole('button', { name: 'Go /employer/jobs' }))
+    const atJobs = window.history.state
+    await userEvent.click(screen.getByRole('button', { name: 'Go /employer/applicants' }))
+    const atApplicants = window.history.state
+
+    // Reload at index 2 the way App.jsx seeds it: the fresh router starts on the
+    // stored route, and the entry keeps its real index.
+    view.unmount()
+    renderRoutes(restoredEntry())
+    expect(window.history.state).toEqual({
+      joblinkedEntry: 2,
+      joblinkedLocation: { pathname: '/employer/applicants', search: '', hash: '' },
     })
 
+    // The in-memory stack is gone, so each entry restores its own stored route.
+    act(() => {
+      window.dispatchEvent(new PopStateEvent('popstate', { state: atJobs }))
+    })
     expect(screen.getByText('/employer/jobs')).toBeInTheDocument()
+
+    // Index 0 of the tab's oldest entry must not be shadowed by the seed.
+    act(() => {
+      window.dispatchEvent(new PopStateEvent('popstate', { state: atRoot }))
+    })
+    expect(screen.getByText('/')).toBeInTheDocument()
+
+    // Forward again: every old entry keeps its own page.
+    act(() => {
+      window.dispatchEvent(new PopStateEvent('popstate', { state: atJobs }))
+    })
+    expect(screen.getByText('/employer/jobs')).toBeInTheDocument()
+
+    act(() => {
+      window.dispatchEvent(new PopStateEvent('popstate', { state: atApplicants }))
+    })
+    expect(screen.getByText('/employer/applicants')).toBeInTheDocument()
   })
 
   it('restoredEntry returns null without stored state', () => {
