@@ -202,12 +202,12 @@ export default function AccountSettings({ embedded = false, children, childrenBe
         ) : null
       ) : (
         <div className="grid items-start gap-6 xl:grid-cols-[1.25fr_1fr] xl:grid-rows-[auto_auto_auto]">
-          <div className="flex min-w-0 flex-col gap-6 xl:row-span-3 xl:grid xl:grid-rows-subgrid xl:items-start">
+          <div className={`flex min-w-0 flex-col gap-6 xl:row-span-3 xl:grid xl:grid-rows-subgrid xl:items-start${embedded ? ' xl:[&>*:last-child]:self-stretch' : ''}`}>
             {accountOverviewPanel()}
             {embedded ? notificationsPanel() : showPrivacy && <PrivacyPanel />}
             {aside}
           </div>
-          <div className={`flex min-w-0 flex-col gap-6 xl:row-span-3 xl:grid xl:grid-rows-subgrid xl:items-start${embedded ? ' xl:[&>*:first-child]:row-span-2' : ''}`}>
+          <div className={`flex min-w-0 flex-col gap-6 xl:row-span-3 xl:grid xl:grid-rows-subgrid xl:items-start${embedded ? ' xl:[&>*:first-child]:row-span-2' : ''}${embedded ? ' xl:[&>*:last-child]:self-stretch' : ''}`}>
             {!embedded && notificationsPanel()}
             {!childrenBelow && children}
           </div>
