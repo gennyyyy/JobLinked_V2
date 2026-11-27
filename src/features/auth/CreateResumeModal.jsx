@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import FormSelect from "@/shared/components/FormSelect";
 import useDialog from "@/shared/hooks/useDialog";
-import { FIXED_MUNICIPALITY, FIXED_PROVINCE, NATIONALITIES } from "@/shared/constants";
+import { FIXED_MUNICIPALITY, FIXED_PROVINCE, NATIONALITIES, SANTA_MARIA_BARANGAYS } from "@/shared/constants";
 import { formatPhoneDisplay, normalizePhone, withPrefix } from "@/shared/utils/phone";
 import { generateResume } from "@/shared/services/documents";
 import { EDUCATION_LEVELS } from "./jobSeekerRegistration";
@@ -159,7 +159,15 @@ function CreateResumeModal({ open, onClose, experience, setExperience, set, setE
               <Input id="resume-streetAddress" placeholder="Street address" value={form.streetAddress} onChange={(e) => set("streetAddress", e.target.value)} className={`${FIELD} w-40 text-center text-xs text-[#444440]`} />
               <span aria-hidden="true" className={DOT}>,</span>
               <Label htmlFor="resume-barangayDistrict" className="sr-only">Barangay / District</Label>
-              <Input id="resume-barangayDistrict" placeholder="Barangay" value={form.barangayDistrict} onChange={(e) => set("barangayDistrict", e.target.value)} className={`${FIELD} w-28 text-center text-xs text-[#444440]`} />
+              <div className="w-36 shrink-0">
+                <FormSelect id="resume-barangayDistrict" value={form.barangayDistrict} onChange={(e) => set("barangayDistrict", e.target.value)} className={`${FIELD} w-full pr-7 text-center text-xs text-[#444440]`}>
+                  <option value="">Select barangay</option>
+                  {form.barangayDistrict && !SANTA_MARIA_BARANGAYS.includes(form.barangayDistrict) && (
+                    <option value={form.barangayDistrict}>{form.barangayDistrict}</option>
+                  )}
+                  {SANTA_MARIA_BARANGAYS.map((b) => <option key={b} value={b}>{b}</option>)}
+                </FormSelect>
+              </div>
               <span aria-hidden="true" className={DOT}>,</span>
               <Label htmlFor="resume-cityMunicipality" className="sr-only">City / Municipality</Label>
               <Input id="resume-cityMunicipality" value={FIXED_MUNICIPALITY} disabled readOnly className={`${FIELD} w-24 text-center text-xs text-[#444440]`} />
