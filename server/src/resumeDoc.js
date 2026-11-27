@@ -1,10 +1,23 @@
 import PDFDocument from 'pdfkit';
-import { Document, Packer, Paragraph, TextRun } from 'docx';
+import { AlignmentType, BorderStyle, Document, Packer, Paragraph, TextRun } from 'docx';
 
 // One fixed layout, shared by both renderers (ADR-061). The payload is
 // validated at the route boundary; this module only formats it for display.
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June',
   'July', 'August', 'September', 'October', 'November', 'December'];
+
+// Brand tokens from src/index.css (--navy/dark-blue, --muted-foreground,
+// --border, --foreground). docx takes hex without the leading '#'.
+const DARK_BLUE = '#12325B';
+const MUTED = '#475569';
+const RULE = '#E4EAF1';
+const BODY = '#0F172A';
+const DOC = {
+  darkBlue: DARK_BLUE.slice(1),
+  muted: MUTED.slice(1),
+  rule: RULE.slice(1),
+  body: BODY.slice(1),
+};
 
 const trim = (v) => (typeof v === 'string' ? v.trim() : '');
 
@@ -48,7 +61,7 @@ function normalizeResume(resume = {}) {
       const end = formatMonth(e.endDate) || (start ? 'Present' : '');
       return {
         heading: [trim(e.jobTitle), trim(e.company)].filter(Boolean).join(' — '),
-        dates: [start, end].filter(Boolean).join('–'),
+        dates: [start, end].filter(Boolean).join(' – '),
         description: trim(e.description),
       };
     }).filter((e) => e.heading || e.dates || e.description),
@@ -68,32 +81,45 @@ export function renderResumePdf(resume) {
     doc.on('end', () => resolve(Buffer.concat(chunks)));
     doc.on('error', reject);
   });
-  const width = doc.page.width - doc.page.margins.left - doc.page.margins.right;
+  const left = doc.page.margins.left;
+  const width = doc.page.width - left - doc.page.margins.right;
 
-  doc.font('Helvetica-Bold').fontSize(18).text(m.fullName, { width });
-  for (const line of [m.contactLine, m.addressLine, m.personalLine]) {
-    if (line) doc.moveDown(0.25).font('Helvetica').fontSize(10).text(line, { width });
-  }
+  const centered = (text, { bold = false, size = 10, color = MUTED, gap = 0 } = {}) => {
+    if (gap) doc.moveDown(gap);
+    doc.font(bold ? 'Helvetica-Bold' : 'Helvetica').fontSize(size).fillColor(color)
+      .text(text, { width, align: 'center' });
+  };
+
+  centered(m.fullName, { bold: true, size: 20, color: DARK_BLUE });
+  if (m.contactLine) centered(m.contactLine, { gap: 0.6 });
+  if (m.addressLine) centered(m.addressLine, { gap: 0.2 });
+  if (m.personalLine) centered(m.personalLine, { gap: 0.2 });
 
   const section = (title, draw) => {
-    doc.moveDown(1).font('Helvetica-Bold').fontSize(12).text(title.toUpperCase(), { width });
-    doc.moveDown(0.35).font('Helvetica').fontSize(10);
+    // Keep a heading with its first lines instead of orphaning it at a page edge.
+    if (doc.y > doc.page.height - doc.page.margins.bottom - 90) doc.addPage();
+    doc.moveDown(1.4).font('Helvetica-Bold').fontSize(11).fillColor(DARK_BLUE)
+      .text(title.toUpperCase(), { width });
+    const ruleY = doc.y + 3;
+    doc.moveTo(left, ruleY).lineTo(left + width, ruleY).lineWidth(0.75).strokeColor(RULE).stroke();
+    doc.y = ruleY + 8;
+    doc.font('Helvetica').fontSize(10).fillColor(BODY);
     draw();
   };
 
   if (m.education.length) {
     section('Education', () => {
-      for (const line of m.education) doc.text(line, { width });
+      m.education.forEach((text) => doc.text(text, { width }));
     });
   }
 
   if (m.experience.length) {
     section('Experience', () => {
       m.experience.forEach((e, i) => {
-        if (i) doc.moveDown(0.5);
-        if (e.heading) doc.font('Helvetica-Bold').text(e.heading, { width });
-        if (e.dates) doc.font('Helvetica').fontSize(9).text(e.dates, { width });
-        if (e.description) doc.font('Helvetica').fontSize(10).text(e.description, { width });
+        if (i) doc.moveDown(1);
+        if (e.heading) doc.font('Helvetica-Bold').fontSize(10).fillColor(BODY).text(e.heading, { width });
+        if (e.dates) doc.moveDown(0.2).font('Helvetica').fontSize(9).fillColor(MUTED).text(e.dates, { width });
+        if (e.description) doc.moveDown(0.3).font('Helvetica').fontSize(10).fillColor(BODY).text(e.description, { width });
       });
     });
   }
@@ -106,39 +132,43 @@ export function renderResumePdf(resume) {
   return done;
 }
 
-const heading = (text) => new Paragraph({
-  spacing: { before: 240, after: 80 },
-  children: [new TextRun({ text: text.toUpperCase(), bold: true, size: 24 })],
+const paragraph = (text, { bold = false, size = 20, color = DOC.body, align = AlignmentType.LEFT, after = 40 } = {}) => new Paragraph({
+  alignment: align,
+  spacing: { after },
+  children: [new TextRun({ text, bold, size, color })],
 });
 
-const line = (text, { bold = false, size = 20 } = {}) => new Paragraph({
-  spacing: { after: 60 },
-  children: [new TextRun({ text, bold, size })],
+const heading = (text) => new Paragraph({
+  spacing: { before: 240, after: 120 },
+  border: { bottom: { style: BorderStyle.SINGLE, size: 4, color: DOC.rule } },
+  children: [new TextRun({ text: text.toUpperCase(), bold: true, size: 22, color: DOC.darkBlue })],
 });
 
 export async function renderResumeDocx(resume) {
   const m = normalizeResume(resume);
-  const children = [line(m.fullName, { bold: true, size: 36 })];
+  const children = [paragraph(m.fullName, {
+    bold: true, size: 40, color: DOC.darkBlue, align: AlignmentType.CENTER, after: 60,
+  })];
 
   for (const text of [m.contactLine, m.addressLine, m.personalLine]) {
-    if (text) children.push(line(text));
+    if (text) children.push(paragraph(text, { color: DOC.muted, align: AlignmentType.CENTER, after: 20 }));
   }
 
   if (m.education.length) {
-    children.push(heading('Education'), ...m.education.map((text) => line(text)));
+    children.push(heading('Education'), ...m.education.map((text) => paragraph(text)));
   }
 
   if (m.experience.length) {
     children.push(heading('Experience'));
     for (const e of m.experience) {
-      if (e.heading) children.push(line(e.heading, { bold: true }));
-      if (e.dates) children.push(line(e.dates, { size: 18 }));
-      if (e.description) children.push(line(e.description));
+      if (e.heading) children.push(paragraph(e.heading, { bold: true }));
+      if (e.dates) children.push(paragraph(e.dates, { size: 18, color: DOC.muted, after: 30 }));
+      if (e.description) children.push(paragraph(e.description, { after: 160 }));
     }
   }
 
   if (m.skills.length) {
-    children.push(heading('Skills'), line(m.skills.join(', ')));
+    children.push(heading('Skills'), paragraph(m.skills.join(', ')));
   }
 
   return Packer.toBuffer(new Document({ sections: [{ children }] }));
