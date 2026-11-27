@@ -392,6 +392,8 @@ describe('JobSeekerRegister Create a Resume', () => {
     const dialog = openBuilder()
     fireEvent.change(within(dialog).getByLabelText(/first name/i), { target: { value: 'Juan' } })
     fireEvent.change(within(dialog).getByRole('textbox', { name: /^skills$/i }), { target: { value: 'Welding, Data Entry' } })
+    fireEvent.click(within(dialog).getByRole('button', { name: /add experience/i }))
+    fireEvent.change(within(dialog).getByLabelText(/start date/i), { target: { value: '2020-05-15' } })
     fireEvent.click(within(dialog).getByRole('button', { name: /download pdf/i }))
 
     await waitFor(() => expect(generateResume).toHaveBeenCalledWith({
@@ -399,6 +401,7 @@ describe('JobSeekerRegister Create a Resume', () => {
       resume: expect.objectContaining({
         firstName: 'Juan',
         skills: ['Welding', 'Data Entry'],
+        experience: [expect.objectContaining({ startDate: '2020-05', endDate: '' })],
       }),
     }))
     expect(URL.createObjectURL).toHaveBeenCalledWith(file)

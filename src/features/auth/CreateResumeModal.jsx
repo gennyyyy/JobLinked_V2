@@ -53,8 +53,8 @@ function buildResume(form, education, experience) {
       .map((entry) => ({
         jobTitle: text(entry.jobTitle),
         company: text(entry.company),
-        startDate: entry.startDate || "",
-        endDate: entry.endDate || "",
+        startDate: entry.startDate ? entry.startDate.slice(0, 7) : "",
+        endDate: entry.endDate ? entry.endDate.slice(0, 7) : "",
         description: text(entry.description),
       }))
       .filter((entry) => Object.values(entry).some(Boolean)),
@@ -249,10 +249,10 @@ function CreateResumeModal({ open, onClose, experience, setExperience, set, setE
                     </div>
                     <div className="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-1">
                       <Label htmlFor={`resume-exp-${index}-startDate`} className="sr-only">Start Date</Label>
-                      <Input id={`resume-exp-${index}-startDate`} type="month" value={entry.startDate} onChange={(e) => setEntry(index, "startDate", e.target.value)} className={`${FIELD} w-32 text-xs text-[#444440]`} />
+                      <Input id={`resume-exp-${index}-startDate`} type="date" value={entry.startDate} onChange={(e) => setEntry(index, "startDate", e.target.value)} className={`${FIELD} w-32 text-xs text-[#444440]`} />
                       <span aria-hidden="true" className={DOT}>–</span>
                       <Label htmlFor={`resume-exp-${index}-endDate`} className="sr-only">End Date (blank = present)</Label>
-                      <Input id={`resume-exp-${index}-endDate`} type="month" value={entry.endDate} onChange={(e) => setEntry(index, "endDate", e.target.value)} className={`${FIELD} w-32 text-xs text-[#444440]`} />
+                      <Input id={`resume-exp-${index}-endDate`} type="date" value={entry.endDate} onChange={(e) => setEntry(index, "endDate", e.target.value)} className={`${FIELD} w-32 text-xs text-[#444440]`} />
                       <span aria-hidden="true" className="text-[11px] text-muted-foreground">blank = present</span>
                     </div>
                     <Label htmlFor={`resume-exp-${index}-description`} className="sr-only">Description</Label>
