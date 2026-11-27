@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import FormSelect from "@/shared/components/FormSelect";
 import useDialog from "@/shared/hooks/useDialog";
-import { FIXED_MUNICIPALITY, FIXED_PROVINCE, NATIONALITIES, SANTA_MARIA_BARANGAYS } from "@/shared/constants";
+import { FIXED_MUNICIPALITY, FIXED_POSTAL_CODE, FIXED_PROVINCE, NATIONALITIES, SANTA_MARIA_BARANGAYS } from "@/shared/constants";
 import { formatPhoneDisplay, normalizePhone, withPrefix } from "@/shared/utils/phone";
 import { generateResume } from "@/shared/services/documents";
 import { EDUCATION_LEVELS } from "./jobSeekerRegistration";
@@ -176,7 +176,7 @@ function CreateResumeModal({ open, onClose, experience, setExperience, set, setE
               <Input id="resume-provinceState" value={FIXED_PROVINCE} disabled readOnly className={`${FIELD} w-20 text-center text-xs text-[#444440]`} />
               <span aria-hidden="true" className={DOT}>,</span>
               <Label htmlFor="resume-postalCode" className="sr-only">Postal Code</Label>
-              <Input id="resume-postalCode" inputMode="numeric" maxLength={4} placeholder="Postal code" value={form.postalCode} onChange={(e) => set("postalCode", e.target.value)} className={`${FIELD} w-16 text-center text-xs text-[#444440]`} />
+              <Input id="resume-postalCode" inputMode="numeric" maxLength={4} disabled value={FIXED_POSTAL_CODE} className={`${FIELD} w-16 text-center text-xs text-[#444440]`} />
             </div>
 
             <div className="mt-1 flex flex-wrap items-center justify-center gap-x-1">

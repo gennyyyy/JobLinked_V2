@@ -1,6 +1,6 @@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { FIXED_MUNICIPALITY, FIXED_PROVINCE, SANTA_MARIA_BARANGAYS } from "@/shared/constants";
+import { FIXED_MUNICIPALITY, FIXED_POSTAL_CODE, FIXED_PROVINCE, SANTA_MARIA_BARANGAYS } from "@/shared/constants";
 import FormSelect from "@/shared/components/FormSelect";
 
 function JobSeekerAddressStep({ form, errors, set, inputClass, labelClass, reqMark }) {
@@ -16,8 +16,8 @@ function JobSeekerAddressStep({ form, errors, set, inputClass, labelClass, reqMa
                   </FormSelect>
                 </div>
                 <div>
-                  <Label htmlFor="postalCode" className={labelClass}>Postal Code <span className="text-muted-foreground font-normal">(optional)</span></Label>
-                  <Input id="postalCode" name="postalCode" type="text" inputMode="numeric" maxLength={4} placeholder="e.g. 3022" value={form.postalCode} onChange={(e) => set("postalCode", e.target.value)} className={inputClass} />
+                  <Label htmlFor="postalCode" className={labelClass}>Postal Code</Label>
+                  <Input id="postalCode" name="postalCode" type="text" inputMode="numeric" maxLength={4} placeholder="e.g. 3022" disabled value={FIXED_POSTAL_CODE} className={inputClass} />
                   {errors.postalCode && <p className="text-danger text-xs mt-1">{errors.postalCode}</p>}
                 </div>
                 <div>

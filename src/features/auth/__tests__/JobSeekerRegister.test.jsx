@@ -305,7 +305,6 @@ describe('JobSeekerRegister form', () => {
     renderPage()
     fillRequired()
     fireEvent.click(screen.getByRole('button', { name: /^back$/i }))
-    fireEvent.change(screen.getByLabelText(/postal/i), { target: { value: '3022' } })
     fireEvent.click(screen.getByRole('button', { name: /^next$/i }))
     await confirmCreateAccount()
 
@@ -330,15 +329,14 @@ describe('JobSeekerRegister form', () => {
     expect(parked()).toMatchObject({ role: 'job-seeker', terms_accepted: true })
   })
 
-  it('blocks a non-4-digit postal code', async () => {
+  it('locks the postal code to Santa Maria, Bulacan', () => {
     renderPage()
     fillRequired()
     fireEvent.click(screen.getByRole('button', { name: /^back$/i }))
-    fireEvent.change(screen.getByLabelText(/postal/i), { target: { value: '302' } })
-    fireEvent.click(screen.getByRole('button', { name: /^next$/i }))
 
-    await waitFor(() => expect(screen.getByText(/postal code must be 4 digits/i)).toBeInTheDocument())
-    expect(authClientMock.signUp.email).not.toHaveBeenCalled()
+    const postal = screen.getByLabelText(/postal/i)
+    expect(postal).toBeDisabled()
+    expect(postal).toHaveValue('3022')
   })
 })
 

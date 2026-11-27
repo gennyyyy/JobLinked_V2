@@ -132,6 +132,7 @@ export const BULACAN_PROVINCES = ['Bulacan'];
 // Fixed service scope: the portal serves Santa Maria, Bulacan only (ADR-062).
 export const FIXED_PROVINCE = 'Bulacan';
 export const FIXED_MUNICIPALITY = 'Santa Maria';
+export const FIXED_POSTAL_CODE = '3022';
 
 export const INDUSTRIES = [
   'Agriculture',

@@ -1,6 +1,6 @@
 import { normalizePhone, isValidPhone } from "@/shared/utils/phone";
 import { passwordError } from "@/shared/utils/password";
-import { FIXED_MUNICIPALITY, FIXED_PROVINCE } from "@/shared/constants";
+import { FIXED_MUNICIPALITY, FIXED_POSTAL_CODE, FIXED_PROVINCE } from "@/shared/constants";
 
 export const EDUCATION_LEVELS = ["Elementary", "High School", "Senior High School", "Vocational", "College", "Post-Graduate"];
 
@@ -21,7 +21,7 @@ export const EMPTY_FORM = {
   subdivisionBuilding: "",
   barangayDistrict: "",
   cityMunicipality: FIXED_MUNICIPALITY, provinceState: FIXED_PROVINCE,
-  postalCode: "",
+  postalCode: FIXED_POSTAL_CODE,
   employmentStatus: "",
   field: "",
   skills: [],
