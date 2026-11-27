@@ -8,6 +8,7 @@ import { PageSkeleton } from '@/shared/components/Skeletons'
 import PublicShell from '@/shared/components/PublicShell'
 import { CompanyMark, LinkButton, Panel, VerifiedBadge } from '@/shared/components/design'
 import { employerLogoUrl } from '@/shared/services/images'
+import { stashApplyIntent } from '@/shared/lib/applyIntent'
 import { titleCase } from '@/shared/utils/titleCase'
 
 function money(value) {
@@ -194,7 +195,7 @@ export default function PublicJobDetail() {
                 <div className="rounded-xl bg-muted p-4">
                   <p className="text-xs font-medium text-navy">Interested in this position?</p>
                   <p className="mt-1 text-xs leading-5 text-muted-foreground">Apply online through your PESO Job Seeker account.</p>
-                  <LinkButton href="/login" className="mt-4 w-full">Log in to Apply</LinkButton>
+                  <LinkButton href="/login" className="mt-4 w-full" onClick={() => stashApplyIntent(job.id)}>Log in to Apply</LinkButton>
                 </div>
               </CardContent>
             </Card>
