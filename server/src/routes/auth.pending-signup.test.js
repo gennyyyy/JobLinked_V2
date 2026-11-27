@@ -178,8 +178,9 @@ describe('provision claims the pending self-signup row', () => {
     const params = callsOf(/insert into job_seekers/)[0].params;
     expect(params[1]).toBe(`${SEEKER}@test.local`);
     expect(params.slice(2, 8)).toEqual(['ana', 'b', 'cruz', 'jr', 'ana b cruz jr', '09171234567']);
+    // ADR-062: the fixture's Cebu values are clamped to the fixed service scope.
     expect(params.slice(10, 21)).toEqual([
-      'rizal st', '12a', 'sunrise', 'poblacion', 'cebu city', 'cebu', '6000',
+      'rizal st', '12a', 'sunrise', 'poblacion', 'santa maria', 'bulacan', '6000',
       'philippines', 'Filipino', '1998-05-04', 'Employed',
     ]);
     expect(params[23]).toBeNull(); // pending rows never carry a custom-role tag
@@ -217,7 +218,7 @@ describe('provision claims the pending self-signup row', () => {
     const params = insert.params;
     expect(params.slice(2, 7)).toEqual(['ben', 'b', 'cruz', 'jr', 'ben b cruz jr']);
     expect(params[8]).toBe('acme');
-    expect(params.slice(14, 19)).toEqual(['poblacion', 'cebu city', null, null, 'philippines']);
+    expect(params.slice(14, 19)).toEqual(['poblacion', 'santa maria', 'bulacan', null, 'philippines']);
     // The two numbers land in separate columns: phone stays $8, and
     // representative_phone is its own column (index 22) before the appended
     // consent pair, so earlier parameter indices hold.

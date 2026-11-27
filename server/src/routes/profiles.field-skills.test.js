@@ -149,7 +149,7 @@ describe('PATCH /api/seekers/me field', () => {
 });
 
 describe('PATCH /api/seekers/me — surrounding behavior', () => {
-  it('leaves the lowercase behavior of the other columns alone', async () => {
+  it('orders the city, skills, and field parameters in one patch', async () => {
     const token = loginAs({ id: SEEKER, role: 'job-seeker' });
     updateReturns();
 
@@ -162,7 +162,20 @@ describe('PATCH /api/seekers/me — surrounding behavior', () => {
     expect(update.sql).toContain('city_municipality = $2');
     expect(update.sql).toContain('skills = $3');
     expect(update.sql).toContain('field = $4');
-    expect(update.params).toEqual([SEEKER, 'cebu city', ['MS Excel'], 'Information Technology']);
+    expect(update.params).toEqual([SEEKER, 'santa maria', ['MS Excel'], 'Information Technology']);
+  });
+
+  it('clamps city and province to the fixed service scope', async () => {
+    const token = loginAs({ id: SEEKER, role: 'job-seeker' });
+    updateReturns();
+
+    const res = await patchMe(token, { city_municipality: 'Cebu City', province_state: 'Cebu' });
+
+    expect(res.status).toBe(200);
+    const update = callsOf(/update job_seekers set/)[0];
+    expect(update.sql).toContain('city_municipality = $2');
+    expect(update.sql).toContain('province_state = $3');
+    expect(update.params).toEqual([SEEKER, 'santa maria', 'bulacan']);
   });
 
   it('does not read the vocabulary when the patch sends neither field nor skills', async () => {

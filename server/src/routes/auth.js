@@ -121,6 +121,10 @@ router.post('/auth/provision', tokenAuth, express.json(), ah(async (req, res) =>
     const value = p[k] ?? (k === 'country' ? 'Philippines' : null);
     person[k] = LOWERCASE_PERSON.has(k) && typeof value === 'string' ? value.trim().toLowerCase() : value;
   }
+  // Fixed service scope: Santa Maria, Bulacan only (ADR-062). Lowercase to
+  // match the LOWERCASE_PERSON convention these two keys already follow.
+  person.city_municipality = 'santa maria';
+  person.province_state = 'bulacan';
   // first/middle/last/suffix are `not null default ''` in all three role tables
   // (schema.sql). An omitted field inserted as an explicit NULL raises 23502 and
   // 500s the provision — the schema default only applies to ABSENT columns, and
