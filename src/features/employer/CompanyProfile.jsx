@@ -10,6 +10,7 @@ import ChangePassword from "../../shared/components/ChangePassword";
 import TabbedProfileLayout from "../../shared/components/TabbedProfileLayout";
 import AccountSettings, { PrivacyPanel } from "../../shared/components/AccountSettings";
 import MfaPanel from "../../shared/components/MfaPanel";
+import SessionsPanel from "../../shared/components/SessionsPanel";
 import { TabsContent } from "../../components/ui/tabs";
 import { buildFullName, nameChangeLockHelp } from "../../shared/utils/names";
 import { titleCase } from "../../shared/utils/titleCase";
@@ -503,7 +504,7 @@ function CompanyProfile() {
             </div>
         </TabsContent>
         <TabsContent value="account">
-          <AccountSettings embedded showPrivacy={false}>
+          <AccountSettings embedded showPrivacy={false} aside={<SessionsPanel />}>
             <ChangePassword embedded />
             <MfaPanel />
           </AccountSettings>

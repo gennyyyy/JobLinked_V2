@@ -1,13 +1,12 @@
 import { useState } from 'react'
 import { ShieldCheck } from 'lucide-react'
-import { Button } from '@/components/ui/button'
 import { TabsContent } from '@/components/ui/tabs'
 import useAuth from '@/shared/hooks/useAuth'
 import { updateProfile } from '@/shared/services/auth'
-import { revokeAllSessions } from '@/shared/services/account'
 import ChangePassword from '@/shared/components/ChangePassword'
 import AccountSettings, { PrivacyPanel } from '@/shared/components/AccountSettings'
 import MfaPanel from '@/shared/components/MfaPanel'
+import SessionsPanel from '@/shared/components/SessionsPanel'
 import TabbedProfileLayout from '@/shared/components/TabbedProfileLayout'
 import { Panel, TextField } from '@/shared/components/design'
 import { ROLE_LABELS } from '@/shared/constants'
@@ -29,24 +28,7 @@ export default function Profile() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [saved, setSaved] = useState(false)
-  const [revokeMessage, setRevokeMessage] = useState('')
-  const [revokeError, setRevokeError] = useState('')
-  const [revoking, setRevoking] = useState(false)
 
-
-  async function handleSignOutAll() {
-    setRevoking(true)
-    setRevokeMessage('')
-    setRevokeError('')
-    try {
-      await revokeAllSessions()
-      setRevokeMessage('Signed out of all devices.')
-    } catch (err) {
-      setRevokeError(err?.message || 'Failed to sign out all devices.')
-    } finally {
-      setRevoking(false)
-    }
-  }
 
   async function handleSubmit(event) {
     event.preventDefault()
@@ -117,16 +99,7 @@ export default function Profile() {
         <AccountSettings
           embedded
           showPrivacy={false}
-          aside={(
-            <Panel id="sessions" title="Sessions" description="Sign out every active device.">
-              <p className="text-xs text-muted-foreground">If you think your account is compromised, revoke all sessions and sign back in.</p>
-              <Button type="button" variant="outline" className="mt-3" disabled={revoking} onClick={handleSignOutAll}>
-                {revoking ? 'Signing out…' : 'Sign out all devices'}
-              </Button>
-              {revokeMessage && <p role="status" className="mt-3 text-xs text-success">{revokeMessage}</p>}
-              {revokeError && <p role="alert" className="mt-3 text-xs text-destructive">{revokeError}</p>}
-            </Panel>
-          )}
+          aside={<SessionsPanel />}
         >
           <ChangePassword embedded />
           <MfaPanel />
