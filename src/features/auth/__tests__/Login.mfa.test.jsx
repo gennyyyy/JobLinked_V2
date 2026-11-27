@@ -35,6 +35,7 @@ vi.mock('../../../shared/components/Turnstile', async () => {
 import useAuth from '../../../shared/hooks/useAuth'
 import { api } from '../../../shared/lib/api'
 import { authClientMock, resetAuthClient } from '../../../test/authClientMock'
+import { stashApplyIntent } from '../../../shared/lib/applyIntent'
 
 beforeEach(() => {
   captcha.siteKey = ''
@@ -53,6 +54,7 @@ function renderLogin() {
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/employer" element={<div>employer home</div>} />
+        <Route path="/job-seeker/jobs/42" element={<div>seeker job page</div>} />
       </Routes>
     </MemoryRouter>,
   )
@@ -137,5 +139,23 @@ describe('Login MFA', () => {
 
     await waitFor(() => expect(authClientMock.signOut).toHaveBeenCalled())
     expect(screen.getByLabelText(/email/i)).toBeInTheDocument()
+  })
+
+  it('lands a job-seeker on the job page after MFA sign-in', async () => {
+    authClientMock.signIn.email.mockResolvedValue({
+      data: { twoFactorRedirect: true, twoFactorMethods: ['totp'] },
+      error: null,
+    })
+    authClientMock.twoFactor.verifyTotp.mockResolvedValue({ data: { token: 'session' }, error: null })
+    api.get.mockResolvedValue({ id: 'u1', role: 'job-seeker' })
+    stashApplyIntent('42')
+    renderLogin()
+    await userEvent.type(screen.getByLabelText(/email/i), 'good@test.com')
+    await userEvent.type(screen.getByLabelText(/password/i), 'secret123')
+    await userEvent.click(screen.getByRole('button', { name: /sign in/i }))
+    const input = await screen.findByLabelText(/verification code/i)
+    await userEvent.type(input, '123456')
+    await userEvent.click(screen.getByRole('button', { name: /verify/i }))
+    expect(await screen.findByText('seeker job page')).toBeInTheDocument()
   })
 })

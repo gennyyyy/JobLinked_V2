@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { FieldGroup, Field, FieldLabel } from '@/components/ui/field'
 import { InputGroup, InputGroupInput, InputGroupAddon, InputGroupButton } from '@/components/ui/input-group'
 import { signIn, completeTwoFactor, signOut } from '@/shared/services/auth'
+import { takeApplyIntent } from '@/shared/lib/applyIntent'
 import { PORTALS } from '@/shared/constants'
 import useAuth from '@/shared/hooks/useAuth'
 import useCaptcha from '@/shared/hooks/useCaptcha'
@@ -39,7 +40,10 @@ function Login() {
   const portalPath = (nextRole) => PORTALS.find((p) => p.key === nextRole)?.homePath || '/'
 
   if (loading) return <LoadingScreen />
-  if (user && homePath) return <Navigate to={homePath} replace />
+  if (user && homePath) {
+    const applyPath = takeApplyIntent()
+    return <Navigate to={applyPath && signedInRole === 'job-seeker' ? applyPath : homePath} replace />
+  }
 
   async function handleSubmit(event) {
     event.preventDefault()
@@ -60,7 +64,8 @@ function Login() {
       // Seed the provider with the profile signIn already resolved so
       // ProtectedRoute sees the session on the first attempt.
       authenticate?.(loggedIn)
-      navigate(portalPath(loggedIn.role))
+      const applyPath = takeApplyIntent()
+      navigate(applyPath && loggedIn.role === 'job-seeker' ? applyPath : portalPath(loggedIn.role))
     } catch (err) {
       captcha.reset() // single-use token: the next attempt needs a fresh one
       // A verified account with no role row finishes provisioning on its own
@@ -87,7 +92,8 @@ function Login() {
       // the session user and their profile.
       const loggedIn = await completeTwoFactor(mfaCode)
       authenticate?.(loggedIn)
-      navigate(portalPath(loggedIn.role))
+      const applyPath = takeApplyIntent()
+      navigate(applyPath && loggedIn.role === 'job-seeker' ? applyPath : portalPath(loggedIn.role))
     } catch (err) {
       setMfaError(err?.message || 'Invalid code')
       setMfaCode('')

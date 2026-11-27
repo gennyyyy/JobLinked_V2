@@ -1,8 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { MemoryRouter } from 'react-router-dom'
+import { MemoryRouter, Routes, Route } from 'react-router-dom'
 import Login from '../Login'
+import { stashApplyIntent } from '../../../shared/lib/applyIntent'
 
 vi.mock('../../../shared/hooks/useAuth', () => ({
   default: vi.fn(),
@@ -135,6 +136,87 @@ describe('Login', () => {
     useAuth.mockReturnValue({ user: { id: '1', role: 'employer' } })
     renderLogin()
     expect(screen.queryByLabelText(/email/i)).not.toBeInTheDocument()
+  })
+})
+
+describe('Login apply intent (ADR-063)', () => {
+  beforeEach(() => localStorage.clear())
+
+  function renderWithRoutes() {
+    return render(
+      <MemoryRouter initialEntries={['/login']}>
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          <Route path="/job-seeker/jobs/42" element={<div>seeker job page</div>} />
+          <Route path="/job-seeker" element={<div>seeker home</div>} />
+          <Route path="/employer" element={<div>employer home</div>} />
+        </Routes>
+      </MemoryRouter>
+    )
+  }
+
+  const signsInAs = (role) => {
+    authClientMock.signIn.email.mockResolvedValue({ data: { user: { id: '1' } }, error: null })
+    authClientMock.getSession.mockResolvedValue({ data: { user: { id: '1', email: 'good@test.com' } } })
+    api.get.mockResolvedValue({ id: '1', role })
+  }
+
+  it('lands a job-seeker on the job page after sign-in', async () => {
+    useAuth.mockReturnValue({ user: null, authenticate: vi.fn() })
+    signsInAs('job-seeker')
+    stashApplyIntent('42')
+    renderWithRoutes()
+    await userEvent.type(screen.getByLabelText(/email/i), 'good@test.com')
+    await userEvent.type(screen.getByLabelText(/password/i), 'secret123')
+    await userEvent.click(screen.getByRole('button', { name: /sign in/i }))
+    expect(await screen.findByText('seeker job page')).toBeInTheDocument()
+  })
+
+  it('does not consume the intent on a failed attempt', async () => {
+    useAuth.mockReturnValue({ user: null, authenticate: vi.fn() })
+    authClientMock.signIn.email.mockResolvedValueOnce({
+      data: null,
+      error: { code: 'INVALID_EMAIL_OR_PASSWORD', message: 'Invalid email or password', status: 401 },
+    })
+    signsInAs('job-seeker')
+    stashApplyIntent('42')
+    renderWithRoutes()
+    await userEvent.type(screen.getByLabelText(/email/i), 'good@test.com')
+    await userEvent.type(screen.getByLabelText(/password/i), 'wrong')
+    await userEvent.click(screen.getByRole('button', { name: /sign in/i }))
+    expect(await screen.findByText(/invalid email or password/i)).toBeInTheDocument()
+    await userEvent.clear(screen.getByLabelText(/password/i))
+    await userEvent.type(screen.getByLabelText(/password/i), 'secret123')
+    await userEvent.click(screen.getByRole('button', { name: /sign in/i }))
+    expect(await screen.findByText('seeker job page')).toBeInTheDocument()
+  })
+
+  it('sends an employer to the portal home', async () => {
+    useAuth.mockReturnValue({ user: null, authenticate: vi.fn() })
+    signsInAs('employer')
+    stashApplyIntent('42')
+    renderWithRoutes()
+    await userEvent.type(screen.getByLabelText(/email/i), 'good@test.com')
+    await userEvent.type(screen.getByLabelText(/password/i), 'secret123')
+    await userEvent.click(screen.getByRole('button', { name: /sign in/i }))
+    expect(await screen.findByText('employer home')).toBeInTheDocument()
+  })
+
+  it('lands a seeker on portal home when no intent is stored', async () => {
+    useAuth.mockReturnValue({ user: null, authenticate: vi.fn() })
+    signsInAs('job-seeker')
+    renderWithRoutes()
+    await userEvent.type(screen.getByLabelText(/email/i), 'good@test.com')
+    await userEvent.type(screen.getByLabelText(/password/i), 'secret123')
+    await userEvent.click(screen.getByRole('button', { name: /sign in/i }))
+    expect(await screen.findByText('seeker home')).toBeInTheDocument()
+  })
+
+  it('lands an already-signed-in seeker with an intent on the job page', () => {
+    useAuth.mockReturnValue({ user: { id: '1', role: 'job-seeker' } })
+    stashApplyIntent('42')
+    renderWithRoutes()
+    expect(screen.getByText('seeker job page')).toBeInTheDocument()
   })
 })
 
