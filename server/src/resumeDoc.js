@@ -1,5 +1,5 @@
 import PDFDocument from 'pdfkit';
-import { AlignmentType, BorderStyle, Document, Packer, Paragraph, TextRun } from 'docx';
+import { BorderStyle, Document, Packer, Paragraph, TextRun } from 'docx';
 
 // One fixed layout, shared by both renderers (ADR-061). The payload is
 // validated at the route boundary; this module only formats it for display.
@@ -82,22 +82,43 @@ export function renderResumePdf(resume) {
   const left = doc.page.margins.left;
   const width = doc.page.width - left - doc.page.margins.right;
 
-  const centered = (text, { size = 10, color = MUTED, gap = 0 } = {}) => {
-    if (gap) doc.moveDown(gap);
+  // PDFKit's moveDown() counts line heights, so the shared spec's 12/16/20pt
+  // gaps are applied to doc.y directly.
+  const write = (text, { size = 10, color = BODY, tracking = 0 } = {}) => {
     doc.font('Helvetica').fontSize(size).fillColor(color)
-      .text(text, { width, align: 'center' });
+      .text(text, { width, characterSpacing: tracking });
   };
 
-  centered(m.fullName, { size: 32, color: BODY });
-  if (m.contactLine) centered(m.contactLine, { gap: 0.6 });
-  if (m.addressLine) centered(m.addressLine, { gap: 0.2 });
-  if (m.personalLine) centered(m.personalLine, { gap: 0.2 });
+  const divisions = [
+    ['NAME', m.fullName, { size: 32 }],
+    ['CONTACT', m.contactLine],
+    ['ADDRESS', m.addressLine],
+    ['PERSONAL', m.personalLine],
+  ].filter(([, value]) => value);
 
+  divisions.forEach(([text, value, options], i) => {
+    if (i) doc.y += 12;
+    write(text, { color: MUTED, tracking: 3 });
+    doc.y += 4;
+    write(value, options);
+  });
+
+  const hasSections = m.education.length || m.experience.length || m.skills.length;
+  if (hasSections) {
+    // 1px rule between the header block and the first section.
+    doc.y += 16;
+    doc.moveTo(left, doc.y).lineTo(left + width, doc.y)
+      .lineWidth(0.75).strokeColor(RULE).stroke();
+    doc.y += 16;
+  }
+
+  let firstSection = true;
   const section = (title, draw) => {
     // Keep a heading with its first lines instead of orphaning it at a page edge.
     if (doc.y > doc.page.height - doc.page.margins.bottom - 90) doc.addPage();
-    doc.moveDown(1.4).font('Helvetica').fontSize(11).fillColor(MUTED)
-      .text(title.toUpperCase(), { width, characterSpacing: 3 });
+    if (firstSection) firstSection = false;
+    else doc.y += 20;
+    write(title.toUpperCase(), { size: 11, color: MUTED, tracking: 3 });
     const ruleY = doc.y + 3;
     doc.moveTo(left, ruleY).lineTo(left + width, ruleY).lineWidth(0.75).strokeColor(RULE).stroke();
     doc.y = ruleY + 8;
@@ -114,7 +135,7 @@ export function renderResumePdf(resume) {
   if (m.experience.length) {
     section('Experience', () => {
       m.experience.forEach((e, i) => {
-        if (i) doc.moveDown(1);
+        if (i) doc.y += 12;
         if (e.heading) doc.font('Helvetica').fontSize(10).fillColor(BODY).text(e.heading, { width });
         if (e.dates) doc.moveDown(0.2).font('Helvetica').fontSize(9).fillColor(MUTED).text(e.dates, { width });
         if (e.description) doc.moveDown(0.3).font('Helvetica').fontSize(10).fillColor(BODY).text(e.description, { width });
@@ -130,44 +151,73 @@ export function renderResumePdf(resume) {
   return done;
 }
 
-const paragraph = (text, { size = 20, color = DOC.body, align = AlignmentType.LEFT, after = 40 } = {}) => new Paragraph({
-  alignment: align,
-  spacing: { after },
+const paragraph = (text, { size = 20, color = DOC.body, after = 40, before = 0, border } = {}) => new Paragraph({
+  spacing: { before, after },
+  ...(border ? { border } : {}),
   children: [new TextRun({ text, size, color })],
 });
 
-// 0.75pt rule = 6 border units (1/8 pt); 3pt tracking = 60 twips.
-const heading = (text) => new Paragraph({
-  spacing: { before: 240, after: 120 },
+// Division label: 10pt tracked uppercase, 4pt below (0.75pt rules = 6 border
+// units, 3pt tracking = 60 twips).
+const label = (text, before) => new Paragraph({
+  spacing: { before, after: 80 },
+  children: [new TextRun({ text, size: 20, color: DOC.muted, characterSpacing: 60 })],
+});
+
+const heading = (text, before = 400) => new Paragraph({
+  spacing: { before, after: 160 },
   border: { bottom: { style: BorderStyle.SINGLE, size: 6, color: DOC.rule } },
   children: [new TextRun({ text: text.toUpperCase(), size: 22, color: DOC.muted, characterSpacing: 60 })],
 });
 
 export async function renderResumeDocx(resume) {
   const m = normalizeResume(resume);
-  const children = [paragraph(m.fullName, {
-    size: 64, color: DOC.body, align: AlignmentType.CENTER, after: 60,
-  })];
+  const children = [];
+  const hasSections = m.education.length || m.experience.length || m.skills.length;
 
-  for (const text of [m.contactLine, m.addressLine, m.personalLine]) {
-    if (text) children.push(paragraph(text, { color: DOC.muted, align: AlignmentType.CENTER, after: 20 }));
-  }
+  const divisions = [
+    ['NAME', m.fullName, 64],
+    ['CONTACT', m.contactLine],
+    ['ADDRESS', m.addressLine],
+    ['PERSONAL', m.personalLine],
+  ].filter(([, value]) => value);
+
+  divisions.forEach(([text, value, size], i) => {
+    children.push(label(text, i ? 240 : 0));
+    // The last header line carries the 16pt divider before the sections.
+    const divider = hasSections && i === divisions.length - 1;
+    children.push(paragraph(value, {
+      size: size || 20,
+      after: divider ? 320 : 0,
+      border: divider
+        ? { bottom: { style: BorderStyle.SINGLE, size: 6, color: DOC.rule, space: 16 } }
+        : undefined,
+    }));
+  });
+
+  let before = 0;
+  const openSection = (title) => {
+    children.push(heading(title, before));
+    before = 400;
+  };
 
   if (m.education.length) {
-    children.push(heading('Education'), ...m.education.map((text) => paragraph(text)));
+    openSection('Education');
+    children.push(...m.education.map((text) => paragraph(text)));
   }
 
   if (m.experience.length) {
-    children.push(heading('Experience'));
+    openSection('Experience');
     for (const e of m.experience) {
-      if (e.heading) children.push(paragraph(e.heading));
-      if (e.dates) children.push(paragraph(e.dates, { size: 18, color: DOC.muted, after: 30 }));
-      if (e.description) children.push(paragraph(e.description, { after: 160 }));
+      if (e.heading) children.push(paragraph(e.heading, { after: e.dates || e.description ? 40 : 240 }));
+      if (e.dates) children.push(paragraph(e.dates, { size: 18, color: DOC.muted, after: e.description ? 30 : 240 }));
+      if (e.description) children.push(paragraph(e.description, { after: 240 }));
     }
   }
 
   if (m.skills.length) {
-    children.push(heading('Skills'), paragraph(m.skills.join(', ')));
+    openSection('Skills');
+    children.push(paragraph(m.skills.join(', ')));
   }
 
   return Packer.toBuffer(new Document({ sections: [{ children }] }));
