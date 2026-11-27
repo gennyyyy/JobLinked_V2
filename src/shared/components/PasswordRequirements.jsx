@@ -3,7 +3,7 @@ import { PASSWORD_RULES } from "@/shared/utils/password";
 
 export default function PasswordRequirements({ value = "" }) {
   return (
-    <ul aria-label="Password requirements" className="mt-2 space-y-1">
+    <ul aria-label="Password requirements" className="mt-1 space-y-1">
       {PASSWORD_RULES.map(({ id, label, test }) => {
         const met = test(value);
         return (
