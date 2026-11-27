@@ -16,7 +16,7 @@ const MAX_EXPERIENCE = 10;
 // Inline paper field: reads as resume text until hovered or focused.
 const FIELD =
   "h-9 w-auto min-w-0 rounded-none border-0 border-b border-transparent bg-transparent px-1 text-sm text-[#111111] shadow-none outline-none transition-colors hover:border-dashed hover:border-muted-foreground/40 focus:border-solid focus:border-primary focus:bg-accent focus:ring-0 focus-visible:border-primary focus-visible:ring-0 disabled:pointer-events-none disabled:bg-transparent disabled:text-muted-foreground disabled:opacity-100";
-const NAME = `${FIELD} text-center text-4xl font-normal tracking-tight text-[#111111]`;
+const NAME = `${FIELD} min-w-24 text-center text-4xl font-normal tracking-tight text-[#111111] field-sizing-content`;
 const HEADING = "border-b border-[#D9D9D9] pb-1.5 text-xs font-normal uppercase tracking-[0.3em] text-[#444440]";
 const DOT = "text-muted-foreground/60";
 
@@ -127,13 +127,13 @@ function CreateResumeModal({ open, onClose, experience, setExperience, set, setE
           <header className="pb-5 text-center">
             <div className="flex flex-wrap items-center justify-center gap-x-1">
               <Label htmlFor="resume-firstName" className="sr-only">First Name</Label>
-              <Input id="resume-firstName" placeholder="First name" value={form.firstName} onChange={(e) => set("firstName", e.target.value)} className={`${NAME} w-32`} />
+              <Input id="resume-firstName" placeholder="First name" value={form.firstName} onChange={(e) => set("firstName", e.target.value)} className={NAME} />
               <Label htmlFor="resume-middleName" className="sr-only">Middle Name</Label>
-              <Input id="resume-middleName" placeholder="Middle name" value={form.middleName} onChange={(e) => set("middleName", e.target.value)} className={`${NAME} w-28`} />
+              <Input id="resume-middleName" placeholder="Middle name" value={form.middleName} onChange={(e) => set("middleName", e.target.value)} className={NAME} />
               <Label htmlFor="resume-lastName" className="sr-only">Last Name</Label>
-              <Input id="resume-lastName" placeholder="Last name" value={form.lastName} onChange={(e) => set("lastName", e.target.value)} className={`${NAME} w-32`} />
+              <Input id="resume-lastName" placeholder="Last name" value={form.lastName} onChange={(e) => set("lastName", e.target.value)} className={NAME} />
               <Label htmlFor="resume-suffix" className="sr-only">Suffix</Label>
-              <Input id="resume-suffix" placeholder="Suffix" value={form.suffix} onChange={(e) => set("suffix", e.target.value)} className={`${NAME} w-16`} />
+              <Input id="resume-suffix" placeholder="Suffix" value={form.suffix} onChange={(e) => set("suffix", e.target.value)} className={`${NAME} min-w-16`} />
             </div>
 
             <div className="mt-1 flex flex-wrap items-center justify-center gap-x-1">
