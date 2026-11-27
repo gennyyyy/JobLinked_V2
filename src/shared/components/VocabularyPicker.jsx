@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 import FormSelect from "./FormSelect";
 import useVocabulary from "../hooks/useVocabulary";
 
-const CHIP = "inline-flex items-center rounded-full border border-border bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-secondary peer-checked:border-primary peer-checked:bg-primary peer-checked:text-primary-foreground peer-focus-visible:ring-2 peer-focus-visible:ring-ring peer-focus-visible:ring-offset-2 peer-disabled:cursor-not-allowed peer-disabled:opacity-50";
+const CHIP = "inline-flex items-center rounded-full border border-border bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-secondary peer-checked:border-primary peer-checked:bg-primary peer-checked:hover:bg-primary peer-checked:text-primary-foreground peer-focus-visible:ring-2 peer-focus-visible:ring-ring peer-focus-visible:ring-offset-2 peer-disabled:cursor-not-allowed peer-disabled:opacity-50";
 
 
 const byLower = (list) => new Map(list.map((value) => [String(value).toLowerCase(), value]));
@@ -33,13 +33,15 @@ function PickerFeedback({ helpId, helpText, loading, error, errorId, loadError, 
   );
 }
 
-// Controlled vocabulary picker fed by GET /reference/:category.
+// Controlled vocabulary picker fed by GET /reference/:category, or by a static
+// `options` list (then no request is made).
 //   multiple (skills) -> native checkbox chips in canonical order, capped at `max`
 //   single (job field) -> native <select>; "Not set" emits null, or a disabled
 //   `placeholder` when required so the empty choice cannot look like a value
 // `value` is string[] for multiple (a comma-separated string is also accepted)
 // and string|null for single. Selected values are matched case-insensitively
 // and emitted in the vocabulary's canonical casing/order.
+// `tile` opts the multiple variant into TagField's 2:1 box whose chips scroll.
 export default function VocabularyPicker({
   id,
   label,
@@ -53,16 +55,19 @@ export default function VocabularyPicker({
   placeholder = "Select an option",
   error,
   labelClassName,
+  options: staticOptions,
+  tile = false,
 }) {
   const autoId = useId();
   const fieldId = id || autoId;
   const labelId = `${fieldId}-label`;
   const helpId = `${fieldId}-help`;
   const errorId = `${fieldId}-error`;
-  const { values, loading, error: loadError, reload } = useVocabulary(category);
+  const { values, loading, error: loadError, reload } = useVocabulary(category, !staticOptions);
+  const vocabulary = staticOptions ?? values;
 
-  const canonical = byLower(values);
-  const positions = positionOf(values);
+  const canonical = byLower(vocabulary);
+  const positions = positionOf(vocabulary);
   const limit = Number.isFinite(max) ? max : null;
 
   const list = Array.isArray(value) ? value : String(value ?? "").split(",");
@@ -80,7 +85,7 @@ export default function VocabularyPicker({
     );
   }
 
-  const options = [...values];
+  const options = [...vocabulary];
   if (multiple) {
     for (const entry of selected) {
       if (!canonical.has(entry.toLowerCase())) options.push(entry);
@@ -95,7 +100,7 @@ export default function VocabularyPicker({
   const atMax = multiple && limit != null && selected.length >= limit;
   const helpText = [
     help,
-    multiple && limit != null && values.length ? `Select up to ${limit}.` : "",
+    multiple && limit != null && vocabulary.length ? `Select up to ${limit}.` : "",
   ].filter(Boolean).join(" ");
   const describedBy = [helpText ? helpId : "", error ? errorId : ""].filter(Boolean).join(" ") || undefined;
 
@@ -111,7 +116,7 @@ export default function VocabularyPicker({
   const feedback = (
     <PickerFeedback
       helpId={helpId}
-      helpText={helpText}
+      helpText={tile ? "" : helpText}
       loading={loading}
       error={error}
       errorId={errorId}
@@ -130,12 +135,18 @@ export default function VocabularyPicker({
           aria-required={required || undefined}
           aria-busy={loading || undefined}
         >
-          <p id={labelId} className={cn("mb-2 text-sm font-medium leading-none", labelClassName)}>
+          <p id={labelId} className={cn("text-sm font-medium leading-none", tile ? "mb-1" : "mb-2", labelClassName)}>
             {label}
             {required && <span aria-hidden="true" className="text-destructive"> *</span>}
           </p>
+          {tile && helpText && <p id={helpId} className="mb-2 text-xs text-muted-foreground">{helpText}</p>}
           {!loading && options.length > 0 && (
-            <div className="flex flex-wrap gap-2">
+            <div
+              className={cn(
+                "flex flex-wrap content-start gap-2",
+                tile && "aspect-[2/1] overflow-y-auto rounded-control border border-input bg-background p-3",
+              )}
+            >
               {options.map((option) => {
                 const checked = selected.some((entry) => entry.toLowerCase() === option.toLowerCase());
                 const disabled = !checked && atMax;

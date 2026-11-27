@@ -15,12 +15,6 @@ export async function revokeAllSessions() {
   clearApiCache()
 }
 
-export async function deactivateAccount() {
-  await api.post('account/deactivate', { confirm: 'DEACTIVATE' })
-  try { await authClient.signOut() } catch { /* best-effort */ }
-  clearApiCache()
-}
-
 // GET returns the contract envelope; the browser owns the file, so no server
 // Content-Disposition is needed here.
 export async function exportAccount() {

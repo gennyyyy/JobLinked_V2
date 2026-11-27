@@ -103,7 +103,7 @@ export default function Employees() {
     <>
       <PageHeading
         title="Employees Tracking"
-        description="Linked employment records, recorded milestones, and accountable updates. Separate from recruitment."
+        description="Current and past employment, added automatically when a hire is confirmed."
         action={(
           <Button variant="outline" disabled={!records.length} onClick={exportCsv}>
             <Download data-icon="inline-start" />

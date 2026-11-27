@@ -4,12 +4,10 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Panel } from './design'
 import useAuth from '../hooks/useAuth'
-import { deactivateAccount, eraseAccount } from '../services/account'
+import { eraseAccount } from '../services/account'
 
 export function DangerZonePanel({ className, contentClassName, size }) {
   const { user } = useAuth() || {}
-  const [deactivating, setDeactivating] = useState(false)
-  const [deactivateError, setDeactivateError] = useState('')
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [confirmText, setConfirmText] = useState('')
   const [erasing, setErasing] = useState(false)
@@ -17,20 +15,6 @@ export function DangerZonePanel({ className, contentClassName, size }) {
   const confirmId = useId()
   // ADR-060: erasure is a data-subject action, not a staff one (the server 403s).
   const canErase = user?.role !== 'super-admin'
-
-  async function handleDeactivate() {
-    setDeactivateError('')
-    if (!window.confirm('Deactivate your account? An administrator can reactivate it later.')) return
-    setDeactivating(true)
-    try {
-      await deactivateAccount()
-      window.location.assign('/login')
-    } catch (err) {
-      setDeactivateError(err?.message || 'Failed to deactivate account.')
-    } finally {
-      setDeactivating(false)
-    }
-  }
 
   async function handleErase(event) {
     event.preventDefault()
@@ -55,17 +39,9 @@ export function DangerZonePanel({ className, contentClassName, size }) {
   }
 
   return (
-    <Panel id="danger-zone" title="Danger zone" description="Deactivate your account. An administrator can reactivate it later." className={className} contentClassName={contentClassName} size={size} action={<ShieldCheck className="size-5 text-teal" />}>
-      <p className="text-xs text-muted-foreground">
-        Deactivating hides your account from JobLinked. An administrator can reactivate it later.
-      </p>
-      {deactivateError && <p role="alert" className="mt-3 text-xs text-destructive">{deactivateError}</p>}
-      <Button type="button" variant="destructive" disabled={deactivating} onClick={handleDeactivate} className="mt-4">
-        {deactivating ? 'Deactivating…' : 'Deactivate account'}
-      </Button>
-
+    <Panel id="danger-zone" title="Danger zone" description="Permanently delete your account and personal data." className={className} contentClassName={contentClassName} size={size} action={<ShieldCheck className="size-5 text-teal" />}>
       {canErase && (
-        <div className="mt-6 space-y-2">
+        <div className="space-y-2">
           <p className="text-sm font-semibold text-destructive">Delete account permanently</p>
           <p className="text-xs text-muted-foreground">
             This erases your personal details, documents, and login. Records PESO must retain by law stay without

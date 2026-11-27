@@ -59,7 +59,7 @@ export default function Employment() {
     <>
       <PageHeading
         title="Employment Tracking"
-        description="Linked employment records, recorded milestones, and accountable updates. Separate from recruitment."
+        description="Current and past employment, added automatically when a hire is confirmed."
       />
       <div className="my-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
         {stats.map(([label, value]) => (

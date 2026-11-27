@@ -52,6 +52,7 @@ const EMPTY_FORM = {
   lot: '', block: '', barangay: '', address: '', subdivisionBuilding: '',
   cityMunicipality: FIXED_MUNICIPALITY, provinceState: FIXED_PROVINCE, postalCode: FIXED_POSTAL_CODE,
   experience: '', skills: [], field: '',
+  preferredPosition: '', preferredLocation: '',
 }
 
 const PROFILE_TABS = [
@@ -96,6 +97,8 @@ function formFromUser(user) {
     experience: user.experience_summary || '',
     skills: Array.isArray(user.skills) ? [...user.skills] : splitList(user.skills),
     field: user.field || '',
+    preferredPosition: user.preferred_position || '',
+    preferredLocation: user.preferred_location || '',
   }
 }
 
@@ -375,6 +378,8 @@ function Profile() {
         postal_code: form.postalCode.trim() || null,
         experience_summary: form.experience.trim(),
         field: form.field || null,
+        preferred_position: form.preferredPosition.trim() || null,
+        preferred_location: form.preferredLocation.trim() || null,
         skills: skillChips,
       }
       if (hasComponents) {
@@ -679,25 +684,48 @@ function Profile() {
                 onChange={(value) => setField('field', value)}
                 help="Your main line of work. Optional — pick “Not set” to leave it blank."
               />
-              <TagField
-                label="Your Skills"
-                value={skillChips}
-                onChange={updateSkills}
-                suggestions={skillVocabulary.values}
-                max={20}
-                required
-                placeholder="Type a skill and press Enter"
-                help="Pick the skills employers should match you on."
-                error={errors.skills}
-              />
-              {skillVocabulary.loading && <p role="status" className="text-xs text-muted-foreground">Loading skills…</p>}
-              {skillVocabulary.error && (
-                <p role="alert" className="flex flex-wrap items-center gap-2 text-xs text-destructive">
-                  <span>{skillVocabulary.error}</span>
-                  <Button type="button" variant="outline" size="sm" onClick={skillVocabulary.reload}>Retry</Button>
-                </p>
-              )}
-              <TagField label="Work Experience" value={form.experience} onChange={(value) => setField('experience', value)} placeholder="Type a role or experience and press Enter" help="Add internships, volunteer work, or previous roles as separate tags." />
+              <div className="grid gap-4 md:grid-cols-2">
+                <TagField
+                  tile
+                  label="Preferred Jobs"
+                  value={form.preferredPosition}
+                  onChange={(value) => setField('preferredPosition', value)}
+                  placeholder="Type a role and press Enter"
+                  help="The roles you want to be matched with."
+                />
+                <VocabularyPicker
+                  id="profile-preferred-locations"
+                  tile
+                  label="Preferred Locations"
+                  options={SANTA_MARIA_BARANGAYS}
+                  max={SANTA_MARIA_BARANGAYS.length}
+                  value={form.preferredLocation}
+                  onChange={(values) => setField('preferredLocation', values.join(', '))}
+                  help="The places where you are willing to work."
+                />
+                <div className="flex flex-col gap-1">
+                  <TagField
+                    tile
+                    label="Your Skills"
+                    value={skillChips}
+                    onChange={updateSkills}
+                    suggestions={skillVocabulary.values}
+                    max={20}
+                    required
+                    placeholder="Type a skill and press Enter"
+                    help="Pick the skills employers should match you on."
+                    error={errors.skills}
+                  />
+                  {skillVocabulary.loading && <p role="status" className="text-xs text-muted-foreground">Loading skills…</p>}
+                  {skillVocabulary.error && (
+                    <p role="alert" className="flex flex-wrap items-center gap-2 text-xs text-destructive">
+                      <span>{skillVocabulary.error}</span>
+                      <Button type="button" variant="outline" size="sm" onClick={skillVocabulary.reload}>Retry</Button>
+                    </p>
+                  )}
+                </div>
+                <TagField tile label="Work Experience" value={form.experience} onChange={(value) => setField('experience', value)} placeholder="Type a role or experience and press Enter" help="Add internships, volunteer work, or previous roles as separate tags." />
+              </div>
               <section aria-labelledby="employment-through-joblinked" className="rounded-lg border p-4">
                 <h3 id="employment-through-joblinked" className="text-sm font-semibold text-foreground">Employment through JobLinked</h3>
                 <p className="mt-1 text-xs leading-5 text-muted-foreground">Positions confirmed through the system. Read-only.</p>

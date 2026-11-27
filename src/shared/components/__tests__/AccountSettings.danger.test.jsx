@@ -9,37 +9,23 @@ vi.mock('../../../shared/services/account', () => ({
   getPreferences: vi.fn(),
   updatePreferences: vi.fn(),
   exportAccount: vi.fn(),
-  deactivateAccount: vi.fn(),
   eraseAccount: vi.fn(),
 }))
 
 import useAuth from '../../../shared/hooks/useAuth'
-import { getPreferences, deactivateAccount, eraseAccount } from '../../../shared/services/account'
+import { getPreferences, eraseAccount } from '../../../shared/services/account'
 
 describe('AccountSettings danger zone', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     useAuth.mockReturnValue({ user: { id: 'u1', role: 'job-seeker', email: 'seeker@example.com' } })
     getPreferences.mockResolvedValue({ application_updates: true, community_announcements: true })
-    deactivateAccount.mockResolvedValue(undefined)
     eraseAccount.mockResolvedValue(undefined)
-    window.confirm = vi.fn(() => true)
     Object.defineProperty(window, 'location', {
       value: { href: 'http://localhost/', assign: vi.fn() },
       writable: true,
       configurable: true,
     })
-  })
-
-  it('deactivates account and redirects to /login', async () => {
-    render(<MemoryRouter><DangerZonePanel /></MemoryRouter>)
-
-    expect(screen.getByText('Danger zone')).toBeInTheDocument()
-
-    fireEvent.click(screen.getByRole('button', { name: /deactivate account/i }))
-
-    await waitFor(() => expect(deactivateAccount).toHaveBeenCalled())
-    expect(window.location.assign).toHaveBeenCalledWith('/login')
   })
 
   it('requires DELETE before erasing, then redirects home', async () => {
@@ -77,7 +63,7 @@ describe('AccountSettings danger zone', () => {
     useAuth.mockReturnValue({ user: { id: 'u1', role: 'super-admin' } })
     render(<MemoryRouter><DangerZonePanel /></MemoryRouter>)
 
-    expect(screen.getByRole('button', { name: /deactivate account/i })).toBeInTheDocument()
+    expect(screen.getByText('Danger zone')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /delete account permanently/i })).toBeNull()
   })
 

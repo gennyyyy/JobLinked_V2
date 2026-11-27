@@ -17,15 +17,18 @@ function load(category) {
 
 // Controlled vocabulary for one reference_data category (job_field / skill):
 //   const { values, loading, error, reload } = useVocabulary('skill')
+// Pass `false` as the second argument for a picker that supplies its own static
+// options, so it never fetches and reports an empty, settled list.
 // State is keyed by category + attempt, so a stale response from a previous
 // category or a before-retry mount is ignored instead of flashing old values.
-export function useVocabulary(category) {
+export function useVocabulary(category, enabled = true) {
   const [attempt, setAttempt] = useState(0)
   const [state, setState] = useState({ key: '', values: [], loading: true, error: '' })
   const key = `${category}#${attempt}`
   const reload = useCallback(() => setAttempt((value) => value + 1), [])
 
   useEffect(() => {
+    if (!enabled) return undefined
     let alive = true
     load(category).then(
       (values) => {
@@ -36,8 +39,9 @@ export function useVocabulary(category) {
       },
     )
     return () => { alive = false }
-  }, [category, key])
+  }, [category, key, enabled])
 
+  if (!enabled) return { values: [], loading: false, error: '', reload }
   const current = state.key === key ? state : { values: [], loading: true, error: '' }
   return { ...current, reload }
 }

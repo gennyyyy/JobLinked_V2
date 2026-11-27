@@ -42,6 +42,19 @@ describe('VocabularyPicker', () => {
     expect(getReferenceValues).toHaveBeenCalledWith('skill-render')
   })
 
+  it('renders a static options list without fetching and emits checks', async () => {
+    const onChange = vi.fn()
+    const user = userEvent.setup()
+    render(<Multi category="skill-static" options={['Alpha', 'Beta', 'Gamma']} onChange={onChange} />)
+
+    expect(screen.getAllByRole('checkbox')).toHaveLength(3)
+    expect(screen.getByRole('group', { name: 'Skills' })).toBeInTheDocument()
+    expect(getReferenceValues).not.toHaveBeenCalled()
+
+    await user.click(screen.getByRole('checkbox', { name: 'Beta' }))
+    expect(onChange).toHaveBeenLastCalledWith(['Beta'])
+  })
+
   it('adds and removes with mouse and keyboard, emitting canonical order', async () => {
     getReferenceValues.mockResolvedValue(['Welding', 'Driving'])
     const onChange = vi.fn()

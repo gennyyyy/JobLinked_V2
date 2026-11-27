@@ -128,14 +128,6 @@ export default function Dashboard() {
           { label: 'Profile complete', value: `${completion}%`, icon: UserRound, note: 'Your profile, at a glance', tone: 'teal' },
         ]}
       />
-      <div className="mb-6 flex flex-col justify-between gap-5 rounded-2xl bg-navy p-6 text-white sm:flex-row sm:items-center">
-        <div>
-          <p className="mb-2 text-micro font-medium uppercase tracking-[.14em] text-white/65">Opportunities close to home</p>
-          <h2 className="text-xl font-semibold tracking-tight text-white">Your skills belong somewhere great.</h2>
-          <p className="mt-2 max-w-lg text-xs leading-6 text-white/70">Explore verified employers across Santa Maria’s 24 barangays. Your next connection could be just around the corner.</p>
-        </div>
-        <LinkButton href="/job-seeker/jobs" variant="secondary">See my matches<ArrowRight data-icon="inline-end" /></LinkButton>
-      </div>
       <div className="portal-grid">
         <div className="flex min-w-0 flex-col gap-6">
           <Panel
@@ -237,7 +229,7 @@ export default function Dashboard() {
               {[
                 { label: 'Contact and community', done: !!user?.phone && !!user?.barangay_district },
                 { label: 'Education and skills', done: !!user?.skills?.length },
-                { label: 'Preferred role and location', done: !!user?.preferred_position && !!user?.preferred_location },
+                { label: 'Preferred jobs and location', done: !!user?.preferred_position && !!user?.preferred_location },
               ].map((item) => (
                 <li key={item.label} className="flex items-center gap-2">
                   <CheckCircle2 className={item.done ? 'size-4 text-teal' : 'size-4 text-muted-foreground'} />

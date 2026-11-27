@@ -113,12 +113,6 @@ export default function Dashboard() {
           </Panel>
         </div>
         <div className="flex min-w-0 flex-col gap-6">
-          <div className="rounded-2xl bg-navy p-6 text-white">
-            <p className="text-micro font-medium uppercase tracking-widest text-white/65">One municipality. Many possibilities.</p>
-            <h2 className="mt-4 text-xl font-semibold text-white">Every connection matters.</h2>
-            <p className="mt-3 text-xs leading-6 text-white/70">Explore opportunities across Santa Maria’s 24 barangays. All numbers represent provided records, not actual municipal statistics.</p>
-            <LinkButton href="/super-admin/reports" variant="secondary" className="mt-5">Explore barangay insights<ArrowRight data-icon="inline-end" /></LinkButton>
-          </div>
           <Panel title="Recent workspace activity" description="changes across all three roles.">
             <ol className="flex flex-col gap-5">
               {logs.length ? logs.map((log) => (

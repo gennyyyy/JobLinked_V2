@@ -32,7 +32,7 @@ export default function PreferenceMatching({ prompt, onSubmit, compact = false, 
           <p role="status" className="text-xs font-medium text-muted-foreground">{modeLabel}</p>
         )}
         <p className="rounded-lg bg-muted p-4 text-sm">
-          Tell me about your preferred role, skills, location, or work arrangement. For example: “Entry level customer service, remote.”
+          Tell me about your preferred jobs, skills, location, or work arrangement. For example: “Entry level customer service, remote.”
         </p>
         <form
           className="flex flex-col gap-4"
