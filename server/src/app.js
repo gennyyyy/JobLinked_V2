@@ -17,6 +17,7 @@ import referenceRoutes from './routes/reference.js';
 import notificationsRoutes from './routes/notifications.js';
 import accountRoutes from './routes/account.js';
 import reportsRoutes from './routes/reports.js';
+import resumesRoutes from './routes/resumes.js';
 import aiRoutes from './routes/ai.js';
 import aiMatchRoutes from './routes/aiMatch.js';
 import health from './routes/health.js';import metricsRoutes from './routes/metrics.js';
@@ -132,7 +133,7 @@ export function createApp() {
   // only (attachPrincipal reads Authorization), so nothing above needs a body.
   // /auth/provision parses its own body at the route (routes/auth.js).
   app.use(express.json({ limit: '1mb' }));
-  app.use('/api', jobsRoutes, applicationsRoutes, profilesRoutes, adminRoutes, adminUsersRoutes, adminJobsRoutes, adminReferenceRoutes, legalRoutes, referenceRoutes, notificationsRoutes, reportsRoutes, aiRoutes, aiMatchRoutes, accountRoutes);
+  app.use('/api', jobsRoutes, applicationsRoutes, profilesRoutes, adminRoutes, adminUsersRoutes, adminJobsRoutes, adminReferenceRoutes, legalRoutes, referenceRoutes, notificationsRoutes, reportsRoutes, resumesRoutes, aiRoutes, aiMatchRoutes, accountRoutes);
   app.use('/api', (_req, res) => err(res, 404, 'NOT_FOUND', 'Route not found'));
   // eslint-disable-next-line no-unused-vars
   app.use((e, _req, res, _next) => {

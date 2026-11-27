@@ -16,7 +16,8 @@ describe('ADR-030 csv-only export', () => {
     expect(reportsSrc).not.toContain('pdfkit');
     expect(reportsSrc).not.toContain("format === 'excel'");
     expect(pkg.dependencies ?? {}).not.toHaveProperty('exceljs');
-    expect(pkg.dependencies ?? {}).not.toHaveProperty('pdfkit');
+    // ADR-061 adds pdfkit for resume rendering elsewhere; ADR-030 still keeps
+    // it out of the reports router (asserted above on reportsSrc).
   });
 });
 

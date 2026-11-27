@@ -16,6 +16,7 @@
     "better-auth": "^1.7.27",
     "compression": "^1.8.2",
     "cors": "^2.8.5",
+    "docx": "^9.16.1",
     "dotenv": "^17.2.3",
     "express": "^4.21.2",
     "express-rate-limit": "^8.7.1",
@@ -23,6 +24,7 @@
     "kysely": "^0.29.9",
     "multer": "^2.0.2",
     "nodemailer": "^10.6.1",
+    "pdfkit": "^0.21.0",
     "pg": "^8.16.3"
   },
   "devDependencies": {
