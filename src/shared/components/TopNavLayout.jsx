@@ -202,22 +202,25 @@ export default function TopNavLayout({ role, navItems, profileTo, roleLabel, hom
               aria-label={title}
               aria-current={active ? 'page' : undefined}
               className={cn(
-                'flex min-h-11 items-center gap-3 rounded-lg px-3 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-navy',
+                'flex min-h-11 items-center gap-3 rounded-lg px-3 text-xs text-muted-foreground transition-all duration-300 ease-out hover:bg-muted hover:text-navy',
                 active && 'bg-blue-soft font-medium text-primary',
-                collapsed && !small && 'justify-center px-1',
+                collapsed && !small && 'justify-center gap-0 px-1',
               )}
             >
               {Icon ? <Icon className="size-[17px] shrink-0" strokeWidth={1.7} /> : null}
-              {(!collapsed || small) && (
-                <>
-                  <span className="flex-1">{title}</span>
-                  {badge > 0 && (
-                    <span className={cn('flex size-5 items-center justify-center rounded-md text-micro', path.endsWith('/accreditation') ? 'bg-warning-soft text-warning' : 'bg-primary/10 text-primary')}>
-                      {badge}
-                    </span>
-                  )}
-                </>
-              )}
+              <span
+                className={cn(
+                  'flex min-w-0 flex-1 items-center gap-3 overflow-hidden whitespace-nowrap transition-[max-width,opacity] duration-300 ease-out',
+                  collapsed && !small ? 'max-w-0 opacity-0' : 'max-w-[200px] opacity-100',
+                )}
+              >
+                <span className="flex-1 truncate">{title}</span>
+                {badge > 0 && (
+                  <span className={cn('flex size-5 shrink-0 items-center justify-center rounded-md text-micro', path.endsWith('/accreditation') ? 'bg-warning-soft text-warning' : 'bg-primary/10 text-primary')}>
+                    {badge}
+                  </span>
+                )}
+              </span>
             </NavLink>
           )
         })}

@@ -76,6 +76,28 @@ describe('Portal shell navigation', () => {
     expect(logoRow).toHaveClass('justify-center')
   })
 
+  it('keeps nav labels mounted but visually hidden when collapsed', () => {
+    renderLayout('/super-admin')
+    const collapseBtn = screen.getByRole('button', { name: /collapse sidebar/i })
+
+    // Expanded: label group is the NavLink's first span child, visible, no clip classes.
+    const overview = screen.getByRole('link', { name: 'Overview' })
+    const group = overview.querySelector('span')
+    expect(group).not.toHaveClass('max-w-0')
+    expect(group).not.toHaveClass('opacity-0')
+
+    fireEvent.click(collapseBtn)
+
+    // Collapsed: label group still mounted (nav textContent keeps 'Overview'),
+    // but clipped and faded instead of unmounted.
+    const collapsedLink = screen.getByRole('link', { name: 'Overview' })
+    expect(screen.getByRole('navigation', { name: 'PESO Admin navigation' })).toHaveTextContent('Overview')
+    const collapsedGroup = collapsedLink.querySelector('span')
+    expect(collapsedGroup).toHaveClass('max-w-0')
+    expect(collapsedGroup).toHaveClass('opacity-0')
+    expect(collapsedLink).toHaveClass('gap-0')
+  })
+
   it('fetches notifications and admin stats once, even after navigating', async () => {
     const { listNotifications } = await import('../../services/notifications')
     const { getStats } = await import('../../services/admin')
