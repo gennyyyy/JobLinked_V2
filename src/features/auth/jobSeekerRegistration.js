@@ -2,8 +2,6 @@ import { normalizePhone, isValidPhone } from "@/shared/utils/phone";
 import { passwordError } from "@/shared/utils/password";
 
 export const EDUCATION_LEVELS = ["Elementary", "High School", "Senior High School", "Vocational", "College", "Post-Graduate"];
-export const MAX_PDF_SIZE = 2 * 1024 * 1024;
-export const MAX_RESUME_SIZE = 5 * 1024 * 1024;
 
 export const EMPTY_FORM = {
   firstName: "",
@@ -27,8 +25,6 @@ export const EMPTY_FORM = {
   employmentStatus: "",
   field: "",
   skills: [],
-  resumeAttached: false,
-  resumeReviewConfirmed: false,
   agree: false,
   confirmAccurate: false,
 };
@@ -53,7 +49,6 @@ export function validate(values) {
   if (!values.confirmPassword) e.confirmPassword = "Please confirm your password";
   else if (values.password !== values.confirmPassword) e.confirmPassword = "Passwords do not match";
   if (!values.employmentStatus) e.employmentStatus = "Employment status is required";
-  if (values.resumeAttached && !values.resumeReviewConfirmed) e.resumeReviewConfirmed = "Please confirm you will review the resume autofill information";
   if (!values.agree) e.agree = "You must agree to the terms";
   if (!values.confirmAccurate) e.confirmAccurate = "Please confirm your information is true and correct";
   return e;

@@ -22,7 +22,6 @@ function fillValid() {
   fireEvent.change(screen.getByLabelText(/^password/i, { selector: 'input' }), { target: { value: 'password123!' } })
   fireEvent.change(screen.getByLabelText(/confirm password/i), { target: { value: 'password123!' } })
   fireEvent.change(screen.getByLabelText(/employment status/i), { target: { value: 'Unemployed' } })
-  fireEvent.click(screen.getByRole('checkbox', { name: /resume autofill can make mistakes/i }))
   fireEvent.click(screen.getByRole('button', { name: /^next$/i }))
   fireEvent.change(screen.getByLabelText(/street address/i), { target: { value: 'Norzagaray-Santa Maria Road' } })
   fireEvent.change(screen.getByLabelText(/barangay/i), { target: { value: 'Pulong Buhangin' } })

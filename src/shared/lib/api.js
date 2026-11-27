@@ -168,15 +168,15 @@ async function send(method, path, body) {
   return text ? JSON.parse(text) : null;
 }
 
-async function blob(path) {
+async function blob(path, init = { credentials: 'include' }) {
   const url = `${apiUrl()}/api/${path}`;
   let res;
   try {
-    res = await fetch(url, { credentials: 'include' });
+    res = await fetch(url, init);
   } catch {
     unreachable(url);
   }
-  res = await settleAuth(res, url, () => fetch(url, { credentials: 'include' }));
+  res = await settleAuth(res, url, () => fetch(url, init));
   if (!res.ok) {
     const text = await res.text().catch(() => '');
     let message = `Request failed (${res.status})`;
@@ -197,4 +197,11 @@ export const api = {
   patch: (path, body) => request('PATCH', path, body),
   del: (path, body) => request('DELETE', path, body),
   blob: (path) => blob(path),
+  // JSON body in, bytes out (resume PDF/DOCX generation).
+  postBlob: (path, body) => blob(path, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+    credentials: 'include',
+  }),
 };

@@ -16,7 +16,6 @@ function fillAllButBirthdate() {
   fireEvent.change(screen.getByLabelText(/mobile number/i), { target: { value: '9171234567' } })
   fireEvent.change(screen.getByLabelText(/^password/i, { selector: 'input' }), { target: { value: 'password123!' } })
   fireEvent.change(screen.getByLabelText(/confirm password/i), { target: { value: 'password123!' } })
-  fireEvent.click(screen.getByRole('checkbox', { name: /resume autofill can make mistakes/i }))
 }
 
 describe('scroll to first error', () => {
@@ -39,7 +38,6 @@ describe('scroll to first error', () => {
     render(<MemoryRouter><JobSeekerRegister /></MemoryRouter>)
     fireEvent.change(screen.getByLabelText(/^first name/i), { target: { value: 'Juan' } })
     fireEvent.change(screen.getByLabelText(/last name/i), { target: { value: 'Cruz' } })
-    fireEvent.click(screen.getByRole('checkbox', { name: /resume autofill can make mistakes/i }))
     fireEvent.click(screen.getByRole('button', { name: /^next$/i }))
 
     await waitFor(() => expect(screen.getByText(/birthday is required/i)).toBeInTheDocument())
@@ -72,7 +70,6 @@ describe('scroll to first error', () => {
     fireEvent.change(screen.getByLabelText(/^password/i, { selector: 'input' }), { target: { value: 'password123!' } })
     fireEvent.change(screen.getByLabelText(/confirm password/i), { target: { value: 'password123!' } })
     fireEvent.change(screen.getByLabelText(/employment status/i), { target: { value: 'Unemployed' } })
-    fireEvent.click(screen.getByRole('checkbox', { name: /resume autofill can make mistakes/i }))
     fireEvent.click(screen.getByRole('button', { name: /^next$/i }))
     fireEvent.change(screen.getByLabelText(/street address/i), { target: { value: 'Norzagaray-Santa Maria Road' } })
     fireEvent.change(screen.getByLabelText(/barangay/i), { target: { value: 'Pulong Buhangin' } })

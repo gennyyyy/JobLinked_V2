@@ -4,7 +4,7 @@ import { MemoryRouter } from 'react-router-dom'
 import JobSeekerRegister from '../JobSeekerRegister'
 
 vi.mock('../../../shared/lib/api', () => ({
-  api: { get: vi.fn(), post: vi.fn(), patch: vi.fn(), del: vi.fn(), blob: vi.fn() },
+  api: { get: vi.fn(), post: vi.fn(), patch: vi.fn(), del: vi.fn(), blob: vi.fn(), postBlob: vi.fn() },
   clearApiCache: vi.fn(),
   setApiIdentity: vi.fn(),
 }))
@@ -18,8 +18,9 @@ vi.mock('../../../shared/lib/supabase', () => ({
   supabase: { auth: { getUser: vi.fn(), updateUser: vi.fn() } },
 }))
 
-vi.mock('../../../shared/lib/resumeText', () => ({
-  extractResumeText: vi.fn(),
+// The modal's only server call: the renderer returns file bytes.
+vi.mock('@/shared/services/documents', () => ({
+  generateResume: vi.fn(),
 }))
 
 vi.mock('../../../shared/services/reference', () => ({
@@ -27,8 +28,8 @@ vi.mock('../../../shared/services/reference', () => ({
 }))
 
 import { api } from '../../../shared/lib/api'
-import { extractResumeText } from '../../../shared/lib/resumeText'
 import { getReferenceValues } from '../../../shared/services/reference'
+import { generateResume } from '@/shared/services/documents'
 import { authClientMock, resetAuthClient } from '../../../test/authClientMock'
 
 // BA returns the created user; the service then parks the form profile.
@@ -74,18 +75,6 @@ beforeEach(() => {
   ))
 })
 
-const TEXT = `Juan Dela Cruz
-Email: juan.delacruz@example.com
-Mobile: 09171234567
-Address: Norzagaray-Santa Maria Road
-City: Santa Maria
-Province: Bulacan
-Postal Code: 3022`
-
-const SKILLED = `${TEXT}
-Birthdate: 1990-05-04
-Skills: Data Entry, Communication`
-
 function renderPage() {
   return render(
     <MemoryRouter>
@@ -94,13 +83,7 @@ function renderPage() {
   )
 }
 
-function pickFile(name = 'resume.pdf', type = 'application/pdf') {
-  const input = screen.getByLabelText(/autofill from resume/i)
-  fireEvent.change(input, { target: { files: [new File(['x'], name, { type })] } })
-  return input
-}
-
-function fillRequired({ confirmResumeReview = true } = {}) {
+function fillRequired() {
   fireEvent.change(screen.getByLabelText(/^first name/i), { target: { value: 'Juan' } })
   fireEvent.change(screen.getByLabelText(/last name/i), { target: { value: 'Cruz' } })
   fireEvent.change(screen.getByLabelText(/email address/i), { target: { value: 'juan@example.com' } })
@@ -109,9 +92,6 @@ function fillRequired({ confirmResumeReview = true } = {}) {
   fireEvent.change(screen.getByLabelText(/^password/i, { selector: 'input' }), { target: { value: 'password123!' } })
   fireEvent.change(screen.getByLabelText(/confirm password/i), { target: { value: 'password123!' } })
   fireEvent.change(screen.getByLabelText(/employment status/i), { target: { value: 'Unemployed' } })
-  if (confirmResumeReview) {
-    fireEvent.click(screen.getByRole('checkbox', { name: /resume autofill can make mistakes/i }))
-  }
   fireEvent.click(screen.getByRole('button', { name: /^next$/i }))
   fireEvent.change(screen.getByLabelText(/street address/i), { target: { value: 'Norzagaray-Santa Maria Road' } })
   fireEvent.change(screen.getByLabelText(/barangay/i), { target: { value: 'Pulong Buhangin' } })
@@ -130,12 +110,12 @@ async function confirmCreateAccount() {
   fireEvent.click(screen.getByRole('button', { name: /confirm & create account/i }))
 }
 
-describe('JobSeekerRegister autofill', () => {
+describe('JobSeekerRegister form', () => {
   beforeEach(() => vi.clearAllMocks())
 
   it('shows a single full form with no mode toggle', () => {
     renderPage()
-    expect(screen.getByLabelText(/autofill from resume/i)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /create a resume/i })).toBeInTheDocument()
     expect(screen.queryByRole('group', { name: /registration method/i })).not.toBeInTheDocument()
     expect(screen.getByLabelText(/^first name/i)).toBeInTheDocument()
     expect(screen.getByText('Step 1 — Personal Details')).toBeInTheDocument()
@@ -148,94 +128,6 @@ describe('JobSeekerRegister autofill', () => {
     const list = screen.getByRole('list', { name: /password requirements/i })
     expect(list).toHaveTextContent('At least 8 characters')
     expect(list).toHaveTextContent('One symbol (e.g. ! @ # $)')
-  })
-
-  it('fills inputs from a PDF but leaves them editable', async () => {
-    extractResumeText.mockResolvedValue(TEXT)
-    renderPage()
-    pickFile()
-
-    await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent(/Autofill done — please check:/i))
-    expect(screen.getByLabelText(/^first name/i)).toHaveValue('Juan')
-    expect(screen.getByLabelText(/email address/i)).toHaveValue('juan.delacruz@example.com')
-
-    const first = screen.getByLabelText(/^first name/i)
-    fireEvent.change(first, { target: { value: 'Jose' } })
-    expect(first).toHaveValue('Jose')
-  })
-
-  it('leaves boxes untouched for unsupported formats', async () => {
-    renderPage()
-    pickFile('photo.png', 'image/png')
-
-    await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent(/couldn't read this format/i))
-    expect(extractResumeText).not.toHaveBeenCalled()
-    expect(screen.getByLabelText(/^first name/i)).toHaveValue('')
-  })
-
-  it('turns autofilled resume skills into chips', async () => {
-    extractResumeText.mockResolvedValue(SKILLED)
-    renderPage()
-    pickFile()
-
-    await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent(/Autofill done — please check:/i))
-    fireEvent.change(screen.getByLabelText(/^password/i, { selector: 'input' }), { target: { value: 'password123!' } })
-    fireEvent.change(screen.getByLabelText(/confirm password/i), { target: { value: 'password123!' } })
-    fireEvent.change(screen.getByLabelText(/employment status/i), { target: { value: 'Unemployed' } })
-    fireEvent.click(screen.getByRole('checkbox', { name: /resume autofill can make mistakes/i }))
-    fireEvent.click(screen.getByRole('button', { name: /^next$/i }))
-    fireEvent.change(screen.getByLabelText(/barangay/i), { target: { value: 'Pulong Buhangin' } })
-    fireEvent.click(screen.getByRole('button', { name: /^next$/i }))
-    expect(await screen.findByText('Data Entry')).toBeInTheDocument()
-    expect(screen.getByText('Communication')).toBeInTheDocument()
-    expect(screen.queryByText('Welding')).not.toBeInTheDocument()
-  })
-
-  it('sends a resume skill outside the vocabulary', async () => {
-    extractResumeText.mockResolvedValue(`${SKILLED}, Underwater Basket Weaving`)
-    signedUp({ id: 'seeker-1' })
-    renderPage()
-    pickFile()
-
-    fireEvent.change(screen.getByLabelText(/^first name/i), { target: { value: 'Juan' } })
-    fireEvent.change(screen.getByLabelText(/last name/i), { target: { value: 'Cruz' } })
-    fireEvent.change(screen.getByLabelText(/email address/i), { target: { value: 'juan@example.com' } })
-    fireEvent.change(screen.getByLabelText(/mobile number/i), { target: { value: '09171234567' } })
-    fireEvent.change(screen.getByLabelText(/birthday/i), { target: { value: '1990-05-04' } })
-    fireEvent.change(screen.getByLabelText(/^password/i, { selector: 'input' }), { target: { value: 'password123!' } })
-    fireEvent.change(screen.getByLabelText(/confirm password/i), { target: { value: 'password123!' } })
-    fireEvent.change(screen.getByLabelText(/employment status/i), { target: { value: 'Unemployed' } })
-    fireEvent.click(screen.getByRole('checkbox', { name: /resume autofill can make mistakes/i }))
-    fireEvent.click(screen.getByRole('button', { name: /^next$/i }))
-    fireEvent.change(screen.getByLabelText(/street address/i), { target: { value: 'Norzagaray-Santa Maria Road' } })
-    fireEvent.change(screen.getByLabelText(/barangay/i), { target: { value: 'Pulong Buhangin' } })
-    fireEvent.change(screen.getByLabelText(/city \/ municipality/i), { target: { value: 'Santa Maria' } })
-    fireEvent.change(screen.getByLabelText(/province/i), { target: { value: 'Bulacan' } })
-    fireEvent.click(screen.getByRole('button', { name: /^next$/i }))
-
-    expect(await screen.findByText('Underwater Basket Weaving')).toBeInTheDocument()
-    await screen.findByText('Data Entry')
-    expect(screen.queryByText(/Unrecognized skills/i)).not.toBeInTheDocument()
-
-    fireEvent.click(screen.getByRole('button', { name: /view terms/i }))
-    fireEvent.click(screen.getByRole('checkbox', { name: /agree to the municipal/i }))
-    fireEvent.click(screen.getByRole('checkbox', { name: /true and correct/i }))
-    await confirmCreateAccount()
-
-    await waitFor(() => expect(api.post).toHaveBeenCalled())
-    expect(parked().skills).toEqual(['Data Entry', 'Communication', 'Underwater Basket Weaving'])
-  })
-
-  it('keeps the skills already picked when autofilling', async () => {
-    extractResumeText.mockResolvedValue(SKILLED)
-    renderPage()
-
-    fireEvent.change(screen.getByLabelText(/email address/i), { target: { value: 'me@typed.com' } })
-
-    pickFile()
-    await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent(/Autofill done — please check:/i))
-
-    expect(screen.getByLabelText(/email address/i)).toHaveValue('me@typed.com')
   })
 
   it('sends the picked skills and field via signUp extra', async () => {
@@ -254,42 +146,6 @@ describe('JobSeekerRegister autofill', () => {
       field: 'Information Technology',
       skills: ['Welding'],
     })
-  })
-
-  it('prefills the education row from the resume and sends it via signUp extra', async () => {
-    extractResumeText.mockResolvedValue(`${SKILLED}\nCORNELIA M. DE JESUS MEMORIAL\nSCHOOL (GRADE 1 - 6)\nBSIT PUP SANTA MARIA (2023 - Present)`)
-    signedUp({ id: 'seeker-1' })
-    renderPage()
-    pickFile()
-
-    await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent(/Autofill done/i))
-    fireEvent.change(screen.getByLabelText(/^password/i, { selector: 'input' }), { target: { value: 'password123!' } })
-    fireEvent.change(screen.getByLabelText(/confirm password/i), { target: { value: 'password123!' } })
-    fireEvent.change(screen.getByLabelText(/employment status/i), { target: { value: 'Unemployed' } })
-    fireEvent.click(screen.getByRole('checkbox', { name: /resume autofill can make mistakes/i }))
-    fireEvent.click(screen.getByRole('button', { name: /^next$/i }))
-
-    fireEvent.change(screen.getByLabelText(/street address/i), { target: { value: 'Norzagaray-Santa Maria Road' } })
-    fireEvent.change(screen.getByLabelText(/barangay/i), { target: { value: 'Pulong Buhangin' } })
-    fireEvent.change(screen.getByLabelText(/city \/ municipality/i), { target: { value: 'Santa Maria' } })
-    fireEvent.change(screen.getByLabelText(/province/i), { target: { value: 'Bulacan' } })
-    fireEvent.click(screen.getByRole('button', { name: /^next$/i }))
-
-    await waitFor(() => expect(screen.getByLabelText(/education level/i)).toHaveValue('College'))
-    fireEvent.change(screen.getByPlaceholderText('School name'), { target: { value: 'PUP Santa Maria' } })
-    expect(screen.getByPlaceholderText('School name')).toHaveValue('PUP Santa Maria')
-    expect(screen.getByPlaceholderText('Course / field')).toHaveValue('BSIT')
-
-    fireEvent.click(screen.getByRole('button', { name: /view terms/i }))
-    fireEvent.click(screen.getByRole('checkbox', { name: /agree to the municipal/i }))
-    fireEvent.click(screen.getByRole('checkbox', { name: /true and correct/i }))
-    await confirmCreateAccount()
-
-    await waitFor(() => expect(api.post).toHaveBeenCalled())
-    expect(parked()).toMatchObject({
-      education: expect.objectContaining({ level: 'college', school: 'pup santa maria', field: 'bsit' }),
-    })
-    await waitFor(() => expect(screen.getByText(/check your email/i)).toBeInTheDocument())
   })
 
   it('labels every education field visibly', () => {
@@ -319,40 +175,21 @@ describe('JobSeekerRegister autofill', () => {
     }
   })
 
-  it('submits education placeholders via signUp extra', async () => {
-    extractResumeText.mockResolvedValue(SKILLED)
+  it('submits the education row via signUp extra', async () => {
     signedUp({ id: 'seeker-1' })
     renderPage()
-    pickFile()
-
-    await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent(/Autofill done/i))
-    fireEvent.change(screen.getByLabelText(/^password/i, { selector: 'input' }), { target: { value: 'password123!' } })
-    fireEvent.change(screen.getByLabelText(/confirm password/i), { target: { value: 'password123!' } })
-    fireEvent.change(screen.getByLabelText(/employment status/i), { target: { value: 'Unemployed' } })
-    fireEvent.click(screen.getByRole('checkbox', { name: /resume autofill can make mistakes/i }))
-    fireEvent.click(screen.getByRole('button', { name: /^next$/i }))
-
-    fireEvent.change(screen.getByLabelText(/street address/i), { target: { value: 'Norzagaray-Santa Maria Road' } })
-    fireEvent.change(screen.getByLabelText(/barangay/i), { target: { value: 'Pulong Buhangin' } })
-    fireEvent.change(screen.getByLabelText(/city \/ municipality/i), { target: { value: 'Santa Maria' } })
-    fireEvent.change(screen.getByLabelText(/province/i), { target: { value: 'Bulacan' } })
-    fireEvent.click(screen.getByRole('button', { name: /^next$/i }))
-
-    await waitFor(() => expect(screen.getByText('Data Entry')).toBeInTheDocument())
+    fillRequired()
 
     fireEvent.change(screen.getByLabelText(/education level/i), { target: { value: 'College' } })
-    fireEvent.change(screen.getByPlaceholderText('School name'), { target: { value: 'Bulacan State' } })
-    fireEvent.change(screen.getByPlaceholderText('Course / field'), { target: { value: 'IT' } })
-    fireEvent.change(screen.getByLabelText(/graduation year/i), { target: { value: '2020' } })
+    fireEvent.change(screen.getByPlaceholderText('School name'), { target: { value: 'PUP Santa Maria' } })
+    fireEvent.change(screen.getByPlaceholderText('Course / field'), { target: { value: 'BSIT' } })
+    fireEvent.change(screen.getByLabelText(/graduation year/i), { target: { value: '2023' } })
 
-    fireEvent.click(screen.getByRole('button', { name: /view terms/i }))
-    fireEvent.click(screen.getByRole('checkbox', { name: /agree to the municipal/i }))
-    fireEvent.click(screen.getByRole('checkbox', { name: /true and correct/i }))
     await confirmCreateAccount()
 
     await waitFor(() => expect(api.post).toHaveBeenCalled())
     expect(parked()).toMatchObject({
-      education: expect.objectContaining({ level: 'college', school: 'bulacan state', field: 'it', end_year: 2020 }),
+      education: expect.objectContaining({ level: 'college', school: 'pup santa maria', field: 'bsit', end_year: 2023 }),
     })
     await waitFor(() => expect(screen.getByText(/check your email/i)).toBeInTheDocument())
   })
@@ -482,7 +319,6 @@ describe('JobSeekerRegister autofill', () => {
     expect(parked()).toMatchObject({ role: 'job-seeker', terms_accepted: true })
   })
 
-
   it('blocks a non-4-digit postal code', async () => {
     renderPage()
     fillRequired()
@@ -492,6 +328,74 @@ describe('JobSeekerRegister autofill', () => {
 
     await waitFor(() => expect(screen.getByText(/postal code must be 4 digits/i)).toBeInTheDocument())
     expect(authClientMock.signUp.email).not.toHaveBeenCalled()
+  })
+})
+
+describe('JobSeekerRegister Create a Resume', () => {
+  beforeEach(() => vi.clearAllMocks())
+
+  const openBuilder = () => {
+    fireEvent.click(screen.getByRole('button', { name: /create a resume/i }))
+    return screen.getByRole('dialog', { name: /create a resume/i })
+  }
+
+  it('opens the resume builder from the button', () => {
+    renderPage()
+    expect(screen.queryByRole('dialog', { name: /create a resume/i })).not.toBeInTheDocument()
+
+    const dialog = openBuilder()
+    expect(within(dialog).getByRole('heading', { name: /create a resume/i })).toBeInTheDocument()
+  })
+
+  it('edits the registration form through the modal', () => {
+    renderPage()
+    const dialog = openBuilder()
+    fireEvent.change(within(dialog).getByLabelText(/first name/i), { target: { value: 'Juan' } })
+    fireEvent.click(within(dialog).getByRole('button', { name: /^done$/i }))
+
+    expect(screen.queryByRole('dialog', { name: /create a resume/i })).not.toBeInTheDocument()
+    expect(screen.getByLabelText(/^first name/i)).toHaveValue('Juan')
+  })
+
+  it('keeps an experience entry across steps', () => {
+    renderPage()
+    let dialog = openBuilder()
+    fireEvent.click(within(dialog).getByRole('button', { name: /add experience/i }))
+    fireEvent.change(within(dialog).getByLabelText(/job title/i), { target: { value: 'Carpenter' } })
+    fireEvent.click(within(dialog).getByRole('button', { name: /^done$/i }))
+
+    fillRequired()
+    fireEvent.click(screen.getByRole('button', { name: /^back$/i }))
+    fireEvent.click(screen.getByRole('button', { name: /^back$/i }))
+
+    dialog = openBuilder()
+    expect(within(dialog).getByLabelText(/job title/i)).toHaveValue('Carpenter')
+  })
+
+  it('downloads a PDF through the service', async () => {
+    const file = new Blob(['%PDF-'], { type: 'application/pdf' })
+    generateResume.mockResolvedValue(file)
+    URL.createObjectURL = vi.fn(() => 'blob:resume')
+    URL.revokeObjectURL = vi.fn()
+    const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
+
+    renderPage()
+    const dialog = openBuilder()
+    fireEvent.change(within(dialog).getByLabelText(/first name/i), { target: { value: 'Juan' } })
+    fireEvent.change(within(dialog).getByRole('textbox', { name: /^skills$/i }), { target: { value: 'Welding, Data Entry' } })
+    fireEvent.click(within(dialog).getByRole('button', { name: /download pdf/i }))
+
+    await waitFor(() => expect(generateResume).toHaveBeenCalledWith({
+      format: 'pdf',
+      resume: expect.objectContaining({
+        firstName: 'Juan',
+        skills: ['Welding', 'Data Entry'],
+      }),
+    }))
+    expect(URL.createObjectURL).toHaveBeenCalledWith(file)
+    expect(click).toHaveBeenCalled()
+
+    click.mockRestore()
   })
 })
 
@@ -550,71 +454,6 @@ describe('JobSeekerRegister captcha', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Create Account' }))
     expect(await screen.findByText('Please complete the verification challenge.')).toBeInTheDocument()
     expect(authClientMock.signUp.email).toHaveBeenCalledTimes(1)
-  })
-})
-
-describe('JobSeekerRegister resume autofill', () => {
-  beforeEach(() => vi.clearAllMocks())
-
-  it('uses built-in extraction and asks the user to review the results', async () => {
-    extractResumeText.mockResolvedValue(TEXT)
-    const fetchMock = vi.fn()
-    vi.stubGlobal('fetch', fetchMock)
-    renderPage()
-    expect(screen.getByRole('checkbox', { name: /resume autofill can make mistakes/i })).toBeInTheDocument()
-    pickFile()
-    await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent(/Autofill done — please check:/i))
-    expect(fetchMock).not.toHaveBeenCalled()
-    vi.unstubAllGlobals()
-  })
-})
-
-describe('JobSeekerRegister resume review acknowledgement', () => {
-  it('is optional, unmarked, and does not block Next when no resume was read', async () => {
-    renderPage()
-    const box = screen.getByRole('checkbox', { name: /resume autofill can make mistakes/i })
-    expect(box).not.toBeRequired()
-    expect(box.closest('label').textContent).not.toContain('*')
-
-    fillRequired({ confirmResumeReview: false })
-    expect(await screen.findByText('Step 3 — Background & Consent')).toBeInTheDocument()
-    expect(screen.queryByText(/please confirm you will review the resume autofill information/i)).not.toBeInTheDocument()
-    expect(authClientMock.signUp.email).not.toHaveBeenCalled()
-  })
-
-  it('becomes required and marked with * after a resume is read', async () => {
-    extractResumeText.mockResolvedValue(TEXT)
-    renderPage()
-    const box = () => screen.getByRole('checkbox', { name: /resume autofill can make mistakes/i })
-    expect(box()).not.toBeRequired()
-    expect(box().closest('label').textContent).not.toContain('*')
-
-    pickFile()
-    await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent(/Autofill done — please check:/i))
-
-    expect(box()).toBeRequired()
-    expect(box().closest('label').textContent).toContain('*')
-  })
-
-  it('requires confirmation to review resume autofill information', async () => {
-    extractResumeText.mockResolvedValue(TEXT)
-    renderPage()
-    pickFile()
-    await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent(/Autofill done — please check:/i))
-
-    fireEvent.change(screen.getByLabelText(/birthday/i), { target: { value: '1990-05-04' } })
-    fireEvent.change(screen.getByLabelText(/^password/i, { selector: 'input' }), { target: { value: 'password123!' } })
-    fireEvent.change(screen.getByLabelText(/confirm password/i), { target: { value: 'password123!' } })
-    fireEvent.change(screen.getByLabelText(/employment status/i), { target: { value: 'Unemployed' } })
-    fireEvent.click(screen.getByRole('button', { name: /^next$/i }))
-
-    expect(await screen.findByText(/please confirm you will review the resume autofill information/i)).toBeInTheDocument()
-    expect(screen.getByText('Step 1 — Personal Details')).toBeInTheDocument()
-    expect(authClientMock.signUp.email).not.toHaveBeenCalled()
-
-    fireEvent.click(screen.getByRole('checkbox', { name: /resume autofill can make mistakes/i }))
-    fireEvent.click(screen.getByRole('button', { name: /^next$/i }))
-    expect(await screen.findByText('Step 2 — Address Information')).toBeInTheDocument()
   })
 })
 

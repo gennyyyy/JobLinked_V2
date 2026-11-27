@@ -5,36 +5,28 @@ import { Eye, EyeOff } from "lucide-react";
 import { EMPLOYMENT_STATUSES, NATIONALITIES } from "@/shared/constants";
 import { formatPhoneDisplay, normalizePhone, withPrefix } from "@/shared/utils/phone";
 import { PASSWORD_HINT } from "@/shared/utils/password";
-import ResumePicker from "@/shared/components/ResumePicker";
 import FormSelect from "@/shared/components/FormSelect";
 import PasswordRequirements from "@/shared/components/PasswordRequirements";
 
-function JobSeekerPersonalStep({ form, errors, set, autofillStatus, autofillTouched = [], handleResumeChange, inputClass, labelClass, reqMark }) {
+function JobSeekerPersonalStep({ form, errors, set, onOpenResumeBuilder, inputClass, labelClass, reqMark }) {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   return (
             <section className="surface p-5">
               <p className="font-mono text-xs tracking-[0.2em] text-primary uppercase mb-4 font-semibold">Step 1 — Personal Details</p>
               <div className="space-y-4">
-            <ResumePicker
-              id="resumeAutofill"
-              label="Autofill from resume (PDF or DOCX only)"
-              labelClassName={labelClass}
-              accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-              onChange={handleResumeChange}
-              help="PDF up to 2 MB or DOCX up to 5 MB. We'll fill in details below; review and edit them before continuing."
-              status={autofillStatus}
-              statusProps={{ "data-autofill-touched": autofillTouched.join(",") }}
-              reviewAcknowledgement={{
-                id: "resumeReviewConfirmed",
-                required: !!form.resumeAttached,
-                checked: form.resumeReviewConfirmed,
-                onChange: (checked) => set("resumeReviewConfirmed", checked),
-                error: errors.resumeReviewConfirmed,
-                label: "I understand resume autofill can make mistakes and will review and correct the extracted information before continuing.",
-              }}
-            >
-            </ResumePicker>
+              <div className="rounded-xl border border-border bg-muted/40 p-4">
+                <button
+                  type="button"
+                  onClick={onOpenResumeBuilder}
+                  className="min-h-[44px] rounded-xl bg-primary px-5 text-sm font-semibold text-white shadow-md transition-all hover:bg-primary-hover active:scale-[0.98]"
+                >
+                  Create a Resume
+                </button>
+                <p className="mt-2 text-xs text-muted-foreground">
+                  Fill your details as a resume — we'll apply them to this form. Download it as PDF or DOCX anytime.
+                </p>
+              </div>
 
             <div className="grid gap-4 sm:grid-cols-2">
               <div data-invalid={!!errors.firstName}>

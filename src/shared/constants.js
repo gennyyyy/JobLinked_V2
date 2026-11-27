@@ -129,6 +129,10 @@ export const BULACAN_MUNICIPALITIES = [
 // PESO service scope: this portal only serves Bulacan.
 export const BULACAN_PROVINCES = ['Bulacan'];
 
+// Fixed service scope: the portal serves Santa Maria, Bulacan only (ADR-062).
+export const FIXED_PROVINCE = 'Bulacan';
+export const FIXED_MUNICIPALITY = 'Santa Maria';
+
 export const INDUSTRIES = [
   'Agriculture',
   'Banking & Finance',

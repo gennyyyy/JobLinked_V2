@@ -82,6 +82,12 @@ export async function createPetition({ docType, reason, accreditationId }) {
   return api.post('petitions', { doc_type: docType, reason, accreditation_id: accreditationId });
 }
 
+// Registration's Create a Resume builder: the server renders the bytes and
+// the browser names the file (cross-origin response headers are not exposed).
+export async function generateResume(payload) {
+  return api.postBlob('resumes/generate', payload);
+}
+
 export async function listCompanyPetitions(companyId) {
   return api.get(`petitions/company/${companyId}`);
 }

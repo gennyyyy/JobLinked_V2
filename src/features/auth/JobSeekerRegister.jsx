@@ -12,7 +12,7 @@ import JobSeekerRegisterSuccess from "./JobSeekerRegisterSuccess";
 import JobSeekerPersonalStep from "./JobSeekerPersonalStep";
 import JobSeekerAddressStep from "./JobSeekerAddressStep";
 import JobSeekerBackgroundStep from "./JobSeekerBackgroundStep";
-import { useResumeAutofill } from "./useResumeAutofill";
+import CreateResumeModal from "./CreateResumeModal";
 import {
   EMPTY_FORM,
   validate,
@@ -22,7 +22,7 @@ import {
 
 const TOTAL_STEPS = 3;
 const STEP_FIELDS = [
-  ["firstName", "lastName", "email", "mobileNumber", "birthdate", "nationality", "employmentStatus", "password", "confirmPassword", "resumeReviewConfirmed"],
+  ["firstName", "lastName", "email", "mobileNumber", "birthdate", "nationality", "employmentStatus", "password", "confirmPassword"],
   ["streetAddress", "barangayDistrict", "cityMunicipality", "provinceState", "postalCode"],
   ["agree", "confirmAccurate"],
 ];
@@ -32,7 +32,9 @@ function JobSeekerRegister() {
   const [errors, setErrors] = useState({});
   const [form, setForm] = useState(EMPTY_FORM);
   const [education, setEducation] = useState({ level: "", school: "", field: "", year: "", studying: false });
-  const { autofillStatus, touched, handleResumeChange } = useResumeAutofill({ form, setForm, setEducation });
+  // Experience lives only in the generated document; it is not part of signup.
+  const [experience, setExperience] = useState([]);
+  const [resumeBuilderOpen, setResumeBuilderOpen] = useState(false);
   const [eduError, setEduError] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const [needsConfirmation, setNeedsConfirmation] = useState(false);
@@ -179,9 +181,7 @@ function JobSeekerRegister() {
                 form={form}
                 errors={errors}
                 set={set}
-                autofillStatus={autofillStatus}
-                autofillTouched={touched}
-                handleResumeChange={handleResumeChange}
+                onOpenResumeBuilder={() => setResumeBuilderOpen(true)}
                 inputClass={inputClass}
                 labelClass={labelClass}
                 reqMark={reqMark}
@@ -254,6 +254,16 @@ function JobSeekerRegister() {
         onClose={() => setTermsOpen(false)}
         onRead={() => setTermsRead(true)}
         onAccept={() => set("agree", true)}
+      />
+      <CreateResumeModal
+        open={resumeBuilderOpen}
+        onClose={() => setResumeBuilderOpen(false)}
+        experience={experience}
+        setExperience={setExperience}
+        set={set}
+        setEducation={setEducation}
+        form={form}
+        education={education}
       />
       <RegistrationConfirmModal
         open={confirmOpen}
