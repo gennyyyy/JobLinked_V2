@@ -26,7 +26,7 @@ export const authClientMock = {
   sendVerificationEmail: vi.fn(),
   changePassword: vi.fn(),
   changeEmail: vi.fn(),
-  twoFactor: { enable: vi.fn(), disable: vi.fn(), verifyTotp: vi.fn() },
+  twoFactor: { enable: vi.fn(), disable: vi.fn(), verifyTotp: vi.fn(), verifyBackupCode: vi.fn() },
 };
 
 /** Move the session the way the BA client would after a transition. */
@@ -54,6 +54,7 @@ export function resetAuthClient() {
   authClientMock.twoFactor.enable.mockReset();
   authClientMock.twoFactor.disable.mockReset();
   authClientMock.twoFactor.verifyTotp.mockReset();
+  authClientMock.twoFactor.verifyBackupCode.mockReset();
   authClientMock.getSession.mockResolvedValue(SIGNED_OUT);
   authClientMock.signOut.mockResolvedValue({ data: null, error: null });
   authClientMock.requestPasswordReset.mockResolvedValue({ data: { status: true }, error: null });
@@ -65,4 +66,5 @@ export function resetAuthClient() {
   authClientMock.twoFactor.enable.mockResolvedValue({ data: { method: 'totp' }, error: null });
   authClientMock.twoFactor.disable.mockResolvedValue({ data: { status: true }, error: null });
   authClientMock.twoFactor.verifyTotp.mockResolvedValue({ data: { status: true }, error: null });
+  authClientMock.twoFactor.verifyBackupCode.mockResolvedValue({ data: { status: true }, error: null });
 }

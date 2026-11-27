@@ -172,6 +172,20 @@ export async function completeTwoFactor(code) {
   return profileFor(user);
 }
 
+// Backup-code variant of the login challenge: same contract, different BA endpoint.
+export async function completeTwoFactorBackupCode(code) {
+  let result;
+  try {
+    result = await authClient.twoFactor.verifyBackupCode({ code });
+  } catch (error) {
+    throw friendlyAuthError(error);
+  }
+  if (result.error) throw friendlyAuthError(result.error);
+  const user = (await sessionUser()) || result.data?.user;
+  if (!user) throw new Error('We couldn\u2019t finish signing you in. Please try again.');
+  return profileFor(user);
+}
+
 const ALLOWED_SIGNUP_ROLES = ['job-seeker', 'employer'];
 
 export async function signUp({ email, password, role, firstName, middleName = '', lastName, suffix = '', captchaToken, termsAccepted = false, extra = {} }) {

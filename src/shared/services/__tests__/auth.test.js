@@ -15,7 +15,7 @@ import { api, clearApiCache, setApiIdentity } from '../../../shared/lib/api'
 import { authClientMock, resetAuthClient } from '../../../test/authClientMock'
 import {
   signIn, signUp, signOut, getProfile, changePassword, changeEmail, resetPassword,
-  resetPasswordWithToken, verifyEmailToken, completeTwoFactor, updateProfile,
+  resetPasswordWithToken, verifyEmailToken, completeTwoFactor, completeTwoFactorBackupCode, updateProfile,
   listMfaFactors, enrollMfa, verifyMfaEnrollment, unenrollMfa, resendVerificationEmail,
 } from '../auth'
 
@@ -199,6 +199,28 @@ describe('completeTwoFactor', () => {
     })
 
     await expect(completeTwoFactor('000000')).rejects.toThrow('Invalid code. Please try again.')
+  })
+})
+
+describe('completeTwoFactorBackupCode', () => {
+  it('verifies the backup code then resolves the session profile', async () => {
+    authClientMock.twoFactor.verifyBackupCode.mockResolvedValue({ data: { token: 'x' }, error: null })
+    signedIn({ id: 'u1', email: 'test@test.com' })
+    authClientMock.getSession.mockResolvedValue({ data: { user: { id: 'u1', email: 'test@test.com' } } })
+    api.get.mockResolvedValue(profile)
+
+    await expect(completeTwoFactorBackupCode('abcd1234efgh')).resolves.toMatchObject({ id: 'u1', role: 'job-seeker' })
+    expect(authClientMock.twoFactor.verifyBackupCode).toHaveBeenCalledWith({ code: 'abcd1234efgh' })
+    expect(setApiIdentity).toHaveBeenCalledWith('u1')
+  })
+
+  it('maps an invalid backup code to the shared invalid-code message', async () => {
+    authClientMock.twoFactor.verifyBackupCode.mockResolvedValue({
+      data: null,
+      error: { code: 'INVALID_BACKUP_CODE', message: 'Invalid backup code', status: 401 },
+    })
+
+    await expect(completeTwoFactorBackupCode('wrong-code')).rejects.toThrow('Invalid code. Please try again.')
   })
 })
 
