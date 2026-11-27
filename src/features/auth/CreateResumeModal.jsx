@@ -16,8 +16,9 @@ const MAX_EXPERIENCE = 10;
 // Inline paper field: reads as resume text until hovered or focused.
 const FIELD =
   "h-9 w-auto min-w-0 rounded-none border-0 border-b border-transparent bg-transparent px-1 text-sm text-[#111111] shadow-none outline-none transition-colors hover:border-dashed hover:border-muted-foreground/40 focus:border-solid focus:border-primary focus:bg-accent focus:ring-0 focus-visible:border-primary focus-visible:ring-0 disabled:pointer-events-none disabled:bg-transparent disabled:text-muted-foreground disabled:opacity-100";
-const NAME = `${FIELD} min-w-24 text-center text-4xl font-normal tracking-tight text-[#111111] field-sizing-content`;
-const HEADING = "border-b border-[#D9D9D9] pb-1.5 text-xs font-normal uppercase tracking-[0.3em] text-[#444440]";
+const NAME = `${FIELD} min-w-24 text-4xl font-normal tracking-tight text-[#111111] field-sizing-content`;
+const DIVISION = "text-xs font-normal uppercase tracking-[0.3em] text-[#444440]";
+const HEADING = `${DIVISION} border-b border-[#D9D9D9] pb-1.5`;
 const DOT = "text-muted-foreground/60";
 
 const text = (value) => String(value ?? "").trim();
@@ -123,9 +124,10 @@ function CreateResumeModal({ open, onClose, experience, setExperience, set, setE
         </p>
 
         <div className="min-h-0 flex-1 overflow-y-auto pr-1">
-          {/* The paper page: name, then contact / address / personal lines. */}
-          <header className="pb-5 text-center">
-            <div className="flex flex-wrap items-center justify-center gap-x-1">
+          {/* The paper page: left-aligned, labeled name / contact / address / personal divisions. */}
+          <header>
+            <p className={`${DIVISION} mb-1`}>Name</p>
+            <div className="flex flex-wrap items-center gap-x-1">
               <Label htmlFor="resume-firstName" className="sr-only">First Name</Label>
               <Input id="resume-firstName" placeholder="First name" value={form.firstName} onChange={(e) => set("firstName", e.target.value)} className={NAME} />
               <Label htmlFor="resume-middleName" className="sr-only">Middle Name</Label>
@@ -136,9 +138,10 @@ function CreateResumeModal({ open, onClose, experience, setExperience, set, setE
               <Input id="resume-suffix" placeholder="Suffix" value={form.suffix} onChange={(e) => set("suffix", e.target.value)} className={`${NAME} min-w-16`} />
             </div>
 
-            <div className="mt-1 flex flex-wrap items-center justify-center gap-x-1">
+            <p className={`${DIVISION} mb-1 mt-3`}>Contact</p>
+            <div className="flex flex-wrap items-center gap-x-1">
               <Label htmlFor="resume-email" className="sr-only">Email Address</Label>
-              <Input id="resume-email" type="email" placeholder="Email address" value={form.email} onChange={(e) => set("email", e.target.value)} className={`${FIELD} w-52 text-center text-xs text-[#444440]`} />
+              <Input id="resume-email" type="email" placeholder="Email address" value={form.email} onChange={(e) => set("email", e.target.value)} className={`${FIELD} w-52 text-xs text-[#444440]`} />
               <span aria-hidden="true" className={DOT}>·</span>
               <Label htmlFor="resume-mobileNumber" className="sr-only">Mobile Number</Label>
               <span aria-hidden="true" className="select-none text-xs text-muted-foreground">+63</span>
@@ -150,17 +153,18 @@ function CreateResumeModal({ open, onClose, experience, setExperience, set, setE
                 value={formatPhoneDisplay(form.mobileNumber)}
                 onChange={(e) => set("mobileNumber", withPrefix(e.target.value))}
                 onBlur={() => set("mobileNumber", normalizePhone(form.mobileNumber))}
-                className={`${FIELD} w-28 text-center text-xs text-[#444440]`}
+                className={`${FIELD} w-28 text-xs text-[#444440]`}
               />
             </div>
 
-            <div className="mt-1 flex flex-wrap items-center justify-center gap-x-0.5 text-xs">
+            <p className={`${DIVISION} mb-1 mt-3`}>Address</p>
+            <div className="flex flex-wrap items-center gap-x-0.5 text-xs">
               <Label htmlFor="resume-streetAddress" className="sr-only">Street Address</Label>
-              <Input id="resume-streetAddress" placeholder="Street address" value={form.streetAddress} onChange={(e) => set("streetAddress", e.target.value)} className={`${FIELD} w-40 text-center text-xs text-[#444440]`} />
+              <Input id="resume-streetAddress" placeholder="Street address" value={form.streetAddress} onChange={(e) => set("streetAddress", e.target.value)} className={`${FIELD} w-40 text-xs text-[#444440]`} />
               <span aria-hidden="true" className={DOT}>,</span>
               <Label htmlFor="resume-barangayDistrict" className="sr-only">Barangay / District</Label>
               <div className="w-36 shrink-0">
-                <FormSelect id="resume-barangayDistrict" value={form.barangayDistrict} onChange={(e) => set("barangayDistrict", e.target.value)} className={`${FIELD} w-full pr-7 text-center text-xs text-[#444440]`}>
+                <FormSelect id="resume-barangayDistrict" value={form.barangayDistrict} onChange={(e) => set("barangayDistrict", e.target.value)} className={`${FIELD} w-full pr-7 text-xs text-[#444440]`}>
                   <option value="">Select barangay</option>
                   {form.barangayDistrict && !SANTA_MARIA_BARANGAYS.includes(form.barangayDistrict) && (
                     <option value={form.barangayDistrict}>{form.barangayDistrict}</option>
@@ -170,27 +174,30 @@ function CreateResumeModal({ open, onClose, experience, setExperience, set, setE
               </div>
               <span aria-hidden="true" className={DOT}>,</span>
               <Label htmlFor="resume-cityMunicipality" className="sr-only">City / Municipality</Label>
-              <Input id="resume-cityMunicipality" value={FIXED_MUNICIPALITY} disabled readOnly className={`${FIELD} w-24 text-center text-xs text-[#444440]`} />
+              <Input id="resume-cityMunicipality" value={FIXED_MUNICIPALITY} disabled readOnly className={`${FIELD} w-24 text-xs text-[#444440]`} />
               <span aria-hidden="true" className={DOT}>,</span>
               <Label htmlFor="resume-provinceState" className="sr-only">Province / State</Label>
-              <Input id="resume-provinceState" value={FIXED_PROVINCE} disabled readOnly className={`${FIELD} w-20 text-center text-xs text-[#444440]`} />
+              <Input id="resume-provinceState" value={FIXED_PROVINCE} disabled readOnly className={`${FIELD} w-20 text-xs text-[#444440]`} />
               <span aria-hidden="true" className={DOT}>,</span>
               <Label htmlFor="resume-postalCode" className="sr-only">Postal Code</Label>
-              <Input id="resume-postalCode" inputMode="numeric" maxLength={4} disabled value={FIXED_POSTAL_CODE} className={`${FIELD} w-16 text-center text-xs text-[#444440]`} />
+              <Input id="resume-postalCode" inputMode="numeric" maxLength={4} disabled value={FIXED_POSTAL_CODE} className={`${FIELD} w-16 text-xs text-[#444440]`} />
             </div>
 
-            <div className="mt-1 flex flex-wrap items-center justify-center gap-x-1">
+            <p className={`${DIVISION} mb-1 mt-3`}>Personal</p>
+            <div className="flex flex-wrap items-center gap-x-1">
               <Label htmlFor="resume-birthdate" className="sr-only">Birthday</Label>
-              <Input id="resume-birthdate" type="date" max={new Date().toISOString().slice(0, 10)} value={form.birthdate} onChange={(e) => set("birthdate", e.target.value)} className={`${FIELD} w-36 text-center text-xs text-[#444440]`} />
+              <Input id="resume-birthdate" type="date" max={new Date().toISOString().slice(0, 10)} value={form.birthdate} onChange={(e) => set("birthdate", e.target.value)} className={`${FIELD} w-36 text-xs text-[#444440]`} />
               <span aria-hidden="true" className={DOT}>·</span>
               <Label htmlFor="resume-nationality" className="sr-only">Nationality</Label>
               <div className="w-28 shrink-0">
-                <FormSelect id="resume-nationality" value={form.nationality} onChange={(e) => set("nationality", e.target.value)} className={`${FIELD} w-full pr-7 text-center text-xs text-[#444440]`}>
+                <FormSelect id="resume-nationality" value={form.nationality} onChange={(e) => set("nationality", e.target.value)} className={`${FIELD} w-full pr-7 text-xs text-[#444440]`}>
                   {NATIONALITIES.map((n) => <option key={n} value={n}>{n}</option>)}
                 </FormSelect>
               </div>
             </div>
           </header>
+
+          <hr className="my-4 border-t border-[#D9D9D9]" />
 
           <div className="space-y-5">
             <section aria-labelledby="create-resume-education">
