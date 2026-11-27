@@ -95,8 +95,6 @@ function fillRequired() {
   fireEvent.click(screen.getByRole('button', { name: /^next$/i }))
   fireEvent.change(screen.getByLabelText(/street address/i), { target: { value: 'Norzagaray-Santa Maria Road' } })
   fireEvent.change(screen.getByLabelText(/barangay/i), { target: { value: 'Pulong Buhangin' } })
-  fireEvent.change(screen.getByLabelText(/city \/ municipality/i), { target: { value: 'Santa Maria' } })
-  fireEvent.change(screen.getByLabelText(/province/i), { target: { value: 'Bulacan' } })
   fireEvent.click(screen.getByRole('button', { name: /^next$/i }))
   fireEvent.click(screen.getByRole('button', { name: /view terms/i }))
   fireEvent.click(screen.getByRole('checkbox', { name: /agree to the municipal/i }))
@@ -128,6 +126,19 @@ describe('JobSeekerRegister form', () => {
     const list = screen.getByRole('list', { name: /password requirements/i })
     expect(list).toHaveTextContent('At least 8 characters')
     expect(list).toHaveTextContent('One symbol (e.g. ! @ # $)')
+  })
+
+  it('locks province and city to Bulacan / Santa Maria', () => {
+    renderPage()
+    fillRequired()
+    fireEvent.click(screen.getByRole('button', { name: /^back$/i }))
+
+    const province = screen.getByLabelText(/province/i)
+    const city = screen.getByLabelText(/city \/ municipality/i)
+    expect(province).toBeDisabled()
+    expect(city).toBeDisabled()
+    expect(province).toHaveValue('Bulacan')
+    expect(city).toHaveValue('Santa Maria')
   })
 
   it('sends the picked skills and field via signUp extra', async () => {

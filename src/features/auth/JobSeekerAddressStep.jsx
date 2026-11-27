@@ -1,6 +1,6 @@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { BULACAN_MUNICIPALITIES, SANTA_MARIA_BARANGAYS } from "@/shared/constants";
+import { FIXED_MUNICIPALITY, FIXED_PROVINCE, SANTA_MARIA_BARANGAYS } from "@/shared/constants";
 import FormSelect from "@/shared/components/FormSelect";
 
 function JobSeekerAddressStep({ form, errors, set, inputClass, labelClass, reqMark }) {
@@ -11,11 +11,9 @@ function JobSeekerAddressStep({ form, errors, set, inputClass, labelClass, reqMa
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <div>
                   <Label htmlFor="provinceState" className={labelClass}>Province / State{reqMark}</Label>
-                  <FormSelect id="provinceState" name="provinceState" value={form.provinceState} onChange={(e) => set("provinceState", e.target.value)} className={inputClass}>
-                    <option value="">Select province</option>
-                    <option value="Bulacan">Bulacan</option>
+                  <FormSelect id="provinceState" name="provinceState" value={FIXED_PROVINCE} disabled className={inputClass}>
+                    <option value={FIXED_PROVINCE}>{FIXED_PROVINCE}</option>
                   </FormSelect>
-                  {errors.provinceState && <p className="text-danger text-xs mt-1">{errors.provinceState}</p>}
                 </div>
                 <div>
                   <Label htmlFor="postalCode" className={labelClass}>Postal Code <span className="text-muted-foreground font-normal">(optional)</span></Label>
@@ -24,11 +22,9 @@ function JobSeekerAddressStep({ form, errors, set, inputClass, labelClass, reqMa
                 </div>
                 <div>
                   <Label htmlFor="cityMunicipality" className={labelClass}>City / Municipality{reqMark}</Label>
-                  <FormSelect id="cityMunicipality" name="cityMunicipality" value={form.cityMunicipality} onChange={(e) => set("cityMunicipality", e.target.value)} className={inputClass}>
-                    <option value="">Select city / municipality</option>
-                    {BULACAN_MUNICIPALITIES.map((m) => <option key={m} value={m}>{m}</option>)}
+                  <FormSelect id="cityMunicipality" name="cityMunicipality" value={FIXED_MUNICIPALITY} disabled className={inputClass}>
+                    <option value={FIXED_MUNICIPALITY}>{FIXED_MUNICIPALITY}</option>
                   </FormSelect>
-                  {errors.cityMunicipality && <p className="text-danger text-xs mt-1">{errors.cityMunicipality}</p>}
                 </div>
                 <div>
                   <Label htmlFor="barangayDistrict" className={labelClass}>Barangay / District <span className="text-danger">*</span></Label>

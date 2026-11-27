@@ -3,7 +3,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Eye, EyeOff } from "lucide-react";
 
-import { BULACAN_MUNICIPALITIES, INDUSTRIES, SANTA_MARIA_BARANGAYS } from "@/shared/constants";
+import { FIXED_MUNICIPALITY, FIXED_PROVINCE, INDUSTRIES, SANTA_MARIA_BARANGAYS } from "@/shared/constants";
 
 import { PASSWORD_HINT } from "@/shared/utils/password";
 import { formatPhoneDisplay, toLocalDigits } from "@/shared/utils/phone";
@@ -45,19 +45,15 @@ function EmployerCompanyStep({ errors, setErrors, inputClass, labelClass, reqMar
                     </div>
                     <div>
                       <Label htmlFor="provinceState" className={labelClass}>Province / State{reqMark}</Label>
-                      <FormSelect id="provinceState" name="provinceState" value={form?.provinceState ?? ""} className={inputClass} onChange={(e) => field("provinceState", e.target.value)}>
-                        <option value="">Select province</option>
-                        <option value="Bulacan">Bulacan</option>
+                      <FormSelect id="provinceState" name="provinceState" value={FIXED_PROVINCE} disabled className={inputClass}>
+                        <option value={FIXED_PROVINCE}>{FIXED_PROVINCE}</option>
                       </FormSelect>
-                      {errors?.provinceState && <p className="text-danger text-xs mt-1">{errors.provinceState}</p>}
                     </div>
                     <div>
                       <Label htmlFor="cityMunicipality" className={labelClass}>City / Municipality{reqMark}</Label>
-                      <FormSelect id="cityMunicipality" name="cityMunicipality" value={form?.cityMunicipality ?? ""} className={inputClass} onChange={(e) => field("cityMunicipality", e.target.value)}>
-                        <option value="">Select city / municipality</option>
-                        {BULACAN_MUNICIPALITIES.map((m) => <option key={m} value={m}>{m}</option>)}
+                      <FormSelect id="cityMunicipality" name="cityMunicipality" value={FIXED_MUNICIPALITY} disabled className={inputClass}>
+                        <option value={FIXED_MUNICIPALITY}>{FIXED_MUNICIPALITY}</option>
                       </FormSelect>
-                      {errors?.cityMunicipality && <p className="text-danger text-xs mt-1">{errors.cityMunicipality}</p>}
                     </div>
                     <div>
                       <Label htmlFor="barangayDistrict" className={labelClass}>Barangay / District <span className="text-danger">*</span></Label>

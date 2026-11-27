@@ -73,8 +73,6 @@ function fillRequired() {
   fireEvent.change(screen.getByLabelText(/company industry/i), { target: { value: 'IT' } })
   fireEvent.change(screen.getByLabelText(/street address/i), { target: { value: 'Norzagaray-Santa Maria Road' } })
   fireEvent.change(screen.getByLabelText(/barangay/i), { target: { value: 'Pulong Buhangin' } })
-  fireEvent.change(screen.getByLabelText(/city \/ municipality/i), { target: { value: 'Santa Maria' } })
-  fireEvent.change(screen.getByLabelText(/province/i), { target: { value: 'Bulacan' } })
   fireEvent.change(screen.getByLabelText(/company contact no/i), { target: { value: '440000000' } })
   fireEvent.change(screen.getByLabelText(/official company email/i), { target: { value: 'hr@company.com' } })
   fireEvent.change(screen.getByLabelText(/^password/i, { selector: 'input' }), { target: { value: 'password123!' } })
@@ -203,17 +201,14 @@ describe('EmployerRegister address', () => {
     expect(authClientMock.signUp.email).not.toHaveBeenCalled()
   })
 
-  it('requires city and province', async () => {
+  it('locks province and city to Bulacan / Santa Maria', () => {
     renderPage()
-    fillRequired()
-    fireEvent.click(screen.getByRole('button', { name: /^back$/i }))
-    fireEvent.change(screen.getByLabelText(/city \/ municipality/i), { target: { value: '' } })
-    fireEvent.change(screen.getByLabelText(/province/i), { target: { value: '' } })
-    fireEvent.click(screen.getByRole('button', { name: /^next$/i }))
-
-    await waitFor(() => expect(screen.getByText(/city \/ municipality is required/i)).toBeInTheDocument())
-    expect(screen.getByText(/province is required/i)).toBeInTheDocument()
-    expect(authClientMock.signUp.email).not.toHaveBeenCalled()
+    const province = screen.getByLabelText(/province/i)
+    const city = screen.getByLabelText(/city \/ municipality/i)
+    expect(province).toBeDisabled()
+    expect(city).toBeDisabled()
+    expect(province).toHaveValue('Bulacan')
+    expect(city).toHaveValue('Santa Maria')
   })
 
   it('requires confirmation that the provided information is correct', async () => {
