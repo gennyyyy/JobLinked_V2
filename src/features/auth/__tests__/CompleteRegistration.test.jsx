@@ -24,6 +24,7 @@ vi.mock('../../../shared/lib/supabase', () => ({
 
 import useAuth from '../../../shared/hooks/useAuth';
 import { api } from '../../../shared/lib/api';
+import { stashApplyIntent } from '../../../shared/lib/applyIntent';
 
 const apiError = (status, message) => Object.assign(new Error(message), { status });
 const NO_PENDING = () => apiError(400, 'role must be job-seeker, employer, or super-admin');
@@ -34,6 +35,7 @@ function renderWithRouter(ui, { initialPath = '/complete-registration' } = {}) {
       <Routes>
         <Route path="/complete-registration" element={ui} />
         <Route path="/job-seeker" element={<div>Job Seeker Portal</div>} />
+        <Route path="/job-seeker/jobs/42" element={<div>seeker job page</div>} />
         <Route path="/employer" element={<div>Employer Portal</div>} />
         <Route path="/login" element={<div>Login Page</div>} />
       </Routes>
@@ -108,6 +110,24 @@ describe('CompleteRegistration', () => {
     expect(api.post).toHaveBeenCalledTimes(1);
     expect(api.post).toHaveBeenCalledWith('auth/provision', {});
     expect(refreshUser).toHaveBeenCalledWith({ id: 'u1', email: 'test@example.com' });
+  });
+
+  it('lands a provisioned job-seeker with an apply intent on the job page', async () => {
+    localStorage.clear();
+    unprovisioned();
+    api.post.mockResolvedValue({ role: 'job-seeker' });
+    stashApplyIntent('42');
+    renderWithRouter(<CompleteRegistration />);
+    expect(await screen.findByText('seeker job page')).toBeInTheDocument();
+  });
+
+  it('sends a provisioned employer to the employer portal', async () => {
+    localStorage.clear();
+    unprovisioned();
+    api.post.mockResolvedValue({ role: 'employer' });
+    stashApplyIntent('42');
+    renderWithRouter(<CompleteRegistration />);
+    expect(await screen.findByText('Employer Portal')).toBeInTheDocument();
   });
 
   it('never renders the form while the automatic merge is in flight', async () => {

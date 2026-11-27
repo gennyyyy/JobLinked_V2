@@ -5,6 +5,7 @@ import { FieldGroup, Field, FieldLabel } from '@/components/ui/field';
 import { InputGroup, InputGroupInput } from '@/components/ui/input-group';
 import { Loader2 } from 'lucide-react';
 import { provision } from '@/shared/services/auth';
+import { takeApplyIntent } from '@/shared/lib/applyIntent';
 import useAuth from '@/shared/hooks/useAuth';
 import { PORTALS } from '@/shared/constants';
 import LoadingScreen from '@/shared/components/LoadingScreen';
@@ -48,7 +49,8 @@ export default function CompleteRegistration() {
         if (!active) return;
         await refreshUser({ id: sessionUser?.id, email: sessionUser?.email });
         const homePath = PORTALS.find((p) => p.key === result.role)?.homePath || '/';
-        navigate(homePath, { replace: true });
+        const applyPath = takeApplyIntent();
+        navigate(result.role === 'job-seeker' && applyPath ? applyPath : homePath, { replace: true });
       } catch (err) {
         if (!active) return;
         // 400 = no pending invite/signup for this account: the form is the
@@ -101,7 +103,8 @@ export default function CompleteRegistration() {
       // Refresh the profile so AuthProvider picks up the new role.
       await refreshUser({ id: sessionUser?.id, email: sessionUser?.email });
       const homePath = PORTALS.find((p) => p.key === result.role)?.homePath || '/';
-      navigate(homePath, { replace: true });
+      const applyPath = takeApplyIntent();
+      navigate(result.role === 'job-seeker' && applyPath ? applyPath : homePath, { replace: true });
     } catch (err) {
       setError(err.message || 'Failed to complete registration');
     } finally {
