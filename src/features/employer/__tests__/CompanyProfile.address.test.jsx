@@ -54,8 +54,14 @@ describe('CompanyProfile address fields', () => {
     removeLogo.mockResolvedValue({})
   })
 
-  it('loads the stored city, province, and postal code', async () => {
-    getEmployer.mockResolvedValue({ ...COMPLETE_COMPANY, postal_code: '3022' })
+  it('loads the fixed city and province and the stored postal code', async () => {
+    // A legacy row may hold any Bulacan LGU; the edit form always shows the fixed scope.
+    getEmployer.mockResolvedValue({
+      ...COMPLETE_COMPANY,
+      city_municipality: 'Angat',
+      province_state: 'Bulacan',
+      postal_code: '3022',
+    })
     await openProfile()
     fireEvent.click(screen.getByRole('tab', { name: /contact & location/i }))
 
@@ -64,25 +70,23 @@ describe('CompanyProfile address fields', () => {
     expect(screen.getByLabelText('Postal Code')).toHaveValue('3022')
   })
 
-  it('saves the selected city, province, and postal code', async () => {
+  it('saves the fixed city and province with the postal code', async () => {
     getEmployer.mockResolvedValue(COMPLETE_COMPANY)
     await openProfile()
     fireEvent.click(screen.getByRole('tab', { name: /contact & location/i }))
 
-    fireEvent.change(screen.getByLabelText(/^City \/ Municipality/), { target: { value: 'Angat' } })
-    fireEvent.change(screen.getByLabelText(/^Province \/ State/), { target: { value: 'Bulacan' } })
     fireEvent.change(screen.getByLabelText('Postal Code'), { target: { value: '3012' } })
     fireEvent.click(screen.getByRole('button', { name: /save company profile/i }))
 
     await waitFor(() => expect(updateProfile).toHaveBeenCalled())
     expect(updateProfile).toHaveBeenCalledWith('u1', expect.objectContaining({
-      city_municipality: 'Angat',
+      city_municipality: 'Santa Maria',
       province_state: 'Bulacan',
       postal_code: '3012',
     }))
   })
 
-  it('renders city and province as dropdowns with the Bulacan options', async () => {
+  it('renders city and province as disabled fixed selects', async () => {
     getEmployer.mockResolvedValue(COMPLETE_COMPANY)
     await openProfile()
     fireEvent.click(screen.getByRole('tab', { name: /contact & location/i }))
@@ -91,12 +95,17 @@ describe('CompanyProfile address fields', () => {
     const province = screen.getByLabelText(/^Province \/ State/)
     expect(city.tagName).toBe('SELECT')
     expect(province.tagName).toBe('SELECT')
-    expect(within(city).getByRole('option', { name: 'Angat' })).toBeInTheDocument()
+    expect(city).toBeDisabled()
+    expect(province).toBeDisabled()
+    expect(city).toHaveValue('Santa Maria')
+    expect(province).toHaveValue('Bulacan')
+    expect(within(city).getAllByRole('option')).toHaveLength(1)
+    expect(within(province).getAllByRole('option')).toHaveLength(1)
     expect(within(city).getByRole('option', { name: 'Santa Maria' })).toBeInTheDocument()
     expect(within(province).getByRole('option', { name: 'Bulacan' })).toBeInTheDocument()
   })
 
-  it('loads an out-of-list city and province as blanks', async () => {
+  it('shows the fixed city and province for an out-of-list stored address', async () => {
     getEmployer.mockResolvedValue({
       ...COMPLETE_COMPANY,
       city_municipality: 'Quezon City',
@@ -105,9 +114,9 @@ describe('CompanyProfile address fields', () => {
     await openProfile()
     fireEvent.click(screen.getByRole('tab', { name: /contact & location/i }))
 
-    expect(screen.getByLabelText(/^City \/ Municipality/)).toHaveValue('')
-    expect(screen.getByLabelText(/^Province \/ State/)).toHaveValue('')
-    expect(screen.getByRole('option', { name: 'Select city / municipality' })).toBeInTheDocument()
+    expect(screen.getByLabelText(/^City \/ Municipality/)).toHaveValue('Santa Maria')
+    expect(screen.getByLabelText(/^Province \/ State/)).toHaveValue('Bulacan')
+    expect(screen.queryByRole('option', { name: 'Select city / municipality' })).not.toBeInTheDocument()
   })
 
   it('blocks the save when the business phone is invalid', async () => {

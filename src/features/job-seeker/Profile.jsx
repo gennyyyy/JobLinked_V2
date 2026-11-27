@@ -26,7 +26,7 @@ import TabbedProfileLayout from '@/shared/components/TabbedProfileLayout'
 import AccountSettings, { PrivacyPanel } from '@/shared/components/AccountSettings'
 import ChangePassword from '@/shared/components/ChangePassword'
 import { TabsContent } from '@/components/ui/tabs'
-import { BULACAN_MUNICIPALITIES, BULACAN_PROVINCES, NATIONALITIES, SANTA_MARIA_BARANGAYS } from '@/shared/constants'
+import { FIXED_MUNICIPALITY, FIXED_PROVINCE, NATIONALITIES, SANTA_MARIA_BARANGAYS } from '@/shared/constants'
 import { EDUCATION_LEVELS } from '../auth/jobSeekerRegistration'
 import useVocabulary from '@/shared/hooks/useVocabulary'
 import VocabularyPicker from '@/shared/components/VocabularyPicker'
@@ -48,7 +48,7 @@ const EMPTY_FORM = {
   name: '', firstName: '', middleName: '', lastName: '', suffix: '',
   phone: '', headline: '', birthdate: '', nationality: '', employmentStatus: '',
   lot: '', block: '', barangay: '', address: '', subdivisionBuilding: '',
-  cityMunicipality: '', provinceState: '', postalCode: '',
+  cityMunicipality: FIXED_MUNICIPALITY, provinceState: FIXED_PROVINCE, postalCode: '',
   experience: '', skills: [], field: '',
 }
 
@@ -68,13 +68,8 @@ const ACCOUNT_SETTINGS_SECTIONS = new Set([
   'password-settings',
 ])
 
-// Stored values outside PESO's predefined lists load blank, so saving a profile
-// always persists a value the user picked from the list.
-function pickListed(value, options) {
-  const text = titleCase(value)
-  return options.includes(text) ? text : ''
-}
-
+// ADR-062: the portal serves Santa Maria, Bulacan only, so both address
+// selects are fixed. Their form values stay populated for the save payload.
 function formFromUser(user) {
   if (!user) return { ...EMPTY_FORM, skills: [] }
   return {
@@ -93,8 +88,8 @@ function formFromUser(user) {
     barangay: titleCase(user.barangay_district),
     address: titleCase(user.street_address),
     subdivisionBuilding: titleCase(user.subdivision_building),
-    cityMunicipality: pickListed(user.city_municipality, BULACAN_MUNICIPALITIES),
-    provinceState: pickListed(user.province_state, BULACAN_PROVINCES),
+    cityMunicipality: FIXED_MUNICIPALITY,
+    provinceState: FIXED_PROVINCE,
     postalCode: user.postal_code || '',
     experience: user.experience_summary || '',
     skills: Array.isArray(user.skills) ? [...user.skills] : splitList(user.skills),
@@ -664,10 +659,10 @@ function Profile() {
               </div>
               <div className="grid gap-4 sm:grid-cols-2">
                 <SelectField label="Barangay" required placeholder="Select barangay" options={barangays} value={show('barangay')} onChange={(event) => setField('barangay', event.target.value)} error={errors.barangay} />
-                <SelectField label="City / Municipality" required id="cityMunicipality" placeholder="Select city / municipality" options={BULACAN_MUNICIPALITIES} value={show('cityMunicipality')} onChange={(event) => setField('cityMunicipality', event.target.value)} error={errors.cityMunicipality} />
+                <SelectField label="City / Municipality" required id="cityMunicipality" options={[FIXED_MUNICIPALITY]} value={FIXED_MUNICIPALITY} disabled />
               </div>
               <div className="grid gap-4 sm:grid-cols-2">
-                <SelectField label="Province / State" required id="provinceState" placeholder="Select province" options={BULACAN_PROVINCES} value={show('provinceState')} onChange={(event) => setField('provinceState', event.target.value)} error={errors.provinceState} />
+                <SelectField label="Province / State" required id="provinceState" options={[FIXED_PROVINCE]} value={FIXED_PROVINCE} disabled />
                 <TextField label="Postal Code" value={form.postalCode} onChange={(event) => setField('postalCode', event.target.value)} error={errors.postalCode} />
               </div>
             </div>

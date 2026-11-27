@@ -104,8 +104,6 @@ describe('CompanyProfile required fields', () => {
     expect(screen.getByText('Contact number is required')).toBeInTheDocument()
     expect(screen.getByText('Street address is required')).toBeInTheDocument()
     expect(screen.getByText('Barangay / District is required')).toBeInTheDocument()
-    expect(screen.getByText('City / Municipality is required')).toBeInTheDocument()
-    expect(screen.getByText('Province is required')).toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('tab', { name: /^representative$/i }))
     expect(screen.getByText('First name is required')).toBeInTheDocument()

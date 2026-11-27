@@ -330,7 +330,7 @@ describe('Profile fields and save', () => {
     expect(screen.getByLabelText(/street or local address/i)).toHaveValue('12 Mabini Street')
   })
 
-  it('renders city and province as dropdowns with the Bulacan options', async () => {
+  it('renders city and province as disabled fixed selects', async () => {
     await openProfile()
     fireEvent.click(screen.getByRole('tab', { name: /address/i }))
 
@@ -338,7 +338,12 @@ describe('Profile fields and save', () => {
     const province = screen.getByLabelText(/^Province \/ State/)
     expect(city.tagName).toBe('SELECT')
     expect(province.tagName).toBe('SELECT')
-    expect(within(city).getByRole('option', { name: 'Angat' })).toBeInTheDocument()
+    expect(city).toBeDisabled()
+    expect(province).toBeDisabled()
+    expect(city).toHaveValue('Santa Maria')
+    expect(province).toHaveValue('Bulacan')
+    expect(within(city).getAllByRole('option')).toHaveLength(1)
+    expect(within(province).getAllByRole('option')).toHaveLength(1)
     expect(within(city).getByRole('option', { name: 'Santa Maria' })).toBeInTheDocument()
     expect(within(province).getByRole('option', { name: 'Bulacan' })).toBeInTheDocument()
   })
@@ -355,7 +360,7 @@ describe('Profile fields and save', () => {
     expect(screen.getByLabelText(/^Province \/ State/)).toHaveValue('Bulacan')
   })
 
-  it('loads an out-of-list city and province as blanks and blocks the save', async () => {
+  it('normalizes an out-of-list stored city and province to the fixed values on save', async () => {
     useAuth.mockReturnValue({
       user: { ...STORED, city_municipality: 'Quezon City', province_state: 'Metro Manila' },
       refreshUser: vi.fn(),
@@ -363,28 +368,27 @@ describe('Profile fields and save', () => {
     await openProfile()
     fireEvent.click(screen.getByRole('tab', { name: /address/i }))
 
-    expect(screen.getByLabelText(/^City \/ Municipality/)).toHaveValue('')
-    expect(screen.getByLabelText(/^Province \/ State/)).toHaveValue('')
-    expect(screen.getByRole('option', { name: 'Select city / municipality' })).toBeInTheDocument()
+    expect(screen.getByLabelText(/^City \/ Municipality/)).toHaveValue('Santa Maria')
+    expect(screen.getByLabelText(/^Province \/ State/)).toHaveValue('Bulacan')
+    expect(screen.queryByRole('option', { name: 'Select city / municipality' })).not.toBeInTheDocument()
 
-    // Both are required now, so an out-of-list address cannot be saved blank.
     fireEvent.click(screen.getByRole('button', { name: /save my profile/i }))
-    expect(await screen.findByText('Choose your city / municipality.')).toBeInTheDocument()
-    expect(screen.getByText('Choose your province.')).toBeInTheDocument()
-    expect(updateProfile).not.toHaveBeenCalled()
+    await waitFor(() => expect(updateProfile).toHaveBeenCalled())
+    expect(updateProfile).toHaveBeenCalledWith('u1', expect.objectContaining({
+      city_municipality: 'Santa Maria',
+      province_state: 'Bulacan',
+    }))
   })
 
-  it('saves the picked city and province', async () => {
+  it('saves the fixed city and province', async () => {
     await openProfile()
     fireEvent.click(screen.getByRole('tab', { name: /address/i }))
 
-    fireEvent.change(screen.getByLabelText(/^City \/ Municipality/), { target: { value: 'Angat' } })
-    fireEvent.change(screen.getByLabelText(/^Province \/ State/), { target: { value: 'Bulacan' } })
     fireEvent.click(screen.getByRole('button', { name: /save my profile/i }))
 
     await waitFor(() => expect(updateProfile).toHaveBeenCalled())
     expect(updateProfile).toHaveBeenCalledWith('u1', expect.objectContaining({
-      city_municipality: 'Angat',
+      city_municipality: 'Santa Maria',
       province_state: 'Bulacan',
     }))
   })

@@ -13,7 +13,7 @@ import { TabsContent } from "../../components/ui/tabs";
 import { buildFullName, nameChangeLockHelp } from "../../shared/utils/names";
 import { titleCase } from "../../shared/utils/titleCase";
 import { formatPhoneDisplay, isValidPhone, normalizePhone, withPrefix } from "../../shared/utils/phone";
-import { BULACAN_MUNICIPALITIES, BULACAN_PROVINCES, INDUSTRIES, SANTA_MARIA_BARANGAYS } from "../../shared/constants";
+import { FIXED_MUNICIPALITY, FIXED_PROVINCE, INDUSTRIES, SANTA_MARIA_BARANGAYS } from "../../shared/constants";
 import { SelectField, TextField } from "../../shared/components/design";
 
 const COMPANY_FIELDS = [
@@ -97,13 +97,8 @@ function remoteLogoUrl(value) {
   }
 }
 
-// Stored values outside PESO's predefined lists load blank, so saving a profile
-// always persists a value the user picked from the list.
-function pickListed(value, options) {
-  const text = titleCase(value);
-  return options.includes(text) ? text : "";
-}
-
+// ADR-062: the portal serves Santa Maria, Bulacan only, so both address
+// dropdowns are fixed. Their form values stay populated for the save payload.
 function CompanyProfile() {
   const { user, refreshUser } = useAuth();
   const { hash } = useLocation();
@@ -115,7 +110,10 @@ function CompanyProfile() {
   const [company, setCompany] = useState(null);
   // ADR-058: the representative's name fields lock while the target's window is open.
   const nameLockHelp = nameChangeLockHelp(company?.name_changed_at);
-  const [form, setForm] = useState({});
+  const [form, setForm] = useState({
+    city_municipality: FIXED_MUNICIPALITY,
+    province_state: FIXED_PROVINCE,
+  });
   const [errors, setErrors] = useState({});
   const [tab, setTab] = useState("company");
   const activeTab = ACCOUNT_SETTINGS_SECTIONS.has(hash.slice(1)) ? "account" : tab;
@@ -142,8 +140,8 @@ function CompanyProfile() {
             street_address: titleCase(data.street_address),
             subdivision_building: titleCase(data.subdivision_building),
             barangay_district: titleCase(data.barangay_district),
-            city_municipality: pickListed(data.city_municipality, BULACAN_MUNICIPALITIES),
-            province_state: pickListed(data.province_state, BULACAN_PROVINCES),
+            city_municipality: FIXED_MUNICIPALITY,
+            province_state: FIXED_PROVINCE,
             postal_code: data.postal_code || "",
             phone: data.phone || "",
             email: data.email || "",
@@ -467,21 +465,21 @@ function CompanyProfile() {
               />
               <SelectField
                 label="City / Municipality"
-                placeholder="Select city / municipality"
-                options={BULACAN_MUNICIPALITIES}
+                id="city_municipality"
+                options={[FIXED_MUNICIPALITY]}
+                value={FIXED_MUNICIPALITY}
+                disabled
                 required
-                error={errors.city_municipality}
-                {...field("city_municipality")}
               />
             </div>
             <div className="mt-4 grid gap-4 sm:grid-cols-2">
               <SelectField
                 label="Province / State"
-                placeholder="Select province"
-                options={BULACAN_PROVINCES}
+                id="province_state"
+                options={[FIXED_PROVINCE]}
+                value={FIXED_PROVINCE}
+                disabled
                 required
-                error={errors.province_state}
-                {...field("province_state")}
               />
               <TextField label="Postal Code" placeholder="e.g. 3022" error={errors.postal_code} {...field("postal_code")} />
             </div>
