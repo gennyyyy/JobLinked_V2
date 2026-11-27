@@ -12,9 +12,13 @@ import { EDUCATION_LEVELS } from "./jobSeekerRegistration";
 
 const EMPTY_EXPERIENCE = { jobTitle: "", company: "", startDate: "", endDate: "", description: "" };
 const MAX_EXPERIENCE = 10;
-const INPUT = "form-field";
-const LABEL = "block font-mono text-xs tracking-wider text-muted-foreground uppercase mb-1.5";
-const SECTION = "font-mono text-xs tracking-[0.2em] text-primary uppercase font-semibold";
+
+// Inline paper field: reads as resume text until hovered or focused.
+const FIELD =
+  "h-9 w-auto min-w-0 rounded-none border-0 border-b border-transparent bg-transparent px-1 text-sm text-foreground shadow-none outline-none transition-colors hover:border-dashed hover:border-muted-foreground/40 focus:border-solid focus:border-primary focus:bg-accent focus:ring-0 focus-visible:border-primary focus-visible:ring-0 disabled:pointer-events-none disabled:bg-transparent disabled:text-muted-foreground disabled:opacity-100";
+const NAME = `${FIELD} text-center text-xl font-semibold text-dark-blue`;
+const HEADING = "border-b border-border pb-1.5 font-mono text-xs font-semibold tracking-[0.18em] text-dark-blue uppercase";
+const DOT = "text-muted-foreground/60";
 
 const text = (value) => String(value ?? "").trim();
 
@@ -109,201 +113,178 @@ function CreateResumeModal({ open, onClose, experience, setExperience, set, setE
         role="dialog"
         aria-modal="true"
         aria-labelledby="create-resume-title"
-        className="modal-panel flex max-h-[85vh] w-full max-w-2xl flex-col"
+        className="modal-panel flex max-h-[85vh] w-full max-w-2xl flex-col bg-white p-6 sm:p-8"
       >
-        <h2 id="create-resume-title" className="text-base font-bold text-dark-blue">
+        <h2 id="create-resume-title" className="text-sm font-semibold tracking-wide text-dark-blue">
           Create a Resume
         </h2>
         <p className="mb-4 mt-1 text-xs text-muted-foreground">
           Anything you type here also fills the registration form underneath.
         </p>
 
-        <div className="min-h-0 flex-1 space-y-6 overflow-y-auto pr-1">
-          <section aria-labelledby="create-resume-personal">
-            <h3 id="create-resume-personal" className={SECTION}>Personal Details</h3>
-            <div className="mt-3 grid gap-4 sm:grid-cols-2">
-              <div>
-                <Label htmlFor="resume-firstName" className={LABEL}>First Name</Label>
-                <Input id="resume-firstName" value={form.firstName} onChange={(e) => set("firstName", e.target.value)} className={INPUT} />
-              </div>
-              <div>
-                <Label htmlFor="resume-middleName" className={LABEL}>Middle Name <span className="font-normal text-muted-foreground">(optional)</span></Label>
-                <Input id="resume-middleName" value={form.middleName} onChange={(e) => set("middleName", e.target.value)} className={INPUT} />
-              </div>
-              <div>
-                <Label htmlFor="resume-lastName" className={LABEL}>Last Name</Label>
-                <Input id="resume-lastName" value={form.lastName} onChange={(e) => set("lastName", e.target.value)} className={INPUT} />
-              </div>
-              <div>
-                <Label htmlFor="resume-suffix" className={LABEL}>Suffix <span className="font-normal text-muted-foreground">(optional)</span></Label>
-                <Input id="resume-suffix" value={form.suffix} onChange={(e) => set("suffix", e.target.value)} className={INPUT} />
-              </div>
-              <div>
-                <Label htmlFor="resume-email" className={LABEL}>Email Address</Label>
-                <Input id="resume-email" type="email" value={form.email} onChange={(e) => set("email", e.target.value)} className={INPUT} />
-              </div>
-              <div>
-                <Label htmlFor="resume-mobileNumber" className={LABEL}>Mobile Number</Label>
-                <div className="relative">
-                  <span className="absolute left-4 top-1/2 -translate-y-1/2 select-none text-sm text-muted-foreground">+63</span>
-                  <Input
-                    id="resume-mobileNumber"
-                    type="tel"
-                    inputMode="numeric"
-                    placeholder="917 123 4567"
-                    value={formatPhoneDisplay(form.mobileNumber)}
-                    onChange={(e) => set("mobileNumber", withPrefix(e.target.value))}
-                    onBlur={() => set("mobileNumber", normalizePhone(form.mobileNumber))}
-                    className={`${INPUT} pl-12`}
-                  />
-                </div>
-              </div>
-              <div>
-                <Label htmlFor="resume-birthdate" className={LABEL}>Birthday</Label>
-                <Input id="resume-birthdate" type="date" max={new Date().toISOString().slice(0, 10)} value={form.birthdate} onChange={(e) => set("birthdate", e.target.value)} className={INPUT} />
-              </div>
-              <div>
-                <Label htmlFor="resume-nationality" className={LABEL}>Nationality</Label>
-                <FormSelect id="resume-nationality" value={form.nationality} onChange={(e) => set("nationality", e.target.value)} className={INPUT}>
+        <div className="min-h-0 flex-1 overflow-y-auto pr-1">
+          {/* The paper page: name, then contact / address / personal lines. */}
+          <header className="pb-5 text-center">
+            <div className="flex flex-wrap items-center justify-center gap-x-1">
+              <Label htmlFor="resume-firstName" className="sr-only">First Name</Label>
+              <Input id="resume-firstName" placeholder="First name" value={form.firstName} onChange={(e) => set("firstName", e.target.value)} className={`${NAME} w-32`} />
+              <Label htmlFor="resume-middleName" className="sr-only">Middle Name</Label>
+              <Input id="resume-middleName" placeholder="Middle name" value={form.middleName} onChange={(e) => set("middleName", e.target.value)} className={`${NAME} w-28`} />
+              <Label htmlFor="resume-lastName" className="sr-only">Last Name</Label>
+              <Input id="resume-lastName" placeholder="Last name" value={form.lastName} onChange={(e) => set("lastName", e.target.value)} className={`${NAME} w-32`} />
+              <Label htmlFor="resume-suffix" className="sr-only">Suffix</Label>
+              <Input id="resume-suffix" placeholder="Suffix" value={form.suffix} onChange={(e) => set("suffix", e.target.value)} className={`${NAME} w-16`} />
+            </div>
+
+            <div className="mt-1 flex flex-wrap items-center justify-center gap-x-1">
+              <Label htmlFor="resume-email" className="sr-only">Email Address</Label>
+              <Input id="resume-email" type="email" placeholder="Email address" value={form.email} onChange={(e) => set("email", e.target.value)} className={`${FIELD} w-52 text-center text-xs text-muted-foreground`} />
+              <span aria-hidden="true" className={DOT}>·</span>
+              <Label htmlFor="resume-mobileNumber" className="sr-only">Mobile Number</Label>
+              <span aria-hidden="true" className="select-none text-xs text-muted-foreground">+63</span>
+              <Input
+                id="resume-mobileNumber"
+                type="tel"
+                inputMode="numeric"
+                placeholder="917 123 4567"
+                value={formatPhoneDisplay(form.mobileNumber)}
+                onChange={(e) => set("mobileNumber", withPrefix(e.target.value))}
+                onBlur={() => set("mobileNumber", normalizePhone(form.mobileNumber))}
+                className={`${FIELD} w-28 text-center text-xs text-muted-foreground`}
+              />
+            </div>
+
+            <div className="mt-1 flex flex-wrap items-center justify-center gap-x-0.5 text-xs">
+              <Label htmlFor="resume-streetAddress" className="sr-only">Street Address</Label>
+              <Input id="resume-streetAddress" placeholder="Street address" value={form.streetAddress} onChange={(e) => set("streetAddress", e.target.value)} className={`${FIELD} w-40 text-center text-xs text-muted-foreground`} />
+              <span aria-hidden="true" className={DOT}>,</span>
+              <Label htmlFor="resume-barangayDistrict" className="sr-only">Barangay / District</Label>
+              <Input id="resume-barangayDistrict" placeholder="Barangay" value={form.barangayDistrict} onChange={(e) => set("barangayDistrict", e.target.value)} className={`${FIELD} w-28 text-center text-xs text-muted-foreground`} />
+              <span aria-hidden="true" className={DOT}>,</span>
+              <Label htmlFor="resume-cityMunicipality" className="sr-only">City / Municipality</Label>
+              <Input id="resume-cityMunicipality" value={FIXED_MUNICIPALITY} disabled readOnly className={`${FIELD} w-24 text-center text-xs text-muted-foreground`} />
+              <span aria-hidden="true" className={DOT}>,</span>
+              <Label htmlFor="resume-provinceState" className="sr-only">Province / State</Label>
+              <Input id="resume-provinceState" value={FIXED_PROVINCE} disabled readOnly className={`${FIELD} w-20 text-center text-xs text-muted-foreground`} />
+              <span aria-hidden="true" className={DOT}>,</span>
+              <Label htmlFor="resume-postalCode" className="sr-only">Postal Code</Label>
+              <Input id="resume-postalCode" inputMode="numeric" maxLength={4} placeholder="Postal code" value={form.postalCode} onChange={(e) => set("postalCode", e.target.value)} className={`${FIELD} w-16 text-center text-xs text-muted-foreground`} />
+            </div>
+
+            <div className="mt-1 flex flex-wrap items-center justify-center gap-x-1">
+              <Label htmlFor="resume-birthdate" className="sr-only">Birthday</Label>
+              <Input id="resume-birthdate" type="date" max={new Date().toISOString().slice(0, 10)} value={form.birthdate} onChange={(e) => set("birthdate", e.target.value)} className={`${FIELD} w-36 text-center text-xs text-muted-foreground`} />
+              <span aria-hidden="true" className={DOT}>·</span>
+              <Label htmlFor="resume-nationality" className="sr-only">Nationality</Label>
+              <div className="w-28 shrink-0">
+                <FormSelect id="resume-nationality" value={form.nationality} onChange={(e) => set("nationality", e.target.value)} className={`${FIELD} w-full pr-7 text-center text-xs text-muted-foreground`}>
                   {NATIONALITIES.map((n) => <option key={n} value={n}>{n}</option>)}
                 </FormSelect>
               </div>
             </div>
-          </section>
+          </header>
 
-          <section aria-labelledby="create-resume-address">
-            <h3 id="create-resume-address" className={SECTION}>Address</h3>
-            <div className="mt-3 grid gap-4 sm:grid-cols-2">
-              <div className="sm:col-span-2">
-                <Label htmlFor="resume-streetAddress" className={LABEL}>Street Address</Label>
-                <Input id="resume-streetAddress" value={form.streetAddress} onChange={(e) => set("streetAddress", e.target.value)} className={INPUT} />
+          <div className="space-y-5">
+            <section aria-labelledby="create-resume-education">
+              <h3 id="create-resume-education" className={`${HEADING} mb-4`}>Education</h3>
+              <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1">
+                <div className="w-36 shrink-0">
+                  <Label htmlFor="resume-education-level" className="sr-only">Education Level</Label>
+                  <FormSelect id="resume-education-level" value={education.level} onChange={(e) => setEducation({ ...education, level: e.target.value })} className={`${FIELD} w-full pr-7`}>
+                    <option value="">Select level</option>
+                    {EDUCATION_LEVELS.map((l) => <option key={l} value={l}>{l}</option>)}
+                  </FormSelect>
+                </div>
+                <span aria-hidden="true" className={DOT}>—</span>
+                <Label htmlFor="resume-education-school" className="sr-only">School Name</Label>
+                <Input id="resume-education-school" placeholder="School name" value={education.school} onChange={(e) => setEducation({ ...education, school: e.target.value })} className={`${FIELD} w-52 font-medium`} />
               </div>
-              <div>
-                <Label htmlFor="resume-barangayDistrict" className={LABEL}>Barangay / District</Label>
-                <Input id="resume-barangayDistrict" value={form.barangayDistrict} onChange={(e) => set("barangayDistrict", e.target.value)} className={INPUT} />
+              <div className="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-1">
+                <Label htmlFor="resume-education-field" className="sr-only">Course / Field</Label>
+                <Input id="resume-education-field" placeholder="Course / field" value={education.field} onChange={(e) => setEducation({ ...education, field: e.target.value })} className={`${FIELD} w-40`} />
+                <span aria-hidden="true" className={DOT}>·</span>
+                <Label htmlFor="resume-education-year" className="sr-only">Graduation Year</Label>
+                <Input id="resume-education-year" inputMode="numeric" placeholder="e.g. 2024" disabled={education.studying} value={education.year} onChange={(e) => setEducation({ ...education, year: e.target.value })} className={`${FIELD} w-24`} />
+                <Label className="ml-1 flex cursor-pointer items-center gap-1.5 text-xs text-muted-foreground select-none">
+                  <input type="checkbox" checked={education.studying} onChange={(e) => setEducation({ ...education, studying: e.target.checked })} className="size-3.5 shrink-0 accent-primary" />
+                  Currently studying here
+                </Label>
               </div>
-              <div>
-                <Label htmlFor="resume-cityMunicipality" className={LABEL}>City / Municipality</Label>
-                <Input id="resume-cityMunicipality" value={FIXED_MUNICIPALITY} disabled readOnly className={INPUT} />
-              </div>
-              <div>
-                <Label htmlFor="resume-provinceState" className={LABEL}>Province / State</Label>
-                <Input id="resume-provinceState" value={FIXED_PROVINCE} disabled readOnly className={INPUT} />
-              </div>
-              <div>
-                <Label htmlFor="resume-postalCode" className={LABEL}>Postal Code <span className="font-normal text-muted-foreground">(optional)</span></Label>
-                <Input id="resume-postalCode" inputMode="numeric" maxLength={4} value={form.postalCode} onChange={(e) => set("postalCode", e.target.value)} className={INPUT} />
-              </div>
-            </div>
-          </section>
+            </section>
 
-          <section aria-labelledby="create-resume-education">
-            <h3 id="create-resume-education" className={SECTION}>Education</h3>
-            <div className="mt-3 grid gap-4 sm:grid-cols-2">
-              <div>
-                <Label htmlFor="resume-education-level" className={LABEL}>Education Level</Label>
-                <FormSelect id="resume-education-level" value={education.level} onChange={(e) => setEducation({ ...education, level: e.target.value })} className={INPUT}>
-                  <option value="">Select level</option>
-                  {EDUCATION_LEVELS.map((l) => <option key={l} value={l}>{l}</option>)}
-                </FormSelect>
+            <section aria-labelledby="create-resume-experience">
+              <div className="mb-4 flex items-center justify-between gap-3">
+                <h3 id="create-resume-experience" className={`${HEADING} flex-1`}>Experience</h3>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={experience.length >= MAX_EXPERIENCE}
+                  onClick={() => setExperience((prev) => [...prev, { ...EMPTY_EXPERIENCE }])}
+                >
+                  Add experience
+                </Button>
               </div>
-              <div>
-                <Label htmlFor="resume-education-school" className={LABEL}>School Name</Label>
-                <Input id="resume-education-school" placeholder="School name" value={education.school} onChange={(e) => setEducation({ ...education, school: e.target.value })} className={INPUT} />
+              {experience.length === 0 && (
+                <p className="mb-3 text-xs text-muted-foreground">No work experience added yet.</p>
+              )}
+              <div className="space-y-3">
+                {experience.map((entry, index) => (
+                  <fieldset key={index} className="border-b border-dashed border-border pb-3 last:border-0 last:pb-0">
+                    <legend className="sr-only">Experience {index + 1}</legend>
+                    <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1">
+                      <Label htmlFor={`resume-exp-${index}-jobTitle`} className="sr-only">Job Title</Label>
+                      <Input id={`resume-exp-${index}-jobTitle`} placeholder="Job title" value={entry.jobTitle} onChange={(e) => setEntry(index, "jobTitle", e.target.value)} className={`${FIELD} w-44 font-medium`} />
+                      <span aria-hidden="true" className={DOT}>—</span>
+                      <Label htmlFor={`resume-exp-${index}-company`} className="sr-only">Company</Label>
+                      <Input id={`resume-exp-${index}-company`} placeholder="Company" value={entry.company} onChange={(e) => setEntry(index, "company", e.target.value)} className={`${FIELD} w-40`} />
+                    </div>
+                    <div className="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-1">
+                      <Label htmlFor={`resume-exp-${index}-startDate`} className="sr-only">Start Date</Label>
+                      <Input id={`resume-exp-${index}-startDate`} type="month" value={entry.startDate} onChange={(e) => setEntry(index, "startDate", e.target.value)} className={`${FIELD} w-32 text-xs text-muted-foreground`} />
+                      <span aria-hidden="true" className={DOT}>–</span>
+                      <Label htmlFor={`resume-exp-${index}-endDate`} className="sr-only">End Date (blank = present)</Label>
+                      <Input id={`resume-exp-${index}-endDate`} type="month" value={entry.endDate} onChange={(e) => setEntry(index, "endDate", e.target.value)} className={`${FIELD} w-32 text-xs text-muted-foreground`} />
+                      <span aria-hidden="true" className="text-[11px] text-muted-foreground">blank = present</span>
+                    </div>
+                    <Label htmlFor={`resume-exp-${index}-description`} className="sr-only">Description</Label>
+                    <textarea
+                      id={`resume-exp-${index}-description`}
+                      rows={3}
+                      placeholder="What did you do there?"
+                      value={entry.description}
+                      onChange={(e) => setEntry(index, "description", e.target.value)}
+                      className={`${FIELD} mt-1 h-auto min-h-16 w-full resize-y py-1`}
+                    />
+                    <div className="text-right">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="xs"
+                        className="text-danger hover:text-danger"
+                        onClick={() => setExperience((prev) => prev.filter((_, i) => i !== index))}
+                      >
+                        Remove
+                      </Button>
+                    </div>
+                  </fieldset>
+                ))}
               </div>
-              <div>
-                <Label htmlFor="resume-education-field" className={LABEL}>Course / Field <span className="font-normal text-muted-foreground">(optional)</span></Label>
-                <Input id="resume-education-field" placeholder="Course / field" value={education.field} onChange={(e) => setEducation({ ...education, field: e.target.value })} className={INPUT} />
-              </div>
-              <div>
-                <Label htmlFor="resume-education-year" className={LABEL}>Graduation Year</Label>
-                <Input id="resume-education-year" inputMode="numeric" placeholder="e.g. 2024" disabled={education.studying} value={education.year} onChange={(e) => setEducation({ ...education, year: e.target.value })} className={INPUT} />
-              </div>
-            </div>
-            <Label className="mt-3 flex items-center gap-2 text-xs text-muted-foreground select-none cursor-pointer">
-              <input type="checkbox" checked={education.studying} onChange={(e) => setEducation({ ...education, studying: e.target.checked })} className="size-4 shrink-0 accent-primary" />
-              Currently studying here
-            </Label>
-          </section>
+            </section>
 
-          <section aria-labelledby="create-resume-skills">
-            <h3 id="create-resume-skills" className={SECTION}>Skills</h3>
-            <div className="mt-3">
-              <Label htmlFor="resume-skills" className={LABEL}>Skills</Label>
+            <section aria-labelledby="create-resume-skills">
+              <h3 id="create-resume-skills" className={`${HEADING} mb-4`}>Skills</h3>
+              <Label htmlFor="resume-skills" className="sr-only">Skills</Label>
               <Input
                 id="resume-skills"
                 placeholder="e.g. Welding, Data Entry, Communication"
                 value={form.skills.join(", ")}
                 onChange={(e) => set("skills", e.target.value.split(",").map((s) => s.trim()).filter(Boolean))}
-                className={INPUT}
+                className={`${FIELD} w-full`}
               />
               <p className="mt-1 text-xs text-muted-foreground">Separate skills with commas.</p>
-            </div>
-          </section>
-
-          <section aria-labelledby="create-resume-experience">
-            <div className="flex items-center justify-between gap-3">
-              <h3 id="create-resume-experience" className={SECTION}>Work Experience <span className="font-normal normal-case tracking-normal text-muted-foreground">(optional)</span></h3>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                disabled={experience.length >= MAX_EXPERIENCE}
-                onClick={() => setExperience((prev) => [...prev, { ...EMPTY_EXPERIENCE }])}
-              >
-                Add experience
-              </Button>
-            </div>
-            {experience.length === 0 && (
-              <p className="mt-3 text-xs text-muted-foreground">No work experience added yet.</p>
-            )}
-            <div className="mt-3 space-y-4">
-              {experience.map((entry, index) => (
-                <fieldset key={index} className="rounded-xl border border-border p-4">
-                  <legend className="px-1 font-mono text-xs uppercase tracking-wider text-muted-foreground">Experience {index + 1}</legend>
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    <div>
-                      <Label htmlFor={`resume-exp-${index}-jobTitle`} className={LABEL}>Job Title</Label>
-                      <Input id={`resume-exp-${index}-jobTitle`} value={entry.jobTitle} onChange={(e) => setEntry(index, "jobTitle", e.target.value)} className={INPUT} />
-                    </div>
-                    <div>
-                      <Label htmlFor={`resume-exp-${index}-company`} className={LABEL}>Company</Label>
-                      <Input id={`resume-exp-${index}-company`} value={entry.company} onChange={(e) => setEntry(index, "company", e.target.value)} className={INPUT} />
-                    </div>
-                    <div>
-                      <Label htmlFor={`resume-exp-${index}-startDate`} className={LABEL}>Start Date</Label>
-                      <Input id={`resume-exp-${index}-startDate`} type="month" value={entry.startDate} onChange={(e) => setEntry(index, "startDate", e.target.value)} className={INPUT} />
-                    </div>
-                    <div>
-                      <Label htmlFor={`resume-exp-${index}-endDate`} className={LABEL}>End Date <span className="font-normal text-muted-foreground">(blank = present)</span></Label>
-                      <Input id={`resume-exp-${index}-endDate`} type="month" value={entry.endDate} onChange={(e) => setEntry(index, "endDate", e.target.value)} className={INPUT} />
-                    </div>
-                    <div className="sm:col-span-2">
-                      <Label htmlFor={`resume-exp-${index}-description`} className={LABEL}>Description</Label>
-                      <textarea
-                        id={`resume-exp-${index}-description`}
-                        rows={3}
-                        value={entry.description}
-                        onChange={(e) => setEntry(index, "description", e.target.value)}
-                        className="form-field h-auto min-h-24 w-full py-2"
-                      />
-                    </div>
-                  </div>
-                  <div className="mt-2 text-right">
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      className="text-danger hover:text-danger"
-                      onClick={() => setExperience((prev) => prev.filter((_, i) => i !== index))}
-                    >
-                      Remove
-                    </Button>
-                  </div>
-                </fieldset>
-              ))}
-            </div>
-          </section>
+            </section>
+          </div>
         </div>
 
         <div className="mt-4 flex flex-col gap-3 border-t pt-4 sm:flex-row sm:items-center sm:justify-end">
