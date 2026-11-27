@@ -2,19 +2,16 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import {
   ArrowUpRight,
-  ChevronDown,
   ChevronRight,
   ChevronsLeft,
   ChevronsRight,
   LogOut,
   Menu,
   Search,
-  Settings,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet'
-import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuLabel } from '@/components/ui/dropdown-menu'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { InputGroup, InputGroupInput, InputGroupAddon } from '@/components/ui/input-group'
 import SkipLink from './SkipLink'
@@ -38,7 +35,7 @@ import { getStats } from '../services/admin'
 import { isUnprovisioned } from '../lib/api'
 import { cn } from '@/lib/utils'
 
-export default function TopNavLayout({ role, navItems, profileTo, roleLabel, homeTo, fixedContent = false }) {
+export default function TopNavLayout({ role, navItems, roleLabel, homeTo, fixedContent = false }) {
   const navigate = useNavigate()
   const { pathname, hash } = useLocation()
   const { logout, user, needsProvisioning } = useAuth()
@@ -274,42 +271,22 @@ export default function TopNavLayout({ role, navItems, profileTo, roleLabel, hom
             </button>
             <NotificationBell rows={notificationRows} />
             <span className="hidden h-7 w-px bg-border sm:block" />
-            <DropdownMenu>
-              <DropdownMenuTrigger render={<Button variant="ghost" className="gap-2 px-1.5" />}>
-                <Avatar>
-                  {headerImage && <AvatarImage src={headerImage} alt={user?.role === 'employer' ? 'Company logo' : 'Profile picture'} />}
-                  <AvatarFallback>{initials}</AvatarFallback>
-                </Avatar>
-                <span className="hidden text-left sm:block">
-                  <span className="block text-xs font-medium text-navy">{name.includes('@') ? name : titleCase(name)}</span>
-                  <span className="mt-0.5 block text-micro text-muted-foreground">{label}</span>
-                  {isAdmin && (
-                    <span className="block text-micro text-muted-foreground">{user?.permissions == null ? 'Full administrator' : 'Custom role'}</span>
-                  )}
-                </span>
-                <ChevronDown className="hidden sm:block" />
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuGroup>
-                  <DropdownMenuLabel>Account</DropdownMenuLabel>
-                  <DropdownMenuItem onClick={() => navigate(profileTo || home)}>
-                    <Settings />
-                    Account settings
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => navigate('/')}>
-                    <ArrowUpRight />
-                    Public website
-                  </DropdownMenuItem>
-                </DropdownMenuGroup>
-                <DropdownMenuSeparator />
-                <DropdownMenuGroup>
-                  <DropdownMenuItem onClick={handleLogout}>
-                    <LogOut />
-                    Sign out
-                  </DropdownMenuItem>
-                </DropdownMenuGroup>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <div className="flex items-center gap-2">
+              <Avatar>
+                {headerImage && <AvatarImage src={headerImage} alt={user?.role === 'employer' ? 'Company logo' : 'Profile picture'} />}
+                <AvatarFallback>{initials}</AvatarFallback>
+              </Avatar>
+              <span className="hidden text-left sm:block">
+                <span className="block text-xs font-medium text-navy">{name.includes('@') ? name : titleCase(name)}</span>
+                <span className="mt-0.5 block text-micro text-muted-foreground">{label}</span>
+                {isAdmin && (
+                  <span className="block text-micro text-muted-foreground">{user?.permissions == null ? 'Full administrator' : 'Custom role'}</span>
+                )}
+              </span>
+            </div>
+            <Button variant="ghost" size="icon" className="hover:text-danger" aria-label="Sign out" onClick={handleLogout}>
+              <LogOut />
+            </Button>
           </div>
         </header>
         <main id="main-content" tabIndex={-1} className={cn('w-full flex-1 p-5 sm:p-7 lg:p-8', fixedContent && 'min-h-0 overflow-hidden')}>

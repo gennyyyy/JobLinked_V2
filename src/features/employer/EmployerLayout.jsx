@@ -4,7 +4,6 @@ export default function EmployerLayout() {
   return (
     <TopNavLayout
       role="employer"
-      profileTo="/employer/company"
       roleLabel="Employer"
       homeTo="/employer"
     />

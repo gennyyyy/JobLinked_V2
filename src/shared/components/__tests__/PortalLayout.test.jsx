@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, act, fireEvent } from '@testing-library/react'
+import { render, screen, act, fireEvent, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 
 vi.mock('../../hooks/useAuth', async (importOriginal) => {
@@ -14,12 +14,13 @@ import useAuth from '../../hooks/useAuth'
 import TopNavLayout from '../TopNavLayout'
 
 function renderLayout(path, props = {}) {
-  useAuth.mockReturnValue({ user: { id: 'u1', full_name: 'Gabriel Mendoza', permissions: null }, logout: vi.fn() })
-  return render(
+  const logout = vi.fn().mockResolvedValue()
+  useAuth.mockReturnValue({ user: { id: 'u1', full_name: 'Gabriel Mendoza', permissions: null }, logout })
+  return { ...render(
     <MemoryRouter initialEntries={[path]}>
-      <TopNavLayout role="super-admin" profileTo="/super-admin/profile" roleLabel="PESO Admin" homeTo="/super-admin" {...props} />
+      <TopNavLayout role="super-admin" roleLabel="PESO Admin" homeTo="/super-admin" {...props} />
     </MemoryRouter>,
-  )
+  ), logout }
 }
 
 describe('Portal shell logo target', () => {
@@ -35,12 +36,23 @@ describe('Portal shell AFK modal button order', () => {
     try {
       renderLayout('/super-admin')
       act(() => { vi.advanceTimersByTime(4 * 60 * 1000) })
-      const stay = screen.getByRole('button', { name: /stay signed in/i })
-      const out = screen.getByRole('button', { name: /sign out/i })
+      const dialog = within(screen.getByRole('dialog'))
+      const stay = dialog.getByRole('button', { name: /stay signed in/i })
+      const out = dialog.getByRole('button', { name: /sign out/i })
       expect(stay.compareDocumentPosition(out) & Node.DOCUMENT_POSITION_PRECEDING).toBeTruthy()
     } finally {
       vi.useRealTimers()
     }
+  })
+})
+
+describe('Portal shell sign out', () => {
+  it('renders one Sign out button in the header that ends the session', async () => {
+    const { logout } = renderLayout('/super-admin')
+    const buttons = screen.getAllByRole('button', { name: /sign out/i })
+    expect(buttons).toHaveLength(1)
+    await act(async () => { fireEvent.click(buttons[0]) })
+    expect(logout).toHaveBeenCalledTimes(1)
   })
 })
 
