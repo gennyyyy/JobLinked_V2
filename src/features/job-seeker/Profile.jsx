@@ -24,6 +24,7 @@ import Toast from '@/shared/components/Toast'
 import { TextField, SelectField, Notice, EmptyState, StatusBadge } from '@/shared/components/design'
 import TabbedProfileLayout from '@/shared/components/TabbedProfileLayout'
 import AccountSettings, { PrivacyPanel } from '@/shared/components/AccountSettings'
+import MfaPanel from '@/shared/components/MfaPanel'
 import ChangePassword from '@/shared/components/ChangePassword'
 import { TabsContent } from '@/components/ui/tabs'
 import { FIXED_MUNICIPALITY, FIXED_POSTAL_CODE, FIXED_PROVINCE, NATIONALITIES, SANTA_MARIA_BARANGAYS } from '@/shared/constants'
@@ -823,6 +824,7 @@ function Profile() {
             <TabsContent value="account">
               <AccountSettings embedded showPrivacy={false}>
                 <ChangePassword embedded />
+                <MfaPanel />
               </AccountSettings>
             </TabsContent>
       </TabbedProfileLayout>
