@@ -53,7 +53,7 @@ function ChangePassword({ embedded = false }) {
     <Panel id="password-settings" title="Credentials" description="Your login email and password." size={embedded ? "sm" : "default"}>
       {message && <Flash className="mb-4">{message}</Flash>}
       {error && <Flash variant="error" className="mb-4">{error}</Flash>}
-      <PasswordForm onSubmit={embedded ? undefined : handleSubmit} onKeyDown={handleEmbeddedKeyDown} className={`flex max-w-xl flex-col ${embedded ? "gap-2" : "gap-5"}`}>
+      <PasswordForm onSubmit={embedded ? undefined : handleSubmit} onKeyDown={handleEmbeddedKeyDown} className={`flex max-w-xl flex-col ${embedded ? "gap-2.5" : "gap-5"}`}>
         <TextField
           label={<span>Login Email <span className="text-xs font-normal text-muted-foreground">(read only)</span></span>}
           name="loginEmail"
