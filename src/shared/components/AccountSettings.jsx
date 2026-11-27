@@ -201,16 +201,12 @@ export default function AccountSettings({ embedded = false, children, childrenBe
           </section>
         ) : null
       ) : (
-        <div className="grid items-start gap-6 xl:grid-cols-[1.25fr_1fr]">
-          <div className="flex min-w-0 flex-col gap-6">
-            {accountOverviewPanel()}
-            {embedded ? notificationsPanel() : showPrivacy && <PrivacyPanel />}
-          </div>
-          <div className="flex min-w-0 flex-col gap-6">
-            {!embedded && notificationsPanel()}
-            {!childrenBelow && children}
-            {user?.role && user?.role !== 'super-admin' && <DangerZonePanel />}
-          </div>
+        <div className="columns-1 gap-6 xl:columns-2 [&>*]:mb-6 [&>*]:break-inside-avoid">
+          {accountOverviewPanel()}
+          {embedded ? notificationsPanel() : showPrivacy && <PrivacyPanel />}
+          {!embedded && notificationsPanel()}
+          {!childrenBelow && children}
+          {user?.role && user?.role !== 'super-admin' && <DangerZonePanel />}
         </div>
       )}
       {childrenBelow && <div className="mt-4">{children}</div>}
