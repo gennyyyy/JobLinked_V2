@@ -183,7 +183,7 @@ export default function TopNavLayout({ role, navItems, profileTo, roleLabel, hom
 
   const sidebar = (small = false) => (
     <div className="flex h-full flex-col">
-      <div className={cn('flex h-[85px] items-center px-6', collapsed && !small && 'justify-center px-0')}>
+      <div className={cn('flex h-[85px] items-center px-6 transition-[padding] duration-300 ease-out', collapsed && !small && 'justify-center px-0')}>
         <Logo compact={collapsed && !small} />
       </div>
       <nav className="flex flex-1 flex-col gap-1 overflow-y-auto px-3" aria-label={`${label} navigation`}>
@@ -237,7 +237,7 @@ export default function TopNavLayout({ role, navItems, profileTo, roleLabel, hom
   return (
     <div className={cn('min-h-screen bg-muted/70', fixedContent && 'h-screen overflow-hidden')}>
       <SkipLink />
-      <aside className={cn('fixed inset-y-0 left-0 z-30 hidden border-r bg-white transition-[width] lg:block', collapsed ? 'w-[82px]' : 'w-[248px]')}>
+      <aside className={cn('fixed inset-y-0 left-0 z-30 hidden border-r bg-white transition-[width] duration-300 ease-out lg:block', collapsed ? 'w-[82px]' : 'w-[248px]')}>
         {sidebar()}
       </aside>
       <Sheet open={mobile} onOpenChange={setMobile}>
@@ -249,7 +249,7 @@ export default function TopNavLayout({ role, navItems, profileTo, roleLabel, hom
           {sidebar(true)}
         </SheetContent>
       </Sheet>
-      <div className={cn('flex min-h-screen flex-col transition-[margin]', collapsed ? 'lg:ml-[82px]' : 'lg:ml-[248px]', fixedContent && 'h-screen min-h-0 overflow-hidden')}>
+      <div className={cn('flex min-h-screen flex-col transition-[margin] duration-300 ease-out', collapsed ? 'lg:ml-[82px]' : 'lg:ml-[248px]', fixedContent && 'h-screen min-h-0 overflow-hidden')}>
         <header className="sticky top-0 z-20 flex h-[74px] shrink-0 items-center justify-between gap-3 border-b bg-white/95 px-5 backdrop-blur-sm lg:px-8">
           <div className="flex min-w-0 items-center gap-4">
             <Button variant="ghost" size="icon" className="hidden lg:inline-flex" aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'} onClick={() => setCollapsed((v) => !v)}>
